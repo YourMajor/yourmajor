@@ -1,0 +1,506 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  ADMIN
+  PLAYER
+}
+
+enum TournamentStatus {
+  REGISTRATION
+  ACTIVE
+  COMPLETED
+}
+
+enum HandicapSystem {
+  NONE
+  WHS
+  STABLEFORD
+  CALLAWAY
+  PEORIA
+}
+
+enum TeeMode {
+  UNIFORM
+  CUSTOM
+}
+
+enum PowerupType {
+  BOOST
+  ATTACK
+}
+
+enum DraftFormat {
+  LINEAR
+  SNAKE
+}
+
+enum DraftTiming {
+  PRE_TOURNAMENT
+  PRE_ROUND
+}
+
+enum DraftStatus {
+  PENDING
+  ACTIVE
+  COMPLETED
+}
+
+enum NotificationType {
+  ATTACK_RECEIVED
+  DRAFT_YOUR_TURN
+  ROUND_STARTED
+  TOURNAMENT_INVITE
+  POWERUP_USED
+  DRAFT_STARTED
+  DRAFT_COMPLETED
+}
+
+enum PlayerPowerupStatus {
+  AVAILABLE
+  ACTIVE
+  USED
+}
+
+enum DistributionMode {
+  DRAFT
+  RANDOM
+}
+
+enum TournamentType {
+  PUBLIC
+  OPEN
+  INVITE
+}
+
+// ─── Auth (NextAuth adapter) ──────────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  role          Role      @default(PLAYER)
+  createdAt     DateTime  @default(now())
+
+  accounts          Account[]
+  sessions          Session[]
+  profile           PlayerProfile?
+  tournamentPlayers TournamentPlayer[]
+  invitations       Invitation[]
+  standaloneRounds  StandaloneRound[]
+  messages          TournamentMessage[]
+  photos            TournamentPhoto[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String?
+  access_token      String?
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String?
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// ─── Player Profile ───────────────────────────────────────────────────────────
+
+model PlayerProfile {
+  id          String  @id @default(cuid())
+  userId      String  @unique
+  displayName String?
+  avatar      String?
+  handicap    Float   @default(0)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Tournament ───────────────────────────────────────────────────────────────
+
+model Tournament {
+  id                 String           @id @default(cuid())
+  slug               String           @unique
+  joinCode           String?          @unique
+  name               String
+  description        String?
+  logo               String?
+  headerImage        String?
+  primaryColor       String           @default("#006747")
+  accentColor        String           @default("#C9A84C")
+  status             TournamentStatus @default(REGISTRATION)
+  tournamentType     TournamentType   @default(OPEN)
+  isOpenRegistration Boolean          @default(false)
+  handicapSystem     HandicapSystem   @default(WHS)
+  powerupsEnabled      Boolean          @default(false)
+  powerupsPerPlayer    Int              @default(3)
+  maxAttacksPerPlayer  Int              @default(1)
+  distributionMode     DistributionMode @default(DRAFT)
+  startDate            DateTime?
+  endDate            DateTime?
+  createdAt          DateTime         @default(now())
+
+  // ── Renewal chain ──
+  parentTournamentId String?
+  parentTournament   Tournament?  @relation("TournamentRenewal", fields: [parentTournamentId], references: [id])
+  childTournaments   Tournament[] @relation("TournamentRenewal")
+  championUserId     String?
+  championName       String?
+
+  rounds             TournamentRound[]
+  players            TournamentPlayer[]
+  invitations        Invitation[]
+  tournamentPowerups TournamentPowerup[]
+  draft              Draft?
+  messages           TournamentMessage[]
+  photos             TournamentPhoto[]
+}
+
+model TournamentRound {
+  id           String    @id @default(cuid())
+  tournamentId String
+  roundNumber  Int
+  date         DateTime?
+  courseId     String
+  teeMode      TeeMode   @default(UNIFORM)
+
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  course          Course           @relation(fields: [courseId], references: [id])
+  scores          Score[]
+  roundPlayerTees RoundPlayerTee[]
+  roundHoleTees   RoundHoleTee[]
+  playerPowerups  PlayerPowerup[]
+
+  @@unique([tournamentId, roundNumber])
+}
+
+// ─── Course ───────────────────────────────────────────────────────────────────
+
+model Course {
+  id         String  @id @default(cuid())
+  externalId String? @unique
+  name       String
+  location   String?
+  latitude   Float?
+  longitude  Float?
+  par        Int     @default(72)
+  isCustom   Boolean @default(false)
+
+  holes            Hole[]
+  teeOptions       TeeOption[]
+  rounds           TournamentRound[]
+  standaloneRounds StandaloneRound[]
+}
+
+model Hole {
+  id        String @id @default(cuid())
+  courseId  String
+  number    Int
+  par       Int
+  handicap  Int?
+
+  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  yardages         HoleYardage[]
+  scores           Score[]
+  standaloneScores StandaloneScore[]
+
+  @@unique([courseId, number])
+}
+
+model TeeOption {
+  id       String @id @default(cuid())
+  courseId String
+  name     String
+  color    String?
+
+  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  yardages        HoleYardage[]
+  standaloneRounds StandaloneRound[]
+  roundPlayerTees  RoundPlayerTee[]
+  roundHoleTees    RoundHoleTee[]
+}
+
+model HoleYardage {
+  id          String @id @default(cuid())
+  holeId      String
+  teeOptionId String
+  yards       Int
+
+  hole      Hole      @relation(fields: [holeId], references: [id], onDelete: Cascade)
+  teeOption TeeOption @relation(fields: [teeOptionId], references: [id], onDelete: Cascade)
+
+  @@unique([holeId, teeOptionId])
+}
+
+// ─── Round Tee Assignments ─────────────────────────────────────────────────────
+
+model RoundPlayerTee {
+  id                 String @id @default(cuid())
+  roundId            String
+  tournamentPlayerId String
+  teeOptionId        String
+
+  round            TournamentRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+  teeOption        TeeOption        @relation(fields: [teeOptionId], references: [id])
+
+  @@unique([roundId, tournamentPlayerId])
+}
+
+model RoundHoleTee {
+  id          String @id @default(cuid())
+  roundId     String
+  holeNumber  Int
+  teeOptionId String
+
+  round     TournamentRound @relation(fields: [roundId], references: [id], onDelete: Cascade)
+  teeOption TeeOption       @relation(fields: [teeOptionId], references: [id])
+
+  @@unique([roundId, holeNumber])
+}
+
+// ─── Tournament Players ───────────────────────────────────────────────────────
+
+model TournamentPlayer {
+  id               String    @id @default(cuid())
+  tournamentId     String
+  userId           String
+  tee              String?
+  handicap         Float     @default(0)
+  isAdmin          Boolean   @default(false)
+  createdAt        DateTime  @default(now())
+
+  tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scores          Score[]
+  playerPowerups  PlayerPowerup[]
+  draftPicks      DraftPick[]
+  notifications   Notification[]
+  roundPlayerTees RoundPlayerTee[]
+
+  @@unique([tournamentId, userId])
+}
+
+model Invitation {
+  id           String    @id @default(cuid())
+  tournamentId String
+  email        String
+  phone        String?
+  token        String    @unique @default(cuid())
+  userId       String?
+  acceptedAt   DateTime?
+  createdAt    DateTime  @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User?      @relation(fields: [userId], references: [id])
+}
+
+// ─── Scoring ──────────────────────────────────────────────────────────────────
+
+model Score {
+  id                 String   @id @default(cuid())
+  tournamentPlayerId String
+  holeId             String
+  roundId            String
+  strokes            Int
+  fairwayHit         Boolean?
+  gir                Boolean?
+  putts              Int?
+  submittedAt        DateTime @default(now())
+
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+  hole             Hole             @relation(fields: [holeId], references: [id])
+  round            TournamentRound  @relation(fields: [roundId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentPlayerId, holeId, roundId])
+  @@index([tournamentPlayerId, roundId])
+  @@index([roundId])
+}
+
+// ─── Powerup System ───────────────────────────────────────────────────────────
+
+model Powerup {
+  id          String      @id @default(cuid())
+  slug        String      @unique
+  name        String
+  type        PowerupType
+  description String
+  effect      Json
+
+  tournamentPowerups TournamentPowerup[]
+  playerPowerups     PlayerPowerup[]
+  draftPicks         DraftPick[]
+}
+
+model TournamentPowerup {
+  id           String @id @default(cuid())
+  tournamentId String
+  powerupId    String
+  quantity     Int    @default(1)
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  powerup    Powerup    @relation(fields: [powerupId], references: [id])
+
+  @@unique([tournamentId, powerupId])
+}
+
+model PlayerPowerup {
+  id                 String              @id @default(cuid())
+  tournamentPlayerId String
+  powerupId          String
+  usedAt             DateTime?
+  targetPlayerId     String?
+  roundId            String?
+  holeNumber         Int?
+  scoreModifier      Int?
+  status             PlayerPowerupStatus @default(AVAILABLE)
+  metadata           Json?
+
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+  powerup          Powerup          @relation(fields: [powerupId], references: [id])
+  round            TournamentRound? @relation(fields: [roundId], references: [id])
+
+  @@index([tournamentPlayerId])
+}
+
+// ─── Draft ────────────────────────────────────────────────────────────────────
+
+model Draft {
+  id           String      @id @default(cuid())
+  tournamentId String      @unique
+  format       DraftFormat @default(SNAKE)
+  timing       DraftTiming @default(PRE_TOURNAMENT)
+  status       DraftStatus @default(PENDING)
+  draftOrder   Json?
+  currentPick  Int         @default(0)
+  createdAt    DateTime    @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  picks      DraftPick[]
+}
+
+model DraftPick {
+  id                 String @id @default(cuid())
+  draftId            String
+  tournamentPlayerId String
+  powerupId          String
+  pickNumber         Int
+  roundNumber        Int?
+
+  draft            Draft            @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+  powerup          Powerup          @relation(fields: [powerupId], references: [id])
+
+  @@index([draftId])
+}
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id                 String           @id @default(cuid())
+  tournamentPlayerId String
+  type               NotificationType
+  payload            Json
+  readAt             DateTime?
+  createdAt          DateTime         @default(now())
+
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentPlayerId])
+}
+
+// ─── Tournament Chat & Photos ─────────────────────────────────────────────────
+
+model TournamentMessage {
+  id           String   @id @default(cuid())
+  tournamentId String
+  userId       String
+  content      String
+  isSystem     Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
+}
+
+model TournamentPhoto {
+  id           String   @id @default(cuid())
+  tournamentId String
+  userId       String
+  url          String
+  caption      String?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+// ─── Standalone Rounds ────────────────────────────────────────────────────────
+
+model StandaloneRound {
+  id                  String    @id @default(cuid())
+  userId              String
+  courseId            String?
+  selectedTeeOptionId String?
+  playedAt            DateTime  @default(now())
+  notes               String?
+
+  user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  course            Course?           @relation(fields: [courseId], references: [id])
+  selectedTeeOption TeeOption?        @relation(fields: [selectedTeeOptionId], references: [id])
+  scores            StandaloneScore[]
+}
+
+model StandaloneScore {
+  id                String   @id @default(cuid())
+  standaloneRoundId String
+  holeNumber        Int
+  holeId            String?
+  par               Int      @default(4)
+  strokes           Int
+  fairwayHit        Boolean?
+  gir               Boolean?
+  putts             Int?
+  submittedAt       DateTime @default(now())
+
+  round StandaloneRound @relation(fields: [standaloneRoundId], references: [id], onDelete: Cascade)
+  hole  Hole?           @relation(fields: [holeId], references: [id])
+
+  @@unique([standaloneRoundId, holeNumber])
+}

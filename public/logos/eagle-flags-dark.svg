@@ -1,0 +1,44 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-85 -95 170 170" role="img" aria-label="YourMajor Eagle Flags - Dark">
+
+  <defs>
+    <clipPath id="poleClipD">
+      <circle cx="0" cy="10" r="52"/>
+    </clipPath>
+  </defs>
+
+  <!-- === LEFT FLAG — lightest grey === -->
+  <g clip-path="url(#poleClipD)">
+    <g transform="translate(-22, 15) scale(1.4)">
+      <line x1="0" y1="35" x2="0" y2="-32" stroke="#e8e8e8" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g transform="translate(-22, 15) scale(1.4)">
+    <circle cx="0" cy="-32" r="3" fill="#e8e8e8"/>
+    <path d="M 0,-29 C 8,-32 18,-25 28,-28 C 35,-30 39,-26 42,-22 C 36,-20 28,-23 20,-18 C 12,-14 5,-17 0,-14 Z" fill="#e8e8e8"/>
+  </g>
+
+  <!-- Inner gold circle — brighter -->
+  <circle cx="0" cy="10" r="41" fill="none" stroke="#DDB94E" stroke-width="5.5"/>
+
+  <!-- === RIGHT FLAG — medium grey === -->
+  <g clip-path="url(#poleClipD)">
+    <g transform="translate(22, 15) scale(1.4)">
+      <line x1="0" y1="35" x2="0" y2="-32" stroke="#888888" stroke-width="3.5" stroke-linecap="round"/>
+    </g>
+  </g>
+  <g transform="translate(22, 15) scale(1.4)">
+    <circle cx="0" cy="-32" r="3" fill="#888888"/>
+    <path d="M 0,-29 C 8,-32 18,-25 28,-28 C 35,-30 39,-26 42,-22 C 36,-20 28,-23 20,-18 C 12,-14 5,-17 0,-14 Z" fill="#888888"/>
+  </g>
+
+  <!-- Outer gold circle — brighter -->
+  <circle cx="0" cy="10" r="52" fill="none" stroke="#DDB94E" stroke-width="5.5"/>
+
+  <!-- === CENTER FLAG — pure white, fully on top === -->
+  <g transform="translate(0, 10) scale(1.4)">
+    <line x1="0" y1="35" x2="0" y2="-37" stroke="#FFFFFF" stroke-width="3.8" stroke-linecap="round"/>
+    <circle cx="0" cy="-37" r="3.2" fill="#FFFFFF"/>
+    <path d="M 0,-34 C 9,-37 20,-29 30,-33 C 39,-35 44,-31 48,-27 C 41,-25 30,-28 22,-23 C 13,-19 5,-22 0,-19 Z" fill="#FFFFFF"/>
+  </g>
+
+</svg>
