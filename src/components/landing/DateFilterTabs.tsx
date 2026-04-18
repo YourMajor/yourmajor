@@ -19,7 +19,7 @@ export function DateFilterTabs({ availableMonths, activeMonth, onMonthChange }: 
             className="text-xs uppercase tracking-wider font-semibold px-4 py-2
               rounded-none border-b-2 border-transparent
               text-muted-foreground
-              data-[state=active]:border-[oklch(0.72_0.11_78)]
+              data-[state=active]:border-accent
               data-[state=active]:text-foreground
               data-[state=active]:bg-transparent
               data-[state=active]:shadow-none"

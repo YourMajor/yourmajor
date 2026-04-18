@@ -1,9 +1,9 @@
 'use client'
 
 import { useEffect, useState, useMemo } from 'react'
-import { MapPinOff, Loader2 } from 'lucide-react'
+import { MapPin, MapPinOff, Loader2 } from 'lucide-react'
 import { DateFilterTabs } from './DateFilterTabs'
-import { TournamentImageCard } from './TournamentImageCard'
+import { LandingTournamentCard } from './LandingTournamentCard'
 
 type NearbyTournament = {
   id: string
@@ -80,34 +80,31 @@ export function NearbyTournamentsSection() {
   const isLoading = state === 'idle' || state === 'locating' || state === 'loading'
 
   return (
-    <section className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
-      {/* Section header */}
-      <div className="text-center mb-10">
-        <h2 className="font-heading text-2xl sm:text-3xl font-bold tracking-tight">
-          Nearby Tournaments
-        </h2>
-        <p className="text-muted-foreground mt-2 text-sm sm:text-base">
-          Open tournaments close to you
-        </p>
-        <div className="w-12 h-0.5 rounded-full bg-accent mx-auto mt-4" />
+    <section className="space-y-3">
+      <div className="flex items-center gap-2">
+        <MapPin className="w-4 h-4 text-muted-foreground" />
+        <h2 className="font-heading font-semibold text-lg">Nearby Tournaments</h2>
       </div>
+      <p className="text-sm text-muted-foreground">
+        Open tournaments close to you
+      </p>
 
       {isLoading && (
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-12">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           {state === 'loading' ? 'Finding nearby tournaments\u2026' : 'Getting your location\u2026'}
         </div>
       )}
 
       {state === 'denied' && (
-        <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground py-12">
+        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
           <MapPinOff className="w-4 h-4" />
           Enable location access to see tournaments near you.
         </div>
       )}
 
       {state === 'error' && (
-        <p className="text-sm text-muted-foreground py-12 text-center">
+        <p className="text-sm text-muted-foreground py-2">
           Couldn&apos;t load nearby tournaments. Try again later.
         </p>
       )}
@@ -115,7 +112,7 @@ export function NearbyTournamentsSection() {
       {state === 'done' && (
         <>
           {tournaments.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-3">
               {availableMonths.length > 2 && (
                 <DateFilterTabs
                   availableMonths={availableMonths}
@@ -125,9 +122,9 @@ export function NearbyTournamentsSection() {
               )}
 
               {filtered.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                <div className="space-y-3">
                   {filtered.map((t, i) => (
-                    <TournamentImageCard
+                    <LandingTournamentCard
                       key={t.id}
                       slug={t.slug}
                       name={t.name}
@@ -142,17 +139,17 @@ export function NearbyTournamentsSection() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground py-4 text-center">
+                <p className="text-sm text-muted-foreground py-2">
                   No nearby tournaments in this month.
                 </p>
               )}
 
-              <p className="text-xs text-muted-foreground text-center mt-4">
+              <p className="text-xs text-muted-foreground">
                 Showing open tournaments within 50 km
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-4 text-center">
+            <p className="text-sm text-muted-foreground py-2">
               No open tournaments within 50 km of your location.
             </p>
           )}

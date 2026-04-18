@@ -12,13 +12,10 @@ export default async function Home() {
     <main>
       <HeroSection />
 
-      <div className="section-gold-rule max-w-xs mx-auto" />
-
-      <FeaturedTournaments />
-
-      <div className="section-gold-rule max-w-xs mx-auto" />
-
-      <NearbyTournamentsSection />
+      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-6 space-y-10">
+        <FeaturedTournaments />
+        <NearbyTournamentsSection />
+      </div>
     </main>
   )
 }

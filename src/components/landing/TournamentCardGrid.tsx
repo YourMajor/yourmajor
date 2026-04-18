@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import { DateFilterTabs } from './DateFilterTabs'
-import { TournamentImageCard } from './TournamentImageCard'
+import { LandingTournamentCard } from './LandingTournamentCard'
 
 interface TournamentData {
   id: string
@@ -61,9 +61,9 @@ export function TournamentCardGrid({ tournaments, emptyMessage }: TournamentCard
       )}
 
       {filtered.length > 0 ? (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="space-y-3">
           {filtered.map((t, i) => (
-            <TournamentImageCard
+            <LandingTournamentCard
               key={t.id}
               slug={t.slug}
               name={t.name}
