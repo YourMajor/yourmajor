@@ -1,4 +1,5 @@
 import { redirect } from 'next/navigation'
+import { headers } from 'next/headers'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/server'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -11,11 +12,17 @@ async function signIn(formData: FormData) {
   'use server'
   const email = formData.get('email') as string
   if (!email) return
+
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host') ?? 'localhost:3000'
+  const proto = h.get('x-forwarded-proto') ?? 'https'
+  const origin = `${proto}://${host}`
+
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${process.env.NEXTAUTH_URL}/api/auth/callback`,
+      emailRedirectTo: `${origin}/api/auth/callback`,
     },
   })
   if (error) redirect('/auth/login?error=1')
