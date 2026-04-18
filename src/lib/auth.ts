@@ -3,10 +3,14 @@ import { prisma } from '@/lib/prisma'
 import type { User } from '../generated/prisma/client'
 
 export async function getUser(): Promise<User | null> {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return null
-  return prisma.user.findUnique({ where: { email: user.email } })
+  try {
+    const supabase = await createClient()
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user?.email) return null
+    return prisma.user.findUnique({ where: { email: user.email } })
+  } catch {
+    return null
+  }
 }
 
 export async function requireAuth(): Promise<User> {

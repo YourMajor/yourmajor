@@ -3,25 +3,30 @@ import { prisma } from '@/lib/prisma'
 import { TournamentCardGrid } from './TournamentCardGrid'
 
 export async function FeaturedTournaments() {
-  const tournaments = await prisma.tournament.findMany({
-    where: {
-      isOpenRegistration: true,
-      status: { in: ['REGISTRATION', 'ACTIVE'] },
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      description: true,
-      logo: true,
-      status: true,
-      startDate: true,
-      endDate: true,
-      _count: { select: { players: true } },
-    },
-    orderBy: { startDate: 'asc' },
-    take: 9,
-  })
+  let tournaments: Awaited<ReturnType<typeof prisma.tournament.findMany<any>>>
+  try {
+    tournaments = await prisma.tournament.findMany({
+      where: {
+        isOpenRegistration: true,
+        status: { in: ['REGISTRATION', 'ACTIVE'] },
+      },
+      select: {
+        id: true,
+        slug: true,
+        name: true,
+        description: true,
+        logo: true,
+        status: true,
+        startDate: true,
+        endDate: true,
+        _count: { select: { players: true } },
+      },
+      orderBy: { startDate: 'asc' },
+      take: 9,
+    })
+  } catch {
+    tournaments = []
+  }
 
   const serialized = tournaments.map((t) => ({
     id: t.id,
