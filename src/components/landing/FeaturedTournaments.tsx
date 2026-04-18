@@ -2,10 +2,9 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { TournamentCardGrid } from './TournamentCardGrid'
 
-export async function FeaturedTournaments() {
-  let tournaments: Awaited<ReturnType<typeof prisma.tournament.findMany<any>>>
+async function fetchFeatured() {
   try {
-    tournaments = await prisma.tournament.findMany({
+    const tournaments = await prisma.tournament.findMany({
       where: {
         isOpenRegistration: true,
         status: { in: ['REGISTRATION', 'ACTIVE'] },
@@ -24,21 +23,24 @@ export async function FeaturedTournaments() {
       orderBy: { startDate: 'asc' },
       take: 9,
     })
+    return tournaments.map((t) => ({
+      id: t.id,
+      slug: t.slug,
+      name: t.name,
+      description: t.description,
+      logo: t.logo,
+      status: t.status,
+      startDate: t.startDate?.toISOString() ?? null,
+      endDate: t.endDate?.toISOString() ?? null,
+      playerCount: t._count.players,
+    }))
   } catch {
-    tournaments = []
+    return []
   }
+}
 
-  const serialized = tournaments.map((t) => ({
-    id: t.id,
-    slug: t.slug,
-    name: t.name,
-    description: t.description,
-    logo: t.logo,
-    status: t.status,
-    startDate: t.startDate?.toISOString() ?? null,
-    endDate: t.endDate?.toISOString() ?? null,
-    playerCount: t._count.players,
-  }))
+export async function FeaturedTournaments() {
+  const serialized = await fetchFeatured()
 
   return (
     <section className="max-w-6xl mx-auto px-6 py-16 sm:py-20">
