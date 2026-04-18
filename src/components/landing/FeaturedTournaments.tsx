@@ -1,8 +1,7 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
-import { Trophy } from 'lucide-react'
+import { Trophy, PlusCircle } from 'lucide-react'
 import { TournamentCardGrid } from './TournamentCardGrid'
 
 async function fetchFeatured() {
@@ -72,10 +71,11 @@ export async function FeaturedTournaments() {
             </p>
             <Link
               href="/auth/login"
-              className={buttonVariants({ size: 'sm' }) + ' mt-4'}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors mt-4"
               style={{ backgroundColor: 'var(--primary)', color: 'white' }}
             >
-              Sign in
+              <PlusCircle className="w-4 h-4" />
+              Create Tournament
             </Link>
           </CardContent>
         </Card>

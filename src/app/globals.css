@@ -169,19 +169,27 @@
 
 /* ── Landing page hero ──────────────────────────────── */
 .landing-hero {
-  background: linear-gradient(
+  background-color: oklch(0.22 0.06 255);
+  background-image: linear-gradient(
     175deg,
-    oklch(0.25 0.08 255) 0%,
-    oklch(0.30 0.08 255) 40%,
-    oklch(0.28 0.07 250) 70%,
-    oklch(0.22 0.06 255) 100%
+    oklch(0.22 0.08 255) 0%,
+    oklch(0.26 0.08 255) 40%,
+    oklch(0.24 0.07 250) 70%,
+    oklch(0.20 0.06 255) 100%
   );
 }
 
 .landing-hero-pattern {
   background-image:
-    radial-gradient(circle at 20% 80%, oklch(0.72 0.11 78 / 0.08) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, oklch(0.72 0.11 78 / 0.06) 0%, transparent 40%);
+    radial-gradient(circle at 20% 80%, oklch(0.72 0.11 78 / 0.10) 0%, transparent 50%),
+    radial-gradient(circle at 80% 20%, oklch(0.72 0.11 78 / 0.08) 0%, transparent 40%),
+    linear-gradient(
+      175deg,
+      oklch(0.22 0.08 255) 0%,
+      oklch(0.26 0.08 255) 40%,
+      oklch(0.24 0.07 250) 70%,
+      oklch(0.20 0.06 255) 100%
+    );
 }
 
 /* ── Tournament card placeholder images ─────────────── */
