@@ -45,3 +45,4 @@ jobs:
           NEXTAUTH_URL: "http://localhost:3000"
           NEXTAUTH_SECRET: "fake-secret-for-ci"
           NEXT_PUBLIC_MAPBOX_TOKEN: "fake"
+          STRIPE_SECRET_KEY: "sk_test_fake"
