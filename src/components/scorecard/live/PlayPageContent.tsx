@@ -21,7 +21,7 @@ function useIsMobile() {
   const [isMobile, setIsMobile] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(max-width: 768px)')
-    setIsMobile(mq.matches)
+    queueMicrotask(() => setIsMobile(mq.matches))
     const handler = (e: MediaQueryListEvent) => setIsMobile(e.matches)
     mq.addEventListener('change', handler)
     return () => mq.removeEventListener('change', handler)
@@ -44,7 +44,7 @@ export function PlayPageContent({
 
   // Default: mobile → live, desktop → table
   useEffect(() => {
-    if (view === null) setView(isMobile ? 'live' : 'table')
+    if (view === null) queueMicrotask(() => setView(isMobile ? 'live' : 'table'))
   }, [isMobile, view])
 
   // Don't render until we know the view (avoids SSR mismatch)

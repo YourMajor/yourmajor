@@ -105,7 +105,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
     return () => clearInterval(id)
   }, [status, refresh])
 
-  const sorted = [...standings].sort((a, b) => {
+  const sorted = useMemo(() => [...standings].sort((a, b) => {
     if (isStableford) {
       if (a.points === null && b.points === null) return 0
       if (a.points === null) return 1
@@ -118,24 +118,27 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
     if (av === null) return 1
     if (bv === null) return -1
     return av - bv
-  })
+  }), [standings, isStableford, scoreType])
 
   type Ranked = PlayerStanding & { displayRank: string }
-  const withRanks: Ranked[] = []
-  for (let i = 0; i < sorted.length; i++) {
-    const p = sorted[i]
-    const val = isStableford ? p.points : scoreType === 'net' ? p.netVsPar : p.grossVsPar
-    const prev = i > 0 ? withRanks[i - 1] : null
-    const prevVal = prev
-      ? (isStableford ? prev.points : scoreType === 'net' ? prev.netVsPar : prev.grossVsPar)
-      : null
-    const nextVal = i < sorted.length - 1
-      ? (isStableford ? sorted[i + 1].points : scoreType === 'net' ? sorted[i + 1].netVsPar : sorted[i + 1].grossVsPar)
-      : null
-    const rank = i === 0 ? 1 : prevVal === val ? parseInt(prev!.displayRank.replace('T', '')) : i + 1
-    const isTied = val !== null && (prevVal === val || nextVal === val)
-    withRanks.push({ ...p, displayRank: isTied ? `T${rank}` : `${rank}` })
-  }
+  const withRanks: Ranked[] = useMemo(() => {
+    const result: Ranked[] = []
+    for (let i = 0; i < sorted.length; i++) {
+      const p = sorted[i]
+      const val = isStableford ? p.points : scoreType === 'net' ? p.netVsPar : p.grossVsPar
+      const prev = i > 0 ? result[i - 1] : null
+      const prevVal = prev
+        ? (isStableford ? prev.points : scoreType === 'net' ? prev.netVsPar : prev.grossVsPar)
+        : null
+      const nextVal = i < sorted.length - 1
+        ? (isStableford ? sorted[i + 1].points : scoreType === 'net' ? sorted[i + 1].netVsPar : sorted[i + 1].grossVsPar)
+        : null
+      const rank = i === 0 ? 1 : prevVal === val ? parseInt(prev!.displayRank.replace('T', '')) : i + 1
+      const isTied = val !== null && (prevVal === val || nextVal === val)
+      result.push({ ...p, displayRank: isTied ? `T${rank}` : `${rank}` })
+    }
+    return result
+  }, [sorted, isStableford, scoreType])
 
   const hasScores = standings.some((s) => s.holesPlayed > 0)
   const showingRound = roundFilter !== 'all' ? Number(roundFilter) : null

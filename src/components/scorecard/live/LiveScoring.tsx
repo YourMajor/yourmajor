@@ -10,11 +10,10 @@ import { HoleScoring } from './HoleScoring'
 import { HoleOverview } from './HoleOverview'
 import { RoundSummary } from './RoundSummary'
 import { NotificationPopup } from '@/components/notifications/NotificationPopup'
-import type { HoleData, ExistingScore, ActivePowerup } from './useLiveScoringState'
+import type { HoleData, ExistingScore } from './useLiveScoringState'
 import type { PlayerPowerupData } from './PowerupTray'
 import type { PowerupEffect } from '@/lib/powerup-engine'
 import { isVariablePowerup } from '@/lib/powerup-engine'
-import type { VariablePowerupState } from './VariablePowerupBanner'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -43,14 +42,14 @@ interface LiveScoringProps {
     holeNumber: number | null
     roundId: string | null
     scoreModifier: number | null
-    metadata?: any
+    metadata?: Record<string, unknown>
     powerup: {
       id: string
       slug: string
       name: string
       type: 'BOOST' | 'ATTACK'
       description: string
-      effect: any
+      effect: PowerupEffect
     }
   }>
   attacksReceived?: Array<{
@@ -63,7 +62,7 @@ interface LiveScoringProps {
       name: string
       type: 'BOOST' | 'ATTACK'
       description: string
-      effect: any
+      effect: PowerupEffect
     }
     tournamentPlayer: { user: { name: string | null } }
   }>
@@ -469,7 +468,6 @@ export function LiveScoring({
                 onDecrementPutts={state.decrementPutts}
                 onToggleFairway={state.toggleFairwayHit}
                 onToggleGir={state.toggleGir}
-                onTogglePowerup={state.togglePowerup}
                 onActivatePowerup={handleActivatePowerup}
                 onPrev={state.prevHole}
                 onNext={state.nextHole}

@@ -98,16 +98,12 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       : `${fullHoles} Worst Hole${fullHoles !== 1 ? 's' : ''}`
 
     const deductedHoles: DeductedHole[] = []
-    let subtotal = 0
-
     for (let i = 0; i < fullHoles && i < eligible.length; i++) {
-      subtotal += eligible[i].capped
       deductedHoles.push({ ...eligible[i], deductedAmount: eligible[i].capped })
     }
     const halfHoleIndex = hasHalf && eligible[fullHoles] ? deductedHoles.length : -1
     if (hasHalf && eligible[fullHoles]) {
       const halfVal = Math.floor(eligible[fullHoles].capped / 2)
-      subtotal += halfVal
       deductedHoles.push({ ...eligible[fullHoles], deductedAmount: halfVal })
     }
 

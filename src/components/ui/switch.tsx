@@ -18,7 +18,7 @@ function Switch({
   defaultChecked?: boolean
   disabled?: boolean
   name?: string
-  [key: string]: any
+  [key: string]: unknown
 }) {
   return (
     <MuiSwitch

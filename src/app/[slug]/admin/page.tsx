@@ -1,6 +1,5 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Badge } from '@/components/ui/badge'
 import { Settings, BarChart3, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 
@@ -27,8 +26,6 @@ export default async function AdminDashboard({
   if (!tournament) return null
 
   const statusCfg = STATUS_CONFIG[tournament.status] ?? STATUS_CONFIG.REGISTRATION
-  const nextRoundDate = tournament.rounds[0]?.date
-
   const actions = [
     { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Courses, dates, handicap system', show: true },
     { href: `/${slug}`, icon: BarChart3, label: 'View Leaderboard', desc: 'Live standings and stats', show: true },

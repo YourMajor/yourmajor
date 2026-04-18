@@ -1,7 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { getChampionHistory, getLatestInChain, type PastChampion, type LatestTournament } from '@/lib/tournament-chain'
+import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
 import { PersistentChat } from '@/components/hub/PersistentChat'
 import { TournamentShell } from '@/components/leaderboard/TournamentShell'
 import { TournamentProvider, type TournamentContextValue } from '@/components/TournamentContext'

@@ -47,7 +47,7 @@ function Button({ className, variant = 'default', size = 'default', style, child
         size={muiSize}
         className={cn(className)}
         style={style}
-        {...(props as any)}
+        {...(props as Record<string, unknown>)}
       >
         {children}
       </IconButton>
@@ -62,7 +62,7 @@ function Button({ className, variant = 'default', size = 'default', style, child
       className={cn(className)}
       style={style}
       disableElevation
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     >
       {children}
     </MuiButton>

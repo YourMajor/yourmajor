@@ -12,7 +12,7 @@ function Separator({
     <MuiDivider
       orientation={orientation}
       className={cn(className)}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     />
   )
 }

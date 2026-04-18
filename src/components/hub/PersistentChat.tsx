@@ -24,37 +24,39 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-  const chat = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, scrollToBottom, bottomRef } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
 
   // Fetch on first open
   useEffect(() => {
-    if (open && !chat.loaded) {
-      chat.fetchMessages()
+    if (open && !loaded) {
+      fetchMessages()
     }
-  }, [open, chat.loaded, chat.fetchMessages])
+  }, [open, loaded, fetchMessages])
 
   // Track unread when messages change while closed
   useEffect(() => {
-    if (!open && chat.messages.length > lastSeenCount.current) {
-      const newCount = chat.messages.length - lastSeenCount.current
+    if (!open && messages.length > lastSeenCount.current) {
+      const newCount = messages.length - lastSeenCount.current
       setUnreadCount(newCount)
-      const newMsgs = chat.messages.slice(lastSeenCount.current)
+      const newMsgs = messages.slice(lastSeenCount.current)
       const hasNewAttack = newMsgs.some(
         (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
       )
       if (hasNewAttack) setHasAttack(true)
     }
-  }, [chat.messages, open, currentUserName])
+  }, [messages, open, currentUserName])
 
   // Mark as read when opened
   useEffect(() => {
-    if (open && chat.messages.length > 0) {
-      lastSeenCount.current = chat.messages.length
-      setUnreadCount(0)
-      setHasAttack(false)
-      chat.scrollToBottom()
+    if (open && messages.length > 0) {
+      lastSeenCount.current = messages.length
+      queueMicrotask(() => {
+        setUnreadCount(0)
+        setHasAttack(false)
+      })
+      scrollToBottom()
     }
-  }, [open, chat.messages.length, chat.scrollToBottom])
+  }, [open, messages.length, scrollToBottom])
 
   // Subscribe to attack notifications
   useEffect(() => {
@@ -65,7 +67,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'Notification' },
-        (payload: any) => {
+        (payload: { new?: { type?: string } }) => {
           if (payload.new?.type === 'ATTACK_RECEIVED') {
             setHasAttack(true)
             if (!open) setUnreadCount((c) => c + 1)
@@ -142,8 +144,8 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 sm:px-4 py-4 sm:py-3 space-y-3 sm:space-y-2.5">
-            <ChatMessageList messages={chat.messages} variant="light" />
-            <div ref={chat.bottomRef} />
+            <ChatMessageList messages={messages} variant="light" />
+            <div ref={bottomRef} />
           </div>
 
           {/* Input */}
@@ -153,17 +155,17 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
               style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
             >
               <textarea
-                value={chat.input}
-                onChange={(e) => chat.setInput(e.target.value)}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
                 placeholder="Say something..."
                 rows={1}
                 className="flex-1 resize-none rounded-lg border border-border bg-muted/30 px-3 sm:px-2.5 py-2.5 sm:py-1.5 text-sm sm:text-xs outline-none focus:border-[var(--color-primary)]/50 focus:ring-1 focus:ring-[var(--color-primary)]/20"
-                onKeyDown={chat.handleKeyDown}
+                onKeyDown={handleKeyDown}
               />
               <button
                 type="button"
-                onClick={() => chat.sendMessage()}
-                disabled={chat.sending || !chat.input.trim()}
+                onClick={() => sendMessage()}
+                disabled={sending || !input.trim()}
                 className="shrink-0 p-2.5 sm:p-2 rounded-lg disabled:opacity-30 transition-colors"
                 style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
                 aria-label="Send"

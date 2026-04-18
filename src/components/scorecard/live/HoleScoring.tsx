@@ -59,7 +59,6 @@ interface HoleScoringProps {
   onDecrementPutts: () => void
   onToggleFairway: () => void
   onToggleGir: () => void
-  onTogglePowerup: () => void
   onActivatePowerup: (data: { playerPowerupId: string; targetPlayerId?: string; metadata?: Record<string, unknown> }) => Promise<void>
   onPrev: () => void
   onNext: () => void
@@ -92,7 +91,6 @@ export function HoleScoring({
   onDecrementPutts,
   onToggleFairway,
   onToggleGir,
-  onTogglePowerup,
   onActivatePowerup,
   onPrev,
   onNext,

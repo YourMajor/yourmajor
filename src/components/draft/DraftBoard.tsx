@@ -183,8 +183,6 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
     return a.name.localeCompare(b.name)
   })
 
-  const [showDraftBoard, setShowDraftBoard] = useState(false)
-
   if (draftReset) {
     return (
       <div className="text-center py-12 space-y-4">

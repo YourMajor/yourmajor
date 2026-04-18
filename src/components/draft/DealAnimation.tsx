@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
-import { Zap, Swords } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { Zap } from 'lucide-react'
 
 interface Player {
   id: string

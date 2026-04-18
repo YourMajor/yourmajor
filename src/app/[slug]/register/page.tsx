@@ -62,7 +62,6 @@ export default async function RegisterPage({
   }
 
   // Invite-only: require valid token or matching email
-  let invitationValid = false
   let resolvedToken = token
   if (!tournament.isOpenRegistration) {
     if (token) {
@@ -94,7 +93,6 @@ export default async function RegisterPage({
         )
       }
 
-      invitationValid = true
     } else if (dbUser?.email) {
       // No token — check if the user's email matches a pending invitation
       const emailInvitation = await prisma.invitation.findFirst({
@@ -108,7 +106,6 @@ export default async function RegisterPage({
 
       if (emailInvitation) {
         resolvedToken = emailInvitation.token
-        invitationValid = true
       } else {
         return (
           <TournamentMessage

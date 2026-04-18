@@ -33,7 +33,7 @@ export async function GlobalNav() {
     <header className="bg-white border-b border-border sticky top-0 z-50" suppressHydrationWarning>
       <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between relative">
         <Link href="/" className="flex items-center gap-3 shrink-0 md:absolute md:left-1/2 md:-translate-x-1/2">
-          <img src="/logos/eagle-flags.svg" alt="" className="h-14 w-auto" style={{ overflow: 'visible' }} />
+          <Image src="/logos/eagle-flags.svg" alt="" width={56} height={56} className="h-14 w-auto" style={{ overflow: 'visible' }} />
           <span className="font-heading text-3xl font-bold text-primary leading-none">
             Your<span className="text-accent">Major</span>
           </span>

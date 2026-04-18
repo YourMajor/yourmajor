@@ -22,7 +22,7 @@ export function StatToggle({
 
   useEffect(() => {
     if (!rejectionTs) return
-    setShaking(true)
+    queueMicrotask(() => setShaking(true))
     const timer = setTimeout(() => setShaking(false), 400)
     return () => clearTimeout(timer)
   }, [rejectionTs])

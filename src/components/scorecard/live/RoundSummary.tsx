@@ -1,6 +1,6 @@
 'use client'
 
-import { formatVsPar, scoreName } from '@/lib/scoring-utils'
+import { formatVsPar } from '@/lib/scoring-utils'
 import type { HoleData, HoleScore } from './useLiveScoringState'
 
 type ScoreType = 'eagle' | 'birdie' | 'par' | 'bogey' | 'double' | 'empty'
@@ -22,12 +22,6 @@ const CELL_STYLE: Record<ScoreType, string> = {
   bogey: 'text-foreground border border-foreground/40',
   double: 'text-foreground/70 border-2 border-foreground/40',
   empty: 'text-muted-foreground',
-}
-
-function getScoreLabel(strokes: number | null, par: number): string {
-  if (strokes === null) return ''
-  if (strokes === 1) return 'HIO'
-  return scoreName(strokes - par)
 }
 
 interface RoundSummaryProps {

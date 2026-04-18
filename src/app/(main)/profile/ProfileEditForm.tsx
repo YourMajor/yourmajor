@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { AvatarCropDialog } from '@/components/profile/AvatarCropDialog'
 import { updateProfile } from './actions'
 
 interface Props {
@@ -26,12 +27,13 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const initials = [firstName[0], lastName[0]].filter(Boolean).join('').toUpperCase() || '?'
 
-  async function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
 
@@ -40,11 +42,16 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
       return
     }
 
-    setUploading(true)
     setMessage(null)
+    setSelectedFile(file)
+  }
+
+  async function handleCropConfirm(blob: Blob) {
+    setSelectedFile(null)
+    setUploading(true)
 
     const formData = new FormData()
-    formData.append('file', file)
+    formData.append('file', blob, 'avatar.jpg')
 
     try {
       const res = await fetch('/api/profile/avatar', { method: 'POST', body: formData })
@@ -61,6 +68,11 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
       setUploading(false)
       if (fileInputRef.current) fileInputRef.current.value = ''
     }
+  }
+
+  function handleCropCancel() {
+    setSelectedFile(null)
+    if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -189,6 +201,12 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
           </Button>
         </form>
       </CardContent>
+
+      <AvatarCropDialog
+        file={selectedFile}
+        onConfirm={handleCropConfirm}
+        onCancel={handleCropCancel}
+      />
     </Card>
   )
 }

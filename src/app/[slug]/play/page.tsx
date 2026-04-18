@@ -1,3 +1,4 @@
+import React from 'react'
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
@@ -211,9 +212,9 @@ export default async function PlayPage({
       playerName={user.name ?? user.email.split('@')[0]}
       tournamentId={tournament.id}
       tournamentPlayerId2={tournamentPlayer.id}
-      playerPowerups={playerPowerups as any}
-      attacksReceived={attacksReceived as any}
-      tournamentPlayers={tournamentPlayers as any}
+      playerPowerups={playerPowerups as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['playerPowerups']>}
+      attacksReceived={attacksReceived as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['attacksReceived']>}
+      tournamentPlayers={tournamentPlayers as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['tournamentPlayers']>}
     />
   )
 }

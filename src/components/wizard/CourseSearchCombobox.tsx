@@ -182,7 +182,7 @@ export function CourseSearchCombobox({ label = 'Course', onSelect, selected }: P
           className="text-xs text-muted-foreground underline underline-offset-2 hover:text-foreground"
           onClick={() => setShowCustomForm(true)}
         >
-          Can't find your course? Add custom course
+          Can&apos;t find your course? Add custom course
         </button>
       ) : (
         <div className="space-y-3 p-3 rounded-md border border-dashed border-border bg-muted/30">
