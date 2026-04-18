@@ -25,7 +25,10 @@ async function signIn(formData: FormData) {
       emailRedirectTo: `${origin}/api/auth/callback`,
     },
   })
-  if (error) redirect('/auth/login?error=1')
+  if (error) {
+    console.error('Magic link error:', error.message, { email, origin })
+    redirect(`/auth/login?error=${encodeURIComponent(error.message)}`)
+  }
   redirect('/auth/login?sent=1')
 }
 
@@ -76,7 +79,7 @@ export default async function LoginPage({
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="you@example.com" required />
             </div>
-            {error && <p className="text-sm text-destructive">Something went wrong. Try again.</p>}
+            {error && <p className="text-sm text-destructive">{decodeURIComponent(error)}</p>}
             <Button
               type="submit"
               className="w-full"
