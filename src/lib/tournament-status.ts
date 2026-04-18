@@ -1,5 +1,3 @@
-import { prisma } from '@/lib/prisma'
-
 /**
  * Computes the expected status based on round dates (or tournament dates as fallback).
  * Only auto-advances REGISTRATION → ACTIVE → COMPLETED.
@@ -59,6 +57,7 @@ export function computeExpectedStatus(
  * Checks if all registered players have submitted scores for every hole in every round.
  */
 async function allPlayersComplete(tournamentId: string): Promise<boolean> {
+  const { prisma } = await import('@/lib/prisma')
   const [players, rounds] = await Promise.all([
     prisma.tournamentPlayer.findMany({
       where: { tournamentId },
@@ -113,6 +112,8 @@ export async function maybeAutoAdvanceStatus(
 ): Promise<string> {
   const next = computeExpectedStatus(currentStatus, rounds, tournamentStartDate, tournamentEndDate)
   if (!next) return currentStatus
+
+  const { prisma } = await import('@/lib/prisma')
 
   // REGISTRATION → ACTIVE: date-based only
   if (next === 'ACTIVE') {

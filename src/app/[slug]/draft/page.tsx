@@ -8,6 +8,19 @@ import { DraftBoard } from '@/components/draft/DraftBoard'
 import { PowerupCard } from '@/components/draft/PowerupCard'
 import { computeCurrentTurn } from '@/lib/draft-utils'
 import { Swords, Clock, Target } from 'lucide-react'
+import type { PowerupCardData } from '@/components/draft/PowerupCard'
+
+interface Player {
+  id: string
+  user: { name: string | null; image: string | null }
+}
+
+interface DraftPick {
+  pickNumber: number
+  powerupId: string
+  powerup: PowerupCardData
+  tournamentPlayer: Player
+}
 
 export default async function DraftPage({
   params,
@@ -83,7 +96,7 @@ export default async function DraftPage({
           {myPowerups.map((pp) => (
             <PowerupCard
               key={pp.id}
-              powerup={pp.powerup as any}
+              powerup={pp.powerup as PowerupCardData}
               state={pp.status === 'USED' ? 'used' : 'owned'}
               size="md"
             />
@@ -163,7 +176,7 @@ export default async function DraftPage({
   const pickedIds = new Set(draft.picks.map((p) => p.powerupId))
   const availablePowerups = tournamentPowerups
     .filter((tp) => !pickedIds.has(tp.powerupId))
-    .map((tp) => tp.powerup as any)
+    .map((tp) => tp.powerup as PowerupCardData)
 
   const draftOrder = (draft.draftOrder as string[]) ?? []
   const currentTurn = computeCurrentTurn(
@@ -199,11 +212,11 @@ export default async function DraftPage({
             status: draft.status,
             draftOrder,
             currentPick: draft.currentPick,
-            picks: draft.picks as any,
+            picks: draft.picks as unknown as DraftPick[],
           },
           currentTurn,
           availablePowerups,
-          players: players as any,
+          players: players as unknown as Player[],
           powerupsPerPlayer: tournament.powerupsPerPlayer,
           maxAttacksPerPlayer: tournament.maxAttacksPerPlayer,
         }}

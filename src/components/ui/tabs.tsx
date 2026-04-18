@@ -93,7 +93,7 @@ function TabsList({
           height: variant === 'line' ? 2 : 0,
         },
       }}
-      {...(props as any)}
+      {...(props as Record<string, unknown>)}
     >
       {children}
     </MuiTabs>
@@ -109,7 +109,7 @@ function TabsTrigger({
   className?: string
   value: string
   children: React.ReactNode
-  [key: string]: any
+  [key: string]: unknown
 }) {
   return (
     <MuiTab
@@ -140,7 +140,7 @@ function TabsContent({
   className?: string
   value: string
   children: React.ReactNode
-  [key: string]: any
+  [key: string]: unknown
 }) {
   const { value: activeValue } = React.useContext(TabsContext)
   if (activeValue !== value) return null

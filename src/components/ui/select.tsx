@@ -4,15 +4,14 @@ import * as React from 'react'
 import MuiSelect from '@mui/material/Select'
 import MuiMenuItem from '@mui/material/MenuItem'
 import MuiFormControl from '@mui/material/FormControl'
-import MuiInputLabel from '@mui/material/InputLabel'
 import MuiListSubheader from '@mui/material/ListSubheader'
 import MuiDivider from '@mui/material/Divider'
 import { cn } from '@/lib/utils'
 
 // Context to pass value/onChange through the component tree
 interface SelectContextValue {
-  value: any
-  onValueChange: (v: any) => void
+  value: string
+  onValueChange: (v: string) => void
 }
 
 const SelectContext = React.createContext<SelectContextValue>({
@@ -25,18 +24,16 @@ function Select({
   defaultValue,
   onValueChange,
   children,
-  ...props
 }: {
-  value?: any
-  defaultValue?: any
-  onValueChange?: (v: any) => void
+  value?: string
+  defaultValue?: string
+  onValueChange?: (v: string) => void
   children: React.ReactNode
-  [key: string]: any
 }) {
   const [internalValue, setInternalValue] = React.useState(defaultValue ?? '')
   const isControlled = controlledValue !== undefined
   const value = isControlled ? controlledValue : internalValue
-  const handleChange = (v: any) => {
+  const handleChange = (v: string) => {
     if (!isControlled) setInternalValue(v)
     onValueChange?.(v)
   }
@@ -85,7 +82,7 @@ function SelectTrigger({
             borderColor: 'var(--color-primary, #006747)',
           },
         }}
-        {...(props as any)}
+        {...(props as Record<string, unknown>)}
       >
         {children}
       </MuiSelect>
@@ -94,9 +91,7 @@ function SelectTrigger({
 }
 
 function SelectContent({
-  className,
   children,
-  ...props
 }: React.ComponentProps<'div'> & { side?: string; sideOffset?: number; align?: string; alignOffset?: number; alignItemWithTrigger?: boolean }) {
   // MUI Select handles its own dropdown rendering
   // This is a passthrough for compatibility
@@ -105,7 +100,7 @@ function SelectContent({
 
 function SelectLabel({ className, children, ...props }: React.ComponentProps<'div'>) {
   return (
-    <MuiListSubheader className={cn('!text-xs !text-muted-foreground', className)} {...(props as any)}>
+    <MuiListSubheader className={cn('!text-xs !text-muted-foreground', className)} {...(props as Record<string, unknown>)}>
       {children}
     </MuiListSubheader>
   )
@@ -116,16 +111,16 @@ function SelectItem({
   children,
   value,
   ...props
-}: React.ComponentProps<'div'> & { value: any }) {
+}: React.ComponentProps<'div'> & { value: string }) {
   return (
-    <MuiMenuItem value={value} className={cn('!text-sm', className)} {...(props as any)}>
+    <MuiMenuItem value={value} className={cn('!text-sm', className)} {...(props as Record<string, unknown>)}>
       {children}
     </MuiMenuItem>
   )
 }
 
 function SelectSeparator({ className, ...props }: React.ComponentProps<'hr'>) {
-  return <MuiDivider className={cn('!my-1', className)} {...(props as any)} />
+  return <MuiDivider className={cn('!my-1', className)} {...(props as Record<string, unknown>)} />
 }
 
 function SelectScrollUpButton() { return null }

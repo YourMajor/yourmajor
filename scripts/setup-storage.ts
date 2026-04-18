@@ -12,7 +12,7 @@ async function setupStorage() {
   ]
 
   for (const bucket of buckets) {
-    const { data, error } = await supabaseAdmin.storage.createBucket(bucket.name, {
+    const { error } = await supabaseAdmin.storage.createBucket(bucket.name, {
       public: bucket.public,
     })
 

@@ -2,10 +2,8 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardContent } from '@/components/ui/card'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { PlusCircle, Trophy, Clock, MapPin, ChevronRight } from 'lucide-react'
@@ -25,12 +23,6 @@ const HCP_LABEL: Record<string, string> = {
   STABLEFORD: 'Stableford',
   CALLAWAY: 'Callaway',
   PEORIA: 'Peoria',
-}
-
-const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  REGISTRATION: 'secondary',
-  ACTIVE: 'default',
-  COMPLETED: 'outline',
 }
 
 export default async function DashboardPage() {

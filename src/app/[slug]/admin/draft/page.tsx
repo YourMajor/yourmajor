@@ -4,6 +4,19 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { DraftAdmin } from '@/components/draft/DraftAdmin'
 import { computeCurrentTurn } from '@/lib/draft-utils'
+import type { PowerupCardData } from '@/components/draft/PowerupCard'
+
+interface Player {
+  id: string
+  user: { name: string | null; image: string | null }
+}
+
+interface DraftPick {
+  pickNumber: number
+  powerupId: string
+  powerup: PowerupCardData
+  tournamentPlayer: Player
+}
 
 export default async function AdminDraftPage({
   params,
@@ -65,7 +78,7 @@ export default async function AdminDraftPage({
   const pickedIds = new Set(draft?.picks.map((p) => p.powerupId) ?? [])
   const availablePowerups = tournamentPowerups
     .filter((tp) => !pickedIds.has(tp.powerupId))
-    .map((tp) => tp.powerup as any)
+    .map((tp) => tp.powerup as PowerupCardData)
 
   const draftOrder = (draft?.draftOrder as string[] | null) ?? []
   const currentTurn = draft
@@ -84,7 +97,7 @@ export default async function AdminDraftPage({
         status: draft.status,
         draftOrder,
         currentPick: draft.currentPick,
-        picks: draft.picks as any,
+        picks: draft.picks as unknown as DraftPick[],
       }
     : null
 
@@ -103,7 +116,7 @@ export default async function AdminDraftPage({
         currentPlayerId={membership!.id}
         draft={draftData}
         distributionMode={tournament.distributionMode}
-        players={players as any}
+        players={players as unknown as Player[]}
         availablePowerups={availablePowerups}
         powerupsPerPlayer={tournament.powerupsPerPlayer}
         maxAttacksPerPlayer={tournament.maxAttacksPerPlayer}

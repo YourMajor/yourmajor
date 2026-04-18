@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Menu, X, Trophy, Swords, ImageIcon, Clock, Crown, Settings, LogOut, Pencil, Home } from 'lucide-react'
+import { Menu, X, Trophy, Swords, ImageIcon, Crown, Settings, Pencil, Home } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { PastChampion } from '@/lib/tournament-chain'
 
@@ -17,7 +17,6 @@ interface TournamentMenuProps {
   powerupsEnabled: boolean
   status: string
   champions?: PastChampion[]
-  hasVault?: boolean
 }
 
 export function TournamentMenu({
@@ -31,7 +30,6 @@ export function TournamentMenu({
   powerupsEnabled,
   status,
   champions = [],
-  hasVault = false,
 }: TournamentMenuProps) {
   const [open, setOpen] = useState(false)
 

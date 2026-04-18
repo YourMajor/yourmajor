@@ -1,8 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import MuiTextField from '@mui/material/TextField'
-import MuiInputBase from '@mui/material/InputBase'
 import { cn } from '@/lib/utils'
 
 const Input = React.forwardRef<HTMLInputElement, React.ComponentProps<'input'>>(

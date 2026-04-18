@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Menu, X, Trophy, Swords, ImageIcon, Pencil, Home, User, Clock, Crown } from 'lucide-react'
+import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
 import type { PastChampion } from '@/lib/tournament-chain'
@@ -104,7 +104,6 @@ export function TournamentNavBar({
   const light = isLightColor(primaryColor)
   const menuText = light ? 'text-gray-900' : 'text-white'
   const menuTextMuted = light ? 'text-gray-600' : 'text-white/60'
-  const menuTextActive = light ? 'text-gray-900' : 'text-white'
   const menuHover = light ? 'hover:text-gray-900' : 'hover:text-white'
   const menuBorder = light ? 'border-black/15' : 'border-white/15'
 

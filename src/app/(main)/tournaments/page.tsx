@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
@@ -14,13 +13,6 @@ const STATUS_LABEL: Record<string, string> = {
   REGISTRATION: 'Upcoming',
   ACTIVE: 'Live',
   COMPLETED: 'Completed',
-}
-
-const STATUS_VARIANTS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
-  DRAFT: 'outline',
-  REGISTRATION: 'secondary',
-  ACTIVE: 'default',
-  COMPLETED: 'outline',
 }
 
 export default async function TournamentsPage() {

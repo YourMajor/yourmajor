@@ -12,19 +12,19 @@ interface LiveChatProps {
 }
 
 export function LiveChat({ tournamentId, open, onClose }: LiveChatProps) {
-  const chat = useChat({ tournamentId, channelPrefix: 'live-chat', eager: false })
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, scrollToBottom, bottomRef } = useChat({ tournamentId, channelPrefix: 'live-chat', eager: false })
 
   // Fetch on first open
   useEffect(() => {
-    if (open && !chat.loaded) {
-      chat.fetchMessages()
+    if (open && !loaded) {
+      fetchMessages()
     }
-  }, [open, chat.loaded, chat.fetchMessages])
+  }, [open, loaded, fetchMessages])
 
   // Scroll when opened
   useEffect(() => {
-    if (open) chat.scrollToBottom()
-  }, [open, chat.messages, chat.scrollToBottom])
+    if (open) scrollToBottom()
+  }, [open, messages, scrollToBottom])
 
   return (
     <div
@@ -46,24 +46,24 @@ export function LiveChat({ tournamentId, open, onClose }: LiveChatProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        <ChatMessageList messages={chat.messages} variant="dark" />
-        <div ref={chat.bottomRef} />
+        <ChatMessageList messages={messages} variant="dark" />
+        <div ref={bottomRef} />
       </div>
 
       <div className="shrink-0 px-4 py-3 bg-black/20">
         <div className="flex gap-2 items-end">
           <textarea
-            value={chat.input}
-            onChange={(e) => chat.setInput(e.target.value)}
+            value={input}
+            onChange={(e) => setInput(e.target.value)}
             placeholder="Say something..."
             rows={1}
             className="flex-1 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
-            onKeyDown={chat.handleKeyDown}
+            onKeyDown={handleKeyDown}
           />
           <button
             type="button"
-            onClick={() => chat.sendMessage()}
-            disabled={chat.sending || !chat.input.trim()}
+            onClick={() => sendMessage()}
+            disabled={sending || !input.trim()}
             className="shrink-0 p-2.5 rounded-lg disabled:opacity-30 active:scale-90 transition-all touch-manipulation"
             style={{
               backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',

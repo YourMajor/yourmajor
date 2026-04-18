@@ -87,8 +87,6 @@ export default async function ProfilePage({
   const par5Avg = avgVsPar(par5s)
 
   // Overall avg score vs par
-  const overallAvgVsPar = totalHoles > 0 ? allRows.reduce((sum, s) => sum + (s.strokes - s.par), 0) / totalHoles : null
-
   // Scoring when on fairway vs off
   const onFairway = allRows.filter(s => s.fairwayHit === true)
   const offFairway = allRows.filter(s => s.fairwayHit === false)
@@ -111,7 +109,6 @@ export default async function ProfilePage({
   const completedRounds = Array.from(roundGroups.values()).filter(r => r.length >= 18)
   const roundVsPars = completedRounds.map(r => r.reduce((sum, s) => sum + (s.strokes - s.par), 0))
   const bestRound = roundVsPars.length > 0 ? Math.min(...roundVsPars) : null
-  const worstRound = roundVsPars.length > 0 ? Math.max(...roundVsPars) : null
   const avgRound = roundVsPars.length > 0 ? (roundVsPars.reduce((a, b) => a + b, 0) / roundVsPars.length) : null
 
   // Insights

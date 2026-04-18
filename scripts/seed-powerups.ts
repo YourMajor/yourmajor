@@ -5,7 +5,7 @@
  * Idempotent: uses upsert on slug.
  */
 import 'dotenv/config'
-import { PrismaClient } from '../src/generated/prisma/client'
+import { Prisma, PrismaClient } from '../src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
@@ -474,14 +474,14 @@ async function main() {
         name: p.name,
         type: p.type,
         description: p.description,
-        effect: p.effect as any,
+        effect: p.effect as Prisma.InputJsonValue,
       },
       create: {
         slug: p.slug,
         name: p.name,
         type: p.type,
         description: p.description,
-        effect: p.effect as any,
+        effect: p.effect as Prisma.InputJsonValue,
       },
     })
     const icon = p.type === 'BOOST' ? '🟢' : '🔴'

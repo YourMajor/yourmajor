@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { X } from 'lucide-react'
 import { SlugIcon } from './CardHand'
 
 interface PickEffect {
@@ -148,7 +147,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
                     }
 
                     const isAttack = pick.powerup.type === 'ATTACK'
-                    const slug = (pick.powerup as any).slug ?? ''
+                    const slug = pick.powerup.slug ?? ''
 
                     return (
                       <td key={i} className="px-0.5 py-1 sm:py-1.5">
@@ -181,7 +180,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
       {/* Card-style detail overlay */}
       {selectedPick && (() => {
         const isAttack = selectedPick.powerup.type === 'ATTACK'
-        const slug = (selectedPick.powerup as any).slug ?? ''
+        const slug = selectedPick.powerup.slug ?? ''
         const effect = selectedPick.powerup.effect
         return (
           <>

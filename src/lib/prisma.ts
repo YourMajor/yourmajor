@@ -20,13 +20,13 @@ function createPrismaClient() {
 const CLIENT_VERSION = '7.7.0-regen'
 const cached = globalForPrisma.prisma
 const versionKey = '__prismaClientVersion' as keyof typeof globalThis
-const needsRefresh = (globalThis as any)[versionKey] !== CLIENT_VERSION
+const needsRefresh = (globalThis as unknown as Record<string, unknown>)[versionKey] !== CLIENT_VERSION
 
 if (needsRefresh && cached) {
   // Disconnect stale client so a fresh one is created
   cached.$disconnect().catch(() => {})
   delete globalForPrisma.prisma
-  ;(globalThis as any)[versionKey] = CLIENT_VERSION
+  ;(globalThis as unknown as Record<string, unknown>)[versionKey] = CLIENT_VERSION
 }
 
 export const prisma = globalForPrisma.prisma ?? createPrismaClient()

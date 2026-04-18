@@ -3,7 +3,6 @@
 import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useChat, type ChatMessage } from '@/hooks/useChat'
 import { ChatMessageList } from '@/components/chat/ChatMessageList'
 
@@ -16,10 +15,10 @@ interface Props {
 }
 
 export function TournamentChat({ tournamentId, currentUserId, isRegistered, initialMessages, slug }: Props) {
-  const chat = useChat({ tournamentId, channelPrefix: 'hub-chat' })
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, bottomRef } = useChat({ tournamentId, channelPrefix: 'hub-chat' })
 
   // Seed with server-provided initial messages
-  if (chat.messages.length === 0 && initialMessages.length > 0 && !chat.loaded) {
+  if (messages.length === 0 && initialMessages.length > 0 && !loaded) {
     // This is handled via useEffect in the hook — initial messages are fetched eagerly
   }
 
@@ -44,20 +43,20 @@ export function TournamentChat({ tournamentId, currentUserId, isRegistered, init
   return (
     <div className="flex flex-col h-[480px] border border-border rounded-md overflow-hidden">
       <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        <ChatMessageList messages={chat.messages} variant="light" />
-        <div ref={chat.bottomRef} />
+        <ChatMessageList messages={messages} variant="light" />
+        <div ref={bottomRef} />
       </div>
 
       <div className="border-t border-border p-3 flex gap-2">
         <Textarea
-          value={chat.input}
-          onChange={(e) => chat.setInput(e.target.value)}
+          value={input}
+          onChange={(e) => setInput(e.target.value)}
           placeholder="Say something..."
           rows={1}
           className="resize-none flex-1 min-h-0"
-          onKeyDown={chat.handleKeyDown}
+          onKeyDown={handleKeyDown}
         />
-        <Button onClick={() => chat.sendMessage()} disabled={chat.sending || !chat.input.trim()} size="sm" className="self-end">
+        <Button onClick={() => sendMessage()} disabled={sending || !input.trim()} size="sm" className="self-end">
           Send
         </Button>
       </div>

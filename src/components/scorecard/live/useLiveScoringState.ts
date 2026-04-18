@@ -2,7 +2,6 @@
 
 import { useState, useRef, useCallback, useEffect } from 'react'
 import {
-  maxPutts,
   isValidPutts,
   computeGir,
   canToggleGirOn,
@@ -160,7 +159,9 @@ export function useLiveScoringState({
 
   // Keep a ref to scores so saveHole always reads the latest value
   const scoresRef = useRef(scores)
-  scoresRef.current = scores
+  useEffect(() => {
+    scoresRef.current = scores
+  }, [scores])
 
   // Persist current hole to localStorage
   useEffect(() => {

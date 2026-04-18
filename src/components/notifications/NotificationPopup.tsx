@@ -61,8 +61,8 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId }: Notifica
       )
       .subscribe()
 
-    // Initial check
-    fetchNotifications()
+    // Initial check — deferred to avoid synchronous setState in effect
+    queueMicrotask(() => { void fetchNotifications() })
 
     return () => {
       supabase.removeChannel(channel)

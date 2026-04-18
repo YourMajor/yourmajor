@@ -1,6 +1,7 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -146,7 +147,7 @@ export function StepBasicInfo({ value, onChange }: Props) {
           <div className="space-y-2">
             <Label>Logo <span className="text-muted-foreground font-normal">(optional)</span></Label>
             {value.logoPreview && (
-              <img src={value.logoPreview} alt="Logo preview" className="h-12 object-contain mb-1" />
+              <Image src={value.logoPreview} alt="Logo preview" width={48} height={48} className="h-12 object-contain mb-1" />
             )}
             <Input
               ref={fileRef}
@@ -163,7 +164,7 @@ export function StepBasicInfo({ value, onChange }: Props) {
           <div className="space-y-2">
             <Label>Header Image <span className="text-muted-foreground font-normal">(optional — displays edge-to-edge)</span></Label>
             {value.headerPreview && (
-              <img src={value.headerPreview} alt="Header preview" className="w-full h-24 object-cover rounded-md mb-1" />
+              <Image src={value.headerPreview} alt="Header preview" width={800} height={96} className="w-full h-24 object-cover rounded-md mb-1" />
             )}
             <Input
               ref={headerFileRef}

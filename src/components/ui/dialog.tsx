@@ -2,9 +2,6 @@
 
 import * as React from 'react'
 import MuiDialog from '@mui/material/Dialog'
-import MuiDialogTitle from '@mui/material/DialogTitle'
-import MuiDialogContent from '@mui/material/DialogContent'
-import MuiDialogActions from '@mui/material/DialogActions'
 import IconButton from '@mui/material/IconButton'
 import { XIcon } from 'lucide-react'
 import { cn } from '@/lib/utils'

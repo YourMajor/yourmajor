@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
 import { canActivate, computeAutoModifier, isVariablePowerup, type PowerupEffect } from '@/lib/powerup-engine'
 
@@ -99,7 +100,7 @@ export async function POST(
       holeNumber,
       targetPlayerId: targetPlayerId ?? null,
       scoreModifier,
-      metadata: structuredMetadata ? (structuredMetadata as any) : undefined,
+      metadata: structuredMetadata as Prisma.InputJsonValue | undefined,
     },
     include: {
       powerup: { select: { id: true, slug: true, name: true, type: true, description: true, effect: true } },

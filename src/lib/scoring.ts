@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { allocateHandicapStrokes, callawayDeduction, getCallawayAdjustment } from '@/lib/scoring-utils'
+import { allocateHandicapStrokes, callawayDeduction } from '@/lib/scoring-utils'
 
 // Re-export everything from scoring-utils so existing imports still work
 export { scoreName, scoreClass, formatVsPar, allocateHandicapStrokes, callawayDeduction, getCallawayAdjustment } from '@/lib/scoring-utils'

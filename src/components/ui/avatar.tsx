@@ -1,7 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import MuiAvatar from '@mui/material/Avatar'
 import { cn } from '@/lib/utils'
 
 interface AvatarProps extends React.ComponentProps<'div'> {
