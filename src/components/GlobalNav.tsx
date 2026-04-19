@@ -5,7 +5,9 @@ import { prisma } from '@/lib/prisma'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
-const NAV_LINKS: { label: string; href: string }[] = []
+const NAV_LINKS: { label: string; href: string }[] = [
+  { label: 'Pricing', href: '/pricing' },
+]
 
 export async function GlobalNav() {
   const user = await getUser()
@@ -71,12 +73,20 @@ export async function GlobalNav() {
             </form>
           </nav>
         ) : (
-          <Link
-            href="/auth/login"
-            className={buttonVariants({ size: 'sm' }) + ' bg-primary text-primary-foreground hover:bg-primary/90'}
-          >
-            Sign in
-          </Link>
+          <nav className="flex items-center gap-1 text-sm">
+            <Link
+              href="/auth/login"
+              className={buttonVariants({ size: 'sm' }) + ' bg-primary text-primary-foreground hover:bg-primary/90'}
+            >
+              Sign in
+            </Link>
+            <Link
+              href="/pricing"
+              className="px-3 py-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors font-medium"
+            >
+              Pricing
+            </Link>
+          </nav>
         )}
       </div>
     </header>

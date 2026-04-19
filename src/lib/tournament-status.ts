@@ -60,7 +60,7 @@ async function allPlayersComplete(tournamentId: string): Promise<boolean> {
   const { prisma } = await import('@/lib/prisma')
   const [players, rounds] = await Promise.all([
     prisma.tournamentPlayer.findMany({
-      where: { tournamentId },
+      where: { tournamentId, isParticipant: true },
       select: { id: true },
     }),
     prisma.tournamentRound.findMany({

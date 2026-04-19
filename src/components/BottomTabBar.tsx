@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, User, MoreHorizontal, X, LogOut } from 'lucide-react'
+import { LayoutDashboard, User, MoreHorizontal, X, LogOut, CreditCard, Tag } from 'lucide-react'
 
 const TABS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -11,7 +11,10 @@ const TABS = [
   { href: '#more', label: 'More', icon: MoreHorizontal },
 ] as const
 
-const MORE_LINKS: { href: string; label: string; icon: typeof LayoutDashboard }[] = []
+const MORE_LINKS: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
+  { href: '/pricing', label: 'Pricing', icon: Tag },
+  { href: '/billing', label: 'Billing', icon: CreditCard },
+]
 
 export function BottomTabBar() {
   const pathname = usePathname()

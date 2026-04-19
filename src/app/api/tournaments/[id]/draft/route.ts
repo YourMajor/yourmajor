@@ -48,7 +48,7 @@ export async function GET(
 
   // Tournament players
   const players = await prisma.tournamentPlayer.findMany({
-    where: { tournamentId },
+    where: { tournamentId, isParticipant: true },
     include: { user: { select: { name: true, image: true } } },
     orderBy: { createdAt: 'asc' },
   })

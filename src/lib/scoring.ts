@@ -11,7 +11,7 @@ export async function getLeaderboard(
 ) {
   const [players, rounds, tournament] = await Promise.all([
     prisma.tournamentPlayer.findMany({
-      where: { tournamentId },
+      where: { tournamentId, isParticipant: true },
       include: {
         user: { include: { profile: { select: { handicap: true, avatar: true } } } },
         scores: {

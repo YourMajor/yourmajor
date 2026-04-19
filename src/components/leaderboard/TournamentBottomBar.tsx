@@ -2,19 +2,23 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Trophy, Pencil, ImageIcon, Menu } from 'lucide-react'
+import { Trophy, BarChart3, Pencil, ImageIcon, Menu, User } from 'lucide-react'
 
 interface TournamentBottomBarProps {
   slug: string
   isRegistered: boolean
+  isLoggedIn: boolean
   status: string
+  hasSeason?: boolean
   onMenuOpen: () => void
 }
 
 export function TournamentBottomBar({
   slug,
   isRegistered,
+  isLoggedIn,
   status,
+  hasSeason = false,
   onMenuOpen,
 }: TournamentBottomBarProps) {
   const pathname = usePathname()
@@ -22,9 +26,17 @@ export function TournamentBottomBar({
   const canScore = isRegistered && isActive
 
   const tabs = [
-    { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
-    ...(canScore ? [{ href: `/${slug}/play`, label: 'Score', icon: Pencil }] : []),
-    { href: `/${slug}/gallery`, label: 'Gallery', icon: ImageIcon },
+    ...(hasSeason
+      ? [
+          { href: `/${slug}/season`, label: 'Season', icon: BarChart3 },
+          { href: `/${slug}/leaderboard`, label: 'Event', icon: Trophy },
+        ]
+      : [
+          { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
+          ...(canScore ? [{ href: `/${slug}/play`, label: 'Score', icon: Pencil }] : []),
+        ]
+    ),
+    { href: isLoggedIn ? `/profile?ref=${slug}` : '/auth/login', label: 'Profile', icon: User },
     { href: '#menu', label: 'Menu', icon: Menu },
   ]
 
@@ -40,9 +52,13 @@ export function TournamentBottomBar({
       <div className="flex items-center justify-around h-16">
         {tabs.map((tab) => {
           const isMenu = tab.href === '#menu'
-          const isCurrent = !isMenu && (tab.href.endsWith('/play') || tab.href.endsWith('/gallery')
-            ? pathname === tab.href
-            : pathname === tab.href || pathname === tab.href + '/leaderboard')
+          const isCurrent = !isMenu && (
+            tab.href.startsWith('/profile') || tab.href.startsWith('/auth')
+              ? pathname.startsWith('/profile')
+              : tab.href.endsWith('/play') || tab.href.endsWith('/gallery')
+                ? pathname === tab.href
+                : pathname === tab.href || pathname === tab.href + '/leaderboard'
+          )
           const Icon = tab.icon
 
           if (isMenu) {

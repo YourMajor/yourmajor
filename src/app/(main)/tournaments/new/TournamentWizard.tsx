@@ -2,16 +2,20 @@
 
 import { useState, useTransition, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button } from '@/components/ui/button'
 import { StepTournamentType, type TournamentTypeState } from '@/components/wizard/StepTournamentType'
 import { StepBasicInfo, type BasicInfoState } from '@/components/wizard/StepBasicInfo'
 import { StepRounds, buildDefaultRounds, type RoundState } from '@/components/wizard/StepRounds'
 import { StepHandicap } from '@/components/wizard/StepHandicap'
 import { StepPowerups, type PowerupsState } from '@/components/wizard/StepPowerups'
+import { UpgradeBanner } from '@/components/UpgradeBanner'
+import { TIER_LIMITS } from '@/lib/tiers'
 import { createTournamentFromWizard } from './actions'
 
 export interface RenewalDefaults {
   parentTournamentId: string
+  isLeague: boolean
   name: string
   description: string
   primaryColor: string
@@ -27,6 +31,9 @@ export interface RenewalDefaults {
 
 interface Props {
   renewalDefaults?: RenewalDefaults | null
+  userTier?: 'FREE' | 'PRO' | 'LEAGUE'
+  proCredits?: number
+  requiresUpgrade?: boolean
 }
 
 function inferTypeFromDefaults(d: RenewalDefaults): 'PUBLIC' | 'OPEN' | 'INVITE' {
@@ -35,7 +42,7 @@ function inferTypeFromDefaults(d: RenewalDefaults): 'PUBLIC' | 'OPEN' | 'INVITE'
   return 'OPEN'
 }
 
-export function TournamentWizard({ renewalDefaults }: Props) {
+export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE', proCredits = 0, requiresUpgrade = false }: Props & { hasLeague?: boolean }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
@@ -49,6 +56,7 @@ export function TournamentWizard({ renewalDefaults }: Props) {
   const [basicInfo, setBasicInfo] = useState<BasicInfoState>({
     name: renewalDefaults?.name ?? '',
     description: renewalDefaults?.description ?? '',
+    isLeague: renewalDefaults?.isLeague ?? false,
     startDate: '',
     endDate: '',
     numRounds: renewalDefaults?.rounds.length ?? 1,
@@ -79,6 +87,8 @@ export function TournamentWizard({ renewalDefaults }: Props) {
   }
   const [rounds, setRounds] = useState<RoundState[]>(defaultRounds)
 
+  const [registerAsPlayer, setRegisterAsPlayer] = useState(true)
+
   const [handicapSystem, setHandicapSystem] = useState<'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'>(
     renewalDefaults?.handicapSystem ?? 'WHS'
   )
@@ -94,6 +104,7 @@ export function TournamentWizard({ renewalDefaults }: Props) {
 
   // Derive which steps to show based on tournament type
   const isPublic = tournamentType.tournamentType === 'PUBLIC'
+  const isFree = userTier === 'FREE'
 
   const steps = useMemo(() => {
     const s = [
@@ -102,12 +113,12 @@ export function TournamentWizard({ renewalDefaults }: Props) {
       { label: 'Rounds', short: '3' },
       { label: 'Handicap', short: '4' },
     ]
-    // Public tournaments skip Powerups step (powerups are disabled)
-    if (!isPublic) {
+    // Public tournaments and free-tier users skip Powerups step
+    if (!isPublic && !isFree) {
       s.push({ label: 'Powerups', short: String(s.length + 1) })
     }
     return s
-  }, [isPublic])
+  }, [isPublic, isFree])
 
   // Keep rounds array in sync with numRounds
   function handleBasicInfoChange(v: BasicInfoState) {
@@ -195,6 +206,8 @@ export function TournamentWizard({ renewalDefaults }: Props) {
           inviteEmails,
           tournamentType: tournamentType.tournamentType,
           parentTournamentId: renewalDefaults?.parentTournamentId ?? null,
+          isLeague: basicInfo.isLeague,
+          registerAsPlayer,
         })
         router.push(`/${result.slug}`)
       } catch (e) {
@@ -206,6 +219,18 @@ export function TournamentWizard({ renewalDefaults }: Props) {
 
   const isLast = step === steps.length - 1
 
+  // Determine which Pro-only features are being used
+  const proFeatures = useMemo(() => {
+    const reasons: string[] = []
+    if (basicInfo.numRounds > TIER_LIMITS.FREE.maxRounds) {
+      reasons.push(`Multi-round tournaments (you selected ${basicInfo.numRounds} rounds)`)
+    }
+    if (!isPublic && powerups.powerupsEnabled && !TIER_LIMITS.FREE.powerups) {
+      reasons.push('Powerups')
+    }
+    return reasons
+  }, [basicInfo.numRounds, isPublic, powerups.powerupsEnabled])
+
   // Map step index to content
   // Step 0: Type, Step 1: Basics, Step 2: Rounds, Step 3: Handicap, Step 4: Powerups (non-public only)
   function renderStep() {
@@ -213,7 +238,7 @@ export function TournamentWizard({ renewalDefaults }: Props) {
       case 0:
         return <StepTournamentType value={tournamentType} onChange={setTournamentType} />
       case 1:
-        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} />
+        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} />
       case 2:
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} startDate={basicInfo.startDate || undefined} endDate={basicInfo.endDate || undefined} isOpenRegistration={isPublic} />
       case 3:
@@ -224,6 +249,26 @@ export function TournamentWizard({ renewalDefaults }: Props) {
       default:
         return null
     }
+  }
+
+  // Renewal requires upgrade — show blocking interstitial
+  if (requiresUpgrade) {
+    return (
+      <main className="max-w-xl mx-auto px-4 py-8">
+        <div className="text-center space-y-4">
+          <h1 className="text-2xl font-heading font-bold">Upgrade Required</h1>
+          <p className="text-muted-foreground">
+            This tournament used custom branding. To renew with branding, purchase a Pro tournament credit ($29) or upgrade to the Tour plan ($199/season).
+          </p>
+          <div className="flex gap-3 justify-center">
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] text-white px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
+              View Plans
+            </Link>
+            <Button variant="outline" onClick={() => router.back()}>Go Back</Button>
+          </div>
+        </div>
+      </main>
+    )
   }
 
   return (
@@ -266,6 +311,26 @@ export function TournamentWizard({ renewalDefaults }: Props) {
 
       {/* Step content */}
       <div>{renderStep()}</div>
+
+      {/* Pro upgrade banner — shown when config exceeds Free tier */}
+      {proFeatures.length > 0 && !hasLeague && (
+        <UpgradeBanner reasons={proFeatures} />
+      )}
+
+      {/* Admin self-registration toggle — shown on last step */}
+      {isLast && (
+        <label className="flex items-center gap-2.5 mt-6 cursor-pointer group">
+          <input
+            type="checkbox"
+            checked={registerAsPlayer}
+            onChange={(e) => setRegisterAsPlayer(e.target.checked)}
+            className="h-4 w-4 rounded border-border accent-[var(--color-primary)]"
+          />
+          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
+            Register me as a player in this tournament
+          </span>
+        </label>
+      )}
 
       {error && <p className="text-sm text-destructive mt-3">{error}</p>}
 

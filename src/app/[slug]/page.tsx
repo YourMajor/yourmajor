@@ -1,5 +1,6 @@
 export const dynamic = 'force-dynamic'
 
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getLeaderboard } from '@/lib/scoring'
@@ -26,6 +27,11 @@ export default async function TournamentPage({
     },
   })
   if (!tournament) return null
+
+  // Leagues land on the season dashboard by default
+  if (tournament.isLeague) {
+    redirect(`/${slug}/season`)
+  }
 
   const user = await getUser()
 

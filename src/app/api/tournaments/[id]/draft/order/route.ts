@@ -27,7 +27,7 @@ export async function PUT(
 
   // Validate all IDs belong to this tournament
   const players = await prisma.tournamentPlayer.findMany({
-    where: { tournamentId },
+    where: { tournamentId, isParticipant: true },
     select: { id: true },
   })
   const validIds = new Set(players.map((p) => p.id))

@@ -37,7 +37,7 @@ export async function POST(
   if (!tournament) return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
 
   const players = await prisma.tournamentPlayer.findMany({
-    where: { tournamentId },
+    where: { tournamentId, isParticipant: true },
     select: { id: true },
   })
 

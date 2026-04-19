@@ -1,5 +1,8 @@
 import { prisma } from '@/lib/prisma'
+import { getUser } from '@/lib/auth'
+import { getUserTier } from '@/lib/stripe'
 import { TournamentWizard, type RenewalDefaults } from './TournamentWizard'
+import { TIER_LIMITS } from '@/lib/tiers'
 
 export default async function NewTournamentPage({
   searchParams,
@@ -24,6 +27,7 @@ export default async function NewTournamentPage({
     if (parent) {
       renewalDefaults = {
         parentTournamentId: parent.id,
+        isLeague: parent.isLeague,
         name: parent.name,
         description: parent.description ?? '',
         primaryColor: parent.primaryColor,
@@ -44,5 +48,22 @@ export default async function NewTournamentPage({
     }
   }
 
-  return <TournamentWizard renewalDefaults={renewalDefaults} />
+  const user = await getUser()
+  const userTier = user ? await getUserTier(user.id) : { tier: 'FREE' as const, expiresAt: null, proCredits: 0 }
+
+  // If renewing a branded tournament as a free user with no credits, block
+  const parentHadBranding = renewalDefaults
+    ? renewalDefaults.primaryColor !== '#006747' || renewalDefaults.accentColor !== '#C9A84C'
+    : false
+  const requiresUpgrade = parentHadBranding && userTier.tier === 'FREE'
+
+  return (
+    <TournamentWizard
+      renewalDefaults={renewalDefaults}
+      hasLeague={userTier.tier === 'LEAGUE'}
+      userTier={userTier.tier}
+      proCredits={userTier.proCredits}
+      requiresUpgrade={requiresUpgrade}
+    />
+  )
 }

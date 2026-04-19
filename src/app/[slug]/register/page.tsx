@@ -3,12 +3,14 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { getUser } from '@/lib/auth'
+import { getTournamentTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { TournamentMessage } from '@/components/ui/tournament-message'
-import { Lock, ShieldX, ShieldCheck, Mail } from 'lucide-react'
+import { Lock, ShieldX, ShieldCheck, Mail, Users } from 'lucide-react'
 
 export default async function RegisterPage({
   params,
@@ -134,6 +136,20 @@ export default async function RegisterPage({
       where: { tournamentId_userId: { tournamentId: tournament.id, userId: dbUser.id } },
     })
     if (existing) redirect(`/${slug}`)
+  }
+
+  // Player limit enforcement based on tier
+  const tier = await getTournamentTier(tournament.id)
+  const maxPlayers = TIER_LIMITS[tier].maxPlayers
+  if (tournament._count.players >= maxPlayers) {
+    return (
+      <TournamentMessage
+        icon={Users}
+        heading="Tournament Full"
+        description={`This tournament has reached the ${maxPlayers}-player limit for its current plan. The organizer can upgrade to allow more players.`}
+        backHref={`/${slug}`}
+      />
+    )
   }
 
   // Fetch user's profile handicap for pre-fill

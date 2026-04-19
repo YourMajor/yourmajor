@@ -58,6 +58,8 @@ export default async function PlayerScorecardPage({
 
   const roundNumbers = tournament.rounds.map((r) => r.roundNumber)
   const roundCourseMap = new Map(tournament.rounds.map((r) => [r.roundNumber, r.course]))
+  const roundDateMap = new Map(tournament.rounds.map((r) => [r.roundNumber, r.date]))
+  const isSingleRound = roundNumbers.length === 1
   const defaultTab = String(roundNumbers[0] ?? 1)
 
   return (
@@ -91,9 +93,19 @@ export default async function PlayerScorecardPage({
           <TabsList>
             {roundNumbers.map((rn) => {
               const course = roundCourseMap.get(rn)
+              const roundDate = roundDateMap.get(rn)
+              let label: string
+              if (isSingleRound) {
+                const datePart = roundDate ? new Date(roundDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null
+                label = datePart && course ? `${datePart} - ${course.name}` : datePart ?? (course ? course.name : `Round ${rn}`)
+              } else {
+                const datePart = roundDate ? new Date(roundDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) : null
+                const parts = [`Round ${rn}`, datePart, course?.name].filter(Boolean)
+                label = parts.join(' - ')
+              }
               return (
                 <TabsTrigger key={rn} value={String(rn)}>
-                  Round {rn}{course ? ` - ${course.name}` : ''}
+                  {label}
                 </TabsTrigger>
               )
             })}

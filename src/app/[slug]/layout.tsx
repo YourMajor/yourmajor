@@ -25,6 +25,7 @@ export default async function TournamentLayout({
 
   let showAdmin = user?.role === 'ADMIN'
   let isRegistered = false
+  let isTournamentAdmin = false
   let avatarUrl: string | null = null
   let initials = '?'
 
@@ -40,6 +41,7 @@ export default async function TournamentLayout({
       }),
     ])
     if (membership?.isAdmin) showAdmin = true
+    isTournamentAdmin = membership?.isAdmin ?? false
     isRegistered = !!membership
     avatarUrl = profile?.avatar ?? user.image ?? null
     const name = profile?.displayName ?? user.name ?? user.email.split('@')[0]
@@ -53,6 +55,7 @@ export default async function TournamentLayout({
   }
 
   const showRegister = !!user && !isRegistered && !isEnded
+  const canLeave = isRegistered && !isTournamentAdmin && tournament.status !== 'COMPLETED'
 
   // Fetch gallery photos for the menu
   const galleryPhotos = await prisma.tournamentPhoto.findMany({
@@ -65,6 +68,7 @@ export default async function TournamentLayout({
 
   // Fetch champion history for renewed tournaments
   const hasVault = !!tournament.parentTournamentId
+  const hasSeason = hasVault || tournament.isLeague
   let champions: PastChampion[] = []
   if (hasVault) {
     champions = await getChampionHistory(tournament.id)
@@ -94,6 +98,7 @@ export default async function TournamentLayout({
     galleryImages: galleryUrls,
     champions,
     hasVault,
+    hasSeason,
     latestTournament,
   }
 
@@ -124,6 +129,7 @@ export default async function TournamentLayout({
           galleryImages={galleryUrls}
           champions={champions}
           hasVault={hasVault}
+          canLeave={canLeave}
         >
           {children}
         </TournamentShell>

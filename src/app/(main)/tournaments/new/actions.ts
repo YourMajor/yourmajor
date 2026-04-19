@@ -8,6 +8,8 @@ import { getUser } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateJoinCode } from '@/lib/join-code'
 import { Resend } from 'resend'
+import { TIER_LIMITS } from '@/lib/tiers'
+import { getUserTier, consumeProCredit } from '@/lib/stripe'
 
 function friendlyPrismaError(err: unknown): string {
   if (err instanceof Prisma.PrismaClientValidationError) {
@@ -67,6 +69,8 @@ export type WizardPayload = {
   inviteEmails: string[]
   tournamentType: 'PUBLIC' | 'OPEN' | 'INVITE'
   parentTournamentId?: string | null
+  isLeague?: boolean
+  registerAsPlayer?: boolean
 }
 
 async function generateSlug(name: string): Promise<string> {
@@ -100,6 +104,51 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       }
     }
   }
+
+  // Tier validation
+  const userTier = await getUserTier(user.id)
+  const tierLimits = TIER_LIMITS[userTier.tier]
+
+  // Free tier: 1 tournament per calendar month
+  if (userTier.tier === 'FREE') {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const tournamentsThisMonth = await prisma.tournament.count({
+      where: {
+        players: { some: { userId: user.id, isAdmin: true } },
+        createdAt: { gte: monthStart },
+      },
+    })
+    if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
+      throw new Error('Free accounts are limited to 1 tournament per month. Upgrade to Pro or Tour for more.')
+    }
+  }
+
+  // Free tier: strip branding
+  if (!tierLimits.customBranding) {
+    data.primaryColor = '#006747'
+    data.accentColor = '#C9A84C'
+    data.logoBase64 = null
+    data.logoMime = null
+    data.logoExt = null
+    data.headerBase64 = null
+    data.headerMime = null
+    data.headerExt = null
+  }
+
+  // Free tier: block powerups
+  if (!tierLimits.powerups && data.powerupsEnabled) {
+    throw new Error('Powerups require Pro or Tour. Purchase a Pro tournament credit ($29) or upgrade to Tour ($199/season).')
+  }
+
+  // Free tier: cap rounds
+  if (data.numRounds > tierLimits.maxRounds) {
+    throw new Error(`Your plan supports up to ${tierLimits.maxRounds} round(s). Upgrade for multi-round tournaments.`)
+  }
+
+  const needsPro =
+    data.numRounds > TIER_LIMITS.FREE.maxRounds ||
+    data.powerupsEnabled
 
   const slug = await generateSlug(data.name)
 
@@ -159,6 +208,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
         status: 'REGISTRATION',
+        isLeague: data.isLeague ?? false,
         parentTournamentId: data.parentTournamentId ?? null,
       },
     })
@@ -169,7 +219,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       select: { handicap: true },
     })
     await tx.tournamentPlayer.create({
-      data: { tournamentId: t.id, userId: user.id, isAdmin: true, handicap: creatorProfile?.handicap ?? 0 },
+      data: { tournamentId: t.id, userId: user.id, isAdmin: true, isParticipant: data.registerAsPlayer ?? true, handicap: creatorProfile?.handicap ?? 0 },
     })
 
     // Create rounds
@@ -237,6 +287,63 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   } catch (err) {
     console.error('[createTournamentFromWizard] transaction failed:', err)
     throw new Error(friendlyPrismaError(err))
+  }
+
+  // Consume a Pro credit if this tournament uses pro features and user is not on Tour
+  if (needsPro && userTier.tier !== 'LEAGUE') {
+    const consumed = await consumeProCredit(user.id, tournament.id)
+    if (!consumed) {
+      // Tournament was created but no credit available — this shouldn't happen
+      // due to earlier validation, but log it for safety
+      console.warn(`[createTournamentFromWizard] No pro credit to consume for tournament ${tournament.id}`)
+    }
+  }
+
+  // Initialize league features (roster, season config) for new leagues
+  if (data.isLeague && !data.parentTournamentId) {
+    try {
+      const { getOrCreateRoster } = await import('@/lib/roster-actions')
+      // Creates roster with the creator as the first member
+      await getOrCreateRoster(tournament.id)
+      // Set default season scoring method
+      await prisma.tournament.update({
+        where: { id: tournament.id },
+        data: { seasonScoringMethod: 'POINTS' },
+      })
+    } catch {
+      console.warn('[createTournamentFromWizard] League initialization failed')
+    }
+  }
+
+  // Auto-invite roster members for renewed league tournaments
+  if (data.parentTournamentId) {
+    try {
+      const { getOrCreateRoster } = await import('@/lib/roster-actions')
+      const roster = await getOrCreateRoster(data.parentTournamentId)
+      if (roster) {
+        const activeMembers = roster.members.filter((m) => m.status === 'ACTIVE' && m.userId !== user.id)
+        for (const member of activeMembers) {
+          const existing = await prisma.tournamentPlayer.findUnique({
+            where: { tournamentId_userId: { tournamentId: tournament.id, userId: member.userId } },
+          })
+          if (!existing) {
+            const profile = await prisma.playerProfile.findUnique({
+              where: { userId: member.userId },
+              select: { handicap: true },
+            })
+            await prisma.tournamentPlayer.create({
+              data: {
+                tournamentId: tournament.id,
+                userId: member.userId,
+                handicap: profile?.handicap ?? 0,
+              },
+            }).catch(() => {})
+          }
+        }
+      }
+    } catch {
+      console.warn('[createTournamentFromWizard] Roster auto-invite failed')
+    }
   }
 
   // Send invite emails outside transaction

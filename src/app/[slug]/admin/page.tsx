@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Settings, BarChart3, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash } from 'lucide-react'
+import { Settings, BarChart3, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
@@ -31,6 +31,7 @@ export default async function AdminDashboard({
     { href: `/${slug}`, icon: BarChart3, label: 'View Leaderboard', desc: 'Live standings and stats', show: true },
     { href: `/${slug}/admin/scores`, icon: PenLine, label: 'Manage Scores', desc: 'Edit or enter player scores', show: true },
     { href: `/${slug}/admin/draft`, icon: Target, label: 'Draft Order & Start', desc: 'Set order, run the draft', show: tournament.powerupsEnabled },
+    { href: `/${slug}/admin/season`, icon: Trophy, label: 'Season Management', desc: 'Roster, attendance, standings config', show: !!tournament.parentTournamentId || tournament.isLeague },
     { href: `/tournaments/new?renew=${tournament.id}`, icon: RefreshCw, label: 'Renew Tournament', desc: 'Create a sequel tournament', show: tournament.status === 'COMPLETED' },
   ].filter((a) => a.show)
 
