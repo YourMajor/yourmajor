@@ -60,7 +60,7 @@ export default async function NewTournamentPage({
   return (
     <TournamentWizard
       renewalDefaults={renewalDefaults}
-      hasLeague={userTier.tier === 'LEAGUE'}
+      hasLeague={userTier.tier === 'LEAGUE' || userTier.tier === 'CLUB'}
       userTier={userTier.tier}
       proCredits={userTier.proCredits}
       requiresUpgrade={requiresUpgrade}

@@ -116,10 +116,10 @@
     </g>
 
     <!-- FLAG -->
-    <line x1="0" y1="-46" x2="0" y2="44" stroke="#C9A84C" stroke-width="2.2" stroke-linecap="round"/>
-    <circle cx="0" cy="-48" r="2.5" fill="#C9A84C"/>
+    <line x1="0" y1="-46" x2="0" y2="44" stroke="#DAA520" stroke-width="2.2" stroke-linecap="round"/>
+    <circle cx="0" cy="-48" r="2.5" fill="#DAA520"/>
     <path d="M 0,-45 C 12,-48 28,-40 42,-44 C 52,-47 58,-42 62,-38 C 54,-36 42,-40 30,-34 C 18,-30 8,-34 0,-31 Z" fill="none" stroke="#FFFFFF" stroke-width="1.5"/>
-    <path d="M 0,-45 C 12,-48 28,-40 42,-44 C 52,-47 58,-42 62,-38 C 54,-36 42,-40 30,-34 C 18,-30 8,-34 0,-31 Z" fill="#C9A84C"/>
+    <path d="M 0,-45 C 12,-48 28,-40 42,-44 C 52,-47 58,-42 62,-38 C 54,-36 42,-40 30,-34 C 18,-30 8,-34 0,-31 Z" fill="#DAA520"/>
     <path d="M 0,-45 C 12,-48 28,-40 42,-44 C 46,-45 50,-44 54,-42 C 46,-42 34,-44 22,-41 C 12,-39 4,-42 0,-42 Z" fill="#d4ba6e" opacity="0.5"/>
     <path d="M 8,-36 C 16,-38 26,-34 36,-37 C 40,-38 44,-37 48,-36 C 42,-36 34,-38 24,-35 C 16,-33 10,-35 8,-36 Z" fill="#a08038" opacity="0.35"/>
   </g>
@@ -127,7 +127,7 @@
   <!-- Wordmark — larger, flush with icon top/bottom -->
   <g transform="translate(200, 105)">
     <text font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="72" font-weight="400" fill="#1A3260" letter-spacing="1">
-      <tspan>Your</tspan><tspan font-weight="700" fill="#C9A84C">Major</tspan>
+      <tspan>Your</tspan><tspan font-weight="700" fill="#DAA520">Major</tspan>
     </text>
   </g>
 

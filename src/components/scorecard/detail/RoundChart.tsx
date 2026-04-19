@@ -184,7 +184,7 @@ export function RoundChart({ holes }: { holes: HoleScore[] }) {
         </svg>
       </div>
 
-      <div className="flex flex-wrap gap-x-5 gap-y-1 text-[10px] text-muted-foreground">
+      <div className="flex flex-wrap gap-x-5 gap-y-1 text-[11px] text-muted-foreground">
         <div className="flex items-center gap-1.5">
           <div className="w-4 h-[3px] rounded-full" style={{ backgroundColor: 'var(--color-primary)' }} />
           <span>Score vs Par</span>

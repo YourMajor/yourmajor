@@ -201,7 +201,7 @@ export function HoleScoring({
                 <div className="flex-1 min-w-0">
                   <p className={`text-sm font-semibold truncate ${isAtk ? 'text-red-800' : 'text-emerald-900'}`}>{ap.powerupName}</p>
                   {ap.scoreModifier !== null && (
-                    <p className={`text-[10px] ${isAtk ? 'text-red-600/70' : 'text-emerald-700/70'}`}>
+                    <p className={`text-[11px] ${isAtk ? 'text-red-600/70' : 'text-emerald-700/70'}`}>
                       {ap.scoreModifier > 0 ? '+' : ''}{ap.scoreModifier} strokes
                     </p>
                   )}
@@ -217,7 +217,7 @@ export function HoleScoring({
               <SlugIcon slug={ar.powerupSlug} isAttack className="w-5 h-5 shrink-0 text-red-700" />
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-red-800 truncate">{ar.powerupName}</p>
-                <p className="text-[10px] text-red-600/70">{ar.description}</p>
+                <p className="text-[11px] text-red-600/70">{ar.description}</p>
               </div>
             </div>
           ))}

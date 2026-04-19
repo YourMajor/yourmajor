@@ -137,7 +137,7 @@ export default async function DashboardPage() {
       <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-0">
         <div className="flex items-center justify-between gap-4">
           <Link href="/profile" className="flex items-center gap-4 group min-w-0">
-            <Avatar className="h-16 w-16 shrink-0 border-2 border-white/20 group-hover:border-white/40 transition-colors">
+            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 border-2 border-white/20 group-hover:border-white/40 transition-colors">
               <AvatarImage src={avatarUrl ?? undefined} />
               <AvatarFallback className="text-xl font-bold bg-white/20 text-white">
                 {displayName.charAt(0).toUpperCase()}
@@ -168,12 +168,12 @@ export default async function DashboardPage() {
         <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10">
           <div className="text-center">
             <p className="text-lg font-heading font-bold text-white">{handicap}</p>
-            <p className="text-[10px] text-white/50 uppercase tracking-wide font-semibold">Handicap</p>
+            <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Handicap</p>
           </div>
           <div className="w-px h-8 bg-white/10" />
           <div className="text-center">
             <p className="text-lg font-heading font-bold text-white">{totalRounds}</p>
-            <p className="text-[10px] text-white/50 uppercase tracking-wide font-semibold">Rounds</p>
+            <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Rounds</p>
           </div>
           {scoringAvg !== null && (
             <>
@@ -182,7 +182,7 @@ export default async function DashboardPage() {
                 <p className="text-lg font-heading font-bold text-white">
                   {scoringAvg >= 0 ? '+' : ''}{scoringAvg.toFixed(1)}
                 </p>
-                <p className="text-[10px] text-white/50 uppercase tracking-wide font-semibold">Avg vs Par</p>
+                <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Avg vs Par</p>
               </div>
             </>
           )}
@@ -197,7 +197,7 @@ export default async function DashboardPage() {
           <CardContent className="pt-5 pb-4">
             <div className="flex items-center gap-2 mb-3">
               <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Most Recent Round</p>
-              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
                 mostRecentIsComplete
                   ? 'bg-muted text-muted-foreground'
                   : 'bg-amber-100 text-amber-700'
@@ -206,7 +206,7 @@ export default async function DashboardPage() {
               </span>
             </div>
 
-            <div className="flex items-center justify-between gap-4">
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
               <div className="min-w-0">
                 <p className="font-semibold text-base">{mostRecentScore.round.course.name}</p>
                 <p className="text-sm text-muted-foreground mt-0.5">
@@ -215,7 +215,7 @@ export default async function DashboardPage() {
               </div>
               <div className="flex items-center gap-3 shrink-0">
                 {mostRecentRoundGross !== null && mostRecentRoundPar !== null && (
-                  <div className="text-right">
+                  <div className="text-left sm:text-right">
                     <p className="text-2xl font-bold font-heading">{mostRecentRoundGross}</p>
                     <p className="text-sm text-muted-foreground">
                       {mostRecentDiff === 0 ? 'E' : mostRecentDiff > 0 ? `+${mostRecentDiff}` : `${mostRecentDiff}`} thru {mostRecentRoundHoles}
@@ -339,12 +339,12 @@ function TournamentCard({
         {/* Status tag — top left */}
         <div className="absolute top-0 left-0 z-10">
           {t.status === 'ACTIVE' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white bg-green-600">
+            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               Live
             </span>
           ) : (
-            <span className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+            <span className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
               t.status === 'REGISTRATION'
                 ? 'bg-blue-100 text-blue-700'
                 : 'bg-muted text-muted-foreground'
@@ -377,7 +377,7 @@ function TournamentCard({
           </div>
 
           {/* Right: header image */}
-          <div className="relative w-full sm:w-1/2 min-h-[120px] sm:min-h-[100px]">
+          <div className="relative w-full sm:w-1/2 min-h-[80px] sm:min-h-[100px]">
             {t.headerImage ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={t.headerImage} alt="" className="absolute inset-0 w-full h-full object-cover" />

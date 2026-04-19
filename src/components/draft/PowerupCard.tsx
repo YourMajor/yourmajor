@@ -47,10 +47,10 @@ export function PowerupCard({
   }
 
   const nameFontSize = {
-    sm: 'text-[10px]',
+    sm: 'text-[11px]',
     md: 'text-xs',
     lg: 'text-sm',
-    grid: 'text-[10px] sm:text-xs',
+    grid: 'text-[11px] sm:text-xs',
   }
 
   return (
@@ -114,7 +114,7 @@ export function PowerupCard({
               // eslint-disable-next-line @next/next/no-img-element
               <img src={pickedBy.image} alt="" className="w-8 h-8 rounded-full mx-auto mb-1 border-2 border-white/40" />
             )}
-            <p className="text-[10px] font-semibold text-white">
+            <p className="text-[11px] font-semibold text-white">
               {pickedBy.name ?? 'Player'}
             </p>
           </div>

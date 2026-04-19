@@ -15,14 +15,18 @@ interface Props {
   initialEmail: string
   initialAvatarUrl: string | null
   initialHandicap: number
+  initialPhone: string
+  initialSmsNotifications: boolean
 }
 
-export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, initialHandicap }: Props) {
+export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, initialHandicap, initialPhone, initialSmsNotifications }: Props) {
   const parts = initialName.split(' ')
   const [firstName, setFirstName] = useState(parts[0] ?? '')
   const [lastName, setLastName] = useState(parts.slice(1).join(' '))
   const [email, setEmail] = useState(initialEmail)
   const [handicap, setHandicap] = useState(String(initialHandicap))
+  const [phone, setPhone] = useState(initialPhone)
+  const [smsNotifications, setSmsNotifications] = useState(initialSmsNotifications)
   const [avatarUrl, setAvatarUrl] = useState(initialAvatarUrl)
   const [uploading, setUploading] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -85,6 +89,8 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
     formData.append('lastName', lastName)
     formData.append('email', email)
     formData.append('handicap', handicap)
+    formData.append('phone', phone)
+    formData.append('smsNotifications', smsNotifications ? '1' : '0')
 
     const result = await updateProfile(formData)
     setSaving(false)
@@ -111,7 +117,7 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
             className="relative group focus:outline-none"
             aria-label="Change profile photo"
           >
-            <Avatar className="w-[480px] h-[480px] max-w-full">
+            <Avatar className="shrink" style={{ width: '100%', maxWidth: 480, height: 'auto', aspectRatio: '1 / 1' }}>
               {avatarUrl && <AvatarImage src={avatarUrl} alt={firstName} />}
               <AvatarFallback className="text-4xl">{initials}</AvatarFallback>
             </Avatar>
@@ -188,6 +194,38 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
             <p className="text-xs text-muted-foreground">
               Your official handicap index (0–54). Used for net scoring in tournaments.
             </p>
+          </div>
+
+          <Separator />
+
+          <div className="space-y-1.5">
+            <Label htmlFor="phone">Phone number</Label>
+            <Input
+              id="phone"
+              name="phone"
+              type="tel"
+              placeholder="+1 (555) 123-4567"
+              value={phone}
+              onChange={(e) => setPhone(e.target.value)}
+              className="w-56"
+            />
+            <p className="text-xs text-muted-foreground">
+              Used for SMS notifications. Include country code (e.g. +1 for US).
+            </p>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <input
+              id="smsNotifications"
+              name="smsNotifications"
+              type="checkbox"
+              checked={smsNotifications}
+              onChange={(e) => setSmsNotifications(e.target.checked)}
+              className="h-4 w-4 rounded border-border"
+            />
+            <Label htmlFor="smsNotifications" className="text-sm font-normal cursor-pointer">
+              Receive SMS notifications (draft turns, tee times)
+            </Label>
           </div>
 
           {message && (

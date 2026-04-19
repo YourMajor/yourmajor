@@ -14,6 +14,7 @@ export type BasicInfoState = {
   isLeague: boolean
   startDate: string
   endDate: string
+  registrationDeadline: string
   numRounds: number
   logoPreview: string | null
   logoBase64: string | null
@@ -31,11 +32,12 @@ interface Props {
   value: BasicInfoState
   onChange: (v: BasicInfoState) => void
   isFree?: boolean
+  tournamentType?: 'PUBLIC' | 'OPEN' | 'INVITE'
 }
 
 const MAX_LOGO_MB = 10
 
-export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
+export function StepBasicInfo({ value, onChange, isFree = false, tournamentType }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const headerFileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -156,6 +158,20 @@ export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
           </div>
           {value.isLeague && (
             <p className="text-xs text-muted-foreground -mt-2">Dates are set per-event for leagues. Each event in the season will have its own date.</p>
+          )}
+
+          {tournamentType === 'INVITE' && !value.isLeague && (
+            <div className="space-y-2">
+              <Label htmlFor="registrationDeadline">Registration Deadline</Label>
+              <Input
+                id="registrationDeadline"
+                type="date"
+                value={value.registrationDeadline}
+                onChange={(e) => set('registrationDeadline', e.target.value)}
+                max={value.startDate || undefined}
+              />
+              <p className="text-xs text-muted-foreground">Last day players can register. Leave blank for no deadline.</p>
+            </div>
           )}
 
           <div className="space-y-2">

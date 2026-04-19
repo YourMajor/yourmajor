@@ -3,6 +3,6 @@
     <style>@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&amp;display=swap');</style>
   </defs>
   <text x="0" y="46" font-family="'Playfair Display', Georgia, 'Times New Roman', serif" font-size="52" font-weight="400" fill="#FFFFFF" letter-spacing="1">
-    <tspan>Your</tspan><tspan font-weight="700" fill="#C9A84C">Major</tspan>
+    <tspan>Your</tspan><tspan font-weight="700" fill="#DAA520">Major</tspan>
   </text>
 </svg>

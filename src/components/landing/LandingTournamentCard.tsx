@@ -52,13 +52,13 @@ export function LandingTournamentCard({
         {/* Status badge — top left */}
         <div className="absolute top-0 left-0 z-10">
           {status === 'ACTIVE' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white bg-green-600">
+            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               Live
             </span>
           ) : (
             <span
-              className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+              className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
                 status === 'REGISTRATION'
                   ? 'bg-blue-100 text-blue-700'
                   : 'bg-muted text-muted-foreground'

@@ -50,6 +50,8 @@ export default async function RegisterPage({
   const isOpen = tournament.isOpenRegistration
   const endDatePassed = tournament.endDate && new Date() > new Date(tournament.endDate)
 
+  const deadlinePassed = tournament.registrationDeadline && new Date() > new Date(tournament.registrationDeadline)
+
   if (tournament.status === 'COMPLETED' || (!isOpen && tournament.status === 'ACTIVE') || (isOpen && endDatePassed)) {
     return (
       <TournamentMessage
@@ -58,6 +60,17 @@ export default async function RegisterPage({
         description={tournament.status === 'COMPLETED'
           ? 'This tournament has been completed. Registration is no longer available.'
           : 'This tournament has already started. Registration is no longer available.'}
+        backHref={`/${slug}`}
+      />
+    )
+  }
+
+  if (tournament.tournamentType === 'INVITE' && deadlinePassed) {
+    return (
+      <TournamentMessage
+        icon={Lock}
+        heading="Registration Closed"
+        description="The registration deadline for this tournament has passed."
         backHref={`/${slug}`}
       />
     )
@@ -130,12 +143,13 @@ export default async function RegisterPage({
     }
   }
 
-  // Already registered → redirect to hub
+  // Already registered as participant → redirect to hub
+  // (admins with isParticipant=false should still be able to register)
   if (dbUser) {
     const existing = await prisma.tournamentPlayer.findUnique({
       where: { tournamentId_userId: { tournamentId: tournament.id, userId: dbUser.id } },
     })
-    if (existing) redirect(`/${slug}`)
+    if (existing?.isParticipant) redirect(`/${slug}`)
   }
 
   // Player limit enforcement based on tier
@@ -187,11 +201,12 @@ export default async function RegisterPage({
     if (t.status === 'COMPLETED') redirect(`/${slug}`)
     if (t.status === 'ACTIVE' && !t.isOpenRegistration) redirect(`/${slug}`)
     if (t.status === 'ACTIVE' && t.isOpenRegistration && tEndDatePassed) redirect(`/${slug}`)
+    if (t.tournamentType === 'INVITE' && t.registrationDeadline && new Date() > new Date(t.registrationDeadline)) redirect(`/${slug}`)
 
     await prisma.tournamentPlayer.upsert({
       where: { tournamentId_userId: { tournamentId: t.id, userId: dbU.id } },
-      create: { tournamentId: t.id, userId: dbU.id, tee, handicap },
-      update: { tee, handicap },
+      create: { tournamentId: t.id, userId: dbU.id, tee, handicap, isParticipant: true },
+      update: { tee, handicap, isParticipant: true },
     })
 
     if (inviteToken) {

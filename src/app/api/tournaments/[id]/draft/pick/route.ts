@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { computeCurrentTurn, canPickPowerup } from '@/lib/draft-utils'
+import { sendEmail, sendEmailToMany, domain } from '@/lib/email'
+import { sendSMS } from '@/lib/sms'
 
 export async function POST(
   req: NextRequest,
@@ -150,6 +152,56 @@ export async function POST(
 
       return { pick, isComplete, newPickCount }
     })
+
+    // Send emails outside the transaction
+    const tournamentInfo = await prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { name: true, slug: true },
+    })
+
+    if (!result.isComplete) {
+      // Email the next player it's their turn
+      const draft = await prisma.draft.findUnique({ where: { tournamentId } })
+      if (draft) {
+        const draftOrder = draft.draftOrder as string[]
+        const nextTurn = computeCurrentTurn(draftOrder, draft.format, result.newPickCount, tournament.powerupsPerPlayer)
+        if (nextTurn) {
+          const nextPlayer = await prisma.tournamentPlayer.findUnique({
+            where: { id: nextTurn.tournamentPlayerId },
+            select: { user: { select: { email: true, phone: true, smsNotifications: true } } },
+          })
+          if (nextPlayer) {
+            await sendEmail(
+              nextPlayer.user.email,
+              `It's your turn to draft — ${tournamentInfo?.name ?? 'Tournament'}`,
+              `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>
+              <p><strong>It's your turn</strong> to pick a powerup!</p>
+              <p><a href="${domain}/${tournamentInfo?.slug}/draft">Make your pick</a></p>`,
+            )
+            if (nextPlayer.user.smsNotifications && nextPlayer.user.phone) {
+              await sendSMS(
+                nextPlayer.user.phone,
+                `It's your turn to draft in ${tournamentInfo?.name ?? 'the tournament'}! Pick your powerup: ${domain}/${tournamentInfo?.slug}/draft`,
+              )
+            }
+          }
+        }
+      }
+    } else {
+      // Email everyone that draft is complete
+      const allPlayers = await prisma.tournamentPlayer.findMany({
+        where: { tournamentId },
+        select: { user: { select: { email: true, name: true } } },
+      })
+      await sendEmailToMany(
+        allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
+        `Draft complete — ${tournamentInfo?.name ?? 'Tournament'}`,
+        () =>
+          `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>
+          <p>The powerup draft is complete! Check out your hand.</p>
+          <p><a href="${domain}/${tournamentInfo?.slug}">View Tournament</a></p>`,
+      )
+    }
 
     return NextResponse.json(result, { status: 201 })
   } catch (err) {

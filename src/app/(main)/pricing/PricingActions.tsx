@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { cn } from '@/lib/utils'
 
-export function PricingActions({ tier }: { tier: 'PRO' | 'LEAGUE' }) {
+export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
 
@@ -15,7 +15,7 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'LEAGUE' }) {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ type: tier === 'PRO' ? 'PRO' : 'LEAGUE' }),
+        body: JSON.stringify({ type: tier }),
       })
       const data = await res.json()
       if (data.url) {
@@ -28,25 +28,23 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'LEAGUE' }) {
     }
   }
 
-  if (tier === 'PRO') {
-    return (
-      <button
-        onClick={handleCheckout}
-        disabled={loading}
-        className={cn(buttonVariants({ size: 'lg' }), 'w-full bg-accent text-accent-foreground hover:bg-accent/90')}
-      >
-        {loading ? 'Redirecting...' : 'Create Pro Tournament'}
-      </button>
-    )
+  const labels: Record<string, string> = {
+    PRO: 'Create Pro Tournament',
+    CLUB: 'Subscribe Monthly',
+    LEAGUE: 'Get Annual Pass',
   }
 
   return (
     <button
       onClick={handleCheckout}
       disabled={loading}
-      className={cn(buttonVariants({ size: 'lg' }), 'w-full')}
+      className={cn(
+        buttonVariants({ size: 'lg' }),
+        'w-full',
+        tier === 'PRO' && 'bg-accent text-accent-foreground hover:bg-accent/90',
+      )}
     >
-      {loading ? 'Redirecting...' : 'Get Season Pass'}
+      {loading ? 'Redirecting...' : labels[tier]}
     </button>
   )
 }

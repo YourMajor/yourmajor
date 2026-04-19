@@ -18,7 +18,7 @@
   </g>
 
   <!-- Inner gold circle -->
-  <circle cx="0" cy="10" r="41" fill="none" stroke="#C9A84C" stroke-width="5.5"/>
+  <circle cx="0" cy="10" r="41" fill="none" stroke="#DAA520" stroke-width="5.5"/>
 
   <!-- === RIGHT FLAG — medium green === -->
   <g clip-path="url(#poleClip)">
@@ -32,7 +32,7 @@
   </g>
 
   <!-- Outer gold circle -->
-  <circle cx="0" cy="10" r="52" fill="none" stroke="#C9A84C" stroke-width="5.5"/>
+  <circle cx="0" cy="10" r="52" fill="none" stroke="#DAA520" stroke-width="5.5"/>
 
   <!-- === CENTER FLAG — darkest green, fully on top === -->
   <g transform="translate(0, 10) scale(1.4)">

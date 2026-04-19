@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { getTournamentTier } from '@/lib/stripe'
 import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
 import { PersistentChat } from '@/components/hub/PersistentChat'
 import { TournamentShell } from '@/components/leaderboard/TournamentShell'
@@ -33,7 +34,7 @@ export default async function TournamentLayout({
     const [membership, profile] = await Promise.all([
       prisma.tournamentPlayer.findUnique({
         where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-        select: { isAdmin: true },
+        select: { isAdmin: true, isParticipant: true },
       }),
       prisma.playerProfile.findUnique({
         where: { userId: user.id },
@@ -42,7 +43,7 @@ export default async function TournamentLayout({
     ])
     if (membership?.isAdmin) showAdmin = true
     isTournamentAdmin = membership?.isAdmin ?? false
-    isRegistered = !!membership
+    isRegistered = !!membership?.isParticipant
     avatarUrl = profile?.avatar ?? user.image ?? null
     const name = profile?.displayName ?? user.name ?? user.email.split('@')[0]
     initials = name
@@ -55,7 +56,8 @@ export default async function TournamentLayout({
   }
 
   const showRegister = !!user && !isRegistered && !isEnded
-  const canLeave = isRegistered && !isTournamentAdmin && tournament.status !== 'COMPLETED'
+  const deadlinePassed = tournament.registrationDeadline ? new Date() > new Date(tournament.registrationDeadline) : false
+  const canLeave = isRegistered && tournament.status === 'REGISTRATION' && !deadlinePassed
 
   // Fetch gallery photos for the menu
   const galleryPhotos = await prisma.tournamentPhoto.findMany({
@@ -68,7 +70,8 @@ export default async function TournamentLayout({
 
   // Fetch champion history for renewed tournaments
   const hasVault = !!tournament.parentTournamentId
-  const hasSeason = hasVault || tournament.isLeague
+  const tournamentTier = await getTournamentTier(tournament.id)
+  const hasSeason = hasVault || tournament.isLeague || tournamentTier === 'CLUB' || tournamentTier === 'LEAGUE'
   let champions: PastChampion[] = []
   if (hasVault) {
     champions = await getChampionHistory(tournament.id)

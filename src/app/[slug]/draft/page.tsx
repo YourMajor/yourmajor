@@ -192,7 +192,7 @@ export default async function DraftPage({
 
   return (
     <main
-      className="max-w-5xl mx-auto px-1 sm:px-2 py-6 space-y-4"
+      className="max-w-5xl mx-auto px-3 sm:px-4 py-6 space-y-4"
       style={rootStyle}
     >
       <div className="text-center">

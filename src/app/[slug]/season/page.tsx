@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { getTournamentTier } from '@/lib/stripe'
 import { getSeasonStandings, getSeasonAwards } from '@/lib/season-standings'
 import { getLatestEventRecap } from '@/lib/season-recap'
 import { SeasonDashboard } from '@/components/season/SeasonDashboard'
@@ -18,11 +19,13 @@ export default async function SeasonPage({
   })
   if (!tournament) return null
 
-  // Show season page for leagues (isLeague) or tournaments in a chain
+  // Show season page for leagues, tournaments in a chain, or CLUB/LEAGUE tier
   const hasChain = !!tournament.parentTournamentId
   const isLeague = tournament.isLeague
+  const tier = await getTournamentTier(tournament.id)
+  const hasTierAccess = tier === 'CLUB' || tier === 'LEAGUE'
 
-  if (!hasChain && !isLeague) {
+  if (!hasChain && !isLeague && !hasTierAccess) {
     // Check if root has season scoring configured
     let seasonConfigured = false
     const root = await prisma.tournament.findFirst({

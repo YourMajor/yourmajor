@@ -182,17 +182,17 @@ export function TournamentNavBar({
                 </span>
                 <div className="flex items-center gap-1.5">
                   {startDate && (
-                    <span className="text-[10px] sm:text-xs text-white/50">
+                    <span className="text-[11px] sm:text-xs text-white/50">
                       {fmt(startDate)}{endDate ? ` \u2013 ${fmt(endDate)}` : ''}
                     </span>
                   )}
                   {isLive ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-white/90 uppercase tracking-wider">
+                    <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold text-white/90 uppercase tracking-wider">
                       <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
                       Live
                     </span>
                   ) : (
-                    <span className="text-[9px] sm:text-[10px] font-semibold text-white/50 uppercase tracking-wider">
+                    <span className="text-[9px] sm:text-[11px] font-semibold text-white/50 uppercase tracking-wider">
                       {STATUS_LABELS[status] ?? status}
                     </span>
                   )}
@@ -305,7 +305,7 @@ export function TournamentNavBar({
                   className={`mt-6 pt-6 border-t ${menuBorder} space-y-2`}
                   onMouseLeave={() => setHoveredChampionIdx(null)}
                 >
-                  <p className={`text-[10px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Past Champions</p>
+                  <p className={`text-[11px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Past Champions</p>
                   {champions.map((c, i) => {
                     const vsParLabel = c.grossVsPar === null ? '' : c.grossVsPar === 0 ? 'E' : c.grossVsPar > 0 ? `+${c.grossVsPar}` : `${c.grossVsPar}`
                     return (
@@ -350,7 +350,7 @@ export function TournamentNavBar({
               )}
               {latestTournament && (
                 <div className={`mt-6 pt-6 border-t ${menuBorder}`}>
-                  <p className={`text-[10px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Current Edition</p>
+                  <p className={`text-[11px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Current Edition</p>
                   <Link
                     href={`/${latestTournament.slug}`}
                     onClick={() => setMenuOpen(false)}

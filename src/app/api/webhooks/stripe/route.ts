@@ -39,6 +39,21 @@ export async function POST(request: NextRequest) {
             amount: session.amount_total ?? 2900,
           },
         })
+      } else if (purchaseType === 'CLUB') {
+        // Club is a recurring subscription — store the subscription ID
+        const subId = typeof session.subscription === 'string'
+          ? session.subscription
+          : session.subscription?.id
+        await prisma.purchase.create({
+          data: {
+            userId,
+            type: 'CLUB',
+            status: 'ACTIVE',
+            stripeSessionId: session.id,
+            stripeSubId: subId ?? null,
+            amount: session.amount_total ?? 9900,
+          },
+        })
       } else if (purchaseType === 'LEAGUE') {
         await prisma.purchase.create({
           data: {
@@ -46,7 +61,7 @@ export async function POST(request: NextRequest) {
             type: 'LEAGUE',
             status: 'ACTIVE',
             stripeSessionId: session.id,
-            amount: session.amount_total ?? 19900,
+            amount: session.amount_total ?? 149900,
             expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 365 days
           },
         })
@@ -60,7 +75,7 @@ export async function POST(request: NextRequest) {
         where: { stripeSubId: sub.id },
       })
       if (purchase) {
-        const newStatus = sub.status === 'active' ? 'ACTIVE' : 'EXPIRED'
+        const newStatus = (sub.status === 'active' || sub.status === 'trialing' || sub.status === 'past_due') ? 'ACTIVE' : 'EXPIRED'
         await prisma.purchase.update({
           where: { id: purchase.id },
           data: { status: newStatus },

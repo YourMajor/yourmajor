@@ -70,7 +70,7 @@ export function TournamentBottomBar({
                 aria-label={tab.label}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <span className="text-[11px] font-medium">{tab.label}</span>
               </button>
             )
           }
@@ -85,7 +85,7 @@ export function TournamentBottomBar({
               aria-label={tab.label}
             >
               <Icon className="w-5 h-5" />
-              <span className="text-[10px] font-medium">{tab.label}</span>
+              <span className="text-[11px] font-medium">{tab.label}</span>
               {isCurrent && (
                 <span
                   className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"

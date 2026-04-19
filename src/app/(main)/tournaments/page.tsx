@@ -60,7 +60,7 @@ export default async function TournamentsPage() {
   const completed = memberships.filter((m) => m.tournament.status === 'COMPLETED')
 
   return (
-    <main className="max-w-3xl mx-auto p-6 space-y-8">
+    <main className="max-w-3xl mx-auto px-4 py-6 sm:p-6 space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-heading font-bold">Tournaments</h1>
         <Link href="/tournaments/new">
@@ -130,12 +130,12 @@ function TournamentRow({
       {/* Status tag — top left */}
       <div className="absolute top-0 left-0">
         {t.status === 'ACTIVE' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-br-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white bg-green-600">
+          <span className="inline-flex items-center gap-1.5 rounded-br-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
             <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
             Live
           </span>
         ) : (
-          <span className={`inline-flex items-center rounded-br-lg px-2.5 py-0.5 text-[10px] font-bold uppercase tracking-wide ${
+          <span className={`inline-flex items-center rounded-br-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
             t.status === 'REGISTRATION'
               ? 'bg-blue-100 text-blue-700'
               : 'bg-muted text-muted-foreground'

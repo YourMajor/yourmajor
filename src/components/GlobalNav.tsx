@@ -36,8 +36,9 @@ export async function GlobalNav() {
       <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between relative">
         <Link href="/" className="flex items-center gap-3 shrink-0 md:absolute md:left-1/2 md:-translate-x-1/2">
           <Image src="/logos/eagle-flags.svg" alt="" width={56} height={56} className="h-14 w-auto" style={{ overflow: 'visible' }} />
-          <span className="font-heading text-3xl font-bold text-primary leading-none">
-            Your<span className="text-accent">Major</span>
+          <span className="font-heading leading-none text-left">
+            <span className="block text-lg font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
+            <span className="block text-3xl font-black -mt-2" style={{ color: '#DAA520' }}>MAJOR</span>
           </span>
         </Link>
 

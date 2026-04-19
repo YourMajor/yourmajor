@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
+import { getTournamentTier } from '@/lib/stripe'
 import { Settings, BarChart3, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 
@@ -26,12 +27,15 @@ export default async function AdminDashboard({
   if (!tournament) return null
 
   const statusCfg = STATUS_CONFIG[tournament.status] ?? STATUS_CONFIG.REGISTRATION
+  const tier = await getTournamentTier(tournament.id)
+  const hasSeasonAccess = !!tournament.parentTournamentId || tournament.isLeague || tier === 'CLUB' || tier === 'LEAGUE'
   const actions = [
     { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Courses, dates, handicap system', show: true },
     { href: `/${slug}`, icon: BarChart3, label: 'View Leaderboard', desc: 'Live standings and stats', show: true },
     { href: `/${slug}/admin/scores`, icon: PenLine, label: 'Manage Scores', desc: 'Edit or enter player scores', show: true },
+    { href: `/${slug}/admin/groups`, icon: Users, label: 'Manage Groups', desc: 'Build foursomes & assign tee times', show: true },
     { href: `/${slug}/admin/draft`, icon: Target, label: 'Draft Order & Start', desc: 'Set order, run the draft', show: tournament.powerupsEnabled },
-    { href: `/${slug}/admin/season`, icon: Trophy, label: 'Season Management', desc: 'Roster, attendance, standings config', show: !!tournament.parentTournamentId || tournament.isLeague },
+    { href: `/${slug}/admin/season`, icon: Trophy, label: 'Season Management', desc: 'Roster, attendance, standings config', show: hasSeasonAccess },
     { href: `/tournaments/new?renew=${tournament.id}`, icon: RefreshCw, label: 'Renew Tournament', desc: 'Create a sequel tournament', show: tournament.status === 'COMPLETED' },
   ].filter((a) => a.show)
 
@@ -54,14 +58,14 @@ export default async function AdminDashboard({
           <div className="px-5 py-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Users className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Players</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Players</span>
             </div>
             <p className="text-2xl font-heading font-bold">{tournament._count.players}</p>
           </div>
           <div className="px-5 py-4 text-center">
             <div className="flex items-center justify-center gap-2 mb-1">
               <Calendar className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Rounds</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Rounds</span>
             </div>
             <p className="text-2xl font-heading font-bold">{tournament._count.rounds}</p>
           </div>
@@ -71,7 +75,7 @@ export default async function AdminDashboard({
                 ? <Globe className="w-3.5 h-3.5 text-muted-foreground" />
                 : <Lock className="w-3.5 h-3.5 text-muted-foreground" />
               }
-              <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Registration</span>
+              <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Registration</span>
             </div>
             <p className="text-2xl font-heading font-bold">{tournament.isOpenRegistration ? 'Open' : 'Invite'}</p>
           </div>
@@ -89,7 +93,7 @@ export default async function AdminDashboard({
               <Hash className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
             </div>
             <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Tournament Code</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tournament Code</p>
               <p className="text-lg font-mono font-bold tracking-widest">{tournament.joinCode}</p>
             </div>
           </div>

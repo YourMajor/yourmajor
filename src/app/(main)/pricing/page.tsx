@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { TIER_FEATURES, TIER_NEGATIVES, TIER_PRICES, COMPARISON_FEATURES } from '@/lib/tiers'
-import { Check, X, Zap, Trophy, Crown } from 'lucide-react'
+import { Check, X, Zap, Trophy, Crown, Users } from 'lucide-react'
 import { PricingActions } from './PricingActions'
 
 export const metadata = {
@@ -13,7 +13,7 @@ export const metadata = {
 
 export default function PricingPage() {
   return (
-    <main className="max-w-4xl mx-auto px-4 sm:px-6 py-10 space-y-10">
+    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-10">
       {/* Header */}
       <div className="text-center space-y-3">
         <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
@@ -25,7 +25,7 @@ export default function PricingPage() {
       </div>
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
         {/* Free Tier */}
         <Card className="relative flex flex-col">
           <CardHeader>
@@ -35,10 +35,10 @@ export default function PricingPage() {
               </div>
               <CardTitle className="text-lg">Casual Round</CardTitle>
             </div>
-            <CardDescription className="min-h-[2.5rem]">Perfect for a round with your crew</CardDescription>
+            <CardDescription className="min-h-0">Perfect for a round with your crew</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col flex-1 space-y-5">
-            <div className="min-h-[4.5rem] flex flex-col justify-center">
+          <CardContent className="flex flex-col flex-1 space-y-3">
+            <div className="flex flex-col justify-center">
               <div>
                 <span className="font-heading text-4xl font-bold">$0</span>
                 <span className="text-muted-foreground ml-1">forever</span>
@@ -50,7 +50,7 @@ export default function PricingPage() {
             >
               Get Started Free
             </Link>
-            <ul className="space-y-2.5">
+            <ul className="space-y-1.5">
               {TIER_FEATURES.FREE.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
                   <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
@@ -59,7 +59,7 @@ export default function PricingPage() {
               ))}
             </ul>
             {TIER_NEGATIVES.FREE.length > 0 && (
-              <ul className="space-y-2.5 border-t border-border pt-4">
+              <ul className="space-y-1.5 border-t border-border pt-4">
                 {TIER_NEGATIVES.FREE.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
@@ -83,17 +83,17 @@ export default function PricingPage() {
               </div>
               <CardTitle className="text-lg">The Major</CardTitle>
             </div>
-            <CardDescription className="min-h-[2.5rem]">For bigger events with all the bells and whistles</CardDescription>
+            <CardDescription className="min-h-0">For bigger events with all the bells and whistles</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col flex-1 space-y-5">
-            <div className="min-h-[4.5rem] flex flex-col justify-center">
+          <CardContent className="flex flex-col flex-1 space-y-3">
+            <div className="flex flex-col justify-center">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.PRO.label}</span>
                 <span className="text-muted-foreground ml-1">{TIER_PRICES.PRO.description}</span>
               </div>
             </div>
             <PricingActions tier="PRO" />
-            <ul className="space-y-2.5">
+            <ul className="space-y-1.5">
               {TIER_FEATURES.PRO.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
                   <Check className="w-4 h-4 text-accent mt-0.5 shrink-0" />
@@ -102,8 +102,51 @@ export default function PricingPage() {
               ))}
             </ul>
             {TIER_NEGATIVES.PRO.length > 0 && (
-              <ul className="space-y-2.5 border-t border-border pt-4">
+              <ul className="space-y-1.5 border-t border-border pt-4">
                 {TIER_NEGATIVES.PRO.map((f) => (
+                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                    <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
+                    <span>{f}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Club Tier */}
+        <Card className="relative flex flex-col">
+          <CardHeader>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-blue-500" />
+              </div>
+              <CardTitle className="text-lg">The Club</CardTitle>
+            </div>
+            <CardDescription className="min-h-0">For regulars who play multiple events a month</CardDescription>
+          </CardHeader>
+          <CardContent className="flex flex-col flex-1 space-y-3">
+            <div className="flex flex-col justify-center">
+              <div>
+                <span className="font-heading text-4xl font-bold">{TIER_PRICES.CLUB.label}</span>
+                <span className="text-muted-foreground ml-1">{TIER_PRICES.CLUB.description}</span>
+              </div>
+              <span className="text-xs text-muted-foreground mt-1">
+                Cancel anytime
+              </span>
+            </div>
+            <PricingActions tier="CLUB" />
+            <ul className="space-y-1.5">
+              {TIER_FEATURES.CLUB.map((f) => (
+                <li key={f} className="flex items-start gap-2 text-sm">
+                  <Check className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                  <span>{f}</span>
+                </li>
+              ))}
+            </ul>
+            {TIER_NEGATIVES.CLUB.length > 0 && (
+              <ul className="space-y-1.5 border-t border-border pt-4">
+                {TIER_NEGATIVES.CLUB.map((f) => (
                   <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
                     <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
                     <span>{f}</span>
@@ -123,20 +166,20 @@ export default function PricingPage() {
               </div>
               <CardTitle className="text-lg">The Tour</CardTitle>
             </div>
-            <CardDescription className="min-h-[2.5rem]">For leagues and recurring events all season</CardDescription>
+            <CardDescription className="min-h-0">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
           </CardHeader>
-          <CardContent className="flex flex-col flex-1 space-y-5">
-            <div className="min-h-[4.5rem] flex flex-col justify-center">
+          <CardContent className="flex flex-col flex-1 space-y-3">
+            <div className="flex flex-col justify-center">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.LEAGUE_SEASON.label}</span>
-                <span className="text-muted-foreground ml-1">/season</span>
+                <span className="text-muted-foreground ml-1">/year</span>
               </div>
               <span className="text-xs text-muted-foreground mt-1">
-                *~$17/month over 12 months
+                *~$125/month over 12 months
               </span>
             </div>
             <PricingActions tier="LEAGUE" />
-            <ul className="space-y-2.5">
+            <ul className="space-y-1.5">
               {TIER_FEATURES.LEAGUE.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm">
                   <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -170,6 +213,12 @@ export default function PricingPage() {
                 </th>
                 <th className="text-center px-4 py-3 font-heading font-semibold">
                   <div className="flex items-center justify-center gap-1.5">
+                    <Users className="w-3.5 h-3.5 text-blue-500" />
+                    Club
+                  </div>
+                </th>
+                <th className="text-center px-4 py-3 font-heading font-semibold">
+                  <div className="flex items-center justify-center gap-1.5">
                     <Crown className="w-3.5 h-3.5 text-primary" />
                     Tour
                   </div>
@@ -182,6 +231,7 @@ export default function PricingPage() {
                   <td className="px-4 py-2.5 font-medium">{row.label}</td>
                   <ComparisonCell value={row.free} />
                   <ComparisonCell value={row.pro} />
+                  <ComparisonCell value={row.club} />
                   <ComparisonCell value={row.tour} />
                 </tr>
               ))}
@@ -211,8 +261,12 @@ export default function PricingPage() {
             a="Each $29 Pro purchase gives you one tournament credit. When you create a tournament with Pro features (branding, powerups, multi-round, etc.), a credit is consumed. Unused credits never expire."
           />
           <FaqItem
-            q="What does the Tour season pass include?"
-            a="The $199 Tour pass unlocks everything for 365 days from purchase — unlimited tournaments, season standings, recurring rosters, and all Pro features. No per-tournament fees."
+            q="What is the Club subscription?"
+            a="The Club is a $99/month subscription that gives you up to 4 tournaments per month with all Pro features. Cancel anytime from your billing page — no long-term commitment."
+          />
+          <FaqItem
+            q="What does the Tour annual pass include?"
+            a="The $1,499 Tour pass unlocks everything for 365 days from purchase — unlimited tournaments, season standings, recurring rosters, and all Pro features. No per-tournament fees."
           />
           <FaqItem
             q="What payment methods do you accept?"

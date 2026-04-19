@@ -49,7 +49,7 @@ function getInitials(name: string): string {
 }
 
 function TrendIndicator({ trend }: { trend: number | null }) {
-  if (trend === null) return <Badge variant="outline" className="text-[10px]">NEW</Badge>
+  if (trend === null) return <Badge variant="outline" className="text-[11px]">NEW</Badge>
   if (trend > 0) return <span className="flex items-center gap-0.5 text-green-600 text-xs font-semibold"><TrendingUp className="w-3 h-3" />{trend}</span>
   if (trend < 0) return <span className="flex items-center gap-0.5 text-red-500 text-xs font-semibold"><TrendingDown className="w-3 h-3" />{Math.abs(trend)}</span>
   return <span className="text-muted-foreground"><Minus className="w-3 h-3" /></span>
@@ -125,7 +125,7 @@ function StandingsTable({
   return (
     <div className="mt-4 space-y-1">
       {/* Header */}
-      <div className="grid grid-cols-[2.5rem_1fr_3rem_4rem_3rem] sm:grid-cols-[3rem_1fr_4rem_5rem_4rem] items-center px-3 py-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+      <div className="grid grid-cols-[2.5rem_1fr_3rem_4rem_3rem] sm:grid-cols-[3rem_1fr_4rem_5rem_4rem] items-center px-3 py-2 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
         <span>Pos</span>
         <span>Player</span>
         <span className="text-center">Evts</span>
@@ -187,7 +187,7 @@ function StandingsTable({
             {/* Expanded: per-event results */}
             {isExpanded && (
               <div className="mx-3 mb-2 mt-1 rounded-lg border border-border overflow-hidden">
-                <div className="px-3 py-2 bg-muted/30 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground grid grid-cols-[1fr_4rem_4rem]">
+                <div className="px-3 py-2 bg-muted/30 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground grid grid-cols-[1fr_4rem_4rem]">
                   <span>Event</span>
                   <span className="text-center">Finish</span>
                   <span className="text-right">Score</span>
@@ -201,7 +201,7 @@ function StandingsTable({
                     <div className="min-w-0">
                       <span className="truncate block text-foreground">{r.tournamentName}</span>
                       {r.date && (
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground">
                           {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                         </span>
                       )}
@@ -299,7 +299,7 @@ function RecapCard({ recap }: { recap: EventRecap }) {
       href={`/${recap.tournamentSlug}`}
       className="block rounded-xl border border-border p-5 hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5 transition-all"
     >
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Latest Result</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-2">Latest Result</p>
       <div className="flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-foreground">{recap.tournamentName}</p>
@@ -330,7 +330,7 @@ function RecapCard({ recap }: { recap: EventRecap }) {
             <div key={h.type} className="flex-1">
               <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{h.label}</p>
               <p className="text-xs font-medium text-foreground">{h.playerName}</p>
-              <p className="text-[10px] text-muted-foreground">{h.value}</p>
+              <p className="text-[11px] text-muted-foreground">{h.value}</p>
             </div>
           ))}
         </div>

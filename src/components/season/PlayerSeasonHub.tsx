@@ -101,7 +101,7 @@ export function PlayerSeasonHub({ stats, slug, isOwnProfile }: PlayerSeasonHubPr
 function StatCard({ label, value }: { label: string; value: string }) {
   return (
     <div className="rounded-xl border border-border px-4 py-3 text-center">
-      <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
+      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</p>
       <p className="text-xl font-bold text-foreground mt-0.5">{value}</p>
     </div>
   )
@@ -121,7 +121,7 @@ function ResultsTab({ stats }: { stats: PlayerSeasonStats }) {
           <div className="min-w-0">
             <p className="text-sm font-medium text-foreground truncate">{r.tournamentName}</p>
             {r.date && (
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {new Date(r.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
               </p>
             )}
@@ -202,11 +202,11 @@ function PersonalBestsTab({ stats }: { stats: PlayerSeasonStats }) {
     <div className="mt-4 grid gap-3 sm:grid-cols-2">
       {stats.personalBests.map((pb) => (
         <div key={pb.label} className="rounded-xl border border-border p-5">
-          <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{pb.label}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{pb.label}</p>
           <p className="text-2xl font-bold text-foreground mt-1">{pb.value}</p>
           <p className="text-xs text-muted-foreground mt-1">{pb.eventName}</p>
           {pb.date && (
-            <p className="text-[10px] text-muted-foreground">
+            <p className="text-[11px] text-muted-foreground">
               {new Date(pb.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
             </p>
           )}
@@ -215,7 +215,7 @@ function PersonalBestsTab({ stats }: { stats: PlayerSeasonStats }) {
 
       {/* Score distribution */}
       <div className="rounded-xl border border-border p-5 sm:col-span-2">
-        <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Season Score Distribution</p>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mb-3">Season Score Distribution</p>
         <div className="flex items-end gap-1 h-20">
           {[
             { label: 'Eagles', count: stats.totalEagles, color: 'bg-yellow-500' },
@@ -230,7 +230,7 @@ function PersonalBestsTab({ stats }: { stats: PlayerSeasonStats }) {
               <div key={item.label} className="flex-1 flex flex-col items-center gap-1">
                 <div className={`w-full rounded-t ${item.color}`} style={{ height: `${Math.max(pct, 2)}%` }} />
                 <span className="text-[9px] text-muted-foreground">{item.label}</span>
-                <span className="text-[10px] font-semibold text-foreground">{item.count}</span>
+                <span className="text-[11px] font-semibold text-foreground">{item.count}</span>
               </div>
             )
           })}

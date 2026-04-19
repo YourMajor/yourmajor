@@ -147,12 +147,12 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       {/* Totals bar */}
       <div className="flex items-center justify-between rounded-xl border border-border p-3" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
         <div className="text-center flex-1">
-          <p className="text-[10px] uppercase tracking-wider text-white/70">Gross</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/70">Gross</p>
           <p className="text-2xl font-heading font-bold">{totalGross}</p>
         </div>
         <div className="w-px h-10 bg-white/20" />
         <div className="text-center flex-1">
-          <p className="text-[10px] uppercase tracking-wider text-white/70">Net</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/70">Net</p>
           <div className="flex items-center justify-center gap-1">
             <p className="text-2xl font-heading font-bold">{totalNet}</p>
             {isComplete && (
@@ -169,7 +169,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
         </div>
         <div className="w-px h-10 bg-white/20" />
         <div className="text-center flex-1">
-          <p className="text-[10px] uppercase tracking-wider text-white/70">vs Par</p>
+          <p className="text-[11px] uppercase tracking-wider text-white/70">vs Par</p>
           <p className="text-2xl font-heading font-bold">
             {diffGross >= 0 ? '+' : ''}{diffGross}
           </p>
@@ -365,10 +365,10 @@ function CallawayDeductionDetail({ breakdown, sorted }: {
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50">
-              <th className="py-1.5 px-3 text-left text-[10px] font-bold text-muted-foreground uppercase">Hole</th>
-              <th className="py-1.5 px-3 text-center text-[10px] font-bold text-muted-foreground uppercase">Score</th>
-              <th className="py-1.5 px-3 text-center text-[10px] font-bold text-muted-foreground uppercase">Capped</th>
-              <th className="py-1.5 px-3 text-right text-[10px] font-bold text-muted-foreground uppercase">Deducted</th>
+              <th className="py-1.5 px-3 text-left text-[11px] font-bold text-muted-foreground uppercase">Hole</th>
+              <th className="py-1.5 px-3 text-center text-[11px] font-bold text-muted-foreground uppercase">Score</th>
+              <th className="py-1.5 px-3 text-center text-[11px] font-bold text-muted-foreground uppercase">Capped</th>
+              <th className="py-1.5 px-3 text-right text-[11px] font-bold text-muted-foreground uppercase">Deducted</th>
             </tr>
           </thead>
           <tbody>
@@ -378,7 +378,7 @@ function CallawayDeductionDetail({ breakdown, sorted }: {
                 <tr key={dh.holeNumber} className="border-t border-border">
                   <td className="py-1.5 px-3 font-semibold">
                     Hole {dh.holeNumber}
-                    {isHalf && <span className="text-[10px] text-muted-foreground ml-1">(half)</span>}
+                    {isHalf && <span className="text-[11px] text-muted-foreground ml-1">(half)</span>}
                   </td>
                   <td className="py-1.5 px-3 text-center text-muted-foreground">{dh.strokes}</td>
                   <td className="py-1.5 px-3 text-center text-muted-foreground">
@@ -434,7 +434,7 @@ function CallawayDeductionDetail({ breakdown, sorted }: {
           </div>
         ))}
       </div>
-      <p className="text-[10px] text-muted-foreground">
+      <p className="text-[11px] text-muted-foreground">
         Highlighted = deducted. Holes 17-18 are excluded from the Callaway system.
       </p>
     </div>
@@ -468,7 +468,7 @@ function StrokeAllocationDetail({ handicap, strokeHoles, sorted }: {
           )
         })}
       </div>
-      <p className="text-[10px] text-muted-foreground">Highlighted holes receive a handicap stroke.</p>
+      <p className="text-[11px] text-muted-foreground">Highlighted holes receive a handicap stroke.</p>
     </div>
   )
 }

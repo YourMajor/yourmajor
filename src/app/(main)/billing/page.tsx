@@ -5,7 +5,7 @@ import { getUser } from '@/lib/auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button-variants'
-import { CreditCard, Receipt, Crown, Zap } from 'lucide-react'
+import { CreditCard, Receipt, Crown, Zap, Users } from 'lucide-react'
 import { ManageSubscriptionButton } from './ManageSubscriptionButton'
 
 export const metadata = {
@@ -30,6 +30,9 @@ export default async function BillingPage() {
   const activeLeague = purchases.find(
     (p) => p.type === 'LEAGUE' && p.status === 'ACTIVE'
   )
+  const activeClub = purchases.find(
+    (p) => p.type === 'CLUB' && p.status === 'ACTIVE'
+  )
 
   return (
     <main className="max-w-2xl mx-auto px-4 sm:px-6 py-10 space-y-8">
@@ -49,11 +52,24 @@ export default async function BillingPage() {
               <CardTitle>The Tour — Active</CardTitle>
             </div>
             <CardDescription>
-              {activeLeague.stripeSubId
-                ? 'Monthly subscription (legacy)'
-                : activeLeague.expiresAt
-                ? `Season pass — expires ${new Date(activeLeague.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
+              {activeLeague.expiresAt
+                ? `Annual pass — expires ${new Date(activeLeague.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}`
                 : 'Active'}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="flex items-center gap-3">
+            {hasStripeCustomer && <ManageSubscriptionButton />}
+          </CardContent>
+        </Card>
+      ) : activeClub ? (
+        <Card className="border-blue-500/30">
+          <CardHeader>
+            <div className="flex items-center gap-2">
+              <Users className="w-4 h-4 text-blue-500" />
+              <CardTitle>The Club — Active</CardTitle>
+            </div>
+            <CardDescription>
+              Monthly subscription — 4 tournaments per month
             </CardDescription>
           </CardHeader>
           <CardContent className="flex items-center gap-3">
@@ -68,7 +84,7 @@ export default async function BillingPage() {
             </div>
             <p className="font-heading font-semibold text-sm">No active subscription</p>
             <p className="text-xs text-muted-foreground mt-1">
-              Upgrade to The Tour for unlimited tournaments all season.
+              Upgrade to The Club or The Tour for more tournaments.
             </p>
             <Link
               href="/pricing"
@@ -99,6 +115,8 @@ export default async function BillingPage() {
                 <div className="flex items-center gap-3">
                   {p.type === 'EVENT' ? (
                     <Zap className="w-4 h-4 text-accent shrink-0" />
+                  ) : p.type === 'CLUB' ? (
+                    <Users className="w-4 h-4 text-blue-500 shrink-0" />
                   ) : (
                     <Crown className="w-4 h-4 text-primary shrink-0" />
                   )}
@@ -106,9 +124,9 @@ export default async function BillingPage() {
                     <p className="text-sm font-medium">
                       {p.type === 'EVENT'
                         ? `Pro — ${p.tournament?.name ?? 'Tournament'}`
-                        : p.stripeSubId
-                        ? 'The Tour — Monthly'
-                        : 'The Tour — Season'}
+                        : p.type === 'CLUB'
+                        ? 'The Club — Monthly'
+                        : 'The Tour — Annual'}
                     </p>
                     <p className="text-xs text-muted-foreground">
                       {new Date(p.createdAt).toLocaleDateString('en-US', {

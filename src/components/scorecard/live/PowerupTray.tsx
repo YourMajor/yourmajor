@@ -62,7 +62,7 @@ export function PowerupTray({
       {/* Available powerups — card hand with inline activation */}
       {availablePowerups.length > 0 && (
         <div className="space-y-1">
-          <p className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">
+          <p className="text-[11px] text-white/40 uppercase tracking-wider font-semibold">
             Powerups ({availablePowerups.length})
           </p>
           <CardHand

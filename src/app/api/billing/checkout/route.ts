@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUser } from '@/lib/auth'
-import { createProCheckoutSession, createLeagueCheckoutSession } from '@/lib/stripe'
+import { createProCheckoutSession, createClubCheckoutSession, createLeagueCheckoutSession } from '@/lib/stripe'
 
 export async function POST(request: NextRequest) {
   const user = await getUser()
@@ -16,6 +16,15 @@ export async function POST(request: NextRequest) {
       userId: user.id,
       email: user.email,
       ...(tournamentId ? { tournamentId, tournamentName } : {}),
+      returnUrl: `${origin}/pricing`,
+    })
+    return NextResponse.json({ url: session.url })
+  }
+
+  if (type === 'CLUB') {
+    const session = await createClubCheckoutSession({
+      userId: user.id,
+      email: user.email,
       returnUrl: `${origin}/pricing`,
     })
     return NextResponse.json({ url: session.url })

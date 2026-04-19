@@ -80,7 +80,7 @@ export function BottomTabBar() {
                   aria-label={tab.label}
                 >
                   <Icon className="w-5 h-5" />
-                  <span className="text-[10px] font-medium">{tab.label}</span>
+                  <span className="text-[11px] font-medium">{tab.label}</span>
                 </button>
               )
             }
@@ -89,13 +89,13 @@ export function BottomTabBar() {
               <Link
                 key={tab.href}
                 href={tab.href}
-                className={`flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] transition-colors ${
+                className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] transition-colors ${
                   isActive ? 'text-primary' : 'text-muted-foreground'
                 }`}
                 aria-label={tab.label}
               >
                 <Icon className="w-5 h-5" />
-                <span className="text-[10px] font-medium">{tab.label}</span>
+                <span className="text-[11px] font-medium">{tab.label}</span>
                 {isActive && (
                   <span className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4px)] w-1 h-1 rounded-full bg-primary" />
                 )}

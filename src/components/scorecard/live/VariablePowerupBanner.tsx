@@ -74,7 +74,7 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
           <p className="text-sm font-semibold text-emerald-200 truncate">
             Fairway Finder
           </p>
-          <p className="text-[10px] text-emerald-300/70">
+          <p className="text-[11px] text-emerald-300/70">
             {fairwaysHit}/{declaredCount} consecutive fairways
           </p>
         </div>
@@ -102,7 +102,7 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
           <p className="text-sm font-semibold text-amber-200 truncate">
             King of the Hill
           </p>
-          <p className="text-[10px] text-amber-300/70">
+          <p className="text-[11px] text-amber-300/70">
             {consecutiveWins > 0
               ? `${consecutiveWins} hole${consecutiveWins !== 1 ? 's' : ''} won — streak active!`
               : 'Waiting for scores...'

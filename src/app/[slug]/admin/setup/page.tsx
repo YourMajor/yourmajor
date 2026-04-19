@@ -154,7 +154,7 @@ export default async function TournamentSetup({
   const fmt = (d: Date | null) => (d ? new Date(d).toISOString().split('T')[0] : '')
 
   return (
-    <main className="max-w-2xl mx-auto p-6 space-y-6">
+    <main className="max-w-2xl mx-auto px-4 py-6 sm:p-6 space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
@@ -181,7 +181,7 @@ export default async function TournamentSetup({
                 Tournament URL: yourdomain.com/<strong>{tournament.slug}</strong>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
@@ -323,7 +323,7 @@ export default async function TournamentSetup({
                 max={10}
                 defaultValue={tournament.powerupsPerPlayer}
                 disabled={powerupsLocked}
-                className="w-24"
+                className="w-full sm:w-24"
               />
             </div>
             <div className="space-y-2">
@@ -336,7 +336,7 @@ export default async function TournamentSetup({
                 max={10}
                 defaultValue={tournament.maxAttacksPerPlayer}
                 disabled={powerupsLocked}
-                className="w-24"
+                className="w-full sm:w-24"
               />
             </div>
             <div className="space-y-2">

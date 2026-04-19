@@ -164,7 +164,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
                 </Avatar>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{member.email} &middot; HCP {member.handicap}</p>
+                  <p className="text-[11px] text-muted-foreground">{member.email} &middot; HCP {member.handicap}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -236,7 +236,7 @@ function AttendancePanel({ attendance }: { attendance: { rows: AttendanceRow[]; 
             <th className="text-left py-2 px-3 font-semibold text-foreground sticky left-0 bg-background z-10">Player</th>
             {attendance.events.map((e) => (
               <th key={e.tournamentId} className="text-center py-2 px-2 font-medium text-muted-foreground min-w-[4rem]">
-                <span className="text-[10px] block">{e.name}</span>
+                <span className="text-[11px] block">{e.name}</span>
                 {e.date && <span className="text-[9px] text-muted-foreground">{new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               </th>
             ))}
@@ -317,9 +317,9 @@ function CourseStatsPanel({ courseAnalytics }: { courseAnalytics: CourseAnalytic
         </div>
         {course.courseRecord && (
           <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Course Record</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Course Record</p>
             <p className="text-lg font-bold text-foreground">{course.courseRecord.total}</p>
-            <p className="text-[10px] text-muted-foreground">{course.courseRecord.playerName}</p>
+            <p className="text-[11px] text-muted-foreground">{course.courseRecord.playerName}</p>
           </div>
         )}
       </div>
@@ -512,11 +512,11 @@ function ScheduleEventsPanel({
         <div className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Roster</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Roster</p>
               <p className="text-sm font-medium text-foreground mt-0.5">{rosterCount} players</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Auto-Register</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Auto-Register</p>
               <p className="text-sm font-medium text-green-600 mt-0.5">All active members</p>
             </div>
           </div>
@@ -612,7 +612,7 @@ function ScheduleEventsPanel({
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             Creates a new event linked to the season with the same settings and branding.
             All active roster members will be automatically registered.
           </p>

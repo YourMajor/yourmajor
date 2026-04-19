@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { getTournamentTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import { supabaseAdmin } from '@/lib/supabase'
 import { randomUUID } from 'crypto'
 
@@ -39,6 +41,12 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
+
+  // Verify tournament tier allows gallery
+  const tier = await getTournamentTier(id)
+  if (!TIER_LIMITS[tier].gallery) {
+    return NextResponse.json({ error: 'Photo gallery requires a paid plan' }, { status: 403 })
+  }
 
   // Verify user is a registered player
   const player = await prisma.tournamentPlayer.findUnique({
