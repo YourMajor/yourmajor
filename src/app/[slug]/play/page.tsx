@@ -189,7 +189,7 @@ export default async function PlayPage({
       : [],
     tournament.powerupsEnabled
       ? prisma.tournamentPlayer.findMany({
-          where: { tournamentId: tournament.id },
+          where: { tournamentId: tournament.id, isParticipant: true },
           select: { id: true, user: { select: { name: true } } },
         })
       : [],

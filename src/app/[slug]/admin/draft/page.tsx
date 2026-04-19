@@ -47,7 +47,7 @@ export default async function AdminDraftPage({
   if (!membership?.isAdmin && user.role !== 'ADMIN') redirect(`/${slug}`)
 
   const players = await prisma.tournamentPlayer.findMany({
-    where: { tournamentId: tournament.id },
+    where: { tournamentId: tournament.id, isParticipant: true },
     include: { user: { select: { name: true, image: true } } },
     orderBy: { createdAt: 'asc' },
   })

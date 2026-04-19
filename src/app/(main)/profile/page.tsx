@@ -2,9 +2,11 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { getUserTier } from '@/lib/stripe'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ProfileEditForm } from './ProfileEditForm'
+import { Trophy, Zap, Crown } from 'lucide-react'
 
 export default async function ProfilePage({
   searchParams,
@@ -15,6 +17,7 @@ export default async function ProfilePage({
   if (!user) redirect('/auth/login')
 
   const { ref: tournamentRef } = await searchParams
+  const userTier = await getUserTier(user.id)
 
   const profile = await prisma.playerProfile.findUnique({ where: { userId: user.id } })
   const playerIds = await prisma.tournamentPlayer.findMany({
@@ -166,6 +169,64 @@ export default async function ProfilePage({
         initialHandicap={handicap}
       />
 
+      {/* Membership */}
+      <Card>
+        <CardHeader className="pb-3">
+          <CardTitle className="text-base font-heading">Membership</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <div className="flex items-center gap-3">
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
+              userTier.tier === 'LEAGUE'
+                ? 'bg-primary/10'
+                : userTier.tier === 'PRO'
+                ? 'bg-accent/10'
+                : 'bg-muted'
+            }`}>
+              {userTier.tier === 'LEAGUE' ? (
+                <Crown className="w-5 h-5 text-primary" />
+              ) : userTier.tier === 'PRO' ? (
+                <Zap className="w-5 h-5 text-accent" />
+              ) : (
+                <Trophy className="w-5 h-5 text-muted-foreground" />
+              )}
+            </div>
+            <div>
+              <p className="font-heading font-semibold text-sm">
+                {userTier.tier === 'LEAGUE' ? 'Tour' : userTier.tier === 'PRO' ? 'Pro' : 'Free'} Plan
+              </p>
+              {userTier.tier === 'LEAGUE' && userTier.expiresAt && (
+                <p className="text-xs text-muted-foreground">
+                  Season expires {new Date(userTier.expiresAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
+              {userTier.tier === 'FREE' && (
+                <p className="text-xs text-muted-foreground">
+                  <Link href="/pricing" className="underline text-[var(--color-primary)]">Upgrade</Link> for more features
+                </p>
+              )}
+            </div>
+          </div>
+          {userTier.proCredits > 0 && (
+            <>
+              <Separator />
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Tournament Credits</span>
+                <span className="font-medium">{userTier.proCredits}</span>
+              </div>
+            </>
+          )}
+          {userTier.tier !== 'FREE' && (
+            <>
+              <Separator />
+              <Link href="/billing" className="text-xs text-[var(--color-primary)] underline">
+                Manage billing
+              </Link>
+            </>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Overview Stats */}
       <Card>
         <CardHeader className="pb-3">
@@ -307,32 +368,51 @@ export default async function ProfilePage({
       )}
 
       {/* Insights */}
-      {insights.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Insights</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            {insights.filter(i => i.type === 'strength').map((ins, i) => (
-              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-green-200 bg-green-50">
-                <span className="text-green-600 text-sm mt-0.5 font-bold">+</span>
-                <div>
-                  <p className="text-xs font-bold text-green-800">{ins.area}</p>
-                  <p className="text-xs text-green-700 mt-0.5">{ins.message}</p>
+      {userTier.tier === 'FREE' ? (
+        insights.length > 0 && (
+          <Card className="border-dashed border-2 border-border shadow-none">
+            <CardContent className="py-6 flex flex-col items-center text-center">
+              <p className="font-heading font-semibold text-sm">Unlock Insights</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                Upgrade to Pro or Tour to see personalized strengths, weaknesses, and improvement tips.
+              </p>
+              <Link
+                href="/pricing"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] text-white px-4 py-2 text-xs font-semibold hover:opacity-90 transition"
+              >
+                View Plans
+              </Link>
+            </CardContent>
+          </Card>
+        )
+      ) : (
+        insights.length > 0 && (
+          <Card>
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base font-heading">Insights</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {insights.filter(i => i.type === 'strength').map((ins, i) => (
+                <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-green-200 bg-green-50">
+                  <span className="text-green-600 text-sm mt-0.5 font-bold">+</span>
+                  <div>
+                    <p className="text-xs font-bold text-green-800">{ins.area}</p>
+                    <p className="text-xs text-green-700 mt-0.5">{ins.message}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-            {insights.filter(i => i.type === 'weakness').map((ins, i) => (
-              <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50">
-                <span className="text-amber-600 text-sm mt-0.5 font-bold">!</span>
-                <div>
-                  <p className="text-xs font-bold text-amber-800">{ins.area}</p>
-                  <p className="text-xs text-amber-700 mt-0.5">{ins.message}</p>
+              ))}
+              {insights.filter(i => i.type === 'weakness').map((ins, i) => (
+                <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50">
+                  <span className="text-amber-600 text-sm mt-0.5 font-bold">!</span>
+                  <div>
+                    <p className="text-xs font-bold text-amber-800">{ins.area}</p>
+                    <p className="text-xs text-amber-700 mt-0.5">{ins.message}</p>
+                  </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
+              ))}
+            </CardContent>
+          </Card>
+        )
       )}
     </main>
   )

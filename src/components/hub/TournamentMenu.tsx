@@ -168,7 +168,9 @@ export function TournamentMenu({
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm text-foreground">{c.championName}</p>
                       <p className="text-[10px] text-muted-foreground">
-                        {c.tournamentName}{c.year ? ` (${c.year})` : ''}
+                        {c.year === new Date().getFullYear() && c.startDate
+                          ? `${c.tournamentName} — ${new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                          : `${c.tournamentName}${c.year ? ` (${c.year})` : ''}`}
                         {c.grossTotal !== null && (
                           <span className="ml-1.5">
                             — <span className="font-bold text-foreground">{c.grossTotal}</span>

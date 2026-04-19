@@ -81,6 +81,42 @@ enum TournamentType {
   INVITE
 }
 
+enum PricingTier {
+  FREE
+  PRO
+  LEAGUE
+}
+
+enum PurchaseType {
+  EVENT
+  LEAGUE
+}
+
+enum PurchaseStatus {
+  ACTIVE
+  EXPIRED
+  CANCELLED
+  REFUNDED
+}
+
+enum SeasonScoringMethod {
+  POINTS
+  STROKE_AVG
+  BEST_OF_N
+  STABLEFORD_CUMULATIVE
+}
+
+enum RosterStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum RSVPStatus {
+  GOING
+  NOT_GOING
+  MAYBE
+}
+
 // ─── Auth (NextAuth adapter) ──────────────────────────────────────────────────
 
 model User {
@@ -100,6 +136,10 @@ model User {
   standaloneRounds  StandaloneRound[]
   messages          TournamentMessage[]
   photos            TournamentPhoto[]
+  purchases         Purchase[]
+  stripeCustomerId  String?             @unique
+  rosterMemberships LeagueRosterMember[]
+  seasonRSVPs       SeasonRSVP[]
 }
 
 model Account {
@@ -181,6 +221,12 @@ model Tournament {
   championUserId     String?
   championName       String?
 
+  // ── Season/League config (Tour tier) ──
+  isLeague            Boolean              @default(false)
+  seasonScoringMethod SeasonScoringMethod?
+  seasonBestOf        Int?
+  seasonPointsTable   Json?
+
   rounds             TournamentRound[]
   players            TournamentPlayer[]
   invitations        Invitation[]
@@ -188,6 +234,9 @@ model Tournament {
   draft              Draft?
   messages           TournamentMessage[]
   photos             TournamentPhoto[]
+  purchase           Purchase?
+  leagueRoster       LeagueRoster?
+  seasonSchedule     SeasonScheduleEvent[]
 }
 
 model TournamentRound {
@@ -302,6 +351,7 @@ model TournamentPlayer {
   tee              String?
   handicap         Float     @default(0)
   isAdmin          Boolean   @default(false)
+  isParticipant    Boolean   @default(true)
   createdAt        DateTime  @default(now())
 
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
@@ -503,4 +553,79 @@ model StandaloneScore {
   hole  Hole?           @relation(fields: [holeId], references: [id])
 
   @@unique([standaloneRoundId, holeNumber])
+}
+
+// ─── League Roster ────────────────────────────────────────────────────────────
+
+model LeagueRoster {
+  id               String               @id @default(cuid())
+  rootTournamentId String               @unique
+  autoAddNew       Boolean              @default(true)
+  createdAt        DateTime             @default(now())
+
+  rootTournament Tournament             @relation(fields: [rootTournamentId], references: [id], onDelete: Cascade)
+  members        LeagueRosterMember[]
+}
+
+model LeagueRosterMember {
+  id       String       @id @default(cuid())
+  rosterId String
+  userId   String
+  status   RosterStatus @default(ACTIVE)
+  joinedAt DateTime     @default(now())
+
+  roster LeagueRoster @relation(fields: [rosterId], references: [id], onDelete: Cascade)
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([rosterId, userId])
+}
+
+// ─── Season Schedule & RSVP ──────────────────────────────────────────────────
+
+model SeasonScheduleEvent {
+  id           String    @id @default(cuid())
+  tournamentId String
+  title        String
+  date         DateTime
+  courseId      String?
+  notes        String?
+  createdAt    DateTime  @default(now())
+
+  tournament Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  rsvps      SeasonRSVP[]
+
+  @@index([tournamentId])
+}
+
+model SeasonRSVP {
+  id       String     @id @default(cuid())
+  eventId  String
+  userId   String
+  status   RSVPStatus @default(GOING)
+
+  event SeasonScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
+  user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([eventId, userId])
+}
+
+// ─── Billing ──────────────────────────────────────────────────────────────────
+
+model Purchase {
+  id              String         @id @default(cuid())
+  userId          String
+  tournamentId    String?        @unique
+  type            PurchaseType
+  status          PurchaseStatus @default(ACTIVE)
+  stripeSessionId String?        @unique
+  stripeSubId     String?        @unique
+  amount          Int            // cents
+  expiresAt       DateTime?
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
 }

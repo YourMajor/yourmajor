@@ -28,6 +28,7 @@ interface TournamentShellProps {
   galleryImages?: string[]
   champions?: PastChampion[]
   hasVault?: boolean
+  canLeave?: boolean
   children: React.ReactNode
 }
 
@@ -51,10 +52,11 @@ export function TournamentShell({
   galleryImages = [],
   champions = [],
   hasVault = false,
+  canLeave = false,
   children,
 }: TournamentShellProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { latestTournament } = useTournament()
+  const { latestTournament, hasSeason } = useTournament()
 
   return (
     <>
@@ -78,6 +80,7 @@ export function TournamentShell({
         galleryImages={galleryImages}
         champions={champions}
         hasVault={hasVault}
+        canLeave={canLeave}
         externalMenuOpen={menuOpen}
         onExternalMenuChange={setMenuOpen}
       />
@@ -104,7 +107,9 @@ export function TournamentShell({
       <TournamentBottomBar
         slug={slug}
         isRegistered={isRegistered}
+        isLoggedIn={isLoggedIn}
         status={status}
+        hasSeason={hasSeason}
         onMenuOpen={() => setMenuOpen(true)}
       />
     </>

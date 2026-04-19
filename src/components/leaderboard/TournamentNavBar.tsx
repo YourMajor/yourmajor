@@ -2,9 +2,10 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
-import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown } from 'lucide-react'
+import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
+import { LeaveTournamentButton } from '@/components/LeaveTournamentButton'
 import type { PastChampion } from '@/lib/tournament-chain'
 
 interface TournamentNavBarProps {
@@ -27,6 +28,7 @@ interface TournamentNavBarProps {
   galleryImages?: string[]
   champions?: PastChampion[]
   hasVault?: boolean
+  canLeave?: boolean
   externalMenuOpen?: boolean
   onExternalMenuChange?: (open: boolean) => void
 }
@@ -65,6 +67,8 @@ const MENU_DESCRIPTIONS: Record<string, string> = {
   'Gallery': 'Photos and moments captured throughout the tournament.',
   'Admin Settings': 'Manage rounds, players, and tournament settings.',
   'Vault': 'Past champions and historical leaderboards from previous years.',
+  'Season Standings': 'Season-long standings, statistics, and player leaderboard across all events.',
+  'Event Leaderboard': 'Standings and scores for this individual event.',
 }
 
 export function TournamentNavBar({
@@ -87,10 +91,11 @@ export function TournamentNavBar({
   galleryImages = [],
   champions = [],
   hasVault = false,
+  canLeave = false,
   externalMenuOpen,
   onExternalMenuChange,
 }: TournamentNavBarProps) {
-  const { latestTournament } = useTournament()
+  const { latestTournament, hasSeason } = useTournament()
   const [internalMenuOpen, setInternalMenuOpen] = useState(false)
   const menuOpen = externalMenuOpen ?? internalMenuOpen
   const setMenuOpen = (open: boolean) => {
@@ -116,11 +121,17 @@ export function TournamentNavBar({
 
   const menuLinks = useMemo(() => [
     ...(status === 'ACTIVE' && isRegistered ? [{ href: `/${slug}/play`, label: 'Live Scoring', icon: Pencil }] : []),
-    { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
+    ...(hasSeason
+      ? [
+          { href: `/${slug}/season`, label: 'Season Standings', icon: BarChart3 },
+          { href: `/${slug}/leaderboard`, label: 'Event Leaderboard', icon: Trophy },
+        ]
+      : [{ href: `/${slug}`, label: 'Leaderboard', icon: Trophy }]
+    ),
     ...(powerupsEnabled ? [{ href: `/${slug}/draft`, label: 'Powerups', icon: Swords }] : []),
     { href: `/${slug}/gallery`, label: 'Gallery', icon: ImageIcon },
     ...(hasVault ? [{ href: `/${slug}/vault`, label: 'Vault', icon: Clock }] : []),
-  ], [slug, status, isRegistered, powerupsEnabled, hasVault])
+  ], [slug, status, isRegistered, powerupsEnabled, hasSeason, hasVault])
 
   // Determine which image to show on the right panel
   const fallbackImage = headerImage
@@ -321,7 +332,9 @@ export function TournamentNavBar({
                         <div className="min-w-0 flex-1">
                           <p className={`font-heading font-bold text-sm leading-tight ${menuText}`}>{c.championName}</p>
                           <p className={`text-[11px] ${menuTextMuted} mt-0.5`}>
-                            {c.tournamentName}{c.year ? ` (${c.year})` : ''}
+                            {c.year === new Date().getFullYear() && c.startDate
+                              ? `${c.tournamentName} — ${new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                              : `${c.tournamentName}${c.year ? ` (${c.year})` : ''}`}
                             {c.grossTotal !== null && (
                               <span className="ml-1.5">
                                 — <span className={`font-bold ${menuText}`}>{c.grossTotal}</span>
@@ -368,6 +381,12 @@ export function TournamentNavBar({
                     Sign In
                   </Link>
                 )}
+                {canLeave && (
+                  <LeaveTournamentButton
+                    slug={slug}
+                    className={`flex items-center gap-1.5 text-sm font-medium ${menuTextMuted} ${menuHover} transition-colors`}
+                  />
+                )}
               </div>
             </div>
           </div>
@@ -389,7 +408,11 @@ export function TournamentNavBar({
                     {hoveredChampion ? (
                       <>
                         <p className={`text-xs uppercase tracking-wider font-semibold mb-2 ${accentTextMuted}`}>
-                          Past Champion{hoveredChampion.year ? ` \u2014 ${hoveredChampion.year}` : ''}
+                          Past Champion{hoveredChampion.year
+                            ? hoveredChampion.year === new Date().getFullYear() && hoveredChampion.startDate
+                              ? ` \u2014 ${new Date(hoveredChampion.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
+                              : ` \u2014 ${hoveredChampion.year}`
+                            : ''}
                         </p>
                         <h3 className={`font-heading text-2xl lg:text-3xl font-bold mb-3 ${accentText}`}>
                           {hoveredChampion.tournamentName}
