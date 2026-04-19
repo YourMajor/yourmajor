@@ -2,7 +2,20 @@ import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import type { PricingTier } from '@/generated/prisma/client'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set')
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY)
+}
+
+let _stripe: Stripe | undefined
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    _stripe ??= getStripe()
+    return (_stripe as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})
 
 /**
  * Get or create a Stripe customer for a given user.
