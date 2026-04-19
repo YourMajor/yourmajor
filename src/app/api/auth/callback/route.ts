@@ -22,42 +22,43 @@ export async function GET(request: NextRequest) {
   const name = meta.full_name ?? meta.name ?? data.user.email.split('@')[0]
   const avatarUrl = meta.avatar_url ?? meta.picture ?? null
 
-  // Upsert Prisma user — sync name and avatar from OAuth provider
-  const user = await prisma.user.upsert({
-    where: { email: data.user.email },
-    create: {
-      id: data.user.id,
-      email: data.user.email,
-      name,
-      image: avatarUrl,
-    },
-    update: {
-      // Update name/image only if not already set (don't overwrite user edits)
-      name: undefined,
-      image: undefined,
-    },
-  })
-
-  // If user has no name or image set, update from OAuth metadata
-  const updates: { name?: string; image?: string } = {}
-  if (!user.name && name) updates.name = name
-  if (!user.image && avatarUrl) updates.image = avatarUrl
-  if (Object.keys(updates).length > 0) {
-    await prisma.user.update({ where: { id: user.id }, data: updates })
-  }
-
-  // Create PlayerProfile with avatar if it doesn't exist
-  const existingProfile = await prisma.playerProfile.findUnique({
-    where: { userId: user.id },
-  })
-  if (!existingProfile && avatarUrl) {
-    await prisma.playerProfile.create({
-      data: {
-        userId: user.id,
-        avatar: avatarUrl,
-        displayName: name,
+  // Sync user to Prisma DB — non-blocking so auth still succeeds on DB errors
+  try {
+    const user = await prisma.user.upsert({
+      where: { email: data.user.email },
+      create: {
+        id: data.user.id,
+        email: data.user.email,
+        name,
+        image: avatarUrl,
+      },
+      update: {
+        name: undefined,
+        image: undefined,
       },
     })
+
+    const updates: { name?: string; image?: string } = {}
+    if (!user.name && name) updates.name = name
+    if (!user.image && avatarUrl) updates.image = avatarUrl
+    if (Object.keys(updates).length > 0) {
+      await prisma.user.update({ where: { id: user.id }, data: updates })
+    }
+
+    const existingProfile = await prisma.playerProfile.findUnique({
+      where: { userId: user.id },
+    })
+    if (!existingProfile && avatarUrl) {
+      await prisma.playerProfile.create({
+        data: {
+          userId: user.id,
+          avatar: avatarUrl,
+          displayName: name,
+        },
+      })
+    }
+  } catch (e) {
+    console.error('Failed to sync user to database:', e)
   }
 
   return NextResponse.redirect(`${origin}${next}`)
