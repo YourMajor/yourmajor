@@ -24,6 +24,8 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
   const [isPending, startTransition] = useTransition()
 
   const isPreTournament = status === 'REGISTRATION'
+  const isActive = status === 'ACTIVE'
+  const registrationOpen = isPreTournament || isActive
 
   // Compute days until start
   let daysUntil: number | null = null
@@ -43,12 +45,12 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
     })
   }
 
-  // Not logged in or tournament over — nothing to show
-  if (!isLoggedIn || status === 'COMPLETED') return null
+  // Tournament over — nothing to show
+  if (status === 'COMPLETED') return null
 
   // Not registered — show register CTA if registration is open
   if (!isParticipant) {
-    if (!isPreTournament || !canRegister) return null
+    if (!registrationOpen || !canRegister) return null
 
     return (
       <div className="mb-6 p-4 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 flex items-center justify-between gap-4">
@@ -58,15 +60,26 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
             {inviteToken ? "You've been invited. Sign up to compete." : 'Registration is open. Sign up to compete.'}
           </p>
         </div>
-        <Link
-          href={`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
-          className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
-        >
-          Register
-        </Link>
+        {isLoggedIn ? (
+          <Link
+            href={`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
+            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
+          >
+            Register
+          </Link>
+        ) : (
+          <Link
+            href={`/auth/login?redirect=/${slug}`}
+            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
+          >
+            Sign in to Register
+          </Link>
+        )}
       </div>
     )
   }
+
+  if (!isLoggedIn) return null
 
   // Registered — show status, scoring message, and unregister option
   return (

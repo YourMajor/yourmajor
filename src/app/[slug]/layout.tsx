@@ -71,7 +71,7 @@ export default async function TournamentLayout({
   // Fetch champion history for renewed tournaments
   const hasVault = !!tournament.parentTournamentId
   const tournamentTier = await getTournamentTier(tournament.id)
-  const hasSeason = hasVault || tournament.isLeague || tournamentTier === 'CLUB' || tournamentTier === 'LEAGUE'
+  const hasSeason = tournament.isLeague || (hasVault && (tournamentTier === 'CLUB' || tournamentTier === 'LEAGUE'))
   let champions: PastChampion[] = []
   if (hasVault) {
     champions = await getChampionHistory(tournament.id)

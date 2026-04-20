@@ -22,6 +22,14 @@ const COLOR_PAIRS: Array<{ label: string; primary: string; accent: string }> = [
   { label: 'Midnight',          primary: '#1E1B4B', accent: '#A78BFA' },
   { label: 'Copper',            primary: '#7C2D12', accent: '#BEF264' },
   { label: 'Steel Blue',        primary: '#1E3A5F', accent: '#94A3B8' },
+  { label: 'Sage',              primary: '#3D5A3E', accent: '#E8D5B7' },
+  { label: 'Plum',              primary: '#5B2C6F', accent: '#F5CBA7' },
+  { label: 'Rust',              primary: '#8B3A2F', accent: '#A3D9C8' },
+  { label: 'Ink',               primary: '#1A1A2E', accent: '#E94560' },
+  { label: 'Pine',              primary: '#1B4332', accent: '#74C69D' },
+  { label: 'Terracotta',        primary: '#A0522D', accent: '#F4E4C1' },
+  { label: 'Storm',             primary: '#2F3E46', accent: '#84A98C' },
+  { label: 'Sapphire',          primary: '#1D3461', accent: '#F0C27F' },
 ]
 
 interface ColorDonutPickerProps {

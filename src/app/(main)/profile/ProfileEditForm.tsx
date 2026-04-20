@@ -196,9 +196,9 @@ export function ProfileEditForm({ initialName, initialEmail, initialAvatarUrl, i
             </p>
           </div>
 
-          <Separator />
+          <Separator className="mt-2" />
 
-          <div className="space-y-1.5">
+          <div className="space-y-1.5 pt-1">
             <Label htmlFor="phone">Phone number</Label>
             <Input
               id="phone"

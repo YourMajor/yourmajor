@@ -173,7 +173,7 @@ export default async function ProfilePage({
 
       {/* Membership */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-1">
           <CardTitle className="text-base font-heading">Membership</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -211,8 +211,8 @@ export default async function ProfilePage({
           </div>
           {userTier.proCredits > 0 && (
             <>
-              <Separator />
-              <div className="flex justify-between text-sm">
+              <Separator className="mt-1" />
+              <div className="flex justify-between text-sm pt-1">
                 <span className="text-muted-foreground">Tournament Credits</span>
                 <span className="font-medium">{userTier.proCredits}</span>
               </div>

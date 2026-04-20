@@ -117,10 +117,10 @@ export default async function DashboardPage() {
     }
   }
 
-  // Active tournaments you admin (completed ones go to history)
-  const adminActiveMemberships = memberships.filter((m) => m.isAdmin && m.tournament.status !== 'COMPLETED')
-  const yourTournaments = adminActiveMemberships.slice(0, 5)
-  const hasMoreTournaments = adminActiveMemberships.length > 5
+  // Active tournaments you're part of (admin or registered player; completed ones go to history)
+  const activeMemberships = memberships.filter((m) => (m.isAdmin || m.isParticipant) && m.tournament.status !== 'COMPLETED')
+  const yourTournaments = activeMemberships.slice(0, 5)
+  const hasMoreTournaments = activeMemberships.length > 5
   const historyMemberships = memberships.filter((m) => m.tournament.status === 'COMPLETED')
 
   const handicap = profile?.handicap ?? memberships[0]?.handicap ?? 0
@@ -253,7 +253,7 @@ export default async function DashboardPage() {
             <TournamentCard
               key={m.id}
               t={m.tournament}
-              showAdmin={true}
+              showAdmin={m.isAdmin}
             />
           ))
         ) : (
