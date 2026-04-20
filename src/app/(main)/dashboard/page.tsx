@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { PlusCircle, Trophy, Clock, MapPin, ChevronRight } from 'lucide-react'
+import { PlusCircle, Trophy, Clock, MapPin, ChevronRight, CalendarClock } from 'lucide-react'
 import NearbyTournaments from '@/components/NearbyTournaments'
 import { TournamentCardMenu } from '@/components/TournamentCardMenu'
 import { FindTournament } from '@/components/FindTournament'
@@ -29,8 +29,8 @@ export default async function DashboardPage() {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  // Fetch profile + memberships + round counts in parallel
-  const [profile, memberships, standaloneCount] = await Promise.all([
+  // Fetch profile + memberships + invitations + round counts in parallel
+  const [profile, memberships, pendingInvitations, standaloneCount] = await Promise.all([
     prisma.playerProfile.findUnique({ where: { userId: user.id } }),
     prisma.tournamentPlayer.findMany({
       where: { userId: user.id },
@@ -49,11 +49,39 @@ export default async function DashboardPage() {
             accentColor: true,
             logo: true,
             headerImage: true,
+            registrationDeadline: true,
+            isOpenRegistration: true,
+            tournamentType: true,
             _count: { select: { players: true } },
           },
         },
       },
       orderBy: { createdAt: 'desc' },
+    }),
+    prisma.invitation.findMany({
+      where: { email: user.email, acceptedAt: null },
+      include: {
+        tournament: {
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            description: true,
+            handicapSystem: true,
+            status: true,
+            startDate: true,
+            endDate: true,
+            primaryColor: true,
+            accentColor: true,
+            logo: true,
+            headerImage: true,
+            registrationDeadline: true,
+            isOpenRegistration: true,
+            tournamentType: true,
+            _count: { select: { players: true } },
+          },
+        },
+      },
     }),
     prisma.standaloneRound.count({ where: { userId: user.id } }),
   ])
@@ -119,6 +147,13 @@ export default async function DashboardPage() {
 
   // Active tournaments you're part of (admin or registered player; completed ones go to history)
   const activeMemberships = memberships.filter((m) => (m.isAdmin || m.isParticipant) && m.tournament.status !== 'COMPLETED')
+
+  // Pending invitations — show as "Invited" tournaments (exclude already-registered ones)
+  const registeredTournamentIds = new Set(memberships.map((m) => m.tournament.id))
+  const invitedTournaments = pendingInvitations
+    .filter((inv) => !registeredTournamentIds.has(inv.tournament.id) && inv.tournament.status !== 'COMPLETED')
+    .map((inv) => ({ tournament: inv.tournament, token: inv.token }))
+
   const yourTournaments = activeMemberships.slice(0, 5)
   const hasMoreTournaments = activeMemberships.length > 5
   const historyMemberships = memberships.filter((m) => m.tournament.status === 'COMPLETED')
@@ -248,14 +283,25 @@ export default async function DashboardPage() {
             </Link>
           )}
         </div>
-        {yourTournaments.length > 0 ? (
-          yourTournaments.map((m) => (
-            <TournamentCard
-              key={m.id}
-              t={m.tournament}
-              showAdmin={m.isAdmin}
-            />
-          ))
+        {yourTournaments.length > 0 || invitedTournaments.length > 0 ? (
+          <>
+            {yourTournaments.map((m) => (
+              <TournamentCard
+                key={m.id}
+                t={m.tournament}
+                showAdmin={m.isAdmin}
+                isRegistered
+              />
+            ))}
+            {invitedTournaments.map((inv) => (
+              <TournamentCard
+                key={`inv-${inv.tournament.id}`}
+                t={inv.tournament}
+                showAdmin={false}
+                inviteToken={inv.token}
+              />
+            ))}
+          </>
         ) : (
           <Card className="border-dashed border-2 border-border shadow-none">
             <CardContent className="py-8 flex flex-col items-center text-center">
@@ -316,6 +362,8 @@ export default async function DashboardPage() {
 function TournamentCard({
   t,
   showAdmin,
+  isRegistered,
+  inviteToken,
 }: {
   t: {
     id: string
@@ -325,20 +373,35 @@ function TournamentCard({
     handicapSystem: string
     status: string
     startDate: Date | null
+    endDate: Date | null
     primaryColor: string
     accentColor: string
     logo: string | null
     headerImage: string | null
+    registrationDeadline: Date | null
+    isOpenRegistration: boolean
+    tournamentType: string
     _count: { players: number }
   }
   showAdmin: boolean
+  isRegistered?: boolean
+  inviteToken?: string
 }) {
+  const isInvite = !!inviteToken && !isRegistered
+  const regOpen = t.status === 'REGISTRATION' || (t.status === 'ACTIVE' && (t.isOpenRegistration || t.tournamentType !== 'INVITE'))
+  const deadlinePassed = t.registrationDeadline && new Date() > new Date(t.registrationDeadline)
+  const canRegister = !isRegistered && regOpen && !deadlinePassed
+
   return (
     <div className="relative">
       <Link href={`/${t.slug}`} className="block rounded-lg bg-card text-sm text-card-foreground shadow-md hover:shadow-lg transition-shadow overflow-hidden">
         {/* Status tag — top left */}
         <div className="absolute top-0 left-0 z-10">
-          {t.status === 'ACTIVE' ? (
+          {isInvite ? (
+            <span className="inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">
+              Invited
+            </span>
+          ) : t.status === 'ACTIVE' ? (
             <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
               <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
               Live
@@ -356,7 +419,7 @@ function TournamentCard({
 
         <div className="flex flex-col sm:flex-row">
           {/* Left: tournament info */}
-          <div className="w-full sm:w-1/2 min-w-0 px-4 sm:px-6 py-4 flex items-center">
+          <div className="w-full sm:w-1/2 min-w-0 px-4 sm:px-6 py-4 flex flex-col justify-center">
             <div className="flex items-center gap-3 min-w-0 pt-3">
               {t.logo && (
                 // eslint-disable-next-line @next/next/no-img-element
@@ -373,6 +436,31 @@ function TournamentCard({
                   <p className="text-xs text-muted-foreground mt-1 line-clamp-3 sm:line-clamp-2">{t.description}</p>
                 )}
               </div>
+            </div>
+            {/* Registration deadline + action */}
+            <div className="flex items-center justify-between gap-2 mt-2 pt-1">
+              {t.registrationDeadline && t.status === 'REGISTRATION' && (
+                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
+                  <CalendarClock className="w-3 h-3 shrink-0" />
+                  {deadlinePassed
+                    ? 'Registration closed'
+                    : `Register by ${new Date(t.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
+                </p>
+              )}
+              {!t.registrationDeadline && !isRegistered && !canRegister && t.status !== 'COMPLETED' && t.tournamentType === 'INVITE' && !isInvite && (
+                <p className="text-[11px] text-muted-foreground">Registration closed</p>
+              )}
+              <span className="flex-1" />
+              {(canRegister || isInvite) && (
+                <Link
+                  href={`/${t.slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="shrink-0 inline-flex items-center rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition-colors"
+                  style={{ backgroundColor: t.primaryColor }}
+                >
+                  Register
+                </Link>
+              )}
             </div>
           </div>
 
