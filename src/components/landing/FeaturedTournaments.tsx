@@ -8,7 +8,8 @@ async function fetchFeatured() {
   try {
     const tournaments = await prisma.tournament.findMany({
       where: {
-        isOpenRegistration: true,
+        tournamentType: 'PUBLIC',
+        isOpenRegistration: false,
         status: { in: ['REGISTRATION', 'ACTIVE'] },
       },
       select: {
@@ -51,13 +52,13 @@ export async function FeaturedTournaments() {
         <h2 className="font-heading font-semibold text-lg">Featured Tournaments</h2>
       </div>
       <p className="text-sm text-muted-foreground">
-        Open tournaments looking for players
+        Featured public tournaments near you
       </p>
 
       {serialized.length > 0 ? (
         <TournamentCardGrid
           tournaments={serialized}
-          emptyMessage="No tournaments with open registration right now."
+          emptyMessage="No featured tournaments right now."
         />
       ) : (
         <Card className="border-dashed border-2 border-border shadow-none">
@@ -65,9 +66,9 @@ export async function FeaturedTournaments() {
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
               <Trophy className="w-6 h-6 text-muted-foreground" />
             </div>
-            <p className="font-heading font-semibold text-base">No open tournaments</p>
+            <p className="font-heading font-semibold text-base">No featured tournaments</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-              No tournaments with open registration right now. Sign in to create your own.
+              No featured tournaments right now. Sign in to create your own.
             </p>
             <Link
               href="/auth/login"
