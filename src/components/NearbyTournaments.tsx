@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
-import { buttonVariants } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPinOff, Loader2 } from 'lucide-react'
 
@@ -20,6 +19,10 @@ type NearbyTournament = {
   name: string
   description: string | null
   handicapSystem: string
+  logo: string | null
+  primaryColor: string
+  accentColor: string
+  headerImage: string | null
   status: string
   startDate: string | null
   endDate: string | null
@@ -106,51 +109,93 @@ export default function NearbyTournaments() {
 
         return (
           <Link key={t.id} href={`/${t.slug}`} className="block">
-            <Card className="hover:shadow-md hover:border-primary/30 transition-all cursor-pointer border-l-4 border-l-primary">
-              <CardContent className="py-4 space-y-2.5">
-                <div className="flex items-start justify-between gap-4">
+            <Card className="hover:shadow-md transition-all cursor-pointer overflow-hidden !py-0 !gap-0">
+              {/* Branded header strip */}
+              <div
+                className="relative px-3 py-2.5 flex items-center"
+                style={{
+                  background: t.headerImage
+                    ? `linear-gradient(to top, ${t.primaryColor}ee, ${t.primaryColor}cc), url(${t.headerImage}) center/cover no-repeat`
+                    : `linear-gradient(135deg, ${t.primaryColor}, ${t.primaryColor}dd)`,
+                }}
+              >
+                {/* Accent stripe */}
+                <div
+                  className="absolute top-0 left-0 right-0 h-[2px]"
+                  style={{ backgroundColor: t.accentColor }}
+                />
+
+                {/* Logo + Name */}
+                <div className="flex items-center gap-2.5 min-w-0 flex-1">
+                  {t.logo ? (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      src={t.logo}
+                      alt=""
+                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
+                      style={{ borderColor: t.accentColor }}
+                    />
+                  ) : (
+                    <div
+                      className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading font-bold text-white shrink-0 border-2"
+                      style={{ backgroundColor: `${t.primaryColor}80`, borderColor: t.accentColor }}
+                    >
+                      {t.name.charAt(0).toUpperCase()}
+                    </div>
+                  )}
                   <div className="min-w-0">
-                    <p className="font-semibold truncate">{t.name}</p>
-                    <p className="text-xs text-muted-foreground mt-0.5">
+                    <p className="font-heading font-semibold text-white truncate text-sm sm:text-base">{t.name}</p>
+                    <p className="text-[11px] text-white/70 truncate">
                       {t.courseName} (Par {t.coursePar}) · {t.distanceKm} km away
-                      {` · ${t.playerCount} player${t.playerCount !== 1 ? 's' : ''}`}
                     </p>
                   </div>
-                  {/* Register button stops propagation so it doesn't trigger the card link */}
-                  <Link
-                    href={`/${t.slug}/register`}
-                    onClick={(e) => e.stopPropagation()}
-                    className={buttonVariants({ size: 'sm' }) + ' relative z-10 bg-primary text-primary-foreground hover:bg-primary/90 shrink-0'}
-                  >
-                    Register
-                  </Link>
                 </div>
 
-              {/* Tournament details */}
-              <div className="flex flex-wrap gap-1.5">
-                {dateRange && (
-                  <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                    {dateRange}
-                  </span>
-                )}
-                <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                  {HCP_LABELS[t.handicapSystem] ?? t.handicapSystem}
-                </span>
-                <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                  {t.roundCount} round{t.roundCount !== 1 ? 's' : ''}
-                </span>
-                {t.teeOptions.length > 0 && (
-                  <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
-                    Tees: {t.teeOptions.join(', ')}
-                  </span>
-                )}
+                {/* Register button */}
+                <Link
+                  href={`/${t.slug}/register`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="relative z-10 shrink-0 ml-3 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-bold transition-colors bg-white hover:bg-white/90"
+                  style={{ color: t.primaryColor }}
+                >
+                  Register
+                </Link>
               </div>
 
-              {t.description && (
-                <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
-              )}
-            </CardContent>
-          </Card>
+              {/* Card body */}
+              <CardContent className="py-2.5 space-y-1.5">
+                {/* Tags */}
+                <div className="flex flex-wrap items-center gap-1.5">
+                  {dateRange && (
+                    <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                      {dateRange}
+                    </span>
+                  )}
+                  <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                    {t.playerCount} player{t.playerCount !== 1 ? 's' : ''}
+                  </span>
+                  <span
+                    className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md text-white"
+                    style={{ backgroundColor: t.primaryColor }}
+                  >
+                    {HCP_LABELS[t.handicapSystem] ?? t.handicapSystem}
+                  </span>
+                  <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                    {t.roundCount} round{t.roundCount !== 1 ? 's' : ''}
+                  </span>
+                  {t.teeOptions.length > 0 && (
+                    <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                      Tees: {t.teeOptions.join(', ')}
+                    </span>
+                  )}
+                </div>
+
+                {/* Description */}
+                {t.description && (
+                  <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+                )}
+              </CardContent>
+            </Card>
           </Link>
         )
       })}

@@ -218,6 +218,7 @@ model Tournament {
   status             TournamentStatus @default(REGISTRATION)
   tournamentType     TournamentType   @default(OPEN)
   isOpenRegistration Boolean          @default(false)
+  registrationClosed Boolean          @default(false)
   handicapSystem     HandicapSystem   @default(WHS)
   tournamentFormat   TournamentFormat @default(STROKE_PLAY)
   teamSize           Int?
@@ -239,6 +240,7 @@ model Tournament {
 
   // ── Season/League config (Tour tier) ──
   isLeague            Boolean              @default(false)
+  leagueEndDate       DateTime?
   seasonScoringMethod SeasonScoringMethod?
   seasonBestOf        Int?
   seasonPointsTable   Json?
@@ -405,9 +407,11 @@ model TournamentGroup {
   id            String    @id @default(cuid())
   tournamentId  String
   name          String
-  teeTime       DateTime?
-  startingHole  Int?
-  createdAt     DateTime  @default(now())
+  teeTime               DateTime?
+  startingHole          Int?
+  lastNotifiedTeeTime   DateTime?
+  lastNotifiedStartHole Int?
+  createdAt             DateTime  @default(now())
 
   tournament Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   members    TournamentGroupMember[]
@@ -420,6 +424,7 @@ model TournamentGroupMember {
   groupId            String
   tournamentPlayerId String @unique
   position           Int
+  notifiedAt         DateTime?
 
   group            TournamentGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)

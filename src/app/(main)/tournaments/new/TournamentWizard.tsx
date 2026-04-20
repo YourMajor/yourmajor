@@ -57,6 +57,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     name: renewalDefaults?.name ?? '',
     description: renewalDefaults?.description ?? '',
     isLeague: renewalDefaults?.isLeague ?? false,
+    leagueEndDate: '',
     startDate: '',
     endDate: '',
     registrationDeadline: '',
@@ -206,6 +207,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           tournamentType: tournamentType.tournamentType,
           parentTournamentId: renewalDefaults?.parentTournamentId ?? null,
           isLeague: basicInfo.isLeague,
+          leagueEndDate: basicInfo.leagueEndDate || undefined,
           registrationDeadline: basicInfo.registrationDeadline || undefined,
         })
         router.push(`/${result.slug}`)

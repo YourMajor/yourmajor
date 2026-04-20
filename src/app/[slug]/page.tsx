@@ -52,6 +52,9 @@ export default async function TournamentPage({
     tournament.rounds,
     tournament.startDate,
     tournament.endDate,
+    tournament.isLeague,
+    tournament.tournamentType,
+    tournament.leagueEndDate,
   )
 
   const initialStandings = await getLeaderboard(tournament.id)
@@ -161,7 +164,7 @@ export default async function TournamentPage({
         startDate={tournament.startDate?.toISOString() ?? null}
         canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
         inviteToken={inviteToken}
-        registrationDeadline={tournament.registrationDeadline?.toISOString() ?? null}
+        registrationClosed={tournament.registrationClosed}
       />
 
       {/* My Tee Time */}

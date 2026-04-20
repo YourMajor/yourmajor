@@ -16,16 +16,16 @@ interface Props {
   startDate: string | null
   canRegister: boolean
   inviteToken?: string | null
-  registrationDeadline?: string | null
+  registrationClosed?: boolean
 }
 
-export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, startDate, canRegister, inviteToken, registrationDeadline }: Props) {
+export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, startDate, canRegister, inviteToken, registrationClosed }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
   const isPreTournament = status === 'REGISTRATION'
   const isActive = status === 'ACTIVE'
-  const registrationOpen = isPreTournament || isActive
+  const registrationOpen = !registrationClosed && status !== 'COMPLETED'
 
   // Compute days until start
   let daysUntil: number | null = null
@@ -35,9 +35,8 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
     daysUntil = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
   }
 
-  // Can unregister if registration is still open
-  const deadlinePassed = registrationDeadline ? new Date() > new Date(registrationDeadline) : false
-  const canUnregister = isPreTournament && !deadlinePassed
+  // Can always unregister (tournament completed is handled by early return above)
+  const canUnregister = true
 
   function handleConfirm() {
     startTransition(async () => {

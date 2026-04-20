@@ -184,15 +184,141 @@ export async function updateGroupStartingHole(tournamentId: string, groupId: str
   await prisma.tournamentGroup.update({ where: { id: groupId }, data: { startingHole } })
 }
 
-// ── Finalize & Notify ────────────────────────────────────────────────────────
+// ── Notify Players ──────────────────────────────────────────────────────────
 
-export async function finalizeAndNotify(
+/**
+ * Sends notifications only to players whose group assignment, tee time,
+ * or starting hole changed since the last notification.
+ */
+export async function notifyAffectedPlayers(
   tournamentId: string,
   slug: string,
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
   await requireTournamentAdmin(tournamentId)
 
-  // Get all participants and groups
+  const [tournament, groups] = await Promise.all([
+    prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { name: true },
+    }),
+    prisma.tournamentGroup.findMany({
+      where: { tournamentId },
+      include: {
+        members: {
+          include: {
+            tournamentPlayer: {
+              include: { user: { select: { name: true, email: true, phone: true, smsNotifications: true } } },
+            },
+          },
+          orderBy: { position: 'asc' },
+        },
+      },
+      orderBy: { createdAt: 'asc' },
+    }),
+  ])
+
+  // Determine which groups/members need notification
+  const affectedMembers: { group: typeof groups[number]; member: typeof groups[number]['members'][number] }[] = []
+
+  for (const group of groups) {
+    const teeTimeChanged = group.teeTime?.getTime() !== group.lastNotifiedTeeTime?.getTime()
+    const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
+
+    for (const member of group.members) {
+      // Notify if: never notified, or group tee time/starting hole changed
+      if (!member.notifiedAt || teeTimeChanged || startHoleChanged) {
+        affectedMembers.push({ group, member })
+      }
+    }
+  }
+
+  if (affectedMembers.length === 0) {
+    return { ok: true, count: 0 }
+  }
+
+  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
+  const now = new Date()
+
+  for (const { group, member } of affectedMembers) {
+    const player = member.tournamentPlayer
+    const teeTimeStr = group.teeTime
+      ? new Date(group.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+      : null
+    const memberNames = group.members.map((m) => m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email)
+    const payload = {
+      groupName: group.name,
+      teeTime: teeTimeStr,
+      startingHole: group.startingHole,
+      groupMembers: memberNames,
+    }
+
+    await prisma.notification.create({
+      data: {
+        tournamentPlayerId: player.id,
+        type: 'TEE_TIME_ASSIGNED',
+        payload,
+      },
+    })
+
+    if (player.user.email) {
+      const membersHtml = memberNames.map((n) => `<li>${n}</li>`).join('')
+      await sendEmail(
+        player.user.email,
+        `Your tee time for ${tournament?.name ?? 'the tournament'}`,
+        `<h2>${tournament?.name ?? 'Tournament'}</h2>
+        <p>Your group: <strong>${group.name}</strong></p>
+        ${teeTimeStr ? `<p>Tee time: <strong>${teeTimeStr}</strong></p>` : ''}
+        ${group.startingHole ? `<p>Starting hole: <strong>#${group.startingHole}</strong></p>` : ''}
+        <p>Playing with:</p>
+        <ul>${membersHtml}</ul>
+        <p><a href="${domain}/${slug}">View Tournament</a></p>`,
+      )
+    }
+
+    if (player.user.smsNotifications && player.user.phone) {
+      const smsBody = [
+        `${tournament?.name ?? 'Tournament'} — Group: ${group.name}`,
+        teeTimeStr ? `Tee time: ${teeTimeStr}` : null,
+        group.startingHole ? `Starting hole: #${group.startingHole}` : null,
+        `Playing with: ${memberNames.join(', ')}`,
+      ].filter(Boolean).join('\n')
+      await sendSMS(player.user.phone, smsBody)
+    }
+
+    // Mark member as notified
+    await prisma.tournamentGroupMember.update({
+      where: { id: member.id },
+      data: { notifiedAt: now },
+    })
+  }
+
+  // Update group snapshot fields for all groups that had affected members
+  const affectedGroupIds = new Set(affectedMembers.map((a) => a.group.id))
+  for (const group of groups) {
+    if (affectedGroupIds.has(group.id)) {
+      await prisma.tournamentGroup.update({
+        where: { id: group.id },
+        data: {
+          lastNotifiedTeeTime: group.teeTime,
+          lastNotifiedStartHole: group.startingHole,
+        },
+      })
+    }
+  }
+
+  revalidatePath(`/${slug}/admin/groups`)
+  return { ok: true, count: affectedMembers.length }
+}
+
+/**
+ * Force-sends notifications to ALL players in all groups (escape hatch).
+ */
+export async function notifyAllPlayers(
+  tournamentId: string,
+  slug: string,
+): Promise<{ ok: boolean; count?: number; error?: string }> {
+  await requireTournamentAdmin(tournamentId)
+
   const [participants, groups] = await Promise.all([
     prisma.tournamentPlayer.findMany({
       where: { tournamentId, isParticipant: true },
@@ -214,7 +340,6 @@ export async function finalizeAndNotify(
     }),
   ])
 
-  // Check all participants are assigned
   const assignedPlayerIds = new Set(groups.flatMap((g) => g.members.map((m) => m.tournamentPlayerId)))
   const unassigned = participants.filter((p) => !assignedPlayerIds.has(p.id))
 
@@ -227,8 +352,8 @@ export async function finalizeAndNotify(
     select: { name: true },
   })
 
-  // Create notifications and send emails
   const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
+  const now = new Date()
   let notified = 0
 
   for (const group of groups) {
@@ -246,7 +371,6 @@ export async function finalizeAndNotify(
         groupMembers: memberNames,
       }
 
-      // In-app notification
       await prisma.notification.create({
         data: {
           tournamentPlayerId: player.id,
@@ -255,12 +379,8 @@ export async function finalizeAndNotify(
         },
       })
 
-      // Email notification
       if (player.user.email) {
-        const membersHtml = memberNames
-          .map((n) => `<li>${n}</li>`)
-          .join('')
-
+        const membersHtml = memberNames.map((n) => `<li>${n}</li>`).join('')
         await sendEmail(
           player.user.email,
           `Your tee time for ${tournament?.name ?? 'the tournament'}`,
@@ -274,7 +394,6 @@ export async function finalizeAndNotify(
         )
       }
 
-      // SMS notification
       if (player.user.smsNotifications && player.user.phone) {
         const smsBody = [
           `${tournament?.name ?? 'Tournament'} — Group: ${group.name}`,
@@ -285,8 +404,21 @@ export async function finalizeAndNotify(
         await sendSMS(player.user.phone, smsBody)
       }
 
+      await prisma.tournamentGroupMember.update({
+        where: { id: member.id },
+        data: { notifiedAt: now },
+      })
+
       notified++
     }
+
+    await prisma.tournamentGroup.update({
+      where: { id: group.id },
+      data: {
+        lastNotifiedTeeTime: group.teeTime,
+        lastNotifiedStartHole: group.startingHole,
+      },
+    })
   }
 
   revalidatePath(`/${slug}/admin/groups`)

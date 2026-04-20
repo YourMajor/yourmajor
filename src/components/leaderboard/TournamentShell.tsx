@@ -28,7 +28,6 @@ interface TournamentShellProps {
   galleryImages?: string[]
   champions?: PastChampion[]
   hasVault?: boolean
-  canLeave?: boolean
   children: React.ReactNode
 }
 
@@ -52,7 +51,6 @@ export function TournamentShell({
   galleryImages = [],
   champions = [],
   hasVault = false,
-  canLeave = false,
   children,
 }: TournamentShellProps) {
   const [menuOpen, setMenuOpen] = useState(false)
@@ -80,7 +78,6 @@ export function TournamentShell({
         galleryImages={galleryImages}
         champions={champions}
         hasVault={hasVault}
-        canLeave={canLeave}
         externalMenuOpen={menuOpen}
         onExternalMenuChange={setMenuOpen}
       />

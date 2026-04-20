@@ -1,8 +1,23 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { getTournamentTier } from '@/lib/stripe'
-import { Settings, BarChart3, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy } from 'lucide-react'
+import { Settings, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
+import { QuickAddPlayer } from './QuickAddPlayer'
+import { GoLiveButton } from '@/components/admin/GoLiveButton'
+import { RegistrationToggle } from './setup/RegistrationToggle'
+import { DraftPowerupsCard } from './DraftPowerupsCard'
+import { revalidatePath } from 'next/cache'
+
+async function toggleRegistration(tournamentId: string) {
+  'use server'
+  const t = await prisma.tournament.findUnique({ where: { id: tournamentId }, select: { registrationClosed: true, slug: true } })
+  if (!t) return
+  await prisma.tournament.update({
+    where: { id: tournamentId },
+    data: { registrationClosed: !t.registrationClosed },
+  })
+  revalidatePath(`/${t.slug}/admin`)
+}
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
   REGISTRATION: { label: 'Registration', bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-800 dark:text-blue-200' },
@@ -27,15 +42,19 @@ export default async function AdminDashboard({
   if (!tournament) return null
 
   const statusCfg = STATUS_CONFIG[tournament.status] ?? STATUS_CONFIG.REGISTRATION
-  const tier = await getTournamentTier(tournament.id)
-  const hasSeasonAccess = !!tournament.parentTournamentId || tournament.isLeague || tier === 'CLUB' || tier === 'LEAGUE'
+
+  // Non-league OPEN/INVITE tournaments get Close Registration + Go Live buttons
+  const showAdminControls =
+    tournament.status === 'REGISTRATION' &&
+    tournament.tournamentType !== 'PUBLIC' &&
+    !tournament.isLeague
+
   const actions = [
     { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Courses, dates, handicap system', show: true },
-    { href: `/${slug}`, icon: BarChart3, label: 'View Leaderboard', desc: 'Live standings and stats', show: true },
     { href: `/${slug}/admin/scores`, icon: PenLine, label: 'Manage Scores', desc: 'Edit or enter player scores', show: true },
-    { href: `/${slug}/admin/groups`, icon: Users, label: 'Manage Groups', desc: 'Build foursomes & assign tee times', show: true },
+    { href: `/${slug}/admin/groups`, icon: Users, label: 'Manage Groups', desc: 'Build foursomes & assign tee times', show: tournament.tournamentType !== 'PUBLIC' },
     { href: `/${slug}/admin/draft`, icon: Target, label: 'Draft Order & Start', desc: 'Set order, run the draft', show: tournament.powerupsEnabled },
-    { href: `/${slug}/admin/season`, icon: Trophy, label: 'Season Management', desc: 'Roster, attendance, standings config', show: hasSeasonAccess },
+    { href: `/${slug}/admin/season`, icon: Trophy, label: 'Season Management', desc: 'Roster, attendance, standings config', show: tournament.isLeague },
     { href: `/tournaments/new?renew=${tournament.id}`, icon: RefreshCw, label: 'Renew Tournament', desc: 'Create a sequel tournament', show: tournament.status === 'COMPLETED' },
   ].filter((a) => a.show)
 
@@ -99,6 +118,34 @@ export default async function AdminDashboard({
           </div>
           <CopyJoinCode code={tournament.joinCode} />
         </div>
+      )}
+
+      {/* Tournament Lifecycle — for non-league OPEN/INVITE tournaments */}
+      {showAdminControls && (
+        <div className="space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+            Tournament Lifecycle
+          </p>
+          <div className="flex flex-col gap-2">
+            <RegistrationToggle
+              tournamentId={tournament.id}
+              registrationClosed={tournament.registrationClosed}
+              toggleAction={toggleRegistration}
+            />
+            {tournament.powerupsEnabled && (
+              <DraftPowerupsCard
+                label={tournament.distributionMode === 'RANDOM' ? 'Deal Powerups' : 'Draft Powerups'}
+                href={`/${slug}/admin/draft`}
+              />
+            )}
+            <GoLiveButton tournamentId={tournament.id} slug={slug} />
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Player — shown when tournament is active */}
+      {tournament.status === 'ACTIVE' && (
+        <QuickAddPlayer tournamentId={tournament.id} />
       )}
 
       {/* Action cards */}

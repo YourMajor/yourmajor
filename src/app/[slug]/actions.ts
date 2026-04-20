@@ -11,17 +11,12 @@ export async function leaveTournament(slug: string) {
 
   const tournament = await prisma.tournament.findUnique({
     where: { slug },
-    select: { id: true, status: true, registrationDeadline: true, tournamentType: true },
+    select: { id: true, status: true },
   })
   if (!tournament) throw new Error('Tournament not found')
 
-  // Allow unregistering during REGISTRATION, or before deadline if set
-  const deadlinePassed = tournament.registrationDeadline && new Date() > new Date(tournament.registrationDeadline)
-  if (tournament.status === 'COMPLETED' || tournament.status === 'ACTIVE') {
-    throw new Error('Cannot unregister after the tournament has started')
-  }
-  if (tournament.tournamentType === 'INVITE' && deadlinePassed) {
-    throw new Error('The registration deadline has passed')
+  if (tournament.status === 'COMPLETED') {
+    throw new Error('Cannot unregister from a completed tournament')
   }
 
   const membership = await prisma.tournamentPlayer.findUnique({

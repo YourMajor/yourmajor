@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator'
 import { ColorDonutForm } from '@/components/ui/color-donut-form'
 import { DeleteTournamentButton } from './DeleteTournamentButton'
 import { ResetDraftButton } from './ResetDraftButton'
-
 export default async function TournamentSetup({
   params,
 }: {
@@ -44,8 +43,6 @@ export default async function TournamentSetup({
     const newSlug = (formData.get('slug') as string).toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const primaryColor = formData.get('primaryColor') as string
     const accentColor = formData.get('accentColor') as string
-    const requestedStatus = formData.get('status') as string
-    const isOpenRegistration = formData.get('isOpenRegistration') === 'on'
     const requestedHandicap = formData.get('handicapSystem') as string
 
     // Re-fetch current state server-side for guards
@@ -57,16 +54,6 @@ export default async function TournamentSetup({
 
     // Guard: don't allow handicap system change once scores exist
     const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : requestedHandicap
-
-    // Guard: validate status transitions
-    const currentStatus = currentTournament!.status
-    let status = requestedStatus
-    if (status === 'REGISTRATION' && serverHasScores) {
-      status = currentStatus
-    }
-    if (currentStatus === 'COMPLETED' && status === 'REGISTRATION') {
-      status = currentStatus
-    }
 
     // If powerups are locked (draft started or cards dealt), preserve existing values
     const currentDraft = await prisma.draft.findUnique({ where: { tournamentId: tournament!.id } })
@@ -107,8 +94,6 @@ export default async function TournamentSetup({
         slug: newSlug,
         primaryColor,
         accentColor,
-        status: status as 'REGISTRATION' | 'ACTIVE' | 'COMPLETED',
-        isOpenRegistration,
         handicapSystem: handicapSystem as 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA',
         powerupsEnabled,
         powerupsPerPlayer,
@@ -119,30 +104,6 @@ export default async function TournamentSetup({
         logo: logoUrl,
       },
     })
-
-    // Cache champion when status changes to COMPLETED
-    if (status === 'COMPLETED' && currentTournament!.status !== 'COMPLETED') {
-      try {
-        const { getLeaderboard } = await import('@/lib/scoring')
-        const standings = await getLeaderboard(tournament!.id)
-        const champion = standings.find((s) => s.rank === 1)
-        if (champion) {
-          const tp = await prisma.tournamentPlayer.findUnique({
-            where: { id: champion.tournamentPlayerId },
-            select: { userId: true },
-          })
-          await prisma.tournament.update({
-            where: { id: tournament!.id },
-            data: {
-              championUserId: tp?.userId ?? null,
-              championName: champion.playerName,
-            },
-          })
-        }
-      } catch {
-        // Non-critical
-      }
-    }
 
     revalidatePath(`/${newSlug}/admin/setup`)
 
@@ -196,49 +157,6 @@ export default async function TournamentSetup({
                 Changing dates on a live or completed tournament may affect auto-status transitions. The tournament will not revert to Registration automatically.
               </p>
             )}
-          </CardContent>
-        </Card>
-
-        {/* ── Status & Registration ── */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base">Status &amp; Registration</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {hasScores && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Scores have been submitted. Status cannot be reverted to Registration, and some changes may affect the leaderboard.
-              </div>
-            )}
-            <div className="space-y-2">
-              <Label htmlFor="status">Status</Label>
-              <select
-                id="status"
-                name="status"
-                defaultValue={tournament.status}
-                className="flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25"
-              >
-                {/* Only show REGISTRATION if no scores exist */}
-                {!hasScores && <option value="REGISTRATION">Registration Open</option>}
-                <option value="ACTIVE">Active (Live)</option>
-                <option value="COMPLETED">Completed</option>
-              </select>
-              <div className="text-xs text-muted-foreground space-y-1 pt-1">
-                <p><span className="font-medium">Registration Open</span> — Published. Players can find and register.</p>
-                <p><span className="font-medium">Active (Live)</span> — Scoring is open. Auto-set when round day arrives, or use &ldquo;Go Live&rdquo; on the hub.</p>
-                <p><span className="font-medium">Completed</span> — All rounds finished. Auto-set the day after the last round.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <input
-                id="isOpenRegistration"
-                name="isOpenRegistration"
-                type="checkbox"
-                defaultChecked={tournament.isOpenRegistration}
-                className="h-4 w-4"
-              />
-              <Label htmlFor="isOpenRegistration">Open registration (anyone can join via link)</Label>
-            </div>
           </CardContent>
         </Card>
 

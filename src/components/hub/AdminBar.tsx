@@ -64,17 +64,6 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
       <div className="flex items-center gap-3 px-4 py-2 bg-muted/50 border-b border-border max-w-5xl mx-auto rounded-md mb-4">
         <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide">Admin</span>
         <div className="flex items-center gap-2 ml-auto">
-          {/* Quick status action */}
-          {status === 'REGISTRATION' && (
-            <Button
-              size="sm"
-              disabled={isPending}
-              onClick={() => handleStatusChange('ACTIVE')}
-              style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
-            >
-              {isPending ? 'Starting…' : 'Go Live'}
-            </Button>
-          )}
           {status === 'ACTIVE' && (
             <Button
               size="sm"

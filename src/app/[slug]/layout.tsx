@@ -55,9 +55,7 @@ export default async function TournamentLayout({
       .toUpperCase()
   }
 
-  const showRegister = !!user && !isRegistered && !isEnded
-  const deadlinePassed = tournament.registrationDeadline ? new Date() > new Date(tournament.registrationDeadline) : false
-  const canLeave = isRegistered && tournament.status === 'REGISTRATION' && !deadlinePassed
+  const showRegister = !!user && !isRegistered && !isEnded && !tournament.registrationClosed && !tournament.isLeague
 
   // Fetch gallery photos for the menu
   const galleryPhotos = await prisma.tournamentPhoto.findMany({
@@ -80,6 +78,36 @@ export default async function TournamentLayout({
   // Check if this is an older tournament in a chain (has a newer child)
   const latestTournament = await getLatestInChain(tournament.id)
 
+  // For leagues, find root tournament ID so chat persists across all events
+  let leagueChatId = tournament.id
+  let leagueChatAuthorized = isRegistered || isTournamentAdmin
+  if (tournament.isLeague && tournament.parentTournamentId) {
+    // Walk up the chain to find root
+    let rootId = tournament.id
+    let parentId: string | null = tournament.parentTournamentId
+    while (parentId) {
+      const ancestor: { id: string; parentTournamentId: string | null } | null = await prisma.tournament.findUnique({
+        where: { id: parentId },
+        select: { id: true, parentTournamentId: true },
+      })
+      if (!ancestor) break
+      rootId = ancestor.id
+      parentId = ancestor.parentTournamentId
+    }
+    leagueChatId = rootId
+    // Authorize if user is a member of ANY event in the league chain
+    if (!leagueChatAuthorized && user) {
+      const anyMembership = await prisma.tournamentPlayer.findFirst({
+        where: {
+          userId: user.id,
+          tournament: { isLeague: true, name: tournament.name },
+        },
+        select: { id: true },
+      })
+      leagueChatAuthorized = !!anyMembership
+    }
+  }
+
   const ctx: TournamentContextValue = {
     slug,
     tournamentId: tournament.id,
@@ -101,6 +129,7 @@ export default async function TournamentLayout({
     galleryImages: galleryUrls,
     champions,
     hasVault,
+    isLeague: tournament.isLeague,
     hasSeason,
     latestTournament,
   }
@@ -132,16 +161,16 @@ export default async function TournamentLayout({
           galleryImages={galleryUrls}
           champions={champions}
           hasVault={hasVault}
-          canLeave={canLeave}
-        >
+>
           {children}
         </TournamentShell>
 
         <PersistentChat
-          tournamentId={tournament.id}
+          tournamentId={leagueChatId}
           currentUserId={user?.id ?? null}
           currentUserName={user?.name ?? null}
-          isRegistered={isRegistered}
+          isRegistered={leagueChatAuthorized}
+          label={tournament.isLeague ? 'League Chat' : undefined}
         />
       </TournamentProvider>
     </div>

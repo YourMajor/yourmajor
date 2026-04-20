@@ -12,6 +12,7 @@ export type BasicInfoState = {
   name: string
   description: string
   isLeague: boolean
+  leagueEndDate: string
   startDate: string
   endDate: string
   registrationDeadline: string
@@ -110,11 +111,15 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
             <textarea
               id="description"
               value={value.description}
-              onChange={(e) => set('description', e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 250) set('description', e.target.value)
+              }}
               placeholder={value.isLeague ? 'Tell members what this league is about...' : 'Tell players what this tournament is about...'}
               rows={3}
+              maxLength={250}
               className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
+            <p className="text-xs text-muted-foreground text-right">{value.description.length}/250</p>
           </div>
 
           {/* League toggle */}
@@ -146,18 +151,31 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
             </button>
           </div>
 
-          <div className={`grid grid-cols-2 gap-4 ${value.isLeague ? 'opacity-40 pointer-events-none' : ''}`}>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input id="startDate" type="date" value={value.startDate} onChange={(e) => set('startDate', e.target.value)} disabled={value.isLeague} />
+          {value.isLeague ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="leagueEndDate">League End Date</Label>
+                <Input
+                  id="leagueEndDate"
+                  type="date"
+                  value={value.leagueEndDate}
+                  onChange={(e) => set('leagueEndDate', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">When the league season ends. A champion will be crowned and the league moves to history.</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Event dates are set per-event. Each event in the season will have its own date.</p>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input id="startDate" type="date" value={value.startDate} onChange={(e) => set('startDate', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input id="endDate" type="date" value={value.endDate} onChange={(e) => set('endDate', e.target.value)} />
+              </div>
             </div>
-            <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input id="endDate" type="date" value={value.endDate} onChange={(e) => set('endDate', e.target.value)} disabled={value.isLeague} />
-            </div>
-          </div>
-          {value.isLeague && (
-            <p className="text-xs text-muted-foreground -mt-2">Dates are set per-event for leagues. Each event in the season will have its own date.</p>
           )}
 
           {tournamentType === 'INVITE' && !value.isLeague && (

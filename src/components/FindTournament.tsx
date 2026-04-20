@@ -45,7 +45,7 @@ export function FindTournament() {
 
   return (
     <Dialog open={open} onOpenChange={(v) => { setOpen(v); if (!v) { setCode(''); setError(null) } }}>
-      <DialogTrigger className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
+      <DialogTrigger className="w-full sm:w-auto shrink-0 inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition-colors">
         <Search className="w-4 h-4" />
         <span className="hidden sm:inline">Find Tournament</span>
         <span className="sm:hidden">Find</span>

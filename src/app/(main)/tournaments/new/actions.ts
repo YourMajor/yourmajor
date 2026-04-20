@@ -72,6 +72,7 @@ export type WizardPayload = {
   registrationDeadline?: string
   parentTournamentId?: string | null
   isLeague?: boolean
+  leagueEndDate?: string
 }
 
 async function generateSlug(name: string): Promise<string> {
@@ -215,6 +216,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
         registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : null,
         status: 'REGISTRATION',
         isLeague: data.isLeague ?? false,
+        leagueEndDate: data.leagueEndDate ? new Date(data.leagueEndDate) : null,
         parentTournamentId: data.parentTournamentId ?? null,
       },
     })

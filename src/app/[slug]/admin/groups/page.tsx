@@ -52,10 +52,13 @@ export default async function AdminGroupsPage({
     name: g.name,
     teeTime: g.teeTime?.toISOString() ?? null,
     startingHole: g.startingHole,
+    lastNotifiedTeeTime: g.lastNotifiedTeeTime?.toISOString() ?? null,
+    lastNotifiedStartHole: g.lastNotifiedStartHole,
     members: g.members.map((m) => ({
       tournamentPlayerId: m.tournamentPlayerId,
       name: m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email,
       position: m.position,
+      notifiedAt: m.notifiedAt?.toISOString() ?? null,
     })),
   }))
 

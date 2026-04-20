@@ -18,7 +18,8 @@ import {
   removePlayer,
   updateGroupTeeTime,
   updateGroupStartingHole,
-  finalizeAndNotify,
+  notifyAffectedPlayers,
+  notifyAllPlayers,
 } from '@/app/[slug]/admin/groups/actions'
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -35,6 +36,7 @@ type GroupMember = {
   tournamentPlayerId: string
   name: string
   position: number
+  notifiedAt: string | null
 }
 
 type Group = {
@@ -42,6 +44,8 @@ type Group = {
   name: string
   teeTime: string | null
   startingHole: number | null
+  lastNotifiedTeeTime: string | null
+  lastNotifiedStartHole: number | null
   members: GroupMember[]
 }
 
@@ -156,6 +160,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
             tournamentPlayerId: p.id,
             name: p.name,
             position: filteredMembers.length + i,
+            notifiedAt: null,
           }))
           return { ...g, members: [...g.members, ...newMembers] }
         })
@@ -181,7 +186,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
     const name = `Group ${groups.length + 1}`
     const tempId = `temp-${Date.now()}`
 
-    setGroups((prev) => [...prev, { id: tempId, name, teeTime: null, startingHole: null, members: [] }])
+    setGroups((prev) => [...prev, { id: tempId, name, teeTime: null, startingHole: null, lastNotifiedTeeTime: null, lastNotifiedStartHole: null, members: [] }])
 
     startTransition(async () => {
       try {
@@ -312,18 +317,49 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
     })
   }
 
-  // ── Finalize ─────────────────────────────────────────────────────────────
+  // ── Notify ───────────────────────────────────────────────────────────────
 
-  function handleFinalize() {
+  function getAffectedCount(): number {
+    let count = 0
+    for (const group of groups) {
+      const teeTimeChanged = group.teeTime !== group.lastNotifiedTeeTime
+      const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
+      for (const member of group.members) {
+        if (!member.notifiedAt || teeTimeChanged || startHoleChanged) {
+          count++
+        }
+      }
+    }
+    return count
+  }
+
+  function handleNotifyAffected() {
     setMessage(null)
-
     startTransition(async () => {
-      const result = await finalizeAndNotify(tournamentId, slug)
+      const result = await notifyAffectedPlayers(tournamentId, slug)
+      if (!result.ok) {
+        setMessage({ type: 'error', text: result.error ?? 'Something went wrong.' })
+        return
+      }
+      if (result.count === 0) {
+        setMessage({ type: 'success', text: 'No changes to notify — all players are up to date.' })
+      } else {
+        setMessage({ type: 'success', text: `Notifications sent to ${result.count} player${result.count !== 1 ? 's' : ''}.` })
+      }
+      router.refresh()
+    })
+  }
+
+  function handleNotifyAll() {
+    setMessage(null)
+    startTransition(async () => {
+      const result = await notifyAllPlayers(tournamentId, slug)
       if (!result.ok) {
         setMessage({ type: 'error', text: result.error ?? 'Something went wrong.' })
         return
       }
       setMessage({ type: 'success', text: `Notifications sent to ${result.count} player${result.count !== 1 ? 's' : ''}.` })
+      router.refresh()
     })
   }
 
@@ -498,6 +534,16 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
                   }`}>
                     {group.members.length}/4
                   </span>
+                  {(() => {
+                    const teeTimeChanged = group.teeTime !== group.lastNotifiedTeeTime
+                    const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
+                    const hasUnsent = group.members.some((m) => !m.notifiedAt || teeTimeChanged || startHoleChanged)
+                    return hasUnsent && group.members.length > 0 ? (
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                        unsent
+                      </span>
+                    ) : null
+                  })()}
                 </div>
                 <button
                   onClick={(e) => { e.stopPropagation(); handleDeleteGroup(group.id) }}
@@ -626,17 +672,32 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
         New Group
       </Button>
 
-      {/* Finalize & Notify */}
+      {/* Notify Players */}
       {groups.length > 0 && (
         <div className="space-y-3 pt-4 border-t border-border">
-          <Button
-            className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
-            onClick={handleFinalize}
-            disabled={isPending}
-          >
-            <Send className="w-4 h-4 mr-1.5" />
-            {isPending ? 'Sending...' : 'Finalize & Notify Players'}
-          </Button>
+          {(() => {
+            const affected = getAffectedCount()
+            return (
+              <>
+                <Button
+                  className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
+                  onClick={handleNotifyAffected}
+                  disabled={isPending}
+                >
+                  <Send className="w-4 h-4 mr-1.5" />
+                  {isPending ? 'Sending...' : affected > 0 ? `Notify ${affected} Affected Player${affected !== 1 ? 's' : ''}` : 'Notify Players'}
+                </Button>
+                <Button
+                  variant="outline"
+                  className="w-full"
+                  onClick={handleNotifyAll}
+                  disabled={isPending}
+                >
+                  {isPending ? 'Sending...' : 'Notify All Players'}
+                </Button>
+              </>
+            )
+          })()}
           {message && (
             <p className={`text-sm text-center ${message.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
               {message.text}

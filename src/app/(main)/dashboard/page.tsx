@@ -6,7 +6,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { PlusCircle, Trophy, Clock, MapPin, ChevronRight, CalendarClock } from 'lucide-react'
+import { PlusCircle, Trophy, Clock, MapPin, ChevronRight, CalendarClock, Repeat } from 'lucide-react'
 import NearbyTournaments from '@/components/NearbyTournaments'
 import { TournamentCardMenu } from '@/components/TournamentCardMenu'
 import { FindTournament } from '@/components/FindTournament'
@@ -50,9 +50,16 @@ export default async function DashboardPage() {
             logo: true,
             headerImage: true,
             registrationDeadline: true,
+            registrationClosed: true,
             isOpenRegistration: true,
             tournamentType: true,
-            _count: { select: { players: true } },
+            isLeague: true,
+            leagueEndDate: true,
+            parentTournamentId: true,
+            rounds: {
+              select: { course: { select: { name: true, par: true } } },
+            },
+            _count: { select: { players: true, rounds: true } },
           },
         },
       },
@@ -76,9 +83,16 @@ export default async function DashboardPage() {
             logo: true,
             headerImage: true,
             registrationDeadline: true,
+            registrationClosed: true,
             isOpenRegistration: true,
             tournamentType: true,
-            _count: { select: { players: true } },
+            isLeague: true,
+            leagueEndDate: true,
+            parentTournamentId: true,
+            rounds: {
+              select: { course: { select: { name: true, par: true } } },
+            },
+            _count: { select: { players: true, rounds: true } },
           },
         },
       },
@@ -145,8 +159,44 @@ export default async function DashboardPage() {
     }
   }
 
-  // Active tournaments you're part of (admin or registered player; completed ones go to history)
-  const activeMemberships = memberships.filter((m) => (m.isAdmin || m.isParticipant) && m.tournament.status !== 'COMPLETED')
+  // Separate leagues from regular tournaments
+  // Show only the most recent event per league chain the user is in
+  // Active non-league tournaments
+  const activeMemberships = memberships.filter(
+    (m) => (m.isAdmin || m.isParticipant)
+      && m.tournament.status !== 'COMPLETED'
+      && !m.tournament.isLeague
+  )
+
+  // For leagues: group by chain, pick the most recent membership per chain
+  // We deduplicate by tournament name (league events share the same name)
+  const leagueMembershipsByName = new Map<string, typeof memberships[number]>()
+  for (const m of memberships) {
+    if (!m.tournament.isLeague) continue
+    if (!(m.isAdmin || m.isParticipant)) continue
+    const existing = leagueMembershipsByName.get(m.tournament.name)
+    // Keep the most recently created one (memberships are ordered by createdAt desc)
+    if (!existing) {
+      leagueMembershipsByName.set(m.tournament.name, m)
+    }
+  }
+
+  // Active leagues: leagueEndDate hasn't passed yet (or no end date set)
+  const now = new Date()
+  const activeLeagues = Array.from(leagueMembershipsByName.values()).filter((m) => {
+    if (m.tournament.leagueEndDate) {
+      return new Date(m.tournament.leagueEndDate) >= now
+    }
+    return m.tournament.status !== 'COMPLETED'
+  })
+
+  // Completed leagues: leagueEndDate has passed or status is COMPLETED
+  const completedLeagues = Array.from(leagueMembershipsByName.values()).filter((m) => {
+    if (m.tournament.leagueEndDate) {
+      return new Date(m.tournament.leagueEndDate) < now
+    }
+    return m.tournament.status === 'COMPLETED'
+  })
 
   // Pending invitations — show as "Invited" tournaments (exclude already-registered ones)
   const registeredTournamentIds = new Set(memberships.map((m) => m.tournament.id))
@@ -156,7 +206,13 @@ export default async function DashboardPage() {
 
   const yourTournaments = activeMemberships.slice(0, 5)
   const hasMoreTournaments = activeMemberships.length > 5
-  const historyMemberships = memberships.filter((m) => m.tournament.status === 'COMPLETED')
+
+  // Tournament history: completed non-league tournaments only (league events hidden, completed leagues shown separately)
+  const historyMemberships = memberships.filter(
+    (m) => m.tournament.status === 'COMPLETED' && !m.tournament.isLeague
+  )
+  // Add completed league roots to history
+  const historyWithLeagues = [...historyMemberships, ...completedLeagues]
 
   const handicap = profile?.handicap ?? memberships[0]?.handicap ?? 0
   const displayName = profile?.displayName ?? user.name ?? user.email.split('@')[0]
@@ -186,11 +242,11 @@ export default async function DashboardPage() {
               <p className="text-sm text-white/60 mt-0.5 truncate">{user.email}</p>
             </div>
           </Link>
-          <div className="flex items-center gap-2 shrink-0">
+          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 shrink-0">
             <FindTournament />
             <Link
               href="/tournaments/new"
-              className="inline-flex items-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition-colors"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition-colors"
             >
               <PlusCircle className="w-4 h-4" />
               <span className="hidden sm:inline">Create Tournament</span>
@@ -229,42 +285,31 @@ export default async function DashboardPage() {
       {/* Most Recent Round */}
       {mostRecentScore && (
         <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: 'var(--accent)' }}>
-          <CardContent className="pt-5 pb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <p className="text-sm font-medium text-muted-foreground uppercase tracking-wide">Most Recent Round</p>
-              <span className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-                mostRecentIsComplete
-                  ? 'bg-muted text-muted-foreground'
-                  : 'bg-amber-100 text-amber-700'
-              }`}>
-                {mostRecentIsComplete ? 'Completed' : `${mostRecentRoundHoles}/18 holes`}
-              </span>
-            </div>
-
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 sm:gap-4">
-              <div className="min-w-0">
-                <p className="font-semibold text-base">{mostRecentScore.round.course.name}</p>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  {mostRecentScore.round.tournament.name} · {new Date(mostRecentScore.submittedAt).toLocaleDateString()}
-                </p>
-              </div>
-              <div className="flex items-center gap-3 shrink-0">
+          <CardContent className="py-2 px-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-3 min-w-0">
                 {mostRecentRoundGross !== null && mostRecentRoundPar !== null && (
-                  <div className="text-left sm:text-right">
-                    <p className="text-2xl font-bold font-heading">{mostRecentRoundGross}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {mostRecentDiff === 0 ? 'E' : mostRecentDiff > 0 ? `+${mostRecentDiff}` : `${mostRecentDiff}`} thru {mostRecentRoundHoles}
-                    </p>
+                  <div className="shrink-0">
+                    <span className="text-lg font-bold font-heading leading-none">{mostRecentRoundGross}</span>
+                    <span className="text-[11px] text-muted-foreground ml-1">
+                      ({mostRecentDiff === 0 ? 'E' : mostRecentDiff > 0 ? `+${mostRecentDiff}` : `${mostRecentDiff}`})
+                    </span>
                   </div>
                 )}
-                <Link
-                  href={`/${mostRecentScore.round.tournament.slug}${mostRecentIsComplete ? '' : '/play'}`}
-                  className={buttonVariants({ variant: mostRecentIsComplete ? 'outline' : 'default', size: 'sm' })}
-                  style={!mostRecentIsComplete ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' } : {}}
-                >
-                  {mostRecentIsComplete ? 'View' : 'Resume'}
-                </Link>
+                <div className="min-w-0">
+                  <p className="text-sm font-semibold truncate">{mostRecentScore.round.course.name}</p>
+                  <p className="text-[11px] text-muted-foreground truncate">
+                    {mostRecentScore.round.tournament.name} · thru {mostRecentRoundHoles}
+                  </p>
+                </div>
               </div>
+              <Link
+                href={`/${mostRecentScore.round.tournament.slug}${mostRecentIsComplete ? '' : '/play'}`}
+                className={buttonVariants({ variant: mostRecentIsComplete ? 'outline' : 'default', size: 'sm' })}
+                style={!mostRecentIsComplete ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' } : {}}
+              >
+                {mostRecentIsComplete ? 'View' : 'Resume'}
+              </Link>
             </div>
           </CardContent>
         </Card>
@@ -325,14 +370,32 @@ export default async function DashboardPage() {
         )}
       </section>
 
+      {/* Your Leagues */}
+      {activeLeagues.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Repeat className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Your Leagues</h2>
+          </div>
+          {activeLeagues.map((m) => (
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={m.isAdmin}
+              isRegistered
+            />
+          ))}
+        </section>
+      )}
+
       {/* Tournament History */}
-      {historyMemberships.length > 0 && (
+      {historyWithLeagues.length > 0 && (
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
             <h2 className="font-heading font-semibold text-lg">Tournament History</h2>
           </div>
-          {historyMemberships.map((m) => (
+          {historyWithLeagues.map((m) => (
             <TournamentCard
               key={m.id}
               t={m.tournament}
@@ -379,113 +442,152 @@ function TournamentCard({
     logo: string | null
     headerImage: string | null
     registrationDeadline: Date | null
+    registrationClosed: boolean
     isOpenRegistration: boolean
     tournamentType: string
-    _count: { players: number }
+    isLeague: boolean
+    leagueEndDate: Date | null
+    parentTournamentId: string | null
+    rounds: { course: { name: string; par: number } }[]
+    _count: { players: number; rounds: number }
   }
   showAdmin: boolean
   isRegistered?: boolean
   inviteToken?: string
 }) {
   const isInvite = !!inviteToken && !isRegistered
-  const regOpen = t.status === 'REGISTRATION' || (t.status === 'ACTIVE' && (t.isOpenRegistration || t.tournamentType !== 'INVITE'))
-  const deadlinePassed = t.registrationDeadline && new Date() > new Date(t.registrationDeadline)
-  const canRegister = !isRegistered && regOpen && !deadlinePassed
+  const canRegister = !isRegistered && !t.registrationClosed && t.status !== 'COMPLETED'
+
+  const fmtDate = (d: Date | string) =>
+    new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+  const dateRange = t.startDate && t.endDate
+    ? `${fmtDate(t.startDate)} – ${fmtDate(t.endDate)}`
+    : t.startDate ? fmtDate(t.startDate) : null
+
+  const courseName = t.rounds[0]?.course?.name
+  const coursePar = t.rounds[0]?.course?.par
 
   return (
     <div className="relative">
-      <Link href={`/${t.slug}`} className="block rounded-lg bg-card text-sm text-card-foreground shadow-md hover:shadow-lg transition-shadow overflow-hidden">
-        {/* Status tag — top left */}
-        <div className="absolute top-0 left-0 z-10">
-          {isInvite ? (
-            <span className="inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-amber-100 text-amber-700">
-              Invited
-            </span>
-          ) : t.status === 'ACTIVE' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              Live
-            </span>
-          ) : (
-            <span className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-              t.status === 'REGISTRATION'
-                ? 'bg-blue-100 text-blue-700'
-                : 'bg-muted text-muted-foreground'
-            }`}>
-              {STATUS_LABEL[t.status] ?? t.status}
-            </span>
-          )}
-        </div>
+      <Link href={`/${t.slug}`} className="block">
+        <Card
+          className={`hover:shadow-md transition-all cursor-pointer overflow-hidden !py-0 !gap-0${isInvite ? ' ring-2' : ''}`}
+          style={isInvite ? { '--tw-ring-color': t.accentColor } as React.CSSProperties : undefined}
+        >
+          {/* Branded header strip */}
+          <div
+            className="relative px-3 py-2.5 flex items-center"
+            style={{
+              background: t.headerImage
+                ? `linear-gradient(to top, ${t.primaryColor}ee, ${t.primaryColor}cc), url(${t.headerImage}) center/cover no-repeat`
+                : `linear-gradient(135deg, ${t.primaryColor}, ${t.primaryColor}dd)`,
+            }}
+          >
+            {/* Accent stripe */}
+            <div
+              className="absolute top-0 left-0 right-0 h-[2px]"
+              style={{ backgroundColor: t.accentColor }}
+            />
 
-        <div className="flex flex-col sm:flex-row">
-          {/* Left: tournament info */}
-          <div className="w-full sm:w-1/2 min-w-0 px-4 sm:px-6 py-4 flex flex-col justify-center">
-            <div className="flex items-center gap-3 min-w-0 pt-3">
-              {t.logo && (
+            {/* Logo + Name */}
+            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+              {t.logo ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img src={t.logo} alt="" className="h-10 w-10 rounded-full object-cover shrink-0" />
+                <img
+                  src={t.logo}
+                  alt=""
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
+                  style={{ borderColor: t.accentColor }}
+                />
+              ) : (
+                <div
+                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading font-bold text-white shrink-0 border-2"
+                  style={{ backgroundColor: `${t.primaryColor}80`, borderColor: t.accentColor }}
+                >
+                  {t.name.charAt(0).toUpperCase()}
+                </div>
               )}
               <div className="min-w-0">
-                <p className="text-lg font-heading font-bold truncate">{t.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
-                  {t._count.players} player{t._count.players !== 1 ? 's' : ''}
-                  {t.startDate ? ` · ${new Date(t.startDate).toLocaleDateString()}` : ''}
-                  {` · ${HCP_LABEL[t.handicapSystem] ?? t.handicapSystem}`}
+                <p className="font-heading font-semibold text-white truncate text-sm sm:text-base">{t.name}</p>
+                <p className="text-[11px] text-white/70 truncate">
+                  {courseName ? `${courseName} (Par ${coursePar})` : `${t._count.players} player${t._count.players !== 1 ? 's' : ''}`}
                 </p>
-                {t.description && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-3 sm:line-clamp-2">{t.description}</p>
-                )}
               </div>
             </div>
-            {/* Registration deadline + action */}
-            <div className="flex items-center justify-between gap-2 mt-2 pt-1">
-              {t.registrationDeadline && t.status === 'REGISTRATION' && (
-                <p className="text-[11px] text-muted-foreground flex items-center gap-1">
-                  <CalendarClock className="w-3 h-3 shrink-0" />
-                  {deadlinePassed
-                    ? 'Registration closed'
-                    : `Register by ${new Date(t.registrationDeadline).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`}
-                </p>
-              )}
-              {!t.registrationDeadline && !isRegistered && !canRegister && t.status !== 'COMPLETED' && t.tournamentType === 'INVITE' && !isInvite && (
-                <p className="text-[11px] text-muted-foreground">Registration closed</p>
-              )}
-              <span className="flex-1" />
-              {(canRegister || isInvite) && (
-                <Link
-                  href={`/${t.slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
-                  onClick={(e) => e.stopPropagation()}
-                  className="shrink-0 inline-flex items-center rounded-md px-3 py-1.5 text-[11px] font-semibold text-white transition-colors"
-                  style={{ backgroundColor: t.primaryColor }}
-                >
-                  Register
-                </Link>
-              )}
-            </div>
-          </div>
 
-          {/* Right: header image */}
-          <div className="relative w-full sm:w-1/2 min-h-[80px] sm:min-h-[100px]">
-            {t.headerImage ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={t.headerImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
-            ) : (
-              <div
-                className="absolute inset-0 flex items-center justify-center"
-                style={{ background: `linear-gradient(135deg, ${t.primaryColor}, ${t.accentColor})` }}
-              >
-                <span className="text-white/15 text-5xl font-heading font-bold select-none">
-                  {t.name.charAt(0).toUpperCase()}
+            {/* Status badge — top right corner */}
+            <div className="absolute top-1.5 right-2">
+              {isInvite ? (
+                <span className="inline-flex items-center shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-amber-400/90 text-amber-950">
+                  Invited
                 </span>
-              </div>
+              ) : t.status === 'ACTIVE' ? (
+                <span className="inline-flex items-center gap-1.5 shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
+                  <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                  Live
+                </span>
+              ) : t.status !== 'REGISTRATION' ? (
+                <span className="inline-flex items-center shrink-0 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-white/20 text-white">
+                  {STATUS_LABEL[t.status] ?? t.status}
+                </span>
+              ) : null}
+            </div>
+
+            {/* Register button — uses <a> to avoid nested <Link> inside outer <Link> */}
+            {(canRegister || isInvite) && (
+              <a
+                href={`/${t.slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
+                onClick={(e) => e.stopPropagation()}
+                className="relative z-10 shrink-0 ml-3 inline-flex items-center rounded-md px-3 py-1.5 text-xs font-bold transition-colors bg-white hover:bg-white/90"
+                style={{ color: t.primaryColor }}
+              >
+                {isInvite ? 'Accept Invite' : 'Register'}
+              </a>
             )}
           </div>
-        </div>
+
+          {/* Card body */}
+          <CardContent className="py-2.5 space-y-1.5">
+            {/* Tags — date, players, handicap, rounds */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {dateRange && (
+                <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  {dateRange}
+                </span>
+              )}
+              <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                {t._count.players} player{t._count.players !== 1 ? 's' : ''}
+              </span>
+              <span
+                className="inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md text-white"
+                style={{ backgroundColor: t.primaryColor }}
+              >
+                {HCP_LABEL[t.handicapSystem] ?? t.handicapSystem}
+              </span>
+              {t._count.rounds > 0 && (
+                <span className="inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  {t._count.rounds} round{t._count.rounds !== 1 ? 's' : ''}
+                </span>
+              )}
+              {t.registrationClosed && t.status !== 'COMPLETED' && (
+                <span className="inline-flex items-center gap-1 text-[11px] font-medium px-2 py-0.5 rounded-md bg-muted text-muted-foreground">
+                  <CalendarClock className="w-3 h-3" />
+                  Closed
+                </span>
+              )}
+            </div>
+
+            {/* Description */}
+            {t.description && (
+              <p className="text-xs text-muted-foreground line-clamp-2">{t.description}</p>
+            )}
+          </CardContent>
+        </Card>
       </Link>
 
-      {/* Admin menu — outside Card to avoid overflow clipping */}
+      {/* Admin menu — bottom right of card */}
       {showAdmin && (
-        <div className="absolute top-1.5 right-1.5 z-20">
+        <div className="absolute bottom-1.5 right-1.5 z-20">
           <TournamentCardMenu
             slug={t.slug}
             tournamentId={t.id}

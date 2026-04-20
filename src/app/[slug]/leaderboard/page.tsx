@@ -43,6 +43,9 @@ export default async function LeaderboardPage({
     tournament.rounds,
     tournament.startDate,
     tournament.endDate,
+    tournament.isLeague,
+    tournament.tournamentType,
+    tournament.leagueEndDate,
   )
 
   const initialStandings = await getLeaderboard(tournament.id)
@@ -137,8 +140,48 @@ export default async function LeaderboardPage({
     }
   }
 
+  // Fetch course name for league event header
+  let eventCourseName: string | null = null
+  if (tournament.isLeague && tournament.rounds[0]) {
+    const round = await prisma.tournamentRound.findUnique({
+      where: { id: tournament.rounds[0].id },
+      select: { course: { select: { name: true } } },
+    })
+    eventCourseName = round?.course?.name ?? null
+  }
+
+  const fmtEventDate = (d: Date) =>
+    d.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' })
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {/* League event header */}
+      {tournament.isLeague && (
+        <div className="mb-6 rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
+          <div className="px-5 py-4">
+            <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-1">League Event</p>
+            <h2 className="font-heading font-bold text-lg text-white">
+              {tournament.startDate ? fmtEventDate(tournament.startDate) : 'Date TBD'}
+            </h2>
+            {eventCourseName && (
+              <p className="text-sm text-white/70 mt-0.5">{eventCourseName}</p>
+            )}
+            {effectiveStatus === 'ACTIVE' && (
+              <span className="inline-flex items-center gap-1.5 mt-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
+                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+                Live
+              </span>
+            )}
+            {effectiveStatus === 'COMPLETED' && (
+              <span className="inline-flex items-center mt-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-white/20 text-white">
+                Final
+              </span>
+            )}
+          </div>
+          <div className="h-[2px]" style={{ backgroundColor: 'var(--color-accent)' }} />
+        </div>
+      )}
+
       <RegistrationBanner
         slug={slug}
         isParticipant={membership?.isParticipant ?? false}
@@ -147,7 +190,7 @@ export default async function LeaderboardPage({
         startDate={tournament.startDate?.toISOString() ?? null}
         canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
         inviteToken={inviteToken}
-        registrationDeadline={tournament.registrationDeadline?.toISOString() ?? null}
+        registrationClosed={tournament.registrationClosed}
       />
 
       {myGroup && (

@@ -239,43 +239,41 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
   return (
     <div>
       {/* Filters + Search + Scoring CTA */}
-      <div className="flex flex-col sm:flex-row sm:items-center gap-2 mb-4 lg:mb-6">
-        <div className="flex items-center gap-1.5 sm:gap-2 overflow-x-auto scrollbar-none" style={{ scrollbarWidth: 'none' }}>
-          {!isStableford && (
-            <FilterPill value={scoreType} options={scoreTypeOptions} onChange={(v) => setScoreType(v as 'gross' | 'net')} />
-          )}
-          {roundNumbers.length > 1 && (
-            <FilterPill value={roundFilter} options={roundOptions} onChange={setRoundFilter} />
-          )}
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-4 lg:mb-6 flex-wrap">
+        {!isStableford && (
+          <FilterPill value={scoreType} options={scoreTypeOptions} onChange={(v) => setScoreType(v as 'gross' | 'net')} />
+        )}
+        {roundNumbers.length > 1 && (
+          <FilterPill value={roundFilter} options={roundOptions} onChange={setRoundFilter} />
+        )}
 
-          {loading && <span className="text-xs text-muted-foreground animate-pulse shrink-0">Updating\u2026</span>}
-
-          {/* Scoring CTA */}
-          {scoringCta && (
-            <Link
-              href={scoringCta.href}
-              className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors whitespace-nowrap min-h-[40px] sm:min-h-[44px]"
-              style={{ backgroundColor: 'var(--color-primary)' }}
-            >
-              {scoringCta.label}
-              <span className="text-white/70 text-[11px] sm:text-xs font-normal hidden sm:inline">
-                {scoringCta.holesPlayed}/{scoringCta.totalHoles}
-              </span>
-            </Link>
-          )}
-        </div>
-
-        {/* Player search — full width on mobile */}
-        <div className="relative flex items-center sm:shrink-0">
+        {/* Player search — inline with filters */}
+        <div className="relative flex items-center flex-1 min-w-0 sm:flex-none">
           <Search className="pointer-events-none absolute left-2.5 h-3.5 w-3.5 text-muted-foreground" />
           <input
             type="text"
-            placeholder="Search players"
+            placeholder="Search"
             value={playerSearch}
             onChange={(e) => setPlayerSearch(e.target.value)}
-            className="rounded-lg border border-border bg-background pl-7 pr-2 py-2 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 w-full sm:w-48 min-h-[40px] sm:min-h-[44px]"
+            className="rounded-lg border border-border bg-background pl-7 pr-2 py-1.5 sm:py-2 text-xs font-medium text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40 w-full sm:w-48 min-h-[40px] sm:min-h-[44px]"
           />
         </div>
+
+        {loading && <span className="text-xs text-muted-foreground animate-pulse shrink-0">Updating\u2026</span>}
+
+        {/* Scoring CTA */}
+        {scoringCta && (
+          <Link
+            href={scoringCta.href}
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors whitespace-nowrap min-h-[40px] sm:min-h-[44px]"
+            style={{ backgroundColor: 'var(--color-primary)' }}
+          >
+            {scoringCta.label}
+            <span className="text-white/70 text-[11px] sm:text-xs font-normal hidden sm:inline">
+              {scoringCta.holesPlayed}/{scoringCta.totalHoles}
+            </span>
+          </Link>
+        )}
       </div>
 
       {/* Masters-style leaderboard table */}
