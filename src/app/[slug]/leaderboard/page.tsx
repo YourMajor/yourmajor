@@ -145,7 +145,7 @@ export default async function LeaderboardPage({
         isLoggedIn={!!user}
         status={effectiveStatus}
         startDate={tournament.startDate?.toISOString() ?? null}
-        canRegister={tournament.isOpenRegistration || !!inviteToken}
+        canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
         inviteToken={inviteToken}
         registrationDeadline={tournament.registrationDeadline?.toISOString() ?? null}
       />

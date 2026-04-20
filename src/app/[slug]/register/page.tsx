@@ -45,9 +45,9 @@ export default async function RegisterPage({
   if (!tournament) return null
 
   // Registration cutoff:
-  // - Open tournaments: allow registration through ACTIVE status (until end date passes or COMPLETED)
+  // - Open/public tournaments: allow registration through ACTIVE status (until end date passes or COMPLETED)
   // - Invite-only tournaments: close registration once ACTIVE
-  const isOpen = tournament.isOpenRegistration
+  const isOpen = tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE'
   const endDatePassed = tournament.endDate && new Date() > new Date(tournament.endDate)
 
   const deadlinePassed = tournament.registrationDeadline && new Date() > new Date(tournament.registrationDeadline)
@@ -199,7 +199,7 @@ export default async function RegisterPage({
     // Open tournaments allow registration during ACTIVE (until end date)
     const tEndDatePassed = t.endDate && new Date() > new Date(t.endDate)
     if (t.status === 'COMPLETED') redirect(`/${slug}`)
-    if (t.status === 'ACTIVE' && !t.isOpenRegistration) redirect(`/${slug}`)
+    if (t.status === 'ACTIVE' && !t.isOpenRegistration && t.tournamentType === 'INVITE') redirect(`/${slug}`)
     if (t.status === 'ACTIVE' && t.isOpenRegistration && tEndDatePassed) redirect(`/${slug}`)
     if (t.tournamentType === 'INVITE' && t.registrationDeadline && new Date() > new Date(t.registrationDeadline)) redirect(`/${slug}`)
 
