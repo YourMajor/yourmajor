@@ -8,6 +8,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Mail, Phone } from 'lucide-react'
 import { sendLateInvites, setTournamentStatus } from '@/app/(main)/tournaments/new/actions'
 
 type InviteEntry = { type: 'email' | 'phone'; value: string }
@@ -20,7 +21,6 @@ interface Props {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_RE = /^\+?[\d\s().-]{7,}$/
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -29,41 +29,48 @@ function normalizePhone(raw: string): string {
   return `+${digits}`
 }
 
-function detectType(input: string): 'email' | 'phone' | null {
-  if (EMAIL_RE.test(input)) return 'email'
-  const digits = input.replace(/\D/g, '')
-  if (digits.length >= 7 && PHONE_RE.test(input)) return 'phone'
-  return null
-}
-
 export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   // Late entries dialog state
   const [open, setOpen] = useState(false)
-  const [input, setInput] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
   const [entries, setEntries] = useState<InviteEntry[]>([])
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const [error, setError] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
 
   // End tournament confirm state
   const [confirmEnd, setConfirmEnd] = useState(false)
 
-  function addEntry() {
-    const trimmed = input.trim()
+  function addEmail() {
+    const trimmed = emailInput.trim().toLowerCase()
     if (!trimmed) return
 
-    const type = detectType(trimmed)
-    if (!type) { setError('Enter a valid email or phone number'); return }
+    if (!EMAIL_RE.test(trimmed)) { setEmailError('Enter a valid email address.'); return }
+    if (entries.some((e) => e.value === trimmed)) { setEmailError('Already added.'); return }
 
-    const normalized = type === 'phone' ? normalizePhone(trimmed) : trimmed.toLowerCase()
-    if (entries.some((e) => e.value === normalized)) { setError('Already added'); return }
+    setEmailError('')
+    setEntries([...entries, { type: 'email', value: trimmed }])
+    setEmailInput('')
+  }
 
-    setError('')
-    setEntries([...entries, { type, value: normalized }])
-    setInput('')
+  function addPhone() {
+    const trimmed = phoneInput.trim()
+    if (!trimmed) return
+
+    const digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 10) { setPhoneError('Enter a valid phone number (at least 10 digits).'); return }
+
+    const normalized = normalizePhone(trimmed)
+    if (entries.some((e) => e.value === normalized)) { setPhoneError('Already added.'); return }
+
+    setPhoneError('')
+    setEntries([...entries, { type: 'phone', value: normalized }])
+    setPhoneInput('')
   }
 
   async function handleSend() {
@@ -124,24 +131,44 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
           <DialogHeader>
             <DialogTitle>Add Late Entries</DialogTitle>
           </DialogHeader>
-          <div className="space-y-3 pt-2">
-            <Label>Invite by Email or Phone</Label>
-            <div className="flex gap-2">
-              <Input
-                type="text"
-                placeholder="player@example.com or (555) 123-4567"
-                value={input}
-                onChange={(e) => { setInput(e.target.value); setError('') }}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEntry())}
-                className="flex-1"
-              />
-              <Button type="button" variant="outline" onClick={addEntry}>Add</Button>
+          <div className="space-y-4 pt-2">
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Invite by Email</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="email"
+                  placeholder="player@example.com"
+                  value={emailInput}
+                  onChange={(e) => { setEmailInput(e.target.value); setEmailError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" onClick={addEmail}>Add</Button>
+              </div>
+              {emailError && <p className="text-xs text-destructive">{emailError}</p>}
             </div>
-            {error && <p className="text-xs text-destructive">{error}</p>}
+
+            <div className="space-y-2">
+              <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Invite by Phone</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="tel"
+                  placeholder="(555) 123-4567"
+                  value={phoneInput}
+                  onChange={(e) => { setPhoneInput(e.target.value); setPhoneError('') }}
+                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPhone())}
+                  className="flex-1"
+                />
+                <Button type="button" variant="outline" onClick={addPhone}>Add</Button>
+              </div>
+              {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+            </div>
+
             {entries.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
                 {entries.map((e) => (
                   <Badge key={e.value} variant="secondary" className="gap-1 pr-1">
+                    {e.type === 'phone' ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
                     {e.value}
                     <button type="button" onClick={() => setEntries(entries.filter((x) => x.value !== e.value))} className="ml-0.5 hover:text-destructive text-xs">×</button>
                   </Badge>

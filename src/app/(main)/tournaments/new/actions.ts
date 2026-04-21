@@ -300,87 +300,94 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
     return { error: friendlyPrismaError(err) }
   }
 
-  // Consume a Pro credit if this tournament uses pro features and user is not on Tour or Club
+  // Consume a Pro credit — this is required, not best-effort
   if (needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB') {
-    const consumed = await consumeProCredit(user.id, tournament.id)
-    if (!consumed) {
-      // Tournament was created but no credit available — this shouldn't happen
-      // due to earlier validation, but log it for safety
-      console.warn(`[createTournamentFromWizard] No pro credit to consume for tournament ${tournament.id}`)
+    try {
+      const consumed = await consumeProCredit(user.id, tournament.id)
+      if (!consumed) {
+        return { error: 'Unable to consume a Pro credit. Please check your account and try again.' }
+      }
+    } catch (err) {
+      console.error('[createTournamentFromWizard] consumeProCredit failed:', err)
+      return { error: 'Failed to process Pro credit. Please try again or contact support.' }
     }
   }
 
-  // Initialize league features (roster, season config) for new leagues
-  if (data.isLeague && !data.parentTournamentId) {
-    try {
-      const { getOrCreateRoster } = await import('@/lib/roster-actions')
-      // Creates roster with the creator as the first member
-      await getOrCreateRoster(tournament.id)
-      // Set default season scoring method
-      await prisma.tournament.update({
-        where: { id: tournament.id },
-        data: { seasonScoringMethod: 'POINTS' },
-      })
-    } catch {
-      console.warn('[createTournamentFromWizard] League initialization failed')
+  // Post-create operations are best-effort — the tournament is already persisted.
+  // Wrap in try-catch so failures here never prevent the user from reaching their tournament.
+  try {
+    // Initialize league features (roster, season config) for new leagues
+    if (data.isLeague && !data.parentTournamentId) {
+      try {
+        const { getOrCreateRoster } = await import('@/lib/roster-actions')
+        await getOrCreateRoster(tournament.id)
+        await prisma.tournament.update({
+          where: { id: tournament.id },
+          data: { seasonScoringMethod: 'POINTS' },
+        })
+      } catch {
+        console.warn('[createTournamentFromWizard] League initialization failed')
+      }
     }
-  }
 
-  // Auto-invite roster members for renewed league tournaments
-  if (data.parentTournamentId) {
-    try {
-      const { getOrCreateRoster } = await import('@/lib/roster-actions')
-      const roster = await getOrCreateRoster(data.parentTournamentId)
-      if (roster) {
-        const activeMembers = roster.members.filter((m) => m.status === 'ACTIVE' && m.userId !== user.id)
-        for (const member of activeMembers) {
-          const existing = await prisma.tournamentPlayer.findUnique({
-            where: { tournamentId_userId: { tournamentId: tournament.id, userId: member.userId } },
-          })
-          if (!existing) {
-            const profile = await prisma.playerProfile.findUnique({
-              where: { userId: member.userId },
-              select: { handicap: true },
+    // Auto-invite roster members for renewed league tournaments
+    if (data.parentTournamentId) {
+      try {
+        const { getOrCreateRoster } = await import('@/lib/roster-actions')
+        const roster = await getOrCreateRoster(data.parentTournamentId)
+        if (roster) {
+          const activeMembers = roster.members.filter((m) => m.status === 'ACTIVE' && m.userId !== user.id)
+          for (const member of activeMembers) {
+            const existing = await prisma.tournamentPlayer.findUnique({
+              where: { tournamentId_userId: { tournamentId: tournament.id, userId: member.userId } },
             })
-            await prisma.tournamentPlayer.create({
-              data: {
-                tournamentId: tournament.id,
-                userId: member.userId,
-                handicap: profile?.handicap ?? 0,
-              },
-            }).catch(() => {})
+            if (!existing) {
+              const profile = await prisma.playerProfile.findUnique({
+                where: { userId: member.userId },
+                select: { handicap: true },
+              })
+              await prisma.tournamentPlayer.create({
+                data: {
+                  tournamentId: tournament.id,
+                  userId: member.userId,
+                  handicap: profile?.handicap ?? 0,
+                },
+              }).catch(() => {})
+            }
           }
         }
-      }
-    } catch {
-      console.warn('[createTournamentFromWizard] Roster auto-invite failed')
-    }
-  }
-
-  // Send invite emails + SMS outside transaction
-  const allInvites = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
-  if (!data.isOpenRegistration && allInvites.length > 0) {
-    const invitations = await prisma.invitation.findMany({
-      where: { tournamentId: tournament.id },
-      select: { email: true, token: true, phone: true },
-    })
-
-    // Send emails for email-based invitations
-    const emailInvitations = invitations.filter((inv) => inv.email)
-    if (emailInvitations.length > 0) {
-      await sendInviteEmails(tournament.name, slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
-    }
-
-    // Send SMS for phone-based invitations
-    const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-    for (const inv of invitations) {
-      if (inv.phone) {
-        await sendSMS(
-          inv.phone,
-          `You're invited to ${tournament.name}! Join here: ${domain}/${slug}/register?token=${inv.token}`,
-        ).catch(() => {})
+      } catch {
+        console.warn('[createTournamentFromWizard] Roster auto-invite failed')
       }
     }
+
+    // Send invite emails + SMS outside transaction
+    const allInvites = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
+    if (!data.isOpenRegistration && allInvites.length > 0) {
+      const invitations = await prisma.invitation.findMany({
+        where: { tournamentId: tournament.id },
+        select: { email: true, token: true, phone: true },
+      })
+
+      // Send emails for email-based invitations
+      const emailInvitations = invitations.filter((inv) => inv.email)
+      if (emailInvitations.length > 0) {
+        await sendInviteEmails(tournament.name, slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
+      }
+
+      // Send SMS for phone-based invitations
+      const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+      for (const inv of invitations) {
+        if (inv.phone) {
+          await sendSMS(
+            inv.phone,
+            `You're invited to ${tournament.name}! Join here: ${domain}/${slug}/register?token=${inv.token}`,
+          ).catch(() => {})
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[createTournamentFromWizard] post-create error (tournament was created):', err)
   }
 
   return { slug }

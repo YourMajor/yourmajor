@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Globe, Link2, Lock } from 'lucide-react'
+import { Globe, Link2, Lock, Mail, Phone } from 'lucide-react'
 
 export type TournamentTypeValue = 'PUBLIC' | 'OPEN' | 'INVITE'
 
@@ -45,7 +45,6 @@ const TYPES = [
 ] as const
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-const PHONE_RE = /^\+?[\d\s().-]{7,}$/
 
 function normalizePhone(raw: string): string {
   const digits = raw.replace(/\D/g, '')
@@ -54,16 +53,11 @@ function normalizePhone(raw: string): string {
   return `+${digits}`
 }
 
-function detectType(input: string): 'email' | 'phone' | null {
-  if (EMAIL_RE.test(input)) return 'email'
-  const digits = input.replace(/\D/g, '')
-  if (digits.length >= 7 && PHONE_RE.test(input)) return 'phone'
-  return null
-}
-
 export function StepTournamentType({ value, onChange }: Props) {
-  const [input, setInput] = useState('')
-  const [error, setError] = useState('')
+  const [emailInput, setEmailInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [emailError, setEmailError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
 
   const inviteList = value.inviteList ?? []
 
@@ -71,31 +65,53 @@ export function StepTournamentType({ value, onChange }: Props) {
     onChange({ ...value, tournamentType: type })
   }
 
-  function addEntry() {
-    const trimmed = input.trim()
+  function addEmail() {
+    const trimmed = emailInput.trim().toLowerCase()
     if (!trimmed) return
 
-    const type = detectType(trimmed)
-    if (!type) {
-      setError('Enter a valid email or phone number.')
+    if (!EMAIL_RE.test(trimmed)) {
+      setEmailError('Enter a valid email address.')
       return
     }
 
-    const normalized = type === 'phone' ? normalizePhone(trimmed) : trimmed.toLowerCase()
-
-    if (inviteList.some((e) => e.value === normalized)) {
-      setError('Already added.')
+    if (inviteList.some((e) => e.value === trimmed)) {
+      setEmailError('Already added.')
       return
     }
 
-    setError('')
-    const entry: InviteEntry = { type, value: normalized }
+    setEmailError('')
+    const entry: InviteEntry = { type: 'email', value: trimmed }
     onChange({
       ...value,
       inviteList: [...inviteList, entry],
-      inviteEmails: type === 'email' ? [...value.inviteEmails, normalized] : value.inviteEmails,
+      inviteEmails: [...value.inviteEmails, trimmed],
     })
-    setInput('')
+    setEmailInput('')
+  }
+
+  function addPhone() {
+    const trimmed = phoneInput.trim()
+    if (!trimmed) return
+
+    const digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 10) {
+      setPhoneError('Enter a valid phone number (at least 10 digits).')
+      return
+    }
+
+    const normalized = normalizePhone(trimmed)
+    if (inviteList.some((e) => e.value === normalized)) {
+      setPhoneError('Already added.')
+      return
+    }
+
+    setPhoneError('')
+    const entry: InviteEntry = { type: 'phone', value: normalized }
+    onChange({
+      ...value,
+      inviteList: [...inviteList, entry],
+    })
+    setPhoneInput('')
   }
 
   function removeEntry(entryValue: string) {
@@ -144,24 +160,51 @@ export function StepTournamentType({ value, onChange }: Props) {
 
       {/* Invite list — shown inline when Invite Only is selected */}
       {value.tournamentType === 'INVITE' && (
-        <div className="space-y-3 pt-2">
-          <Label>Invite Players by Email or Phone</Label>
-          <div className="flex gap-2">
-            <Input
-              type="text"
-              placeholder="player@example.com or (555) 123-4567"
-              value={input}
-              onChange={(e) => { setInput(e.target.value); setError('') }}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEntry())}
-              className="flex-1"
-            />
-            <Button type="button" variant="outline" onClick={addEntry}>Add</Button>
+        <div className="space-y-4 pt-2">
+          <p className="text-xs text-muted-foreground">
+            Optionally invite players now, or skip and invite them later from the tournament admin settings.
+          </p>
+
+          {/* Email invites */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Invite by Email</Label>
+            <div className="flex gap-2">
+              <Input
+                type="email"
+                placeholder="player@example.com"
+                value={emailInput}
+                onChange={(e) => { setEmailInput(e.target.value); setEmailError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+                className="flex-1"
+              />
+              <Button type="button" variant="outline" onClick={addEmail}>Add</Button>
+            </div>
+            {emailError && <p className="text-xs text-destructive">{emailError}</p>}
           </div>
-          {error && <p className="text-xs text-destructive">{error}</p>}
+
+          {/* Phone invites */}
+          <div className="space-y-2">
+            <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Invite by Phone</Label>
+            <div className="flex gap-2">
+              <Input
+                type="tel"
+                placeholder="(555) 123-4567"
+                value={phoneInput}
+                onChange={(e) => { setPhoneInput(e.target.value); setPhoneError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPhone())}
+                className="flex-1"
+              />
+              <Button type="button" variant="outline" onClick={addPhone}>Add</Button>
+            </div>
+            {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+          </div>
+
+          {/* Combined invite list */}
           {inviteList.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {inviteList.map((entry) => (
                 <Badge key={entry.value} variant="secondary" className="gap-1 pr-1">
+                  {entry.type === 'phone' ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
                   {entry.value}
                   <button
                     type="button"
@@ -174,9 +217,6 @@ export function StepTournamentType({ value, onChange }: Props) {
               ))}
             </div>
           )}
-          <p className="text-xs text-muted-foreground">
-            Invites will be sent when you create the tournament. You can add more later from the tournament hub.
-          </p>
         </div>
       )}
     </div>
