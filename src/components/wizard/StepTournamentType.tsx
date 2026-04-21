@@ -10,9 +10,12 @@ import { Globe, Link2, Lock } from 'lucide-react'
 
 export type TournamentTypeValue = 'PUBLIC' | 'OPEN' | 'INVITE'
 
+export type InviteEntry = { type: 'email'; value: string } | { type: 'phone'; value: string }
+
 export interface TournamentTypeState {
   tournamentType: TournamentTypeValue
   inviteEmails: string[]
+  inviteList: InviteEntry[]
 }
 
 interface Props {
@@ -37,36 +40,70 @@ const TYPES = [
     id: 'INVITE' as const,
     name: 'Invite Only',
     icon: Lock,
-    description: 'Only players you invite by email can register. Rounds have specific dates. Full feature access including powerups.',
+    description: 'Only players you invite can register. Rounds have specific dates. Full feature access including powerups.',
   },
 ] as const
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^\+?[\d\s().-]{7,}$/
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
+function detectType(input: string): 'email' | 'phone' | null {
+  if (EMAIL_RE.test(input)) return 'email'
+  const digits = input.replace(/\D/g, '')
+  if (digits.length >= 7 && PHONE_RE.test(input)) return 'phone'
+  return null
+}
+
 export function StepTournamentType({ value, onChange }: Props) {
-  const [emailInput, setEmailInput] = useState('')
-  const [emailError, setEmailError] = useState('')
+  const [input, setInput] = useState('')
+  const [error, setError] = useState('')
+
+  const inviteList = value.inviteList ?? []
 
   function set(type: TournamentTypeValue) {
     onChange({ ...value, tournamentType: type })
   }
 
-  function addEmail() {
-    const email = emailInput.trim().toLowerCase()
-    if (!email) return
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-      setEmailError('Please enter a valid email address.')
+  function addEntry() {
+    const trimmed = input.trim()
+    if (!trimmed) return
+
+    const type = detectType(trimmed)
+    if (!type) {
+      setError('Enter a valid email or phone number.')
       return
     }
-    if (value.inviteEmails.includes(email)) {
-      setEmailError('Already added.')
+
+    const normalized = type === 'phone' ? normalizePhone(trimmed) : trimmed.toLowerCase()
+
+    if (inviteList.some((e) => e.value === normalized)) {
+      setError('Already added.')
       return
     }
-    setEmailError('')
-    onChange({ ...value, inviteEmails: [...value.inviteEmails, email] })
-    setEmailInput('')
+
+    setError('')
+    const entry: InviteEntry = { type, value: normalized }
+    onChange({
+      ...value,
+      inviteList: [...inviteList, entry],
+      inviteEmails: type === 'email' ? [...value.inviteEmails, normalized] : value.inviteEmails,
+    })
+    setInput('')
   }
 
-  function removeEmail(email: string) {
-    onChange({ ...value, inviteEmails: value.inviteEmails.filter((e) => e !== email) })
+  function removeEntry(entryValue: string) {
+    onChange({
+      ...value,
+      inviteList: inviteList.filter((e) => e.value !== entryValue),
+      inviteEmails: value.inviteEmails.filter((e) => e !== entryValue),
+    })
   }
 
   return (
@@ -105,30 +142,30 @@ export function StepTournamentType({ value, onChange }: Props) {
         })}
       </div>
 
-      {/* Invite emails — shown inline when Invite Only is selected */}
+      {/* Invite list — shown inline when Invite Only is selected */}
       {value.tournamentType === 'INVITE' && (
         <div className="space-y-3 pt-2">
-          <Label>Invite Players by Email</Label>
+          <Label>Invite Players by Email or Phone</Label>
           <div className="flex gap-2">
             <Input
-              type="email"
-              placeholder="player@example.com"
-              value={emailInput}
-              onChange={(e) => { setEmailInput(e.target.value); setEmailError('') }}
-              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+              type="text"
+              placeholder="player@example.com or (555) 123-4567"
+              value={input}
+              onChange={(e) => { setInput(e.target.value); setError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEntry())}
               className="flex-1"
             />
-            <Button type="button" variant="outline" onClick={addEmail}>Add</Button>
+            <Button type="button" variant="outline" onClick={addEntry}>Add</Button>
           </div>
-          {emailError && <p className="text-xs text-destructive">{emailError}</p>}
-          {value.inviteEmails.length > 0 && (
+          {error && <p className="text-xs text-destructive">{error}</p>}
+          {inviteList.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
-              {value.inviteEmails.map((email) => (
-                <Badge key={email} variant="secondary" className="gap-1 pr-1">
-                  {email}
+              {inviteList.map((entry) => (
+                <Badge key={entry.value} variant="secondary" className="gap-1 pr-1">
+                  {entry.value}
                   <button
                     type="button"
-                    onClick={() => removeEmail(email)}
+                    onClick={() => removeEntry(entry.value)}
                     className="ml-0.5 hover:text-destructive text-xs leading-none"
                   >
                     ×
@@ -138,7 +175,7 @@ export function StepTournamentType({ value, onChange }: Props) {
             </div>
           )}
           <p className="text-xs text-muted-foreground">
-            Invite emails will be sent when you create the tournament. You can add more later from the tournament hub.
+            Invites will be sent when you create the tournament. You can add more later from the tournament hub.
           </p>
         </div>
       )}

@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import Link from 'next/link'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Button, buttonVariants } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { sendLateInvites, setTournamentStatus } from '@/app/(main)/tournaments/new/actions'
+
+type InviteEntry = { type: 'email' | 'phone'; value: string }
 
 interface Props {
   slug: string
@@ -17,38 +19,60 @@ interface Props {
   powerupsEnabled?: boolean
 }
 
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const PHONE_RE = /^\+?[\d\s().-]{7,}$/
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
+function detectType(input: string): 'email' | 'phone' | null {
+  if (EMAIL_RE.test(input)) return 'email'
+  const digits = input.replace(/\D/g, '')
+  if (digits.length >= 7 && PHONE_RE.test(input)) return 'phone'
+  return null
+}
+
 export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
 
   // Late entries dialog state
   const [open, setOpen] = useState(false)
-  const [emailInput, setEmailInput] = useState('')
-  const [emails, setEmails] = useState<string[]>([])
+  const [input, setInput] = useState('')
+  const [entries, setEntries] = useState<InviteEntry[]>([])
   const [sending, setSending] = useState(false)
   const [sent, setSent] = useState(false)
-  const [emailError, setEmailError] = useState('')
+  const [error, setError] = useState('')
 
   // End tournament confirm state
   const [confirmEnd, setConfirmEnd] = useState(false)
 
-  function addEmail() {
-    const email = emailInput.trim().toLowerCase()
-    if (!email) return
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setEmailError('Invalid email'); return }
-    if (emails.includes(email)) { setEmailError('Already added'); return }
-    setEmailError('')
-    setEmails([...emails, email])
-    setEmailInput('')
+  function addEntry() {
+    const trimmed = input.trim()
+    if (!trimmed) return
+
+    const type = detectType(trimmed)
+    if (!type) { setError('Enter a valid email or phone number'); return }
+
+    const normalized = type === 'phone' ? normalizePhone(trimmed) : trimmed.toLowerCase()
+    if (entries.some((e) => e.value === normalized)) { setError('Already added'); return }
+
+    setError('')
+    setEntries([...entries, { type, value: normalized }])
+    setInput('')
   }
 
   async function handleSend() {
-    if (emails.length === 0) return
+    if (entries.length === 0) return
     setSending(true)
-    await sendLateInvites(tournamentId, emails)
+    await sendLateInvites(tournamentId, entries)
     setSending(false)
     setSent(true)
-    setEmails([])
+    setEntries([])
     setTimeout(() => { setSent(false); setOpen(false) }, 2000)
   }
 
@@ -101,25 +125,25 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
             <DialogTitle>Add Late Entries</DialogTitle>
           </DialogHeader>
           <div className="space-y-3 pt-2">
-            <Label>Invite by Email</Label>
+            <Label>Invite by Email or Phone</Label>
             <div className="flex gap-2">
               <Input
-                type="email"
-                placeholder="player@example.com"
-                value={emailInput}
-                onChange={(e) => { setEmailInput(e.target.value); setEmailError('') }}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+                type="text"
+                placeholder="player@example.com or (555) 123-4567"
+                value={input}
+                onChange={(e) => { setInput(e.target.value); setError('') }}
+                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEntry())}
                 className="flex-1"
               />
-              <Button type="button" variant="outline" onClick={addEmail}>Add</Button>
+              <Button type="button" variant="outline" onClick={addEntry}>Add</Button>
             </div>
-            {emailError && <p className="text-xs text-destructive">{emailError}</p>}
-            {emails.length > 0 && (
+            {error && <p className="text-xs text-destructive">{error}</p>}
+            {entries.length > 0 && (
               <div className="flex flex-wrap gap-1.5">
-                {emails.map((e) => (
-                  <Badge key={e} variant="secondary" className="gap-1 pr-1">
-                    {e}
-                    <button type="button" onClick={() => setEmails(emails.filter((x) => x !== e))} className="ml-0.5 hover:text-destructive text-xs">×</button>
+                {entries.map((e) => (
+                  <Badge key={e.value} variant="secondary" className="gap-1 pr-1">
+                    {e.value}
+                    <button type="button" onClick={() => setEntries(entries.filter((x) => x.value !== e.value))} className="ml-0.5 hover:text-destructive text-xs">×</button>
                   </Badge>
                 ))}
               </div>
@@ -127,8 +151,8 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
             {sent ? (
               <p className="text-sm text-green-600 font-medium">Invites sent!</p>
             ) : (
-              <Button onClick={handleSend} disabled={sending || emails.length === 0} className="w-full">
-                {sending ? 'Sending...' : `Send ${emails.length} Invite${emails.length !== 1 ? 's' : ''}`}
+              <Button onClick={handleSend} disabled={sending || entries.length === 0} className="w-full">
+                {sending ? 'Sending...' : `Send ${entries.length} Invite${entries.length !== 1 ? 's' : ''}`}
               </Button>
             )}
           </div>
@@ -150,9 +174,9 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
               <Button
                 variant="destructive"
                 disabled={isPending}
-                onClick={() => { setConfirmEnd(false); handleStatusChange('COMPLETED') }}
+                onClick={() => { handleStatusChange('COMPLETED'); setConfirmEnd(false) }}
               >
-                {isPending ? 'Ending…' : 'End Tournament'}
+                End Tournament
               </Button>
             </div>
           </div>

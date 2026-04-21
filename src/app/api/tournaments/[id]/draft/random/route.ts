@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { sendEmailToMany, domain } from '@/lib/email'
 
 /** Fisher-Yates shuffle */
 function shuffle<T>(arr: T[]): T[] {
@@ -113,33 +112,6 @@ export async function POST(
       status: 'AVAILABLE' as const,
     })),
   })
-
-  // Notify all players
-  await prisma.notification.createMany({
-    data: players.map((p) => ({
-      tournamentPlayerId: p.id,
-      type: 'DRAFT_COMPLETED' as const,
-      payload: { message: 'Powerups have been randomly dealt! Check your hand.' },
-    })),
-  })
-
-  // Email all players
-  const tournamentInfo = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    select: { name: true, slug: true },
-  })
-  const playersWithEmail = await prisma.tournamentPlayer.findMany({
-    where: { tournamentId, isParticipant: true },
-    select: { user: { select: { email: true, name: true } } },
-  })
-  await sendEmailToMany(
-    playersWithEmail.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
-    `Powerups dealt — ${tournamentInfo?.name ?? 'Tournament'}`,
-    () =>
-      `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>
-      <p>Powerups have been randomly dealt! Check your hand.</p>
-      <p><a href="${domain}/${tournamentInfo?.slug}">View Tournament</a></p>`,
-  )
 
   return NextResponse.json({
     dealt: assignments.length,

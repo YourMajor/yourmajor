@@ -66,7 +66,13 @@ export default async function DashboardPage() {
       orderBy: { createdAt: 'desc' },
     }),
     prisma.invitation.findMany({
-      where: { email: user.email, acceptedAt: null },
+      where: {
+        acceptedAt: null,
+        OR: [
+          { email: user.email },
+          ...(user.phone ? [{ phone: user.phone }] : []),
+        ],
+      },
       include: {
         tournament: {
           select: {

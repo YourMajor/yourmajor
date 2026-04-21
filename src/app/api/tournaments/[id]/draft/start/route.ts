@@ -2,8 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { computeCurrentTurn } from '@/lib/draft-utils'
-import { sendEmail, sendEmailToMany, domain } from '@/lib/email'
-import { sendSMS } from '@/lib/sms'
+import { sendEmailToMany, domain } from '@/lib/email'
 
 export async function POST(
   _req: NextRequest,
@@ -65,7 +64,7 @@ export async function POST(
   // Notify all players that draft has started
   const allPlayers = await prisma.tournamentPlayer.findMany({
     where: { tournamentId },
-    select: { id: true, user: { select: { email: true, name: true, phone: true, smsNotifications: true } } },
+    select: { id: true, user: { select: { email: true, name: true } } },
   })
   await prisma.notification.createMany({
     data: allPlayers.map((p) => ({
@@ -81,32 +80,9 @@ export async function POST(
     select: { name: true, slug: true },
   })
 
-  // Email + SMS the first player it's their turn
-  if (firstTurn) {
-    const firstPlayer = allPlayers.find((p) => p.id === firstTurn.tournamentPlayerId)
-    if (firstPlayer) {
-      await sendEmail(
-        firstPlayer.user.email,
-        `It's your turn to draft — ${tournamentInfo?.name ?? 'Tournament'}`,
-        `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>
-        <p>The powerup draft has started and <strong>it's your turn</strong> to pick!</p>
-        <p><a href="${domain}/${tournamentInfo?.slug}/draft">Make your pick</a></p>`,
-      )
-      if (firstPlayer.user.smsNotifications && firstPlayer.user.phone) {
-        await sendSMS(
-          firstPlayer.user.phone,
-          `It's your turn to draft in ${tournamentInfo?.name ?? 'the tournament'}! Pick your powerup: ${domain}/${tournamentInfo?.slug}/draft`,
-        )
-      }
-    }
-  }
-
-  // Email all other players that draft started (first player already notified above)
-  const otherPlayers = firstTurn
-    ? allPlayers.filter((p) => p.id !== firstTurn.tournamentPlayerId)
-    : allPlayers
+  // Email all players that draft started
   await sendEmailToMany(
-    otherPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
+    allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
     `Draft started — ${tournamentInfo?.name ?? 'Tournament'}`,
     () =>
       `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>

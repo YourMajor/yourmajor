@@ -390,7 +390,7 @@ model TournamentPlayer {
 model Invitation {
   id           String    @id @default(cuid())
   tournamentId String
-  email        String
+  email        String?
   phone        String?
   token        String    @unique @default(cuid())
   userId       String?

@@ -51,6 +51,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   const [tournamentType, setTournamentType] = useState<TournamentTypeState>({
     tournamentType: renewalDefaults ? inferTypeFromDefaults(renewalDefaults) : 'OPEN',
     inviteEmails: [],
+    inviteList: [],
   })
 
   const [basicInfo, setBasicInfo] = useState<BasicInfoState>({
@@ -172,6 +173,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     // Derive registration settings from tournament type
     const isOpenRegistration = tournamentType.tournamentType !== 'INVITE'
     const inviteEmails = tournamentType.tournamentType === 'INVITE' ? tournamentType.inviteEmails : []
+    const inviteList = tournamentType.tournamentType === 'INVITE' ? (tournamentType.inviteList ?? []) : []
     const effectivePowerups = isPublic
       ? { ...powerups, powerupsEnabled: false }
       : powerups
@@ -204,6 +206,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           ...effectivePowerups,
           isOpenRegistration,
           inviteEmails,
+          inviteList,
           tournamentType: tournamentType.tournamentType,
           parentTournamentId: renewalDefaults?.parentTournamentId ?? null,
           isLeague: basicInfo.isLeague,

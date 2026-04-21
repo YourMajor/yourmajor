@@ -68,6 +68,7 @@ export type WizardPayload = {
   draftTiming: 'PRE_TOURNAMENT' | 'PRE_ROUND'
   isOpenRegistration: boolean
   inviteEmails: string[]
+  inviteList?: Array<{ type: 'email' | 'phone'; value: string }>
   tournamentType: 'PUBLIC' | 'OPEN' | 'INVITE'
   registrationDeadline?: string
   parentTournamentId?: string | null
@@ -281,11 +282,13 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
     }
 
     // Invitations
-    if (!data.isOpenRegistration && data.inviteEmails.length > 0) {
+    const inviteList = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
+    if (!data.isOpenRegistration && inviteList.length > 0) {
       await tx.invitation.createMany({
-        data: data.inviteEmails.map((email) => ({
+        data: inviteList.map((entry) => ({
           tournamentId: t.id,
-          email,
+          email: entry.type === 'email' ? entry.value : null,
+          phone: entry.type === 'phone' ? entry.value : null,
         })),
       })
     }
@@ -355,16 +358,20 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   }
 
   // Send invite emails + SMS outside transaction
-  if (!data.isOpenRegistration && data.inviteEmails.length > 0) {
+  const allInvites = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
+  if (!data.isOpenRegistration && allInvites.length > 0) {
     const invitations = await prisma.invitation.findMany({
       where: { tournamentId: tournament.id },
       select: { email: true, token: true, phone: true },
     })
-    await sendInviteEmails(tournament.name, slug, invitations).catch(() => {
-      // Non-fatal: invitations created, emails may be resent later
-    })
 
-    // SMS invitations for entries with phone numbers
+    // Send emails for email-based invitations
+    const emailInvitations = invitations.filter((inv) => inv.email)
+    if (emailInvitations.length > 0) {
+      await sendInviteEmails(tournament.name, slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
+    }
+
+    // Send SMS for phone-based invitations
     const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
     for (const inv of invitations) {
       if (inv.phone) {
@@ -406,7 +413,10 @@ export async function sendInviteEmails(
   )
 }
 
-export async function sendLateInvites(tournamentId: string, emails: string[]) {
+export async function sendLateInvites(
+  tournamentId: string,
+  entries: Array<{ type: 'email' | 'phone'; value: string }>,
+) {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
@@ -423,26 +433,67 @@ export async function sendLateInvites(tournamentId: string, emails: string[]) {
   })
   if (!membership?.isAdmin && user.role !== 'ADMIN') return
 
-  // Create invitations (skip already-invited emails)
-  const existing = await prisma.invitation.findMany({
-    where: { tournamentId, email: { in: emails } },
-    select: { email: true },
-  })
-  const existingEmails = new Set(existing.map((i) => i.email))
-  const newEmails = emails.filter((e) => !existingEmails.has(e))
+  const emailEntries = entries.filter((e) => e.type === 'email')
+  const phoneEntries = entries.filter((e) => e.type === 'phone')
 
-  if (newEmails.length === 0) return
+  // Skip already-invited emails/phones
+  const existingByEmail = emailEntries.length > 0
+    ? await prisma.invitation.findMany({
+        where: { tournamentId, email: { in: emailEntries.map((e) => e.value) } },
+        select: { email: true },
+      })
+    : []
+  const existingByPhone = phoneEntries.length > 0
+    ? await prisma.invitation.findMany({
+        where: { tournamentId, phone: { in: phoneEntries.map((e) => e.value) } },
+        select: { phone: true },
+      })
+    : []
+
+  const existingEmails = new Set(existingByEmail.map((i) => i.email))
+  const existingPhones = new Set(existingByPhone.map((i) => i.phone))
+
+  const newEntries = entries.filter((e) =>
+    e.type === 'email' ? !existingEmails.has(e.value) : !existingPhones.has(e.value)
+  )
+
+  if (newEntries.length === 0) return
 
   await prisma.invitation.createMany({
-    data: newEmails.map((email) => ({ tournamentId, email })),
+    data: newEntries.map((entry) => ({
+      tournamentId,
+      email: entry.type === 'email' ? entry.value : null,
+      phone: entry.type === 'phone' ? entry.value : null,
+    })),
   })
 
-  const newInvitations = await prisma.invitation.findMany({
-    where: { tournamentId, email: { in: newEmails } },
-    select: { email: true, token: true },
-  })
+  // Send email invites
+  const newEmails = newEntries.filter((e) => e.type === 'email').map((e) => e.value)
+  if (newEmails.length > 0) {
+    const emailInvitations = await prisma.invitation.findMany({
+      where: { tournamentId, email: { in: newEmails } },
+      select: { email: true, token: true },
+    })
+    await sendInviteEmails(tournament.name, tournament.slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
+  }
 
-  await sendInviteEmails(tournament.name, tournament.slug, newInvitations).catch(() => {})
+  // Send SMS invites
+  const newPhones = newEntries.filter((e) => e.type === 'phone').map((e) => e.value)
+  if (newPhones.length > 0) {
+    const phoneInvitations = await prisma.invitation.findMany({
+      where: { tournamentId, phone: { in: newPhones } },
+      select: { phone: true, token: true },
+    })
+    const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    for (const inv of phoneInvitations) {
+      if (inv.phone) {
+        await sendSMS(
+          inv.phone,
+          `You're invited to ${tournament.name}! Join here: ${domain}/${tournament.slug}/register?token=${inv.token}`,
+        ).catch(() => {})
+      }
+    }
+  }
 }
 
 export async function setTournamentStatus(tournamentId: string, newStatus: string) {
