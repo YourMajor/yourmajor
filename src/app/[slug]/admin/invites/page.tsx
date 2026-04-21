@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { Mail, Phone, Check, Clock } from 'lucide-react'
+import { Mail, Check, Clock } from 'lucide-react'
 import { InviteForm } from './InviteForm'
 
 export default async function InvitesPage({
@@ -38,7 +38,7 @@ export default async function InvitesPage({
       <div>
         <h1 className="text-2xl font-heading font-bold">Invite Players</h1>
         <p className="text-sm text-muted-foreground mt-1">
-          Send invitations by email or phone number. Players will receive a link to register.
+          Send invitations by email. Players will receive a link to register.
         </p>
       </div>
 
@@ -54,11 +54,8 @@ export default async function InvitesPage({
           <div className="divide-y divide-border rounded-lg border border-border">
             {pending.map((inv) => (
               <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
-                {inv.email
-                  ? <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-                  : <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                }
-                <span className="text-sm">{inv.email ?? inv.phone}</span>
+                <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm">{inv.email}</span>
                 <span className="ml-auto text-xs text-muted-foreground">
                   {new Date(inv.createdAt).toLocaleDateString()}
                 </span>
@@ -78,11 +75,8 @@ export default async function InvitesPage({
           <div className="divide-y divide-border rounded-lg border border-border">
             {accepted.map((inv) => (
               <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
-                {inv.email
-                  ? <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
-                  : <Phone className="w-4 h-4 text-muted-foreground shrink-0" />
-                }
-                <span className="text-sm">{inv.email ?? inv.phone}</span>
+                <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
+                <span className="text-sm">{inv.email}</span>
                 <span className="ml-auto text-xs text-green-600">
                   Accepted {new Date(inv.acceptedAt!).toLocaleDateString()}
                 </span>
