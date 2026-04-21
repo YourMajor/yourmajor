@@ -42,19 +42,23 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         // First load via real-time trigger — set baseline, only count the new message
         lastSeenCount.current = messages.length - 1
         initializedRef.current = true
-        setUnreadCount(1)
-        const lastMsg = messages[messages.length - 1]
-        if (lastMsg?.isSystem && lastMsg.content.includes('ATTACKED') && currentUserName && lastMsg.content.includes(currentUserName)) {
-          setHasAttack(true)
-        }
+        queueMicrotask(() => {
+          setUnreadCount(1)
+          const lastMsg = messages[messages.length - 1]
+          if (lastMsg?.isSystem && lastMsg.content.includes('ATTACKED') && currentUserName && lastMsg.content.includes(currentUserName)) {
+            setHasAttack(true)
+          }
+        })
       } else {
         const newCount = messages.length - lastSeenCount.current
-        setUnreadCount(newCount)
         const newMsgs = messages.slice(lastSeenCount.current)
         const hasNewAttack = newMsgs.some(
           (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
         )
-        if (hasNewAttack) setHasAttack(true)
+        queueMicrotask(() => {
+          setUnreadCount(newCount)
+          if (hasNewAttack) setHasAttack(true)
+        })
       }
     }
   }, [messages, open, currentUserName])

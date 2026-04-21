@@ -80,7 +80,6 @@ export function TournamentShell({
         galleryImages={galleryImages}
         champions={champions}
         hasVault={hasVault}
-        canLeave={canLeave}
         externalMenuOpen={menuOpen}
         onExternalMenuChange={setMenuOpen}
       />
