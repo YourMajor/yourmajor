@@ -55,8 +55,13 @@ export function StepPowerups({ value, onChange }: Props) {
                   type="number"
                   min={1}
                   max={10}
-                  value={value.powerupsPerPlayer}
-                  onChange={(e) => set('powerupsPerPlayer', parseInt(e.target.value) || 1)}
+                  value={String(value.powerupsPerPlayer)}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') { set('powerupsPerPlayer', 1); return }
+                    const n = parseInt(raw, 10)
+                    if (!isNaN(n)) set('powerupsPerPlayer', Math.min(10, Math.max(1, n)))
+                  }}
                   className="w-24"
                 />
               </div>
@@ -68,8 +73,13 @@ export function StepPowerups({ value, onChange }: Props) {
                   type="number"
                   min={0}
                   max={10}
-                  value={value.maxAttacksPerPlayer}
-                  onChange={(e) => set('maxAttacksPerPlayer', parseInt(e.target.value) || 0)}
+                  value={String(value.maxAttacksPerPlayer)}
+                  onChange={(e) => {
+                    const raw = e.target.value
+                    if (raw === '') { set('maxAttacksPerPlayer', 0); return }
+                    const n = parseInt(raw, 10)
+                    if (!isNaN(n)) set('maxAttacksPerPlayer', Math.min(10, Math.max(0, n)))
+                  }}
                   className="w-24"
                 />
                 <p className="text-xs text-muted-foreground">Limits how many attack cards each player can hold. Set to 0 for boosts only.</p>

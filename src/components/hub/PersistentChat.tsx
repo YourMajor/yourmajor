@@ -18,6 +18,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasAttack, setHasAttack] = useState(false)
   const lastSeenCount = useRef(0)
+  const initializedRef = useRef(false)
 
   // Swipe-to-dismiss state
   const dragStartY = useRef<number | null>(null)
@@ -36,13 +37,24 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   // Track unread when messages change while closed
   useEffect(() => {
     if (!open && messages.length > lastSeenCount.current) {
-      const newCount = messages.length - lastSeenCount.current
-      setUnreadCount(newCount)
-      const newMsgs = messages.slice(lastSeenCount.current)
-      const hasNewAttack = newMsgs.some(
-        (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
-      )
-      if (hasNewAttack) setHasAttack(true)
+      if (!initializedRef.current) {
+        // First load via real-time trigger — set baseline, only count the new message
+        lastSeenCount.current = messages.length - 1
+        initializedRef.current = true
+        setUnreadCount(1)
+        const lastMsg = messages[messages.length - 1]
+        if (lastMsg?.isSystem && lastMsg.content.includes('ATTACKED') && currentUserName && lastMsg.content.includes(currentUserName)) {
+          setHasAttack(true)
+        }
+      } else {
+        const newCount = messages.length - lastSeenCount.current
+        setUnreadCount(newCount)
+        const newMsgs = messages.slice(lastSeenCount.current)
+        const hasNewAttack = newMsgs.some(
+          (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
+        )
+        if (hasNewAttack) setHasAttack(true)
+      }
     }
   }, [messages, open, currentUserName])
 
@@ -50,6 +62,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   useEffect(() => {
     if (open && messages.length > 0) {
       lastSeenCount.current = messages.length
+      initializedRef.current = true
       queueMicrotask(() => {
         setUnreadCount(0)
         setHasAttack(false)

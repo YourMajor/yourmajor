@@ -5,7 +5,23 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DraftBoard } from './DraftBoard'
 import { DealAnimation } from './DealAnimation'
-import { GripVertical, ArrowUp, ArrowDown, Loader2, Shuffle, Play } from 'lucide-react'
+import { GripVertical, Loader2, Shuffle, Play } from 'lucide-react'
+import {
+  DndContext,
+  closestCenter,
+  PointerSensor,
+  TouchSensor,
+  useSensor,
+  useSensors,
+} from '@dnd-kit/core'
+import type { DragEndEvent } from '@dnd-kit/core'
+import {
+  SortableContext,
+  verticalListSortingStrategy,
+  useSortable,
+  arrayMove,
+} from '@dnd-kit/sortable'
+import { CSS } from '@dnd-kit/utilities'
 import type { PowerupCardData } from './PowerupCard'
 
 interface Player {
@@ -41,6 +57,39 @@ interface DraftAdminProps {
   currentTurn: { tournamentPlayerId: string; roundNumber: number; pickNumber: number } | null
 }
 
+function SortablePlayerCard({ playerId, player, index }: { playerId: string; player: Player; index: number }) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id: playerId })
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    zIndex: isDragging ? 10 : undefined,
+    opacity: isDragging ? 0.5 : 1,
+  }
+
+  return (
+    <div ref={setNodeRef} style={style} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
+      <button type="button" {...attributes} {...listeners} className="touch-none cursor-grab active:cursor-grabbing">
+        <GripVertical className="w-5 h-5 text-muted-foreground/40 shrink-0" />
+      </button>
+      <span className="text-lg font-bold text-muted-foreground w-7 shrink-0 text-right">{index + 1}</span>
+      {player.user.image ? (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={player.user.image} alt="" className="w-11 h-11 rounded-full shrink-0 border-2 border-border" />
+      ) : (
+        <div className="w-11 h-11 rounded-full shrink-0 border-2 border-border bg-muted flex items-center justify-center">
+          <span className="text-base font-bold text-muted-foreground">
+            {(player.user.name ?? '?').charAt(0).toUpperCase()}
+          </span>
+        </div>
+      )}
+      <span className="text-base font-semibold text-foreground flex-1 truncate">
+        {player.user.name ?? 'Player'}
+      </span>
+    </div>
+  )
+}
+
 export function DraftAdmin({
   tournamentId,
   currentPlayerId,
@@ -59,12 +108,17 @@ export function DraftAdmin({
   const [error, setError] = useState<string | null>(null)
   const [showDealAnimation, setShowDealAnimation] = useState(false)
 
-  const movePlayer = useCallback((index: number, direction: -1 | 1) => {
-    const newOrder = [...order]
-    const targetIndex = index + direction
-    if (targetIndex < 0 || targetIndex >= newOrder.length) return
-    ;[newOrder[index], newOrder[targetIndex]] = [newOrder[targetIndex], newOrder[index]]
-    setOrder(newOrder)
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 150, tolerance: 5 } }),
+  )
+
+  const handleDragEnd = useCallback((event: DragEndEvent) => {
+    const { active, over } = event
+    if (!over || active.id === over.id) return
+    const oldIndex = order.indexOf(active.id as string)
+    const newIndex = order.indexOf(over.id as string)
+    setOrder(arrayMove(order, oldIndex, newIndex))
   }, [order])
 
   const handleSetOrder = async () => {
@@ -197,49 +251,19 @@ export function DraftAdmin({
             the order reverses each round for fairness.
           </p>
 
-          <div className="space-y-2">
-            {order.map((playerId, idx) => {
-              const player = players.find((p) => p.id === playerId)
-              if (!player) return null
-              return (
-                <div key={playerId} className="flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30">
-                  <GripVertical className="w-5 h-5 text-muted-foreground/40 shrink-0" />
-                  <span className="text-lg font-bold text-muted-foreground w-7 shrink-0 text-right">{idx + 1}</span>
-                  {player.user.image ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img src={player.user.image} alt="" className="w-11 h-11 rounded-full shrink-0 border-2 border-border" />
-                  ) : (
-                    <div className="w-11 h-11 rounded-full shrink-0 border-2 border-border bg-muted flex items-center justify-center">
-                      <span className="text-base font-bold text-muted-foreground">
-                        {(player.user.name ?? '?').charAt(0).toUpperCase()}
-                      </span>
-                    </div>
-                  )}
-                  <span className="text-base font-semibold text-foreground flex-1 truncate">
-                    {player.user.name ?? 'Player'}
-                  </span>
-                  <div className="flex gap-1 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => movePlayer(idx, -1)}
-                      disabled={idx === 0}
-                      className="p-1.5 rounded-md hover:bg-muted disabled:opacity-20 transition-colors"
-                    >
-                      <ArrowUp className="w-5 h-5 text-muted-foreground" />
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => movePlayer(idx, 1)}
-                      disabled={idx === order.length - 1}
-                      className="p-1.5 rounded-md hover:bg-muted disabled:opacity-20 transition-colors"
-                    >
-                      <ArrowDown className="w-5 h-5 text-muted-foreground" />
-                    </button>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
+          <DndContext sensors={sensors} collisionDetection={closestCenter} onDragEnd={handleDragEnd}>
+            <SortableContext items={order} strategy={verticalListSortingStrategy}>
+              <div className="space-y-2">
+                {order.map((playerId, idx) => {
+                  const player = players.find((p) => p.id === playerId)
+                  if (!player) return null
+                  return (
+                    <SortablePlayerCard key={playerId} playerId={playerId} player={player} index={idx} />
+                  )
+                })}
+              </div>
+            </SortableContext>
+          </DndContext>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 

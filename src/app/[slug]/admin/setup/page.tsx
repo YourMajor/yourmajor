@@ -216,7 +216,7 @@ export default async function TournamentSetup({
                 id="status"
                 name="status"
                 defaultValue={tournament.status}
-                className="flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25"
+                className="native-select flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25"
               >
                 {/* Only show REGISTRATION if no scores exist */}
                 {!hasScores && <option value="REGISTRATION">Registration Open</option>}
@@ -281,7 +281,7 @@ export default async function TournamentSetup({
               name="handicapSystem"
               defaultValue={tournament.handicapSystem}
               disabled={hasScores}
-              className="flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="native-select flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
             >
               <option value="WHS">World Handicap System (WHS)</option>
               <option value="STABLEFORD">Stableford</option>
@@ -346,7 +346,7 @@ export default async function TournamentSetup({
                 name="distributionMode"
                 defaultValue={tournament.distributionMode}
                 disabled={powerupsLocked}
-                className="flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="native-select flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <option value="DRAFT">Draft</option>
                 <option value="RANDOM">Random Deal</option>

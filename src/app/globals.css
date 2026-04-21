@@ -316,3 +316,13 @@
   40%  { transform: translate(-50%, -30%) scale(0.6) rotate(8deg); opacity: 1; }
   100% { transform: translate(-50%, 80vh) scale(0.25) rotate(15deg); opacity: 0; }
 }
+
+/* Native select dropdown with custom chevron */
+select.native-select {
+  appearance: none;
+  padding-right: 2rem;
+  background-image: url("data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%23666' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 0.5rem center;
+  background-size: 1rem;
+}

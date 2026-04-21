@@ -170,7 +170,7 @@ export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
                 id="numRounds"
                 value={value.numRounds}
                 onChange={(e) => set('numRounds', parseInt(e.target.value))}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="native-select flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                   <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>

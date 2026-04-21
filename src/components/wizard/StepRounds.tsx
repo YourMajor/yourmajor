@@ -137,7 +137,7 @@ export function StepRounds({ numRounds, value, onChange, startDate, endDate, isO
                       <select
                         value={round.uniformTeeOptionId}
                         onChange={(e) => updateRound(i, { uniformTeeOptionId: e.target.value })}
-                        className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                        className="native-select flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                       >
                         {round.course.teeOptions.map((t) => (
                           <option key={t.id} value={t.id}>{t.name}</option>
@@ -162,7 +162,7 @@ export function StepRounds({ numRounds, value, onChange, startDate, endDate, isO
                                   next.push({ holeNumber: holeNum, teeOptionId: e.target.value })
                                   updateRound(i, { holeTees: next })
                                 }}
-                                className="flex-1 h-7 rounded border border-input bg-transparent px-1 text-xs"
+                                className="native-select flex-1 h-7 rounded border border-input bg-transparent px-1 pr-6 text-xs"
                               >
                                 {round.course!.teeOptions.map((t) => (
                                   <option key={t.id} value={t.id}>{t.name}</option>
