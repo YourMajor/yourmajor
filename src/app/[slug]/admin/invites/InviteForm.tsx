@@ -1,0 +1,133 @@
+'use client'
+
+import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Button } from '@/components/ui/button'
+import { Badge } from '@/components/ui/badge'
+import { Mail, Phone } from 'lucide-react'
+import { sendLateInvites } from '@/app/(main)/tournaments/new/actions'
+
+type InviteEntry = { type: 'email' | 'phone'; value: string }
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function normalizePhone(raw: string): string {
+  const digits = raw.replace(/\D/g, '')
+  if (digits.length === 10) return `+1${digits}`
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
+  return `+${digits}`
+}
+
+export function InviteForm({ tournamentId, slug }: { tournamentId: string; slug: string }) {
+  const router = useRouter()
+  const [emailInput, setEmailInput] = useState('')
+  const [phoneInput, setPhoneInput] = useState('')
+  const [entries, setEntries] = useState<InviteEntry[]>([])
+  const [sending, setSending] = useState(false)
+  const [sent, setSent] = useState(false)
+  const [emailError, setEmailError] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+
+  function addEmail() {
+    const trimmed = emailInput.trim().toLowerCase()
+    if (!trimmed) return
+
+    if (!EMAIL_RE.test(trimmed)) { setEmailError('Enter a valid email address.'); return }
+    if (entries.some((e) => e.value === trimmed)) { setEmailError('Already added.'); return }
+
+    setEmailError('')
+    setEntries([...entries, { type: 'email', value: trimmed }])
+    setEmailInput('')
+  }
+
+  function addPhone() {
+    const trimmed = phoneInput.trim()
+    if (!trimmed) return
+
+    const digits = trimmed.replace(/\D/g, '')
+    if (digits.length < 10) { setPhoneError('Enter a valid phone number (at least 10 digits).'); return }
+
+    const normalized = normalizePhone(trimmed)
+    if (entries.some((e) => e.value === normalized)) { setPhoneError('Already added.'); return }
+
+    setPhoneError('')
+    setEntries([...entries, { type: 'phone', value: normalized }])
+    setPhoneInput('')
+  }
+
+  async function handleSend() {
+    if (entries.length === 0) return
+    setSending(true)
+    await sendLateInvites(tournamentId, entries)
+    setSending(false)
+    setSent(true)
+    setEntries([])
+    router.refresh()
+    setTimeout(() => setSent(false), 3000)
+  }
+
+  return (
+    <div className="rounded-xl border border-border p-5 space-y-4">
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5"><Mail className="w-3.5 h-3.5" /> Email</Label>
+          <div className="flex gap-2">
+            <Input
+              type="email"
+              placeholder="player@example.com"
+              value={emailInput}
+              onChange={(e) => { setEmailInput(e.target.value); setEmailError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addEmail())}
+              className="flex-1"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={addEmail}>Add</Button>
+          </div>
+          {emailError && <p className="text-xs text-destructive">{emailError}</p>}
+        </div>
+
+        <div className="space-y-2">
+          <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Phone</Label>
+          <div className="flex gap-2">
+            <Input
+              type="tel"
+              placeholder="(555) 123-4567"
+              value={phoneInput}
+              onChange={(e) => { setPhoneInput(e.target.value); setPhoneError('') }}
+              onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPhone())}
+              className="flex-1"
+            />
+            <Button type="button" variant="outline" size="sm" onClick={addPhone}>Add</Button>
+          </div>
+          {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
+        </div>
+      </div>
+
+      {entries.length > 0 && (
+        <div className="space-y-3">
+          <div className="flex flex-wrap gap-1.5">
+            {entries.map((e) => (
+              <Badge key={e.value} variant="secondary" className="gap-1 pr-1">
+                {e.type === 'phone' ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                {e.value}
+                <button
+                  type="button"
+                  onClick={() => setEntries(entries.filter((x) => x.value !== e.value))}
+                  className="ml-0.5 hover:text-destructive text-xs leading-none"
+                >
+                  ×
+                </button>
+              </Badge>
+            ))}
+          </div>
+          <Button onClick={handleSend} disabled={sending} className="w-full">
+            {sending ? 'Sending...' : `Send ${entries.length} Invite${entries.length !== 1 ? 's' : ''}`}
+          </Button>
+        </div>
+      )}
+
+      {sent && <p className="text-sm text-green-600 font-medium">Invites sent!</p>}
+    </div>
+  )
+}

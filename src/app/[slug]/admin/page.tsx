@@ -1,6 +1,6 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Settings, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy } from 'lucide-react'
+import { Settings, PenLine, Target, RefreshCw, Users, Calendar, Globe, Lock, Hash, Trophy, Mail } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 import { QuickAddPlayer } from './QuickAddPlayer'
 import { GoLiveButton } from '@/components/admin/GoLiveButton'
@@ -50,6 +50,7 @@ export default async function AdminDashboard({
     !tournament.isLeague
 
   const actions = [
+    { href: `/${slug}/admin/invites`, icon: Mail, label: 'Invite Players', desc: 'Send invitations by email or phone', show: tournament.tournamentType === 'INVITE' },
     { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Courses, dates, handicap system', show: true },
     { href: `/${slug}/admin/scores`, icon: PenLine, label: 'Manage Scores', desc: 'Edit or enter player scores', show: true },
     { href: `/${slug}/admin/groups`, icon: Users, label: 'Manage Groups', desc: 'Build foursomes & assign tee times', show: tournament.tournamentType !== 'PUBLIC' },
