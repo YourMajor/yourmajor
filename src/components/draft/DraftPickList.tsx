@@ -92,13 +92,13 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
           </colgroup>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary, #006747)' }}>
-              <th className="px-1.5 sm:px-2 py-2 text-left text-[9px] sm:text-[10px] font-bold text-white uppercase tracking-wider">
+              <th className="px-1.5 sm:px-2 py-2 text-left text-[9px] sm:text-[11px] font-bold text-white uppercase tracking-wider">
                 Player
               </th>
               {Array.from({ length: roundCount }, (_, i) => (
                 <th
                   key={i}
-                  className="px-0.5 py-2 text-center text-[9px] sm:text-[10px] font-bold text-white/70 uppercase tracking-wider"
+                  className="px-0.5 py-2 text-center text-[9px] sm:text-[11px] font-bold text-white/70 uppercase tracking-wider"
                 >
                   R{i + 1}
                 </th>
@@ -127,7 +127,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
                           </span>
                         </div>
                       )}
-                      <span className="text-[10px] sm:text-[11px] font-semibold text-foreground truncate">
+                      <span className="text-[11px] font-semibold text-foreground truncate">
                         {lastName}
                       </span>
                     </div>
@@ -161,7 +161,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
                           }`}
                         >
                           <SlugIcon slug={slug} isAttack={isAttack} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isAttack ? 'text-red-700' : 'text-emerald-800'}`} />
-                          <span className={`text-[8px] sm:text-[10px] font-bold truncate max-w-full leading-tight ${
+                          <span className={`text-[8px] sm:text-[11px] font-bold truncate max-w-full leading-tight ${
                             isAttack ? 'text-red-800 dark:text-red-200' : 'text-emerald-800 dark:text-emerald-200'
                           }`}>
                             {pick.powerup.name}
@@ -203,7 +203,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
                   <div className="flex items-center gap-3">
                     <SlugIcon slug={slug} isAttack={isAttack} className="w-8 h-8 text-white" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-white/70">{selectedPick.powerup.type}</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">{selectedPick.powerup.type}</p>
                       <p className="text-xl font-heading font-bold text-white leading-tight">{selectedPick.powerup.name}</p>
                     </div>
                   </div>

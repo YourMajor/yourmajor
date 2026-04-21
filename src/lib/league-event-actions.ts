@@ -5,6 +5,8 @@ import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
+import { getUserTier, consumeProCredit } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 
 /**
  * Find the latest (most recent) tournament in a chain.
@@ -41,6 +43,27 @@ export async function scheduleLeagueEvent(
   })
   if (!membership?.isAdmin && user.role !== 'ADMIN') {
     throw new Error('Only admins can schedule league events.')
+  }
+
+  // Tier validation — each league event costs a tournament credit
+  const userTier = await getUserTier(user.id)
+  const tierLimits = TIER_LIMITS[userTier.tier]
+  if (tierLimits.maxTournamentsPerMonth !== Infinity) {
+    const now = new Date()
+    const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
+    const tournamentsThisMonth = await prisma.tournament.count({
+      where: {
+        players: { some: { userId: user.id, isAdmin: true } },
+        createdAt: { gte: monthStart },
+      },
+    })
+    if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
+      throw new Error(
+        userTier.tier === 'FREE'
+          ? 'Free accounts are limited to 1 tournament per month. Purchase a Pro credit ($29) or upgrade to Club ($99/mo) for more.'
+          : `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`
+      )
+    }
   }
 
   // Get the latest tournament in the chain to use as template
@@ -161,6 +184,16 @@ export async function scheduleLeagueEvent(
         })),
       }).catch(() => {})
     }
+  }
+
+  // Consume a Pro credit for this league event (same as any tournament)
+  const needsPro =
+    template.rounds.length > TIER_LIMITS.FREE.maxRounds ||
+    template.powerupsEnabled
+  if (needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB') {
+    await consumeProCredit(user.id, newEvent.id).catch(() => {
+      console.warn(`[scheduleLeagueEvent] No pro credit to consume for event ${newEvent.id}`)
+    })
   }
 
   revalidatePath('/', 'layout')

@@ -12,8 +12,10 @@ export type BasicInfoState = {
   name: string
   description: string
   isLeague: boolean
+  leagueEndDate: string
   startDate: string
   endDate: string
+  registrationDeadline: string
   numRounds: number
   logoPreview: string | null
   logoBase64: string | null
@@ -31,11 +33,12 @@ interface Props {
   value: BasicInfoState
   onChange: (v: BasicInfoState) => void
   isFree?: boolean
+  tournamentType?: 'PUBLIC' | 'OPEN' | 'INVITE'
 }
 
 const MAX_LOGO_MB = 10
 
-export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
+export function StepBasicInfo({ value, onChange, isFree = false, tournamentType }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const headerFileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -108,11 +111,15 @@ export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
             <textarea
               id="description"
               value={value.description}
-              onChange={(e) => set('description', e.target.value)}
+              onChange={(e) => {
+                if (e.target.value.length <= 250) set('description', e.target.value)
+              }}
               placeholder={value.isLeague ? 'Tell members what this league is about...' : 'Tell players what this tournament is about...'}
               rows={3}
+              maxLength={250}
               className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
+            <p className="text-xs text-muted-foreground text-right">{value.description.length}/250</p>
           </div>
 
           {/* League toggle */}
@@ -144,18 +151,45 @@ export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
             </button>
           </div>
 
-          <div className={`grid grid-cols-2 gap-4 ${value.isLeague ? 'opacity-40 pointer-events-none' : ''}`}>
-            <div className="space-y-2">
-              <Label htmlFor="startDate">Start Date</Label>
-              <Input id="startDate" type="date" value={value.startDate} onChange={(e) => set('startDate', e.target.value)} disabled={value.isLeague} />
+          {value.isLeague ? (
+            <>
+              <div className="space-y-2">
+                <Label htmlFor="leagueEndDate">League End Date</Label>
+                <Input
+                  id="leagueEndDate"
+                  type="date"
+                  value={value.leagueEndDate}
+                  onChange={(e) => set('leagueEndDate', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">When the league season ends. A champion will be crowned and the league moves to history.</p>
+              </div>
+              <p className="text-xs text-muted-foreground">Event dates are set per-event. Each event in the season will have its own date.</p>
+            </>
+          ) : (
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Start Date</Label>
+                <Input id="startDate" type="date" value={value.startDate} onChange={(e) => set('startDate', e.target.value)} />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="endDate">End Date</Label>
+                <Input id="endDate" type="date" value={value.endDate} onChange={(e) => set('endDate', e.target.value)} />
+              </div>
             </div>
+          )}
+
+          {tournamentType === 'INVITE' && !value.isLeague && (
             <div className="space-y-2">
-              <Label htmlFor="endDate">End Date</Label>
-              <Input id="endDate" type="date" value={value.endDate} onChange={(e) => set('endDate', e.target.value)} disabled={value.isLeague} />
+              <Label htmlFor="registrationDeadline">Registration Deadline</Label>
+              <Input
+                id="registrationDeadline"
+                type="date"
+                value={value.registrationDeadline}
+                onChange={(e) => set('registrationDeadline', e.target.value)}
+                max={value.startDate || undefined}
+              />
+              <p className="text-xs text-muted-foreground">Last day players can register. Leave blank for no deadline.</p>
             </div>
-          </div>
-          {value.isLeague && (
-            <p className="text-xs text-muted-foreground -mt-2">Dates are set per-event for leagues. Each event in the season will have its own date.</p>
           )}
 
           <div className="space-y-2">
@@ -170,7 +204,7 @@ export function StepBasicInfo({ value, onChange, isFree = false }: Props) {
                 id="numRounds"
                 value={value.numRounds}
                 onChange={(e) => set('numRounds', parseInt(e.target.value))}
-                className="native-select flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               >
                 {[1, 2, 3, 4, 5, 6, 7].map((n) => (
                   <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>

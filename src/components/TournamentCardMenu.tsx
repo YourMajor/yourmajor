@@ -32,18 +32,18 @@ export function TournamentCardMenu({ slug, tournamentId, tournamentName, showRen
       <button
         type="button"
         onClick={() => setOpen(!open)}
-        className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-white/20 transition-colors text-white/80 hover:text-white"
+        className="flex items-center justify-center w-8 h-8 rounded-full hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
         aria-label="More options"
       >
         <MoreHorizontal className="w-4 h-4" />
       </button>
 
       {open && (
-        <div className="absolute right-0 top-full mt-1 z-20 w-44 rounded-lg border border-border bg-background shadow-lg py-1">
+        <div className="absolute right-0 bottom-full mb-1 z-20 w-44 rounded-lg border border-border bg-background text-foreground shadow-lg py-1">
           <Link
             href={`/${slug}/admin`}
             onClick={() => setOpen(false)}
-            className="flex items-center px-3 py-2 text-sm hover:bg-muted transition-colors"
+            className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
           >
             Admin Settings
           </Link>
@@ -51,7 +51,7 @@ export function TournamentCardMenu({ slug, tournamentId, tournamentName, showRen
             <Link
               href={`/tournaments/new?renew=${tournamentId}`}
               onClick={() => setOpen(false)}
-              className="flex items-center px-3 py-2 text-sm hover:bg-muted transition-colors"
+              className="flex items-center px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
             >
               Renew Tournament
             </Link>

@@ -10,6 +10,7 @@ import { generateJoinCode } from '@/lib/join-code'
 import { Resend } from 'resend'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit } from '@/lib/stripe'
+import { sendSMS } from '@/lib/sms'
 
 function friendlyPrismaError(err: unknown): string {
   if (err instanceof Prisma.PrismaClientValidationError) {
@@ -68,9 +69,10 @@ export type WizardPayload = {
   isOpenRegistration: boolean
   inviteEmails: string[]
   tournamentType: 'PUBLIC' | 'OPEN' | 'INVITE'
+  registrationDeadline?: string
   parentTournamentId?: string | null
   isLeague?: boolean
-  registerAsPlayer?: boolean
+  leagueEndDate?: string
 }
 
 async function generateSlug(name: string): Promise<string> {
@@ -109,8 +111,8 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   const userTier = await getUserTier(user.id)
   const tierLimits = TIER_LIMITS[userTier.tier]
 
-  // Free tier: 1 tournament per calendar month
-  if (userTier.tier === 'FREE') {
+  // Enforce per-month tournament limits for FREE and CLUB tiers
+  if (tierLimits.maxTournamentsPerMonth !== Infinity) {
     const now = new Date()
     const monthStart = new Date(now.getFullYear(), now.getMonth(), 1)
     const tournamentsThisMonth = await prisma.tournament.count({
@@ -120,7 +122,11 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       },
     })
     if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
-      throw new Error('Free accounts are limited to 1 tournament per month. Upgrade to Pro or Tour for more.')
+      throw new Error(
+        userTier.tier === 'FREE'
+          ? 'Free accounts are limited to 1 tournament per month. Upgrade to Pro, Club, or Tour for more.'
+          : `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`
+      )
     }
   }
 
@@ -138,7 +144,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
 
   // Free tier: block powerups
   if (!tierLimits.powerups && data.powerupsEnabled) {
-    throw new Error('Powerups require Pro or Tour. Purchase a Pro tournament credit ($29) or upgrade to Tour ($199/season).')
+    throw new Error('Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,499/year).')
   }
 
   // Free tier: cap rounds
@@ -207,8 +213,10 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
         isOpenRegistration: data.isOpenRegistration,
         startDate: data.startDate ? new Date(data.startDate) : null,
         endDate: data.endDate ? new Date(data.endDate) : null,
+        registrationDeadline: data.registrationDeadline ? new Date(data.registrationDeadline) : null,
         status: 'REGISTRATION',
         isLeague: data.isLeague ?? false,
+        leagueEndDate: data.leagueEndDate ? new Date(data.leagueEndDate) : null,
         parentTournamentId: data.parentTournamentId ?? null,
       },
     })
@@ -219,7 +227,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       select: { handicap: true },
     })
     await tx.tournamentPlayer.create({
-      data: { tournamentId: t.id, userId: user.id, isAdmin: true, isParticipant: data.registerAsPlayer ?? true, handicap: creatorProfile?.handicap ?? 0 },
+      data: { tournamentId: t.id, userId: user.id, isAdmin: true, isParticipant: false, handicap: creatorProfile?.handicap ?? 0 },
     })
 
     // Create rounds
@@ -289,8 +297,8 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
     throw new Error(friendlyPrismaError(err))
   }
 
-  // Consume a Pro credit if this tournament uses pro features and user is not on Tour
-  if (needsPro && userTier.tier !== 'LEAGUE') {
+  // Consume a Pro credit if this tournament uses pro features and user is not on Tour or Club
+  if (needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB') {
     const consumed = await consumeProCredit(user.id, tournament.id)
     if (!consumed) {
       // Tournament was created but no credit available — this shouldn't happen
@@ -346,15 +354,26 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
     }
   }
 
-  // Send invite emails outside transaction
+  // Send invite emails + SMS outside transaction
   if (!data.isOpenRegistration && data.inviteEmails.length > 0) {
     const invitations = await prisma.invitation.findMany({
       where: { tournamentId: tournament.id },
-      select: { email: true, token: true },
+      select: { email: true, token: true, phone: true },
     })
     await sendInviteEmails(tournament.name, slug, invitations).catch(() => {
       // Non-fatal: invitations created, emails may be resent later
     })
+
+    // SMS invitations for entries with phone numbers
+    const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+    for (const inv of invitations) {
+      if (inv.phone) {
+        await sendSMS(
+          inv.phone,
+          `You're invited to ${tournament.name}! Join here: ${domain}/${slug}/register?token=${inv.token}`,
+        ).catch(() => {})
+      }
+    }
   }
 
   return { slug }

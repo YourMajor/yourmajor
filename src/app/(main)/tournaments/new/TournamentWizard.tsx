@@ -31,7 +31,7 @@ export interface RenewalDefaults {
 
 interface Props {
   renewalDefaults?: RenewalDefaults | null
-  userTier?: 'FREE' | 'PRO' | 'LEAGUE'
+  userTier?: 'FREE' | 'PRO' | 'CLUB' | 'LEAGUE'
   proCredits?: number
   requiresUpgrade?: boolean
 }
@@ -57,8 +57,10 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     name: renewalDefaults?.name ?? '',
     description: renewalDefaults?.description ?? '',
     isLeague: renewalDefaults?.isLeague ?? false,
+    leagueEndDate: '',
     startDate: '',
     endDate: '',
+    registrationDeadline: '',
     numRounds: renewalDefaults?.rounds.length ?? 1,
     logoPreview: null,
     logoBase64: null,
@@ -86,8 +88,6 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     })
   }
   const [rounds, setRounds] = useState<RoundState[]>(defaultRounds)
-
-  const [registerAsPlayer, setRegisterAsPlayer] = useState(true)
 
   const [handicapSystem, setHandicapSystem] = useState<'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'>(
     renewalDefaults?.handicapSystem ?? 'WHS'
@@ -207,7 +207,8 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           tournamentType: tournamentType.tournamentType,
           parentTournamentId: renewalDefaults?.parentTournamentId ?? null,
           isLeague: basicInfo.isLeague,
-          registerAsPlayer,
+          leagueEndDate: basicInfo.leagueEndDate || undefined,
+          registrationDeadline: basicInfo.registrationDeadline || undefined,
         })
         router.push(`/${result.slug}`)
       } catch (e) {
@@ -238,7 +239,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 0:
         return <StepTournamentType value={tournamentType} onChange={setTournamentType} />
       case 1:
-        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} />
+        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} tournamentType={tournamentType.tournamentType} />
       case 2:
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} startDate={basicInfo.startDate || undefined} endDate={basicInfo.endDate || undefined} isOpenRegistration={isPublic} />
       case 3:
@@ -317,20 +318,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
         <UpgradeBanner reasons={proFeatures} />
       )}
 
-      {/* Admin self-registration toggle — shown on last step */}
-      {isLast && (
-        <label className="flex items-center gap-2.5 mt-6 cursor-pointer group">
-          <input
-            type="checkbox"
-            checked={registerAsPlayer}
-            onChange={(e) => setRegisterAsPlayer(e.target.checked)}
-            className="h-4 w-4 rounded border-border accent-[var(--color-primary)]"
-          />
-          <span className="text-sm text-muted-foreground group-hover:text-foreground transition-colors">
-            Register me as a player in this tournament
-          </span>
-        </label>
-      )}
+
 
       {error && <p className="text-sm text-destructive mt-3">{error}</p>}
 

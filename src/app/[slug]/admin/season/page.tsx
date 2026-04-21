@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { getOrCreateRoster } from '@/lib/roster-actions'
-import { getSeasonAttendance, getCourseAnalytics } from '@/lib/season-standings'
+import { getSeasonAttendance } from '@/lib/season-standings'
 import { SeasonAdminDashboard } from '@/components/season/SeasonAdminDashboard'
 
 export default async function AdminSeasonPage({
@@ -38,6 +38,7 @@ export default async function AdminSeasonPage({
       seasonScoringMethod: true,
       seasonBestOf: true,
       seasonPointsTable: true,
+      leagueEndDate: true,
     },
   })
 
@@ -66,10 +67,9 @@ export default async function AdminSeasonPage({
     },
   })
 
-  const [roster, attendance, courseAnalytics, schedule] = await Promise.all([
+  const [roster, attendance, schedule] = await Promise.all([
     getOrCreateRoster(tournament.id),
     getSeasonAttendance(tournament.id),
-    getCourseAnalytics(tournament.id),
     prisma.seasonScheduleEvent.findMany({
       where: { tournamentId: rootId },
       orderBy: { date: 'asc' },
@@ -108,11 +108,11 @@ export default async function AdminSeasonPage({
           rows: attendance.rows,
           events: attendance.events,
         }}
-        courseAnalytics={courseAnalytics}
         seasonConfig={{
           scoringMethod: rootTournament?.seasonScoringMethod ?? 'POINTS',
           bestOf: rootTournament?.seasonBestOf ?? null,
           pointsTable: (rootTournament?.seasonPointsTable as Record<number, number>) ?? null,
+          leagueEndDate: rootTournament?.leagueEndDate?.toISOString().split('T')[0] ?? null,
         }}
         schedule={schedule.map((s) => ({
           id: s.id,

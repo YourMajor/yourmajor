@@ -2,7 +2,20 @@ import Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import type { PricingTier } from '@/generated/prisma/client'
 
-export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!)
+function getStripe() {
+  if (!process.env.STRIPE_SECRET_KEY) {
+    throw new Error('STRIPE_SECRET_KEY is not set')
+  }
+  return new Stripe(process.env.STRIPE_SECRET_KEY)
+}
+
+let _stripe: Stripe | undefined
+export const stripe = new Proxy({} as Stripe, {
+  get(_, prop) {
+    _stripe ??= getStripe()
+    return (_stripe as unknown as Record<string | symbol, unknown>)[prop]
+  },
+})
 
 /**
  * Get or create a Stripe customer for a given user.
@@ -73,7 +86,49 @@ export async function createProCheckoutSession(opts: {
 }
 
 /**
- * Create a Stripe Checkout session for a Tour season pass ($199, one-time).
+ * Create a Stripe Checkout session for the Club tier ($99/month subscription).
+ */
+export async function createClubCheckoutSession(opts: {
+  userId: string
+  email: string
+  returnUrl: string
+}) {
+  const customerId = await getOrCreateCustomer(opts.userId, opts.email)
+
+  return stripe.checkout.sessions.create({
+    customer: customerId,
+    mode: 'subscription',
+    line_items: [
+      {
+        price_data: {
+          currency: 'usd',
+          unit_amount: 9900,
+          recurring: { interval: 'month' },
+          product_data: {
+            name: 'YourMajor Club — Monthly',
+            description: 'Up to 4 tournaments per month with all Pro features. Cancel anytime.',
+          },
+        },
+        quantity: 1,
+      },
+    ],
+    metadata: {
+      userId: opts.userId,
+      purchaseType: 'CLUB',
+    },
+    subscription_data: {
+      metadata: {
+        userId: opts.userId,
+        purchaseType: 'CLUB',
+      },
+    },
+    success_url: `${opts.returnUrl.replace(/\/pricing$/, '/dashboard')}?purchased=club`,
+    cancel_url: opts.returnUrl,
+  })
+}
+
+/**
+ * Create a Stripe Checkout session for a Tour annual pass ($1,499, one-time).
  */
 export async function createLeagueCheckoutSession(opts: {
   userId: string
@@ -89,9 +144,9 @@ export async function createLeagueCheckoutSession(opts: {
       {
         price_data: {
           currency: 'usd',
-          unit_amount: 19900,
+          unit_amount: 149900,
           product_data: {
-            name: 'YourMajor Tour — Season Pass',
+            name: 'YourMajor Tour — Annual Pass',
             description: 'Unlimited tournaments and all features for 365 days.',
           },
         },
@@ -118,7 +173,7 @@ export async function getTournamentTier(tournamentId: string): Promise<PricingTi
   })
   if (eventPurchase?.status === 'ACTIVE') return 'PRO'
 
-  // Check if the tournament organizer has an active League purchase
+  // Check if the tournament organizer has an active League or Club purchase
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: {
@@ -144,6 +199,15 @@ export async function getTournamentTier(tournamentId: string): Promise<PricingTi
       },
     })
     if (leaguePurchase) return 'LEAGUE'
+
+    const clubPurchase = await prisma.purchase.findFirst({
+      where: {
+        userId: adminUserId,
+        type: 'CLUB',
+        status: 'ACTIVE',
+      },
+    })
+    if (clubPurchase) return 'CLUB'
   }
 
   return 'FREE'
@@ -162,6 +226,20 @@ export async function hasActiveLeague(userId: string): Promise<boolean> {
         { expiresAt: null },
         { expiresAt: { gt: new Date() } },
       ],
+    },
+  })
+  return !!purchase
+}
+
+/**
+ * Check if a user has an active Club subscription.
+ */
+export async function hasActiveClub(userId: string): Promise<boolean> {
+  const purchase = await prisma.purchase.findFirst({
+    where: {
+      userId,
+      type: 'CLUB',
+      status: 'ACTIVE',
     },
   })
   return !!purchase
@@ -227,6 +305,20 @@ export async function getUserTier(userId: string): Promise<{
 
   if (leaguePurchase) {
     return { tier: 'LEAGUE', expiresAt: leaguePurchase.expiresAt, proCredits }
+  }
+
+  // Check for active Club subscription
+  const clubPurchase = await prisma.purchase.findFirst({
+    where: {
+      userId,
+      type: 'CLUB',
+      status: 'ACTIVE',
+    },
+    select: { id: true },
+  })
+
+  if (clubPurchase) {
+    return { tier: 'CLUB', expiresAt: null, proCredits }
   }
 
   if (proCredits > 0) {

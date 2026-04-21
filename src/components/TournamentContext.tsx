@@ -24,6 +24,7 @@ export interface TournamentContextValue {
   galleryImages: string[]
   champions: PastChampion[]
   hasVault: boolean
+  isLeague: boolean
   hasSeason: boolean
   latestTournament: LatestTournament | null
 }

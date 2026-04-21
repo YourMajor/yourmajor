@@ -99,8 +99,36 @@ async function allPlayersComplete(tournamentId: string): Promise<boolean> {
 }
 
 /**
+ * Caches the champion (rank-1 player) on a tournament record.
+ */
+async function cacheChampion(tournamentId: string): Promise<void> {
+  try {
+    const { prisma } = await import('@/lib/prisma')
+    const { getLeaderboard } = await import('@/lib/scoring')
+    const standings = await getLeaderboard(tournamentId)
+    const champion = standings.find((s) => s.rank === 1)
+    if (champion) {
+      const tp = await prisma.tournamentPlayer.findUnique({
+        where: { id: champion.tournamentPlayerId },
+        select: { userId: true },
+      })
+      await prisma.tournament.update({
+        where: { id: tournamentId },
+        data: {
+          championUserId: tp?.userId ?? null,
+          championName: champion.playerName,
+        },
+      })
+    }
+  } catch {
+    // Non-critical: champion caching failure shouldn't block status change
+  }
+}
+
+/**
  * Checks if the tournament status should auto-advance based on round dates and
  * (for ACTIVE→COMPLETED) whether all players have completed all hole scores.
+ * For leagues, also checks leagueEndDate for forced completion.
  * Updates the DB if advancing, and returns the effective status.
  */
 export async function maybeAutoAdvanceStatus(
@@ -109,14 +137,43 @@ export async function maybeAutoAdvanceStatus(
   rounds: { date: Date | null }[],
   tournamentStartDate?: Date | null,
   tournamentEndDate?: Date | null,
+  isLeague?: boolean,
+  tournamentType?: string,
+  leagueEndDate?: Date | null,
 ): Promise<string> {
-  const next = computeExpectedStatus(currentStatus, rounds, tournamentStartDate, tournamentEndDate)
-  if (!next) return currentStatus
+  if (currentStatus === 'COMPLETED') return currentStatus
 
   const { prisma } = await import('@/lib/prisma')
 
-  // REGISTRATION → ACTIVE: date-based only
+  // League auto-completion: when leagueEndDate has passed, complete the league
+  // regardless of score completion (the season is over)
+  if (isLeague && leagueEndDate) {
+    const today = new Date()
+    today.setHours(0, 0, 0, 0)
+    const end = new Date(leagueEndDate)
+    end.setHours(0, 0, 0, 0)
+    const dayAfterEnd = new Date(end)
+    dayAfterEnd.setDate(dayAfterEnd.getDate() + 1)
+    if (today >= dayAfterEnd && currentStatus !== 'COMPLETED') {
+      await prisma.tournament.update({
+        where: { id: tournamentId },
+        data: { status: 'COMPLETED' },
+      })
+      await cacheChampion(tournamentId)
+      return 'COMPLETED'
+    }
+  }
+
+  const next = computeExpectedStatus(currentStatus, rounds, tournamentStartDate, tournamentEndDate)
+  if (!next) return currentStatus
+
+  // REGISTRATION → ACTIVE:
+  // - PUBLIC tournaments: auto-advance on round day
+  // - OPEN/INVITE league tournaments: auto-advance on round day
+  // - OPEN/INVITE non-league tournaments: require admin to manually Go Live
   if (next === 'ACTIVE') {
+    const isNonLeaguePrivate = !isLeague && tournamentType !== 'PUBLIC'
+    if (isNonLeaguePrivate) return currentStatus
     await prisma.tournament.update({
       where: { id: tournamentId },
       data: { status: 'ACTIVE' },
@@ -132,6 +189,7 @@ export async function maybeAutoAdvanceStatus(
       where: { id: tournamentId },
       data: { status: 'COMPLETED' },
     })
+    await cacheChampion(tournamentId)
     return 'COMPLETED'
   }
 

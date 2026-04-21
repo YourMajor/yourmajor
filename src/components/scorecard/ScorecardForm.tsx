@@ -299,7 +299,10 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
       </div>
 
       {/* Full-width scorecard table */}
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+      <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1 mb-1">
+        <span aria-hidden="true">&larr;</span> Scroll to see all holes <span aria-hidden="true">&rarr;</span>
+      </p>
+      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-border shadow-sm">
         <table className="w-full text-sm border-collapse" style={{ minWidth: '560px' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>

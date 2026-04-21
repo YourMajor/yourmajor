@@ -1,5 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { getTournamentTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import { getAncestorChain } from '@/lib/tournament-chain'
 import { PhotoGallery } from '@/components/hub/PhotoGallery'
 
@@ -15,6 +17,16 @@ export default async function GalleryPage({
     select: { id: true, name: true, startDate: true, parentTournamentId: true },
   })
   if (!tournament) return null
+
+  const tier = await getTournamentTier(tournament.id)
+  if (!TIER_LIMITS[tier].gallery) {
+    return (
+      <main className="max-w-5xl mx-auto px-4 py-8 text-center">
+        <h1 className="text-2xl font-heading font-bold mb-4">Gallery</h1>
+        <p className="text-muted-foreground">Photo gallery is available on Pro, Club, and Tour plans.</p>
+      </main>
+    )
+  }
 
   const user = await getUser()
 

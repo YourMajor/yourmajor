@@ -7,7 +7,7 @@ import { getLeaderboard } from '@/lib/scoring'
 import { maybeAutoAdvanceStatus } from '@/lib/tournament-status'
 import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
 import { TournamentStats } from '@/components/leaderboard/TournamentStats'
-import { buttonVariants } from '@/components/ui/button-variants'
+import { RegistrationBanner } from '@/components/RegistrationBanner'
 import Link from 'next/link'
 
 export default async function TournamentPage({
@@ -38,13 +38,13 @@ export default async function TournamentPage({
   const membership = user
     ? await prisma.tournamentPlayer.findUnique({
         where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-        select: { isAdmin: true, id: true },
+        select: { isAdmin: true, isParticipant: true, id: true },
       })
     : null
 
   let isAdmin = membership?.isAdmin ?? false
   if (!isAdmin && user?.role === 'ADMIN') isAdmin = true
-  const isRegistered = !!membership
+  const isRegistered = !!membership?.isParticipant
 
   const effectiveStatus = await maybeAutoAdvanceStatus(
     tournament.id,
@@ -52,6 +52,9 @@ export default async function TournamentPage({
     tournament.rounds,
     tournament.startDate,
     tournament.endDate,
+    tournament.isLeague,
+    tournament.tournamentType,
+    tournament.leagueEndDate,
   )
 
   const initialStandings = await getLeaderboard(tournament.id)
@@ -94,7 +97,33 @@ export default async function TournamentPage({
 
   const canScore = isRegistered && effectiveStatus === 'ACTIVE' && currentPlayerHolesPlayed < totalHoles
 
-  // Check if the user has a pending invitation (for invite-only tournaments)
+  // Fetch group assignment for "My Tee Time" card
+  // Show until the player has started scoring (holesPlayed > 0)
+  let myGroup: { name: string; teeTime: Date | null; startingHole: number | null; memberNames: string[] } | null = null
+  if (membership?.id && effectiveStatus !== 'COMPLETED' && currentPlayerHolesPlayed === 0) {
+    const gm = await prisma.tournamentGroupMember.findUnique({
+      where: { tournamentPlayerId: membership.id },
+      include: {
+        group: {
+          include: {
+            members: {
+              include: { tournamentPlayer: { include: { user: { select: { name: true, email: true } } } } },
+              orderBy: { position: 'asc' },
+            },
+          },
+        },
+      },
+    })
+    if (gm) {
+      myGroup = {
+        name: gm.group.name,
+        teeTime: gm.group.teeTime,
+        startingHole: gm.group.startingHole,
+        memberNames: gm.group.members.map((m) => m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email),
+      }
+    }
+  }
+
   let inviteToken: string | null = null
   if (user && !isRegistered && !tournament.isOpenRegistration && effectiveStatus === 'REGISTRATION') {
     const invitation = await prisma.invitation.findFirst({
@@ -126,22 +155,42 @@ export default async function TournamentPage({
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-      {/* Registration CTA — open registration or invite-only with matching email */}
-      {!isRegistered && user && effectiveStatus === 'REGISTRATION' &&
-        (tournament.isOpenRegistration || inviteToken) && (
-        <div className="mb-6 p-4 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 flex items-center justify-between gap-4">
-          <div>
-            <p className="text-sm font-semibold text-foreground">Join this tournament</p>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {inviteToken ? "You've been invited. Sign up to compete." : 'Registration is open. Sign up to compete.'}
-            </p>
+      {/* Registration — register / unregister / scoring availability */}
+      <RegistrationBanner
+        slug={slug}
+        isParticipant={membership?.isParticipant ?? false}
+        isLoggedIn={!!user}
+        status={effectiveStatus}
+        startDate={tournament.startDate?.toISOString() ?? null}
+        canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
+        inviteToken={inviteToken}
+        registrationClosed={tournament.registrationClosed}
+      />
+
+      {/* My Tee Time */}
+      {myGroup && (
+        <div className="mb-6 rounded-xl border border-border overflow-hidden">
+          <div className="px-5 py-3 bg-[var(--color-primary)]/5 border-b border-border">
+            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">Your Tee Time</p>
           </div>
-          <Link
-            href={`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
-            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
-          >
-            Register
-          </Link>
+          <div className="px-5 py-4 space-y-2">
+            <div className="flex items-center justify-between gap-4">
+              <p className="text-sm font-semibold text-foreground">{myGroup.name}</p>
+              {myGroup.teeTime && (
+                <p className="text-sm font-bold text-foreground">
+                  {new Date(myGroup.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                </p>
+              )}
+            </div>
+            {myGroup.startingHole && (
+              <p className="text-xs text-muted-foreground">Starting on Hole {myGroup.startingHole}</p>
+            )}
+            <div className="flex flex-wrap gap-1.5 pt-1">
+              {myGroup.memberNames.map((name, i) => (
+                <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50">{name}</span>
+              ))}
+            </div>
+          </div>
         </div>
       )}
 

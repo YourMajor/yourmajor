@@ -11,7 +11,6 @@ import { Separator } from '@/components/ui/separator'
 import { ColorDonutForm } from '@/components/ui/color-donut-form'
 import { DeleteTournamentButton } from './DeleteTournamentButton'
 import { ResetDraftButton } from './ResetDraftButton'
-
 export default async function TournamentSetup({
   params,
 }: {
@@ -44,8 +43,6 @@ export default async function TournamentSetup({
     const newSlug = (formData.get('slug') as string).toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const primaryColor = formData.get('primaryColor') as string
     const accentColor = formData.get('accentColor') as string
-    const requestedStatus = formData.get('status') as string
-    const isOpenRegistration = formData.get('isOpenRegistration') === 'on'
     const requestedHandicap = formData.get('handicapSystem') as string
 
     // Re-fetch current state server-side for guards
@@ -57,16 +54,6 @@ export default async function TournamentSetup({
 
     // Guard: don't allow handicap system change once scores exist
     const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : requestedHandicap
-
-    // Guard: validate status transitions
-    const currentStatus = currentTournament!.status
-    let status = requestedStatus
-    if (status === 'REGISTRATION' && serverHasScores) {
-      status = currentStatus
-    }
-    if (currentStatus === 'COMPLETED' && status === 'REGISTRATION') {
-      status = currentStatus
-    }
 
     // If powerups are locked (draft started or cards dealt), preserve existing values
     const currentDraft = await prisma.draft.findUnique({ where: { tournamentId: tournament!.id } })
@@ -107,8 +94,6 @@ export default async function TournamentSetup({
         slug: newSlug,
         primaryColor,
         accentColor,
-        status: status as 'REGISTRATION' | 'ACTIVE' | 'COMPLETED',
-        isOpenRegistration,
         handicapSystem: handicapSystem as 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA',
         powerupsEnabled,
         powerupsPerPlayer,
@@ -120,30 +105,6 @@ export default async function TournamentSetup({
       },
     })
 
-    // Cache champion when status changes to COMPLETED
-    if (status === 'COMPLETED' && currentTournament!.status !== 'COMPLETED') {
-      try {
-        const { getLeaderboard } = await import('@/lib/scoring')
-        const standings = await getLeaderboard(tournament!.id)
-        const champion = standings.find((s) => s.rank === 1)
-        if (champion) {
-          const tp = await prisma.tournamentPlayer.findUnique({
-            where: { id: champion.tournamentPlayerId },
-            select: { userId: true },
-          })
-          await prisma.tournament.update({
-            where: { id: tournament!.id },
-            data: {
-              championUserId: tp?.userId ?? null,
-              championName: champion.playerName,
-            },
-          })
-        }
-      } catch {
-        // Non-critical
-      }
-    }
-
     revalidatePath(`/${newSlug}/admin/setup`)
 
     if (newSlug !== currentSlug) {
@@ -154,7 +115,7 @@ export default async function TournamentSetup({
   const fmt = (d: Date | null) => (d ? new Date(d).toISOString().split('T')[0] : '')
 
   return (
-    <main className="max-w-2xl mx-auto p-6 space-y-6">
+    <main className="max-w-2xl mx-auto px-4 py-6 sm:p-6 space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
@@ -181,7 +142,7 @@ export default async function TournamentSetup({
                 Tournament URL: yourdomain.com/<strong>{tournament.slug}</strong>
               </p>
             </div>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div className="space-y-2">
                 <Label htmlFor="startDate">Start Date</Label>
                 <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
@@ -241,6 +202,7 @@ export default async function TournamentSetup({
             </div>
           </CardContent>
         </Card>
+
 
         {/* ── Branding ── */}
         <Card>
@@ -323,7 +285,7 @@ export default async function TournamentSetup({
                 max={10}
                 defaultValue={tournament.powerupsPerPlayer}
                 disabled={powerupsLocked}
-                className="w-24"
+                className="w-full sm:w-24"
               />
             </div>
             <div className="space-y-2">
@@ -336,7 +298,7 @@ export default async function TournamentSetup({
                 max={10}
                 defaultValue={tournament.maxAttacksPerPlayer}
                 disabled={powerupsLocked}
-                className="w-24"
+                className="w-full sm:w-24"
               />
             </div>
             <div className="space-y-2">

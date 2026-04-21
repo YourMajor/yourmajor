@@ -167,11 +167,13 @@ export default async function ProfilePage({
         initialEmail={user.email}
         initialAvatarUrl={initialAvatarUrl}
         initialHandicap={handicap}
+        initialPhone={user.phone ?? ''}
+        initialSmsNotifications={user.smsNotifications}
       />
 
       {/* Membership */}
       <Card>
-        <CardHeader className="pb-3">
+        <CardHeader className="pb-1">
           <CardTitle className="text-base font-heading">Membership</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -209,8 +211,8 @@ export default async function ProfilePage({
           </div>
           {userTier.proCredits > 0 && (
             <>
-              <Separator />
-              <div className="flex justify-between text-sm">
+              <Separator className="mt-1" />
+              <div className="flex justify-between text-sm pt-1">
                 <span className="text-muted-foreground">Tournament Credits</span>
                 <span className="font-medium">{userTier.proCredits}</span>
               </div>
@@ -271,43 +273,43 @@ export default async function ProfilePage({
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Par breakdown */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
                 { label: 'Par 3s', avg: par3Avg, count: par3s.length },
                 { label: 'Par 4s', avg: par4Avg, count: par4s.length },
                 { label: 'Par 5s', avg: par5Avg, count: par5s.length },
               ].filter(d => d.count > 0).map(d => (
-                <div key={d.label} className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
+                <div key={d.label} className="rounded-lg border border-border p-2 sm:p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
                   <p className={`text-lg font-bold font-heading ${d.avg !== null && d.avg < 0 ? 'text-red-600' : ''}`}>
                     {d.avg !== null ? (d.avg >= 0 ? '+' : '') + d.avg.toFixed(2) : '—'}
                   </p>
-                  <p className="text-[10px] text-muted-foreground">{d.count} holes</p>
+                  <p className="text-[11px] text-muted-foreground">{d.count} holes</p>
                 </div>
               ))}
             </div>
 
             {/* Key metrics */}
-            <div className="grid grid-cols-3 gap-2">
+            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {fairwayPct !== null && (
-                <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">FIR</p>
+                <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">FIR</p>
                   <p className="text-lg font-bold font-heading">{fairwayPct}%</p>
-                  <p className="text-[10px] text-muted-foreground">{fairwaysHit}/{fairwayHoles.length}</p>
+                  <p className="text-[11px] text-muted-foreground">{fairwaysHit}/{fairwayHoles.length}</p>
                 </div>
               )}
               {girPct !== null && (
-                <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">GIR</p>
+                <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">GIR</p>
                   <p className="text-lg font-bold font-heading">{girPct}%</p>
-                  <p className="text-[10px] text-muted-foreground">{girsHit}/{girHoles.length}</p>
+                  <p className="text-[11px] text-muted-foreground">{girsHit}/{girHoles.length}</p>
                 </div>
               )}
               {avgPutts !== null && (
-                <div className="rounded-lg border border-border p-3 text-center">
-                  <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Putts</p>
+                <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Putts</p>
                   <p className="text-lg font-bold font-heading">{avgPutts}</p>
-                  <p className="text-[10px] text-muted-foreground">per hole</p>
+                  <p className="text-[11px] text-muted-foreground">per hole</p>
                 </div>
               )}
             </div>
@@ -336,11 +338,11 @@ export default async function ProfilePage({
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Scoring by Fairway</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-center">
-                    <p className="text-[10px] text-green-700 font-semibold">On Fairway</p>
+                    <p className="text-[11px] text-green-700 font-semibold">On Fairway</p>
                     <p className="text-base font-bold text-green-800">{avgOnFairway >= 0 ? '+' : ''}{avgOnFairway.toFixed(2)}</p>
                   </div>
                   <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-center">
-                    <p className="text-[10px] text-red-700 font-semibold">Off Fairway</p>
+                    <p className="text-[11px] text-red-700 font-semibold">Off Fairway</p>
                     <p className="text-base font-bold text-red-800">{avgOffFairway >= 0 ? '+' : ''}{avgOffFairway.toFixed(2)}</p>
                   </div>
                 </div>
@@ -353,11 +355,11 @@ export default async function ProfilePage({
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Scoring by GIR</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-center">
-                    <p className="text-[10px] text-green-700 font-semibold">Hit Green</p>
+                    <p className="text-[11px] text-green-700 font-semibold">Hit Green</p>
                     <p className="text-base font-bold text-green-800">{avgOnGir >= 0 ? '+' : ''}{avgOnGir.toFixed(2)}</p>
                   </div>
                   <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-center">
-                    <p className="text-[10px] text-red-700 font-semibold">Missed Green</p>
+                    <p className="text-[11px] text-red-700 font-semibold">Missed Green</p>
                     <p className="text-base font-bold text-red-800">{avgOffGir >= 0 ? '+' : ''}{avgOffGir.toFixed(2)}</p>
                   </div>
                 </div>

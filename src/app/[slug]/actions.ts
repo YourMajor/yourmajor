@@ -16,7 +16,7 @@ export async function leaveTournament(slug: string) {
   if (!tournament) throw new Error('Tournament not found')
 
   if (tournament.status === 'COMPLETED') {
-    throw new Error('Cannot leave a completed tournament')
+    throw new Error('Cannot unregister from a completed tournament')
   }
 
   const membership = await prisma.tournamentPlayer.findUnique({
@@ -24,6 +24,11 @@ export async function leaveTournament(slug: string) {
     select: { id: true, isAdmin: true },
   })
   if (!membership) throw new Error('You are not registered for this tournament')
+
+  // Remove from any group first
+  await prisma.tournamentGroupMember.deleteMany({
+    where: { tournamentPlayerId: membership.id },
+  })
 
   if (membership.isAdmin) {
     // Admins keep their record for access — just toggle off participation

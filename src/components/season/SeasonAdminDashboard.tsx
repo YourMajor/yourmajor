@@ -1,14 +1,14 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus, MapPin } from 'lucide-react'
+import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { updateRosterMemberStatus, removeRosterMember, toggleAutoAddNew, updateSeasonConfig } from '@/lib/roster-actions'
 import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
-import type { AttendanceRow, SeasonEvent, CourseAnalytics } from '@/lib/season-standings'
+import type { AttendanceRow, SeasonEvent } from '@/lib/season-standings'
 
 interface RosterMember {
   id: string
@@ -47,11 +47,11 @@ interface SeasonAdminDashboardProps {
   tournamentId: string
   roster: RosterData | null
   attendance: { rows: AttendanceRow[]; events: SeasonEvent[] }
-  courseAnalytics: CourseAnalytics[]
   seasonConfig: {
     scoringMethod: string | null
     bestOf: number | null
     pointsTable: Record<number, number> | null
+    leagueEndDate: string | null
   }
   schedule: ScheduleEvent[]
   leagueInfo: LeagueInfo | null
@@ -66,7 +66,6 @@ export function SeasonAdminDashboard({
   tournamentId,
   roster,
   attendance,
-  courseAnalytics,
   seasonConfig,
   schedule,
   leagueInfo,
@@ -78,7 +77,6 @@ export function SeasonAdminDashboard({
         {leagueInfo && <TabsTrigger value="events">Events</TabsTrigger>}
         <TabsTrigger value="roster">Roster</TabsTrigger>
         <TabsTrigger value="attendance">Attendance</TabsTrigger>
-        <TabsTrigger value="courses">Course Stats</TabsTrigger>
         <TabsTrigger value="config">Season Config</TabsTrigger>
       </TabsList>
 
@@ -90,6 +88,7 @@ export function SeasonAdminDashboard({
             schedule={schedule}
             slug={slug}
             rosterCount={roster?.members.filter((m) => m.status === 'ACTIVE').length ?? 0}
+            leagueEndDate={seasonConfig.leagueEndDate}
           />
         </TabsContent>
       )}
@@ -100,10 +99,6 @@ export function SeasonAdminDashboard({
 
       <TabsContent value="attendance">
         <AttendancePanel attendance={attendance} />
-      </TabsContent>
-
-      <TabsContent value="courses">
-        <CourseStatsPanel courseAnalytics={courseAnalytics} />
       </TabsContent>
 
       <TabsContent value="config">
@@ -164,7 +159,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
                 </Avatar>
                 <div className="min-w-0">
                   <p className="text-sm font-medium text-foreground truncate">{member.name}</p>
-                  <p className="text-[10px] text-muted-foreground">{member.email} &middot; HCP {member.handicap}</p>
+                  <p className="text-[11px] text-muted-foreground">{member.email} &middot; HCP {member.handicap}</p>
                 </div>
               </div>
               <div className="flex items-center gap-1">
@@ -236,7 +231,7 @@ function AttendancePanel({ attendance }: { attendance: { rows: AttendanceRow[]; 
             <th className="text-left py-2 px-3 font-semibold text-foreground sticky left-0 bg-background z-10">Player</th>
             {attendance.events.map((e) => (
               <th key={e.tournamentId} className="text-center py-2 px-2 font-medium text-muted-foreground min-w-[4rem]">
-                <span className="text-[10px] block">{e.name}</span>
+                <span className="text-[11px] block">{e.name}</span>
                 {e.date && <span className="text-[9px] text-muted-foreground">{new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               </th>
             ))}
@@ -276,94 +271,6 @@ function AttendancePanel({ attendance }: { attendance: { rows: AttendanceRow[]; 
   )
 }
 
-// ─── Course Stats Panel ──────────────────────────────────────────────────────
-
-function CourseStatsPanel({ courseAnalytics }: { courseAnalytics: CourseAnalytics[] }) {
-  const [selectedCourse, setSelectedCourse] = useState(0)
-
-  if (courseAnalytics.length === 0) {
-    return <p className="py-8 text-center text-muted-foreground">No course data available yet.</p>
-  }
-
-  const course = courseAnalytics[selectedCourse]
-
-  return (
-    <div className="mt-4 space-y-4">
-      {courseAnalytics.length > 1 && (
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          {courseAnalytics.map((c, i) => (
-            <button
-              key={c.courseId}
-              onClick={() => setSelectedCourse(i)}
-              className={`px-3 py-1.5 rounded-lg text-xs font-medium whitespace-nowrap transition-colors ${
-                i === selectedCourse
-                  ? 'bg-[var(--color-primary)] text-white'
-                  : 'bg-muted text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              {c.courseName}
-            </button>
-          ))}
-        </div>
-      )}
-
-      <div className="flex items-center justify-between gap-4">
-        <div>
-          <h3 className="text-lg font-heading font-bold text-foreground flex items-center gap-2">
-            <MapPin className="w-4 h-4" style={{ color: 'var(--color-primary)' }} />
-            {course.courseName}
-          </h3>
-          <p className="text-xs text-muted-foreground">Played {course.timesPlayed} time{course.timesPlayed !== 1 ? 's' : ''} this season</p>
-        </div>
-        {course.courseRecord && (
-          <div className="text-right">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Course Record</p>
-            <p className="text-lg font-bold text-foreground">{course.courseRecord.total}</p>
-            <p className="text-[10px] text-muted-foreground">{course.courseRecord.playerName}</p>
-          </div>
-        )}
-      </div>
-
-      <div className="overflow-x-auto">
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b border-border">
-              <th className="text-left py-2 px-2 font-semibold">Hole</th>
-              <th className="text-center py-2 px-2 font-semibold">Par</th>
-              <th className="text-center py-2 px-2 font-semibold">Avg</th>
-              <th className="text-center py-2 px-2 font-semibold">vs Par</th>
-              <th className="text-center py-2 px-2 font-semibold">Birdie %</th>
-              <th className="text-center py-2 px-2 font-semibold">Bogey %</th>
-              <th className="text-center py-2 px-2 font-semibold">Difficulty</th>
-            </tr>
-          </thead>
-          <tbody>
-            {course.holes.map((hole) => (
-              <tr key={hole.holeNumber} className="border-b border-border/50">
-                <td className="py-2 px-2 font-medium">{hole.holeNumber}</td>
-                <td className="text-center py-2 px-2">{hole.par}</td>
-                <td className="text-center py-2 px-2 font-medium">{hole.avgScore.toFixed(1)}</td>
-                <td className={`text-center py-2 px-2 font-semibold ${
-                  hole.avgVsPar > 0.3 ? 'text-red-500' : hole.avgVsPar < -0.1 ? 'text-green-600' : 'text-foreground'
-                }`}>
-                  {hole.avgVsPar > 0 ? '+' : ''}{hole.avgVsPar.toFixed(2)}
-                </td>
-                <td className="text-center py-2 px-2 text-green-600">{hole.birdieRate}%</td>
-                <td className="text-center py-2 px-2 text-red-500">{hole.bogeyRate}%</td>
-                <td className="text-center py-2 px-2">
-                  <Badge variant={hole.hardestRank <= 3 ? 'destructive' : hole.hardestRank <= 6 ? 'outline' : 'secondary'}>
-                    #{hole.hardestRank}
-                  </Badge>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-    </div>
-  )
-}
-
 // ─── Season Config Panel ─────────────────────────────────────────────────────
 
 function SeasonConfigPanel({
@@ -371,10 +278,11 @@ function SeasonConfigPanel({
   config,
 }: {
   tournamentId: string
-  config: { scoringMethod: string | null; bestOf: number | null; pointsTable: Record<number, number> | null }
+  config: { scoringMethod: string | null; bestOf: number | null; pointsTable: Record<number, number> | null; leagueEndDate: string | null }
 }) {
   const [method, setMethod] = useState(config.scoringMethod ?? 'POINTS')
   const [bestOf, setBestOf] = useState(config.bestOf ?? '')
+  const [leagueEndDate, setLeagueEndDate] = useState(config.leagueEndDate ?? '')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
 
@@ -391,6 +299,7 @@ function SeasonConfigPanel({
         seasonScoringMethod: method,
         seasonBestOf: bestOf ? Number(bestOf) : null,
         seasonPointsTable: null, // Use defaults for now
+        leagueEndDate: leagueEndDate || null,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
@@ -442,6 +351,23 @@ function SeasonConfigPanel({
         </div>
       )}
 
+      {/* League End Date */}
+      <div>
+        <label className="text-sm font-semibold text-foreground block mb-1.5">
+          <Calendar className="w-4 h-4 inline mr-1.5 text-muted-foreground" />
+          League End Date
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
+          When the season ends, a champion will be crowned and the league moves to history. No events can be scheduled after this date.
+        </p>
+        <input
+          type="date"
+          value={leagueEndDate}
+          onChange={(e) => setLeagueEndDate(e.target.value)}
+          className="w-48 px-3 py-2 rounded-lg border border-border text-sm bg-background text-foreground"
+        />
+      </div>
+
       <button
         onClick={handleSave}
         disabled={isPending}
@@ -461,12 +387,14 @@ function ScheduleEventsPanel({
   leagueInfo,
   schedule,
   rosterCount,
+  leagueEndDate,
 }: {
   tournamentId: string
   leagueInfo: LeagueInfo
   schedule: ScheduleEvent[]
   slug: string
   rosterCount: number
+  leagueEndDate: string | null
 }) {
   const [isPending, startTransition] = useTransition()
   const [date, setDate] = useState('')
@@ -476,8 +404,11 @@ function ScheduleEventsPanel({
   const [createdSlug, setCreatedSlug] = useState<string | null>(null)
   const [error, setError] = useState('')
 
+  const leagueEnded = leagueEndDate ? new Date(leagueEndDate) < new Date() : false
+
   function handleSchedule() {
     if (!date) { setError('Please select a date.'); return }
+    if (leagueEndDate && date > leagueEndDate) { setError('Cannot schedule events after the league end date.'); return }
     if (useDifferentCourse && !selectedCourse) { setError('Please select a course.'); return }
     setError('')
     setCreatedSlug(null)
@@ -512,11 +443,11 @@ function ScheduleEventsPanel({
         <div className="px-6 py-5 space-y-4">
           <div className="grid grid-cols-2 gap-4 text-center">
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Roster</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Roster</p>
               <p className="text-sm font-medium text-foreground mt-0.5">{rosterCount} players</p>
             </div>
             <div>
-              <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Auto-Register</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Auto-Register</p>
               <p className="text-sm font-medium text-green-600 mt-0.5">All active members</p>
             </div>
           </div>
@@ -528,8 +459,14 @@ function ScheduleEventsPanel({
                 type="date"
                 value={date}
                 onChange={(e) => setDate(e.target.value)}
+                max={leagueEndDate ?? undefined}
                 className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
               />
+              {leagueEndDate && (
+                <p className="text-[11px] text-muted-foreground">
+                  League ends {new Date(leagueEndDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                </p>
+              )}
             </div>
 
             {/* Course selection */}
@@ -604,15 +541,15 @@ function ScheduleEventsPanel({
 
             <button
               onClick={handleSchedule}
-              disabled={isPending || !date || (useDifferentCourse && !selectedCourse)}
+              disabled={isPending || !date || (useDifferentCourse && !selectedCourse) || leagueEnded}
               className="w-full px-5 py-2.5 rounded-lg text-sm font-semibold text-white transition-colors disabled:opacity-50"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
-              {isPending ? 'Creating Event...' : 'Schedule Event & Register Roster'}
+              {leagueEnded ? 'League Season Has Ended' : isPending ? 'Creating Event...' : 'Schedule Event & Register Roster'}
             </button>
           </div>
 
-          <p className="text-[10px] text-muted-foreground">
+          <p className="text-[11px] text-muted-foreground">
             Creates a new event linked to the season with the same settings and branding.
             All active roster members will be automatically registered.
           </p>

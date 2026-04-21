@@ -181,6 +181,7 @@ export async function updateSeasonConfig(
     seasonScoringMethod: string
     seasonBestOf: number | null
     seasonPointsTable: Record<number, number> | null
+    leagueEndDate?: string | null
   }
 ) {
   await requireAdmin(tournamentId)
@@ -192,6 +193,9 @@ export async function updateSeasonConfig(
       seasonScoringMethod: config.seasonScoringMethod as 'POINTS' | 'STROKE_AVG' | 'BEST_OF_N' | 'STABLEFORD_CUMULATIVE',
       seasonBestOf: config.seasonBestOf,
       seasonPointsTable: config.seasonPointsTable ?? undefined,
+      ...(config.leagueEndDate !== undefined && {
+        leagueEndDate: config.leagueEndDate ? new Date(config.leagueEndDate) : null,
+      }),
     },
   })
 

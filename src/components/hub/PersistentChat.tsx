@@ -11,9 +11,10 @@ interface PersistentChatProps {
   currentUserId: string | null
   currentUserName: string | null
   isRegistered: boolean
+  label?: string
 }
 
-export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered }: PersistentChatProps) {
+export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered, label }: PersistentChatProps) {
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasAttack, setHasAttack] = useState(false)
@@ -147,7 +148,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
             onTouchEnd={onHeaderTouchEnd}
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-sm font-heading font-bold text-white">Tournament Chat</h3>
+              <h3 className="text-base sm:text-sm font-heading font-bold text-white">{label ?? 'Tournament Chat'}</h3>
               <ChevronDown className="w-4 h-4 text-white/40 sm:hidden" />
             </div>
             <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10">

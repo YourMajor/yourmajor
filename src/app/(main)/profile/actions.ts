@@ -17,6 +17,8 @@ export async function updateProfile(
   const email = (formData.get('email') as string | null)?.trim() ?? ''
   const handicapStr = formData.get('handicap') as string | null
   const handicap = handicapStr !== null ? parseFloat(handicapStr) : null
+  const phone = (formData.get('phone') as string | null)?.trim() || null
+  const smsNotifications = formData.get('smsNotifications') === '1'
 
   if (!firstName) return { error: 'First name is required' }
   if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
@@ -40,7 +42,7 @@ export async function updateProfile(
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { name: fullName, email },
+      data: { name: fullName, email, phone, smsNotifications },
     })
 
     const profileData: { displayName: string; handicap?: number } = { displayName: fullName }

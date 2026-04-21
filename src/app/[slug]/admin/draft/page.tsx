@@ -102,7 +102,7 @@ export default async function AdminDraftPage({
     : null
 
   return (
-    <main className="max-w-5xl mx-auto p-6 space-y-6">
+    <main className="max-w-5xl mx-auto px-4 py-6 sm:p-6 space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>

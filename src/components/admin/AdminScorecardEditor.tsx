@@ -12,7 +12,7 @@ interface Props {
 }
 
 function scoreCellClass(diff: number | null): string {
-  const base = 'w-9 h-8 text-center text-xs font-bold bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none border'
+  const base = 'w-10 h-10 sm:w-9 sm:h-8 text-center text-xs font-bold bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none border'
   if (diff === null)  return `${base} border-border/30 rounded`
   if (diff <= -2)     return `${base} rounded-full border-yellow-400 text-yellow-700 bg-yellow-50`
   if (diff === -1)    return `${base} rounded-full border-red-500 text-red-600 bg-red-50`
@@ -98,7 +98,12 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
         </span>
       </div>
 
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm">
+      {/* Scroll hint for mobile */}
+      <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1 mb-1">
+        <span aria-hidden="true">&larr;</span> Scroll to see all holes <span aria-hidden="true">&rarr;</span>
+      </p>
+      <div className="relative">
+      <div className="overflow-x-auto rounded-xl border border-border shadow-sm overscroll-x-contain">
         <table className="w-full text-sm border-collapse" style={{ minWidth: `${120 + round.holes.length * 44 + 80}px` }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
@@ -187,6 +192,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
             })}
           </tbody>
         </table>
+      </div>
       </div>
       <p className="text-xs text-muted-foreground">Changes auto-save as you type. The leaderboard recalculates automatically.</p>
     </div>

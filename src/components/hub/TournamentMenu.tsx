@@ -142,7 +142,7 @@ export function TournamentMenu({
           {/* Past Champions */}
           {champions.length > 0 && (
             <div className="mt-4 pt-4 border-t border-border space-y-3 px-3">
-              <p className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground">Past Champions</p>
+              <p className="text-[11px] uppercase tracking-wider font-bold text-muted-foreground">Past Champions</p>
               {champions.map((c, i) => {
                 const vsParLabel = c.grossVsPar === null ? '' : c.grossVsPar === 0 ? 'E' : c.grossVsPar > 0 ? `+${c.grossVsPar}` : `${c.grossVsPar}`
                 return (
@@ -167,7 +167,7 @@ export function TournamentMenu({
                     </div>
                     <div className="min-w-0 flex-1">
                       <p className="font-semibold text-sm text-foreground">{c.championName}</p>
-                      <p className="text-[10px] text-muted-foreground">
+                      <p className="text-[11px] text-muted-foreground">
                         {c.year === new Date().getFullYear() && c.startDate
                           ? `${c.tournamentName} — ${new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`
                           : `${c.tournamentName}${c.year ? ` (${c.year})` : ''}`}

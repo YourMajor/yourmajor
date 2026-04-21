@@ -69,11 +69,13 @@ export function CardHand({ cards, onCardClick, onActivateCard, activationContext
   const overlap = Math.max(30, cardW * 0.35)
 
   const openCard = useCallback((powerupId: string) => {
+    setHoveredId(null)
     setFlippedId(powerupId)
     onCardClick?.(powerupId)
   }, [onCardClick])
 
   const closeCard = useCallback(() => {
+    setHoveredId(null)
     setFlippedId(null)
   }, [])
 
@@ -212,7 +214,7 @@ export function CardFront({
             {name}
           </p>
         </div>
-        <span className={`mt-2 text-[10px] font-semibold ${
+        <span className={`mt-2 text-[11px] font-semibold ${
           isAttack ? 'text-red-600/70' : 'text-emerald-700/70'
         }`}>
           {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
@@ -320,13 +322,13 @@ export function CardBack({
         <p className="text-[13px] text-zinc-800 leading-relaxed">{description}</p>
 
         <div className="flex flex-wrap gap-1.5">
-          <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
             isAttack ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
           }`}>
             {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
           </span>
           {effect.scoring.modifier !== null && (
-            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+            <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
               effect.scoring.modifier < 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
             }`}>
               {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier} strokes
@@ -395,7 +397,7 @@ export function CardBack({
                     {selectedPlayerIds.map((id) => {
                       const p = otherPlayers.find((pl) => pl.id === id)
                       return (
-                        <span key={id} className="inline-flex items-center gap-1 text-[10px] font-semibold bg-emerald-100 text-emerald-800 pl-2 pr-1 py-0.5 rounded-full">
+                        <span key={id} className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 pl-2 pr-1 py-0.5 rounded-full">
                           {p?.name ?? 'Player'}
                           <button type="button" onClick={() => togglePlayerSelection(id)} className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-emerald-200">&times;</button>
                         </span>

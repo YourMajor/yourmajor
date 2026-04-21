@@ -217,7 +217,7 @@ export function CourseSearchCombobox({ label = 'Course', onSelect, selected }: P
             <div className="grid grid-cols-6 sm:grid-cols-9 gap-1.5">
               {Array.from({ length: holeCount }, (_, i) => (
                 <div key={i} className="text-center">
-                  <span className="text-[10px] text-muted-foreground">{i + 1}</span>
+                  <span className="text-[11px] text-muted-foreground">{i + 1}</span>
                   <Input
                     type="number"
                     min={3}
@@ -251,7 +251,7 @@ export function CourseSearchCombobox({ label = 'Course', onSelect, selected }: P
             <div className="grid grid-cols-6 sm:grid-cols-9 gap-1.5">
               {Array.from({ length: holeCount }, (_, i) => (
                 <div key={i} className="text-center">
-                  <span className="text-[10px] text-muted-foreground">{i + 1}</span>
+                  <span className="text-[11px] text-muted-foreground">{i + 1}</span>
                   <Input
                     type="number"
                     min={50}

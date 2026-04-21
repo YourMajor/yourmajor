@@ -5,7 +5,6 @@ import Link from 'next/link'
 import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
-import { LeaveTournamentButton } from '@/components/LeaveTournamentButton'
 import type { PastChampion } from '@/lib/tournament-chain'
 
 interface TournamentNavBarProps {
@@ -28,7 +27,6 @@ interface TournamentNavBarProps {
   galleryImages?: string[]
   champions?: PastChampion[]
   hasVault?: boolean
-  canLeave?: boolean
   externalMenuOpen?: boolean
   onExternalMenuChange?: (open: boolean) => void
 }
@@ -91,11 +89,10 @@ export function TournamentNavBar({
   galleryImages = [],
   champions = [],
   hasVault = false,
-  canLeave = false,
   externalMenuOpen,
   onExternalMenuChange,
 }: TournamentNavBarProps) {
-  const { latestTournament, hasSeason } = useTournament()
+  const { latestTournament, hasSeason, isLeague } = useTournament()
   const [internalMenuOpen, setInternalMenuOpen] = useState(false)
   const menuOpen = externalMenuOpen ?? internalMenuOpen
   const setMenuOpen = (open: boolean) => {
@@ -180,23 +177,25 @@ export function TournamentNavBar({
                 <span className="font-heading text-sm sm:text-base font-bold text-white truncate max-w-[140px] sm:max-w-[220px] lg:max-w-none leading-tight">
                   {tournamentName}
                 </span>
-                <div className="flex items-center gap-1.5">
-                  {startDate && (
-                    <span className="text-[10px] sm:text-xs text-white/50">
-                      {fmt(startDate)}{endDate ? ` \u2013 ${fmt(endDate)}` : ''}
-                    </span>
-                  )}
-                  {isLive ? (
-                    <span className="inline-flex items-center gap-1 text-[9px] sm:text-[10px] font-bold text-white/90 uppercase tracking-wider">
-                      <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                      Live
-                    </span>
-                  ) : (
-                    <span className="text-[9px] sm:text-[10px] font-semibold text-white/50 uppercase tracking-wider">
-                      {STATUS_LABELS[status] ?? status}
-                    </span>
-                  )}
-                </div>
+                {!isLeague && (
+                  <div className="flex items-center gap-1.5">
+                    {startDate && (
+                      <span className="text-[11px] sm:text-xs text-white/50">
+                        {fmt(startDate)}{endDate ? ` \u2013 ${fmt(endDate)}` : ''}
+                      </span>
+                    )}
+                    {isLive ? (
+                      <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold text-white/90 uppercase tracking-wider">
+                        <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
+                        Live
+                      </span>
+                    ) : (
+                      <span className="text-[9px] sm:text-[11px] font-semibold text-white/50 uppercase tracking-wider">
+                        {STATUS_LABELS[status] ?? status}
+                      </span>
+                    )}
+                  </div>
+                )}
               </div>
             </Link>
 
@@ -252,13 +251,15 @@ export function TournamentNavBar({
                   <img src={logo} alt="" className="w-8 h-8 rounded-full object-cover border border-white/20" />
                 )}
                 <div>
-                  <p className={`text-xs uppercase tracking-wider font-semibold ${menuTextMuted}`}>
-                    {STATUS_LABELS[status] ?? status}
-                  </p>
+                  {!isLeague && (
+                    <p className={`text-xs uppercase tracking-wider font-semibold ${menuTextMuted}`}>
+                      {STATUS_LABELS[status] ?? status}
+                    </p>
+                  )}
                   <p className={`font-heading font-bold text-lg leading-tight ${menuText}`}>
                     {tournamentName}
                   </p>
-                  {startDate && (
+                  {!isLeague && startDate && (
                     <p className={`text-xs mt-0.5 ${menuTextMuted}`}>
                       {fmt(startDate)}{endDate ? ` \u2013 ${fmt(endDate)}` : ''}
                     </p>
@@ -305,7 +306,7 @@ export function TournamentNavBar({
                   className={`mt-6 pt-6 border-t ${menuBorder} space-y-2`}
                   onMouseLeave={() => setHoveredChampionIdx(null)}
                 >
-                  <p className={`text-[10px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Past Champions</p>
+                  <p className={`text-[11px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Past Champions</p>
                   {champions.map((c, i) => {
                     const vsParLabel = c.grossVsPar === null ? '' : c.grossVsPar === 0 ? 'E' : c.grossVsPar > 0 ? `+${c.grossVsPar}` : `${c.grossVsPar}`
                     return (
@@ -350,7 +351,7 @@ export function TournamentNavBar({
               )}
               {latestTournament && (
                 <div className={`mt-6 pt-6 border-t ${menuBorder}`}>
-                  <p className={`text-[10px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Current Edition</p>
+                  <p className={`text-[11px] uppercase tracking-wider font-bold ${menuTextMuted} mb-3`}>Current Edition</p>
                   <Link
                     href={`/${latestTournament.slug}`}
                     onClick={() => setMenuOpen(false)}
@@ -380,12 +381,6 @@ export function TournamentNavBar({
                   <Link href="/auth/login" onClick={() => setMenuOpen(false)} className={`text-sm font-medium ${menuTextMuted} ${menuHover} transition-colors`}>
                     Sign In
                   </Link>
-                )}
-                {canLeave && (
-                  <LeaveTournamentButton
-                    slug={slug}
-                    className={`flex items-center gap-1.5 text-sm font-medium ${menuTextMuted} ${menuHover} transition-colors`}
-                  />
                 )}
               </div>
             </div>

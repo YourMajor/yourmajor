@@ -95,7 +95,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       <table className="w-full border-collapse text-sm">
         <thead>
           <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-            <th className="py-2.5 px-2 text-left text-[10px] font-bold text-white uppercase tracking-widest w-14">
+            <th className="py-2.5 px-2 text-left text-[11px] font-bold text-white uppercase tracking-widest w-14">
               Hole
             </th>
             {nineHoles.map((h) => (
@@ -103,10 +103,10 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
                 {h.number}
               </th>
             ))}
-            <th className="py-2.5 px-2 text-center text-[10px] font-bold text-white/80 uppercase tracking-widest w-12 border-l border-white/20">
+            <th className="py-2.5 px-2 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-12 border-l border-white/20">
               {label}
             </th>
-            <th className="py-2.5 px-2 text-center text-[10px] font-bold text-white/80 uppercase tracking-widest w-12">
+            <th className="py-2.5 px-2 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-12">
               Tot
             </th>
           </tr>
@@ -114,7 +114,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         <tbody className="bg-background text-foreground">
           {/* Par row */}
           <tr className="border-b border-border">
-            <td className="py-2 px-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest">Par</td>
+            <td className="py-2 px-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Par</td>
             {nineHoles.map((h) => (
               <td key={h.id} className="py-2 px-0.5 text-center text-xs font-semibold text-foreground">
                 {h.par}
@@ -203,7 +203,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         {legendItems.map((item) => (
           <div key={item.label} className="flex items-center gap-1.5">
             <span className={`w-5 h-5 inline-flex items-center justify-center ${item.className}`} />
-            <span className="text-[10px] text-muted-foreground font-medium">{item.label}</span>
+            <span className="text-[11px] text-muted-foreground font-medium">{item.label}</span>
           </div>
         ))}
       </div>
@@ -211,19 +211,19 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       {/* Totals */}
       <div className="mx-4 mt-4 flex items-center justify-between rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="text-center flex-1 py-3">
-          <p className="text-[10px] text-white/70 uppercase tracking-wider">Gross</p>
+          <p className="text-[11px] text-white/70 uppercase tracking-wider">Gross</p>
           <p className="text-2xl font-heading font-bold text-white">
             {totalPlayed > 0 ? totalStrokes : '-'}
           </p>
         </div>
         <div className="w-px h-10 bg-white/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[10px] text-white/70 uppercase tracking-wider">Par</p>
+          <p className="text-[11px] text-white/70 uppercase tracking-wider">Par</p>
           <p className="text-2xl font-heading font-bold text-white">{coursePar}</p>
         </div>
         <div className="w-px h-10 bg-white/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[10px] text-white/70 uppercase tracking-wider">vs Par</p>
+          <p className="text-[11px] text-white/70 uppercase tracking-wider">vs Par</p>
           <p className={`text-2xl font-heading font-bold ${
             diff !== null && diff < 0 ? 'text-red-300' : 'text-white'
           }`}>
@@ -232,7 +232,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         </div>
         <div className="w-px h-10 bg-white/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[10px] text-white/70 uppercase tracking-wider">Holes</p>
+          <p className="text-[11px] text-white/70 uppercase tracking-wider">Holes</p>
           <p className="text-2xl font-heading font-bold text-white">{totalPlayed}</p>
         </div>
       </div>
@@ -242,33 +242,33 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         <div className="mx-4 mt-4 mb-4 grid grid-cols-3 gap-3">
           {fairwaysTotal > 0 && (
             <div className="rounded-xl border border-border p-3 text-center bg-card">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">FIR</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">FIR</p>
               <p className="text-lg font-bold text-foreground">
                 {fairwaysHit}/{fairwaysTotal}
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {Math.round((fairwaysHit / fairwaysTotal) * 100)}%
               </p>
             </div>
           )}
           {girTotal > 0 && (
             <div className="rounded-xl border border-border p-3 text-center bg-card">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">GIR</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">GIR</p>
               <p className="text-lg font-bold text-foreground">
                 {girHit}/{girTotal}
               </p>
-              <p className="text-[10px] text-muted-foreground">
+              <p className="text-[11px] text-muted-foreground">
                 {Math.round((girHit / girTotal) * 100)}%
               </p>
             </div>
           )}
           {puttsHoles > 0 && (
             <div className="rounded-xl border border-border p-3 text-center bg-card">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Putts</p>
+              <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Putts</p>
               <p className="text-lg font-bold text-foreground">
                 {(totalPutts / puttsHoles).toFixed(1)}
               </p>
-              <p className="text-[10px] text-muted-foreground">avg/hole</p>
+              <p className="text-[11px] text-muted-foreground">avg/hole</p>
             </div>
           )}
         </div>

@@ -144,7 +144,7 @@ export function TournamentStats({ standings, roundNumbers, powerupsEnabled, atta
                 <Icon className="w-4 h-4" />
               </div>
               <div className="min-w-0">
-                <p className="text-[10px] uppercase tracking-wider font-semibold text-muted-foreground leading-tight">
+                <p className="text-[11px] uppercase tracking-wider font-semibold text-muted-foreground leading-tight">
                   {s.label}
                 </p>
                 <p className="text-sm font-medium text-foreground truncate">{s.playerName}</p>

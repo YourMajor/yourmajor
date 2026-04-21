@@ -78,6 +78,8 @@ export async function POST(req: NextRequest) {
             courseId: created.id,
             name: teeBox.tee_name,
             color: null,
+            courseRating: teeBox.course_rating ?? null,
+            slopeRating: teeBox.slope_rating ?? null,
           },
         })
 

@@ -83,6 +83,10 @@ export async function DELETE(
     if (!membership?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  await prisma.tournament.delete({ where: { id } })
+  try {
+    await prisma.tournament.delete({ where: { id } })
+  } catch {
+    return NextResponse.json({ error: 'Failed to delete tournament' }, { status: 500 })
+  }
   return NextResponse.json({ ok: true })
 }

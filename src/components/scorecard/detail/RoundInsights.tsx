@@ -125,13 +125,13 @@ export function RoundInsights({ holes }: { holes: HoleScore[] }) {
           { label: 'Par 5s', avg: par5Avg, count: par5s.length },
         ].filter(d => d.count > 0).map(d => (
           <div key={d.label} className="rounded-lg border border-border p-3 text-center">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
+            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
             <p className={`text-lg font-bold font-heading ${
               d.avg !== null && d.avg < 0 ? 'text-red-600' : 'text-foreground'
             }`}>
               {d.avg !== null ? (d.avg >= 0 ? '+' : '') + d.avg.toFixed(2) : '—'}
             </p>
-            <p className="text-[10px] text-muted-foreground">avg vs par</p>
+            <p className="text-[11px] text-muted-foreground">avg vs par</p>
           </div>
         ))}
       </div>
