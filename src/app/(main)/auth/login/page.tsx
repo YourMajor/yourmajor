@@ -11,6 +11,7 @@ import { OAuthButtons } from './OAuthButtons'
 async function signIn(formData: FormData) {
   'use server'
   const email = formData.get('email') as string
+  const next = formData.get('next') as string | null
   if (!email) return
 
   const h = await headers()
@@ -18,11 +19,15 @@ async function signIn(formData: FormData) {
   const proto = h.get('x-forwarded-proto') ?? (host.startsWith('localhost') ? 'http' : 'https')
   const origin = `${proto}://${host}`
 
+  const callbackUrl = next
+    ? `${origin}/api/auth/callback?next=${encodeURIComponent(next)}`
+    : `${origin}/api/auth/callback`
+
   const supabase = await createClient()
   const { error } = await supabase.auth.signInWithOtp({
     email,
     options: {
-      emailRedirectTo: `${origin}/api/auth/callback`,
+      emailRedirectTo: callbackUrl,
     },
   })
   if (error) {
@@ -75,6 +80,7 @@ export default async function LoginPage({
 
           {/* Magic link form */}
           <form action={signIn} className="space-y-4">
+            {next && <input type="hidden" name="next" value={next} />}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" name="email" type="email" placeholder="you@example.com" required />

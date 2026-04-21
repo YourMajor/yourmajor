@@ -80,25 +80,31 @@ export default async function RegisterPage({
         )
       }
 
-    } else if (dbUser?.email) {
-      // No token — check if the user's email matches a pending invitation
-      const emailInvitation = await prisma.invitation.findFirst({
-        where: {
-          tournamentId: tournament.id,
-          email: dbUser.email,
-          acceptedAt: null,
-        },
-        select: { token: true },
-      })
+    } else if (dbUser) {
+      // No token — check if the user's email or phone matches a pending invitation
+      const orConditions = [
+        ...(dbUser.email ? [{ email: dbUser.email }] : []),
+        ...(dbUser.phone ? [{ phone: dbUser.phone }] : []),
+      ]
+      const matchingInvitation = orConditions.length > 0
+        ? await prisma.invitation.findFirst({
+            where: {
+              tournamentId: tournament.id,
+              acceptedAt: null,
+              OR: orConditions,
+            },
+            select: { token: true },
+          })
+        : null
 
-      if (emailInvitation) {
-        resolvedToken = emailInvitation.token
+      if (matchingInvitation) {
+        resolvedToken = matchingInvitation.token
       } else {
         return (
           <TournamentMessage
             icon={Mail}
             heading="Invitation Required"
-            description="This tournament requires an invitation. Please use the link from your invite email."
+            description="This tournament requires an invitation. Please use the link from your invite email or text."
             backHref={`/${slug}`}
           />
         )
@@ -108,7 +114,7 @@ export default async function RegisterPage({
         <TournamentMessage
           icon={Mail}
           heading="Invitation Required"
-          description="This tournament requires an invitation. Please use the link from your invite email."
+          description="This tournament requires an invitation. Please use the link from your invite email or text."
           backHref={`/${slug}`}
         />
       )
