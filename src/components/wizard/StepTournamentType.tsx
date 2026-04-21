@@ -6,8 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
-import { Globe, Link2, Lock, Mail, Phone } from 'lucide-react'
-import { normalizePhone } from '@/lib/phone'
+import { Globe, Link2, Lock, Mail } from 'lucide-react'
 
 export type TournamentTypeValue = 'PUBLIC' | 'OPEN' | 'INVITE'
 
@@ -49,9 +48,7 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 export function StepTournamentType({ value, onChange }: Props) {
   const [emailInput, setEmailInput] = useState('')
-  const [phoneInput, setPhoneInput] = useState('')
   const [emailError, setEmailError] = useState('')
-  const [phoneError, setPhoneError] = useState('')
 
   const inviteList = value.inviteList ?? []
 
@@ -81,31 +78,6 @@ export function StepTournamentType({ value, onChange }: Props) {
       inviteEmails: [...value.inviteEmails, trimmed],
     })
     setEmailInput('')
-  }
-
-  function addPhone() {
-    const trimmed = phoneInput.trim()
-    if (!trimmed) return
-
-    const digits = trimmed.replace(/\D/g, '')
-    if (digits.length < 10) {
-      setPhoneError('Enter a valid phone number (at least 10 digits).')
-      return
-    }
-
-    const normalized = normalizePhone(trimmed)
-    if (inviteList.some((e) => e.value === normalized)) {
-      setPhoneError('Already added.')
-      return
-    }
-
-    setPhoneError('')
-    const entry: InviteEntry = { type: 'phone', value: normalized }
-    onChange({
-      ...value,
-      inviteList: [...inviteList, entry],
-    })
-    setPhoneInput('')
   }
 
   function removeEntry(entryValue: string) {
@@ -176,29 +148,12 @@ export function StepTournamentType({ value, onChange }: Props) {
             {emailError && <p className="text-xs text-destructive">{emailError}</p>}
           </div>
 
-          {/* Phone invites */}
-          <div className="space-y-2">
-            <Label className="flex items-center gap-1.5"><Phone className="w-3.5 h-3.5" /> Invite by Phone</Label>
-            <div className="flex gap-2">
-              <Input
-                type="tel"
-                placeholder="(555) 123-4567"
-                value={phoneInput}
-                onChange={(e) => { setPhoneInput(e.target.value); setPhoneError('') }}
-                onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), addPhone())}
-                className="flex-1"
-              />
-              <Button type="button" variant="outline" onClick={addPhone}>Add</Button>
-            </div>
-            {phoneError && <p className="text-xs text-destructive">{phoneError}</p>}
-          </div>
-
-          {/* Combined invite list */}
+          {/* Invite list */}
           {inviteList.length > 0 && (
             <div className="flex flex-wrap gap-1.5">
               {inviteList.map((entry) => (
                 <Badge key={entry.value} variant="secondary" className="gap-1 pr-1">
-                  {entry.type === 'phone' ? <Phone className="w-3 h-3" /> : <Mail className="w-3 h-3" />}
+                  <Mail className="w-3 h-3" />
                   {entry.value}
                   <button
                     type="button"
