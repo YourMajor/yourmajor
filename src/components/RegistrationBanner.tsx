@@ -68,7 +68,7 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
           </Link>
         ) : (
           <Link
-            href={`/auth/login?next=/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
+            href={`/auth/login?next=${encodeURIComponent(`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`)}`}
             className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
           >
             Sign in to Register

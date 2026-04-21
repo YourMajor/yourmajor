@@ -20,7 +20,8 @@ export default async function RegisterPage({
   const supabase = await createClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
 
-  if (!authUser) redirect(`/auth/login?next=/${slug}/register${token ? `?token=${token}` : ''}`)
+  if (!authUser) redirect(`/auth/login?next=${encodeURIComponent(`/${slug}/register${token ? `?token=${token}` : ''}`)}`)
+
 
   const [tournament, dbUser] = await Promise.all([
     prisma.tournament.findUnique({
