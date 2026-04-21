@@ -8,17 +8,11 @@ import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Phone } from 'lucide-react'
 import { sendLateInvites } from '@/app/(main)/tournaments/new/actions'
+import { normalizePhone } from '@/lib/phone'
 
 type InviteEntry = { type: 'email' | 'phone'; value: string }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  return `+${digits}`
-}
 
 export function InviteForm({ tournamentId, slug }: { tournamentId: string; slug: string }) {
   const router = useRouter()

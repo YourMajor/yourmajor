@@ -32,6 +32,12 @@ export async function leaveTournament(slug: string) {
 
   if (membership.isAdmin) {
     // Admins keep their record for access — just toggle off participation
+    // But clean up all participation data (scores, powerups, draft picks, notifications)
+    await prisma.score.deleteMany({ where: { tournamentPlayerId: membership.id } })
+    await prisma.roundPlayerTee.deleteMany({ where: { tournamentPlayerId: membership.id } })
+    await prisma.playerPowerup.deleteMany({ where: { tournamentPlayerId: membership.id } })
+    await prisma.draftPick.deleteMany({ where: { tournamentPlayerId: membership.id } })
+    await prisma.notification.deleteMany({ where: { tournamentPlayerId: membership.id } })
     await prisma.tournamentPlayer.update({
       where: { id: membership.id },
       data: { isParticipant: false },
@@ -42,6 +48,16 @@ export async function leaveTournament(slug: string) {
       where: { id: membership.id },
     })
   }
+
+  // Reset invitation so the user can re-register
+  await prisma.invitation.updateMany({
+    where: {
+      tournamentId: tournament.id,
+      userId: user.id,
+      acceptedAt: { not: null },
+    },
+    data: { acceptedAt: null, userId: null },
+  })
 
   revalidatePath(`/${slug}`)
   redirect(`/${slug}`)

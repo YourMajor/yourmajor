@@ -10,6 +10,7 @@ import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
 import { Mail, Phone } from 'lucide-react'
 import { sendLateInvites, setTournamentStatus } from '@/app/(main)/tournaments/new/actions'
+import { normalizePhone } from '@/lib/phone'
 
 type InviteEntry = { type: 'email' | 'phone'; value: string }
 
@@ -21,13 +22,6 @@ interface Props {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  return `+${digits}`
-}
 
 export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props) {
   const router = useRouter()

@@ -126,14 +126,20 @@ export default async function TournamentPage({
 
   let inviteToken: string | null = null
   if (user && !isRegistered && !tournament.isOpenRegistration && effectiveStatus === 'REGISTRATION') {
-    const invitation = await prisma.invitation.findFirst({
-      where: {
-        tournamentId: tournament.id,
-        email: user.email,
-        acceptedAt: null,
-      },
-      select: { token: true },
-    })
+    const orConditions = [
+      ...(user.email ? [{ email: user.email }] : []),
+      ...(user.phone ? [{ phone: user.phone }] : []),
+    ]
+    const invitation = orConditions.length > 0
+      ? await prisma.invitation.findFirst({
+          where: {
+            tournamentId: tournament.id,
+            acceptedAt: null,
+            OR: orConditions,
+          },
+          select: { token: true },
+        })
+      : null
     inviteToken = invitation?.token ?? null
   }
 

@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Globe, Link2, Lock, Mail, Phone } from 'lucide-react'
+import { normalizePhone } from '@/lib/phone'
 
 export type TournamentTypeValue = 'PUBLIC' | 'OPEN' | 'INVITE'
 
@@ -45,13 +46,6 @@ const TYPES = [
 ] as const
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-
-function normalizePhone(raw: string): string {
-  const digits = raw.replace(/\D/g, '')
-  if (digits.length === 10) return `+1${digits}`
-  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`
-  return `+${digits}`
-}
 
 export function StepTournamentType({ value, onChange }: Props) {
   const [emailInput, setEmailInput] = useState('')

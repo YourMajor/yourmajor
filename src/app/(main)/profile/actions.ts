@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { createClient } from '@/utils/supabase/server'
 import { supabaseAdmin } from '@/lib/supabase'
+import { normalizePhone } from '@/lib/phone'
 
 export async function updateProfile(
   formData: FormData
@@ -17,7 +18,8 @@ export async function updateProfile(
   const email = (formData.get('email') as string | null)?.trim() ?? ''
   const handicapStr = formData.get('handicap') as string | null
   const handicap = handicapStr !== null ? parseFloat(handicapStr) : null
-  const phone = (formData.get('phone') as string | null)?.trim() || null
+  const rawPhone = (formData.get('phone') as string | null)?.trim() || null
+  const phone = rawPhone ? normalizePhone(rawPhone) : null
   const smsNotifications = formData.get('smsNotifications') === '1'
 
   if (!firstName) return { error: 'First name is required' }
