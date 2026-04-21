@@ -213,6 +213,10 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           leagueEndDate: basicInfo.leagueEndDate || undefined,
           registrationDeadline: basicInfo.registrationDeadline || undefined,
         })
+        if ('error' in result) {
+          setError(result.error)
+          return
+        }
         router.push(`/${result.slug}`)
       } catch (e) {
         console.error('[create tournament]', e)

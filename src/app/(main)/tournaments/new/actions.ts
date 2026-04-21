@@ -88,22 +88,22 @@ async function generateSlug(name: string): Promise<string> {
   return `${base}-${i}`
 }
 
-export async function createTournamentFromWizard(data: WizardPayload): Promise<{ slug: string }> {
+export async function createTournamentFromWizard(data: WizardPayload): Promise<{ slug: string } | { error: string }> {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
   // Validate round dates
   if (data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
-    throw new Error('Start date must be before end date.')
+    return { error: 'Start date must be before end date.' }
   }
   for (const r of data.rounds) {
     if (r.date) {
       const roundDate = new Date(r.date)
       if (data.startDate && roundDate < new Date(new Date(data.startDate).setHours(0, 0, 0, 0))) {
-        throw new Error(`Round ${r.roundNumber} date is before the tournament start date.`)
+        return { error: `Round ${r.roundNumber} date is before the tournament start date.` }
       }
       if (data.endDate && roundDate > new Date(new Date(data.endDate).setHours(23, 59, 59, 999))) {
-        throw new Error(`Round ${r.roundNumber} date is after the tournament end date.`)
+        return { error: `Round ${r.roundNumber} date is after the tournament end date.` }
       }
     }
   }
@@ -123,11 +123,11 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       },
     })
     if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
-      throw new Error(
+      return { error:
         userTier.tier === 'FREE'
           ? 'Free accounts are limited to 1 tournament per month. Upgrade to Pro, Club, or Tour for more.'
           : `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`
-      )
+      }
     }
   }
 
@@ -145,12 +145,12 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
 
   // Free tier: block powerups
   if (!tierLimits.powerups && data.powerupsEnabled) {
-    throw new Error('Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,499/year).')
+    return { error: 'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,499/year).' }
   }
 
   // Free tier: cap rounds
   if (data.numRounds > tierLimits.maxRounds) {
-    throw new Error(`Your plan supports up to ${tierLimits.maxRounds} round(s). Upgrade for multi-round tournaments.`)
+    return { error: `Your plan supports up to ${tierLimits.maxRounds} round(s). Upgrade for multi-round tournaments.` }
   }
 
   const needsPro =
@@ -297,7 +297,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   })
   } catch (err) {
     console.error('[createTournamentFromWizard] transaction failed:', err)
-    throw new Error(friendlyPrismaError(err))
+    return { error: friendlyPrismaError(err) }
   }
 
   // Consume a Pro credit if this tournament uses pro features and user is not on Tour or Club
