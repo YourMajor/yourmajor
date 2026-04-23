@@ -35,36 +35,44 @@ type HandicapSystem = typeof SYSTEMS[number]['id']
 interface Props {
   value: HandicapSystem
   onChange: (v: HandicapSystem) => void
+  isFree?: boolean
 }
 
-export function StepHandicap({ value, onChange }: Props) {
+export function StepHandicap({ value, onChange, isFree = false }: Props) {
   return (
     <div className="space-y-3">
       <p className="text-sm text-muted-foreground">Choose the handicap system for this tournament. This determines how net scores are calculated.</p>
-      {SYSTEMS.map((s) => (
-        <Card
-          key={s.id}
-          onClick={() => onChange(s.id)}
-          className={`cursor-pointer transition-all ${value === s.id ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/5' : 'hover:bg-muted/40'}`}
-        >
-          <CardContent className="pt-4 pb-4">
-            <div className="flex items-start gap-3">
-              <input
-                type="radio"
-                name="handicapSystem"
-                value={s.id}
-                checked={value === s.id}
-                onChange={() => onChange(s.id)}
-                className="mt-0.5 shrink-0"
-              />
-              <div>
-                <p className="text-sm font-semibold">{s.name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+      {SYSTEMS.map((s) => {
+        const locked = isFree && s.id !== 'NONE'
+        return (
+          <Card
+            key={s.id}
+            onClick={() => !locked && onChange(s.id)}
+            className={`transition-all ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${value === s.id ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/5' : locked ? '' : 'hover:bg-muted/40'}`}
+          >
+            <CardContent className="pt-4 pb-4">
+              <div className="flex items-start gap-3">
+                <input
+                  type="radio"
+                  name="handicapSystem"
+                  value={s.id}
+                  checked={value === s.id}
+                  onChange={() => !locked && onChange(s.id)}
+                  disabled={locked}
+                  className="mt-0.5 shrink-0"
+                />
+                <div>
+                  <p className="text-sm font-semibold">
+                    {s.name}
+                    {locked && <span className="ml-2 text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Pro / Tour</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-0.5">{s.description}</p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
-      ))}
+            </CardContent>
+          </Card>
+        )
+      })}
     </div>
   )
 }

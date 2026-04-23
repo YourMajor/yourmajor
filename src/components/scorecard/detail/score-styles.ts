@@ -10,9 +10,9 @@ export function getScoreType(strokes: number, par: number): ScoreType {
 }
 
 export const SCORE_STYLE: Record<ScoreType, { cell: string; text: string; dot: string; doubleRing?: string }> = {
-  eagle:  { cell: 'rounded-full border-2 border-red-500',               text: 'text-red-600',    dot: '#b8860b', doubleRing: 'rounded-full border-2 border-red-500' },
-  birdie: { cell: 'rounded-full border-2 border-red-500',               text: 'text-red-600',    dot: '#dc2626' },
-  par:    { cell: 'border border-border/40 rounded-sm',                  text: 'text-foreground', dot: '#6b7280' },
-  bogey:  { cell: 'border-2 border-gray-700 rounded-none',              text: 'text-foreground', dot: '#374151' },
-  double: { cell: 'border-2 border-gray-700 rounded-none',              text: 'text-gray-600',   dot: '#1f2937', doubleRing: 'border-2 border-gray-700 rounded-none' },
+  eagle:  { cell: 'rounded-full border-2 border-score-eagle',            text: 'text-score-eagle',  dot: 'var(--score-eagle)',  doubleRing: 'rounded-full border-2 border-score-eagle' },
+  birdie: { cell: 'rounded-full border-2 border-score-birdie',           text: 'text-score-birdie', dot: 'var(--score-birdie)' },
+  par:    { cell: 'border border-border/40 rounded-sm',                  text: 'text-score-par',    dot: 'var(--score-par)' },
+  bogey:  { cell: 'border-2 border-score-bogey rounded-none',            text: 'text-score-bogey',  dot: 'var(--score-bogey)' },
+  double: { cell: 'border-2 border-score-double rounded-none',           text: 'text-score-double', dot: 'var(--score-double)', doubleRing: 'border-2 border-score-double rounded-none' },
 }

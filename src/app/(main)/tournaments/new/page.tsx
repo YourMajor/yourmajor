@@ -2,7 +2,6 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getUserTier } from '@/lib/stripe'
 import { TournamentWizard, type RenewalDefaults } from './TournamentWizard'
-import { TIER_LIMITS } from '@/lib/tiers'
 
 export default async function NewTournamentPage({
   searchParams,

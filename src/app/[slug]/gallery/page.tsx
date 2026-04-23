@@ -34,7 +34,7 @@ export default async function GalleryPage({
     user
       ? prisma.tournamentPlayer.findUnique({
           where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-          select: { id: true },
+          select: { id: true, isAdmin: true },
         })
       : null,
     prisma.tournamentPhoto.findMany({
@@ -67,6 +67,7 @@ export default async function GalleryPage({
         tournamentId={tournament.id}
         currentUserId={user?.id ?? null}
         isRegistered={!!membership}
+        isAdmin={membership?.isAdmin || user?.role === 'ADMIN'}
         initialPhotos={initialPhotos}
         tournamentFilters={tournamentFilters}
       />

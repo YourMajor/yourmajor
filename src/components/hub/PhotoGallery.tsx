@@ -3,6 +3,7 @@
 import { useRef, useState } from 'react'
 import Link from 'next/link'
 import { Input } from '@/components/ui/input'
+import { Trash2 } from 'lucide-react'
 
 interface Photo {
   id: string
@@ -22,13 +23,14 @@ interface Props {
   tournamentId: string
   currentUserId: string | null
   isRegistered: boolean
+  isAdmin?: boolean
   initialPhotos: Photo[]
   tournamentFilters?: TournamentFilter[]
 }
 
 const SKELETON_ID = '__skeleton__'
 
-export function PhotoGallery({ tournamentId, currentUserId, isRegistered, initialPhotos, tournamentFilters }: Props) {
+export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmin, initialPhotos, tournamentFilters }: Props) {
   const [photos, setPhotos] = useState<Photo[]>(initialPhotos)
   const [caption, setCaption] = useState('')
   const [pendingFile, setPendingFile] = useState<File | null>(null)
@@ -129,6 +131,20 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, initia
       setError('Failed to load photos')
     } finally {
       setFilterLoading(false)
+    }
+  }
+
+  async function handleDeletePhoto(photoId: string) {
+    if (!confirm('Delete this photo?')) return
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/photos/${photoId}`, { method: 'DELETE' })
+      if (res.ok) {
+        setPhotos((prev) => prev.filter((p) => p.id !== photoId))
+      } else {
+        setError('Failed to delete photo')
+      }
+    } catch {
+      setError('Failed to delete photo')
     }
   }
 
@@ -255,7 +271,17 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, initia
           )}
 
           {realPhotos.map((photo) => (
-            <div key={photo.id} className="rounded-md overflow-hidden border border-border bg-muted/30">
+            <div key={photo.id} className="group relative rounded-md overflow-hidden border border-border bg-muted/30">
+              {isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => handleDeletePhoto(photo.id)}
+                  className="absolute top-1.5 right-1.5 z-10 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
+                  title="Delete photo"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+              )}
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={photo.url} alt={photo.caption ?? ''} className="w-full h-36 object-cover" />
               <div className="p-2">

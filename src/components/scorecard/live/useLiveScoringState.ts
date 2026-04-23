@@ -328,8 +328,8 @@ export function useLiveScoringState({
   const incrementPutts = useCallback(() => {
     if (!currentHole) return
     const score = scores[currentHole.id]
-    const currentPutts = score.putts ?? 1 // first tap goes to 2
-    const newPutts = score.putts === null ? 2 : currentPutts + 1
+    const currentPutts = score.putts ?? 0
+    const newPutts = score.putts === null ? 1 : currentPutts + 1
     if (!isValidPutts(newPutts, score.strokes)) {
       triggerRejection('putts')
       return
@@ -344,7 +344,7 @@ export function useLiveScoringState({
     if (!currentHole) return
     const score = scores[currentHole.id]
     const newPutts =
-      score.putts === null ? 2 : Math.max(0, score.putts - 1)
+      score.putts === null ? 0 : Math.max(0, score.putts - 1)
     updateScore(currentHole.id, (prev) => {
       const newGir = computeGir(prev.strokes, newPutts, currentHole.par)
       return { ...prev, putts: newPutts, gir: newGir }

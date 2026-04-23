@@ -5,7 +5,7 @@ import { getUser } from '@/lib/auth'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { buttonVariants } from '@/components/ui/button-variants'
-import { CreditCard, Receipt, Crown, Zap, Users } from 'lucide-react'
+import { Receipt, Crown, Zap, Users } from 'lucide-react'
 import { ManageSubscriptionButton } from './ManageSubscriptionButton'
 
 export const metadata = {

@@ -52,7 +52,6 @@ export function TournamentShell({
   galleryImages = [],
   champions = [],
   hasVault = false,
-  canLeave = false,
   children,
 }: TournamentShellProps) {
   const [menuOpen, setMenuOpen] = useState(false)

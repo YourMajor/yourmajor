@@ -8,14 +8,17 @@ import { maybeAutoAdvanceStatus } from '@/lib/tournament-status'
 import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
 import { TournamentStats } from '@/components/leaderboard/TournamentStats'
 import { RegistrationBanner } from '@/components/RegistrationBanner'
-import Link from 'next/link'
+import { UpgradeSuccessBanner } from '@/components/UpgradeSuccessBanner'
 
 export default async function TournamentPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>
+  searchParams: Promise<{ upgraded?: string }>
 }) {
   const { slug } = await params
+  const { upgraded } = await searchParams
 
   const tournament = await prisma.tournament.findUnique({
     where: { slug },
@@ -161,6 +164,8 @@ export default async function TournamentPage({
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      {upgraded === 'true' && <UpgradeSuccessBanner slug={slug} />}
+
       {/* Registration — register / unregister / scoring availability */}
       <RegistrationBanner
         slug={slug}

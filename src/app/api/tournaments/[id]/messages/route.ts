@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { checkRateLimit } from '@/lib/rate-limit'
 
 export async function GET(
   _req: NextRequest,
@@ -8,7 +9,7 @@ export async function GET(
 ) {
   const { id } = await params
   const messages = await prisma.tournamentMessage.findMany({
-    where: { tournamentId: id },
+    where: { tournamentId: id, deletedAt: null },
     orderBy: { createdAt: 'asc' },
     take: 100,
     select: {
@@ -16,6 +17,7 @@ export async function GET(
       content: true,
       isSystem: true,
       createdAt: true,
+      userId: true,
       user: { select: { name: true, image: true } },
     },
   })
@@ -38,6 +40,45 @@ export async function POST(
     where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
   })
   if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
+
+  // Check if user is banned from chat
+  const ban = await prisma.chatBan.findUnique({
+    where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
+  })
+  if (ban) {
+    if (!ban.expiresAt || ban.expiresAt > new Date()) {
+      return NextResponse.json(
+        { error: 'You are restricted from chatting', expiresAt: ban.expiresAt },
+        { status: 403 },
+      )
+    }
+    // Ban expired — clean it up
+    await prisma.chatBan.delete({ where: { id: ban.id } })
+  }
+
+  // Rate limit: 5 messages in 10 seconds triggers a 3-minute auto-mute
+  if (checkRateLimit(`${id}:${user.id}`)) {
+    const expiresAt = new Date(Date.now() + 3 * 60 * 1000)
+    await prisma.chatBan.upsert({
+      where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
+      create: {
+        tournamentId: id,
+        userId: user.id,
+        reason: 'Auto-muted: sending messages too quickly',
+        expiresAt,
+        createdBy: 'system',
+      },
+      update: {
+        reason: 'Auto-muted: sending messages too quickly',
+        expiresAt,
+        createdBy: 'system',
+      },
+    })
+    return NextResponse.json(
+      { error: 'Slow down — you are temporarily muted', expiresAt },
+      { status: 429 },
+    )
+  }
 
   const message = await prisma.tournamentMessage.create({
     data: { tournamentId: id, userId: user.id, content: content.trim() },

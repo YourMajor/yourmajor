@@ -42,7 +42,7 @@ export function StepperInput({
         <button
           type="button"
           onClick={onDecrement}
-          className={`${btnSize} rounded-full bg-white/25 text-white font-bold flex items-center justify-center active:scale-90 transition-transform touch-manipulation`}
+          className={`${btnSize} rounded-full bg-white/25 text-white font-bold flex items-center justify-center active:scale-90 active:bg-white/40 transition-all touch-manipulation`}
           aria-label={`Decrease ${label}`}
         >
           &minus;
@@ -55,7 +55,7 @@ export function StepperInput({
         <button
           type="button"
           onClick={onIncrement}
-          className={`${btnSize} rounded-full bg-white/25 text-white font-bold flex items-center justify-center active:scale-90 transition-transform touch-manipulation`}
+          className={`${btnSize} rounded-full bg-white/25 text-white font-bold flex items-center justify-center active:scale-90 active:bg-white/40 transition-all touch-manipulation`}
           aria-label={`Increase ${label}`}
         >
           +

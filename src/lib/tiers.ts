@@ -26,7 +26,7 @@ export const TIER_LIMITS: Record<PricingTier, TierLimits> = {
     gps: false,
     insights: false,
     colorSelection: false,
-    maxTournamentsPerMonth: 1,
+    maxTournamentsPerMonth: Infinity,
   },
   PRO: {
     maxPlayers: 72,
@@ -82,7 +82,7 @@ export const TIER_FEATURES: Record<PricingTier, string[]> = {
     '1 round per tournament',
     'Real-time leaderboard',
     'Tournament chat',
-    'All 4 handicap systems',
+    'Gross scoring only',
     'Shareable tournament link',
   ],
   PRO: [
@@ -113,12 +113,12 @@ export const TIER_FEATURES: Record<PricingTier, string[]> = {
 /** What each tier does NOT include — shown on pricing page */
 export const TIER_NEGATIVES: Record<PricingTier, string[]> = {
   FREE: [
+    'Gross scoring only — no handicap systems',
     'No powerups or draft',
     'No custom branding',
     'No GPS/yardages',
     'No gallery uploads',
     'Limited stats — no insights',
-    '1 tournament per month',
   ],
   PRO: [
     'No season-long standings',
@@ -141,10 +141,10 @@ export const COMPARISON_FEATURES: Array<{
 }> = [
   { label: 'Players per tournament', free: 'Up to 16', pro: 'Up to 72', club: 'Up to 72', tour: 'Up to 144' },
   { label: 'Rounds per tournament', free: '1', pro: 'Up to 4', club: 'Up to 4', tour: 'Unlimited' },
-  { label: 'Tournaments per month', free: '1', pro: 'Per credit', club: 'Up to 4', tour: 'Unlimited' },
+  { label: 'Tournaments per month', free: 'Unlimited', pro: 'Per credit', club: 'Up to 4', tour: 'Unlimited' },
   { label: 'Real-time leaderboard', free: true, pro: true, club: true, tour: true },
   { label: 'Tournament chat', free: true, pro: true, club: true, tour: true },
-  { label: 'Handicap systems', free: true, pro: true, club: true, tour: true },
+  { label: 'Handicap systems', free: 'Gross only', pro: true, club: true, tour: true },
   { label: 'Shareable link', free: true, pro: true, club: true, tour: true },
   { label: 'Powerups & draft', free: false, pro: true, club: true, tour: true },
   { label: 'Custom branding & colors', free: false, pro: true, club: true, tour: true },

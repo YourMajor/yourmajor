@@ -24,7 +24,6 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
   const [isPending, startTransition] = useTransition()
 
   const isPreTournament = status === 'REGISTRATION'
-  const isActive = status === 'ACTIVE'
   const registrationOpen = !registrationClosed && status !== 'COMPLETED'
 
   // Compute days until start

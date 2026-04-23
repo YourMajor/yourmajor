@@ -13,7 +13,7 @@ interface Props {
   slug: string
 }
 
-export function GoLiveButton({ tournamentId, slug }: Props) {
+export function GoLiveButton({ tournamentId }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [confirmOpen, setConfirmOpen] = useState(false)

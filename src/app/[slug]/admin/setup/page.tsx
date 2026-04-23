@@ -1,8 +1,5 @@
-import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { supabaseAdmin } from '@/lib/supabase'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -11,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { ColorDonutForm } from '@/components/ui/color-donut-form'
 import { DeleteTournamentButton } from './DeleteTournamentButton'
 import { ResetDraftButton } from './ResetDraftButton'
+import { updateTournament } from './actions'
 export default async function TournamentSetup({
   params,
 }: {
@@ -35,82 +33,7 @@ export default async function TournamentSetup({
   const isActive = tournament.status === 'ACTIVE'
   const isCompleted = tournament.status === 'COMPLETED'
 
-  async function updateTournament(formData: FormData) {
-    'use server'
-    const { slug: currentSlug } = await params
-
-    const name = formData.get('name') as string
-    const newSlug = (formData.get('slug') as string).toLowerCase().replace(/[^a-z0-9-]/g, '-')
-    const primaryColor = formData.get('primaryColor') as string
-    const accentColor = formData.get('accentColor') as string
-    const requestedHandicap = formData.get('handicapSystem') as string
-
-    // Re-fetch current state server-side for guards
-    const currentTournament = await prisma.tournament.findUnique({ where: { id: tournament!.id } })
-    const serverScoreCount = await prisma.score.count({
-      where: { round: { tournamentId: tournament!.id } },
-    })
-    const serverHasScores = serverScoreCount > 0
-
-    // Guard: don't allow handicap system change once scores exist
-    const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : requestedHandicap
-
-    // If powerups are locked (draft started or cards dealt), preserve existing values
-    const currentDraft = await prisma.draft.findUnique({ where: { tournamentId: tournament!.id } })
-    const currentDealtCount = await prisma.playerPowerup.count({
-      where: { tournamentPlayer: { tournamentId: tournament!.id } },
-    })
-    const isLocked = !!(currentDraft?.status === 'ACTIVE' || currentDraft?.status === 'COMPLETED' || currentDealtCount > 0)
-
-    const powerupsEnabled = isLocked ? currentTournament!.powerupsEnabled : formData.get('powerupsEnabled') === 'on'
-    const powerupsPerPlayer = isLocked ? currentTournament!.powerupsPerPlayer : (parseInt(formData.get('powerupsPerPlayer') as string) || 3)
-    const maxAttacksPerPlayer = isLocked ? currentTournament!.maxAttacksPerPlayer : (parseInt(formData.get('maxAttacksPerPlayer') as string) || 1)
-    const distributionMode = isLocked ? currentTournament!.distributionMode : (formData.get('distributionMode') as string || 'DRAFT')
-    const startDate = formData.get('startDate') as string
-    const endDate = formData.get('endDate') as string
-    const logoFile = formData.get('logo') as File
-
-    let logoUrl = tournament!.logo
-
-    if (logoFile?.size > 0) {
-      const ext = logoFile.name.split('.').pop()
-      const path = `${tournament!.id}.${ext}`
-      const buffer = Buffer.from(await logoFile.arrayBuffer())
-
-      const { error } = await supabaseAdmin.storage
-        .from('logos')
-        .upload(path, buffer, { contentType: logoFile.type, upsert: true })
-
-      if (!error) {
-        const { data } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
-        logoUrl = data.publicUrl
-      }
-    }
-
-    await prisma.tournament.update({
-      where: { id: tournament!.id },
-      data: {
-        name,
-        slug: newSlug,
-        primaryColor,
-        accentColor,
-        handicapSystem: handicapSystem as 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA',
-        powerupsEnabled,
-        powerupsPerPlayer,
-        maxAttacksPerPlayer,
-        distributionMode: distributionMode as 'DRAFT' | 'RANDOM',
-        startDate: startDate ? new Date(startDate) : null,
-        endDate: endDate ? new Date(endDate) : null,
-        logo: logoUrl,
-      },
-    })
-
-    revalidatePath(`/${newSlug}/admin/setup`)
-
-    if (newSlug !== currentSlug) {
-      redirect(`/${newSlug}/admin/setup`)
-    }
-  }
+  const updateTournamentAction = updateTournament.bind(null, tournament.id, slug, tournament.logo, tournament.headerImage)
 
   const fmt = (d: Date | null) => (d ? new Date(d).toISOString().split('T')[0] : '')
 
@@ -124,7 +47,7 @@ export default async function TournamentSetup({
         <h1 className="text-2xl font-heading font-bold">Tournament Setup</h1>
       </div>
 
-      <form action={updateTournament} className="space-y-6">
+      <form action={updateTournamentAction} className="space-y-6">
         {/* ── Basic Info ── */}
         <Card>
           <CardHeader>
@@ -217,6 +140,16 @@ export default async function TournamentSetup({
                 <img src={tournament.logo} alt="Logo" className="h-10 object-contain mb-2" />
               )}
               <Input id="logo" name="logo" type="file" accept="image/*" />
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <Label htmlFor="headerImage">Banner Image</Label>
+              <p className="text-xs text-muted-foreground">Displayed at 30% opacity behind your brand color in the header bar. Wide landscape images work best.</p>
+              {tournament.headerImage && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={tournament.headerImage} alt="Banner" className="h-16 w-full object-cover rounded-md mb-2" />
+              )}
+              <Input id="headerImage" name="headerImage" type="file" accept="image/*" />
             </div>
             <Separator />
             <ColorDonutForm

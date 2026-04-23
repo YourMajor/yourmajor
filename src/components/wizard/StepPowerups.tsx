@@ -4,6 +4,7 @@ import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { PowerupsInfoPanel } from './PowerupsInfoPanel'
 
 export type PowerupsState = {
   powerupsEnabled: boolean
@@ -26,6 +27,8 @@ export function StepPowerups({ value, onChange }: Props) {
 
   return (
     <div className="space-y-4">
+      <PowerupsInfoPanel />
+
       <Card>
         <CardContent className="pt-4">
           <div className="flex items-center justify-between">

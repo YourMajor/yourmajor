@@ -42,7 +42,7 @@ function inferTypeFromDefaults(d: RenewalDefaults): 'PUBLIC' | 'OPEN' | 'INVITE'
   return 'OPEN'
 }
 
-export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE', proCredits = 0, requiresUpgrade = false }: Props & { hasLeague?: boolean }) {
+export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE', requiresUpgrade = false }: Props & { hasLeague?: boolean }) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
@@ -91,7 +91,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   const [rounds, setRounds] = useState<RoundState[]>(defaultRounds)
 
   const [handicapSystem, setHandicapSystem] = useState<'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'>(
-    renewalDefaults?.handicapSystem ?? 'WHS'
+    userTier === 'FREE' ? 'NONE' : (renewalDefaults?.handicapSystem ?? 'WHS')
   )
 
   const [powerups, setPowerups] = useState<PowerupsState>({
@@ -217,7 +217,11 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           setError(result.error)
           return
         }
-        router.push(`/${result.slug}`)
+        if (userTier === 'FREE') {
+          router.push(`/tournaments/new/upgrade/${result.slug}`)
+        } else {
+          router.push(`/${result.slug}`)
+        }
       } catch (e) {
         console.error('[create tournament]', e)
         setError(e instanceof Error ? e.message : 'Something went wrong. Please try again.')
@@ -250,7 +254,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 2:
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} startDate={basicInfo.startDate || undefined} endDate={basicInfo.endDate || undefined} isOpenRegistration={isPublic} />
       case 3:
-        return <StepHandicap value={handicapSystem} onChange={setHandicapSystem} />
+        return <StepHandicap value={handicapSystem} onChange={setHandicapSystem} isFree={isFree} />
       case 4:
         // Only reached for non-public tournaments
         return <StepPowerups value={powerups} onChange={setPowerups} />
@@ -295,6 +299,9 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       </div>
 
       {/* Step progress */}
+      <p className="text-xs text-muted-foreground mb-2 sm:hidden">
+        Step {step + 1} of {steps.length} — {steps[step].label}
+      </p>
       <div className="flex items-center gap-1 mb-8">
         {steps.map((s, i) => (
           <div key={i} className="flex items-center flex-1 last:flex-none">
@@ -307,7 +314,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
                   : 'bg-muted text-muted-foreground'
               }`}
             >
-              {i < step ? '✓' : s.short}
+              {i < step ? '\u2713' : s.short}
             </div>
             <span className={`hidden sm:block ml-1.5 text-xs ${i === step ? 'font-medium' : 'text-muted-foreground'}`}>{s.label}</span>
             {i < steps.length - 1 && (

@@ -26,8 +26,8 @@ function getScoreType(strokes: number | null, par: number): ScoreType {
 }
 
 const SCORE_BADGE_STYLE: Record<ScoreType, string> = {
-  eagle: 'bg-yellow-400/20 text-yellow-300 border-yellow-400/40',
-  birdie: 'bg-red-400/20 text-red-300 border-red-400/40',
+  eagle: 'bg-[var(--score-eagle)]/20 text-[var(--score-eagle)] border-[var(--score-eagle)]/40',
+  birdie: 'bg-[var(--score-birdie)]/20 text-[var(--score-birdie)] border-[var(--score-birdie)]/40',
   par: 'bg-white/10 text-white/80 border-white/20',
   bogey: 'bg-white/5 text-white/60 border-white/10',
   double: 'bg-white/5 text-white/50 border-white/10',

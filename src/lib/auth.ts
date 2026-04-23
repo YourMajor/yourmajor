@@ -24,3 +24,13 @@ export async function requireAdmin(): Promise<User> {
   if (user.role !== 'ADMIN') throw new Error('Forbidden')
   return user
 }
+
+export async function isTournamentAdmin(userId: string, tournamentId: string): Promise<boolean> {
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
+  if (user?.role === 'ADMIN') return true
+  const membership = await prisma.tournamentPlayer.findUnique({
+    where: { tournamentId_userId: { tournamentId, userId } },
+    select: { isAdmin: true },
+  })
+  return membership?.isAdmin ?? false
+}

@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import Stripe from 'stripe'
-import { stripe } from '@/lib/stripe'
+import type Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 
 export async function POST(request: NextRequest) {
@@ -13,6 +12,8 @@ export async function POST(request: NextRequest) {
 
   let event: Stripe.Event
   try {
+    const { default: StripeSDK } = await import('stripe')
+    const stripe = new StripeSDK(process.env.STRIPE_SECRET_KEY!)
     event = stripe.webhooks.constructEvent(body, sig, process.env.STRIPE_WEBHOOK_SECRET!)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

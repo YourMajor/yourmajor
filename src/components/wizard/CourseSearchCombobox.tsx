@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect } from 'react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Label } from '@/components/ui/label'
@@ -33,8 +33,6 @@ export function CourseSearchCombobox({ label = 'Course', onSelect, selected }: P
   const [customHolePars, setCustomHolePars] = useState<number[]>(Array(18).fill(4))
   const [customTeeName, setCustomTeeName] = useState('White')
   const [customHoleYardages, setCustomHoleYardages] = useState<number[]>(Array(18).fill(350))
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
-
   const holeCount = parseInt(customHoles)
   const computedPar = customHolePars.slice(0, holeCount).reduce((a, b) => a + b, 0)
 
@@ -43,16 +41,20 @@ export function CourseSearchCombobox({ label = 'Course', onSelect, selected }: P
       setResults([])
       return
     }
-    if (debounceRef.current) clearTimeout(debounceRef.current)
-    debounceRef.current = setTimeout(async () => {
+    const timeout = setTimeout(async () => {
       setLoading(true)
       try {
         const res = await fetch(`/api/courses/search?q=${encodeURIComponent(query)}`)
-        if (res.ok) setResults(await res.json())
+        if (res.ok) {
+          const data = await res.json()
+          setResults(data)
+          setOpen(true)
+        }
       } finally {
         setLoading(false)
       }
     }, 300)
+    return () => clearTimeout(timeout)
   }, [query])
 
   async function handleSelect(result: CourseSearchResult) {

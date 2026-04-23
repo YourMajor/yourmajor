@@ -146,8 +146,17 @@ export function TournamentNavBar({
     <>
       {/* ── Nav bar ── */}
       <header className="tournament-header sticky top-0 z-50">
-        <div className="relative">
-          <div className="max-w-7xl mx-auto px-4 py-2.5 flex items-center">
+        <div className="relative overflow-hidden">
+          {/* Banner image overlay at 30% opacity */}
+          {headerImage && (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={headerImage}
+              alt=""
+              className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
+            />
+          )}
+          <div className="relative max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center">
             {/* LEFT */}
             <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
               <button
@@ -163,12 +172,12 @@ export function TournamentNavBar({
 
             {/* CENTER */}
             <Link href={`/${slug}`} className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
-              <div className="tournament-logo-badge w-8 h-8 sm:w-10 sm:h-10 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+              <div className="tournament-logo-badge w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center overflow-hidden shrink-0">
                 {logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img src={logo} alt="" className="w-full h-full object-cover" />
                 ) : (
-                  <span className="w-full h-full flex items-center justify-center text-sm sm:text-base font-heading font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
+                  <span className="w-full h-full flex items-center justify-center text-lg sm:text-xl font-heading font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
                     {tournamentName.charAt(0).toUpperCase()}
                   </span>
                 )}
@@ -217,7 +226,7 @@ export function TournamentNavBar({
               )}
             </div>
           </div>
-          <div className="h-[2px]" style={{ backgroundColor: 'var(--color-accent)' }} />
+          <div className="relative h-[2px]" style={{ backgroundColor: 'var(--color-accent)' }} />
         </div>
       </header>
 

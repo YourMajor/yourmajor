@@ -3,13 +3,13 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { Prisma } from '@/generated/prisma/client'
+import { Prisma, type User } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
 import { supabaseAdmin } from '@/lib/supabase'
 import { generateJoinCode } from '@/lib/join-code'
 import { Resend } from 'resend'
 import { TIER_LIMITS } from '@/lib/tiers'
-import { getUserTier, consumeProCredit } from '@/lib/stripe'
+import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
 import { sendSMS } from '@/lib/sms'
 
 function friendlyPrismaError(err: unknown): string {
@@ -92,6 +92,15 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
+  try {
+  return await _createTournament(data, user)
+  } catch (err) {
+    console.error('[createTournamentFromWizard] unexpected error:', err)
+    return { error: friendlyPrismaError(err) }
+  }
+}
+
+async function _createTournament(data: WizardPayload, user: User): Promise<{ slug: string } | { error: string }> {
   // Validate round dates
   if (data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
     return { error: 'Start date must be before end date.' }
@@ -123,11 +132,7 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       },
     })
     if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
-      return { error:
-        userTier.tier === 'FREE'
-          ? 'Free accounts are limited to 1 tournament per month. Upgrade to Pro, Club, or Tour for more.'
-          : `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`
-      }
+      return { error: `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.` }
     }
   }
 
@@ -143,6 +148,11 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
     data.headerExt = null
   }
 
+  // Free tier: force gross-only scoring
+  if (userTier.tier === 'FREE' && data.handicapSystem !== 'NONE') {
+    data.handicapSystem = 'NONE'
+  }
+
   // Free tier: block powerups
   if (!tierLimits.powerups && data.powerupsEnabled) {
     return { error: 'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,499/year).' }
@@ -156,6 +166,15 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
   const needsPro =
     data.numRounds > TIER_LIMITS.FREE.maxRounds ||
     data.powerupsEnabled
+
+  // Verify credit availability before doing any work
+  const requiresCredit = needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB'
+  if (requiresCredit) {
+    const credits = await getUnusedProCredits(user.id)
+    if (credits === 0) {
+      return { error: 'You have no Pro credits remaining. Purchase a credit to create this tournament.' }
+    }
+  }
 
   const slug = await generateSlug(data.name)
 
@@ -293,24 +312,20 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
       })
     }
 
+    // Consume Pro credit inside the transaction so it's atomic with
+    // tournament creation — if this fails, everything rolls back.
+    if (requiresCredit) {
+      const consumed = await consumeProCredit(user.id, t.id, tx)
+      if (!consumed) {
+        throw new Error('No Pro credits available. Purchase a credit to create this tournament.')
+      }
+    }
+
     return t
   })
   } catch (err) {
     console.error('[createTournamentFromWizard] transaction failed:', err)
     return { error: friendlyPrismaError(err) }
-  }
-
-  // Consume a Pro credit — this is required, not best-effort
-  if (needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB') {
-    try {
-      const consumed = await consumeProCredit(user.id, tournament.id)
-      if (!consumed) {
-        return { error: 'Unable to consume a Pro credit. Please check your account and try again.' }
-      }
-    } catch (err) {
-      console.error('[createTournamentFromWizard] consumeProCredit failed:', err)
-      return { error: 'Failed to process Pro credit. Please try again or contact support.' }
-    }
   }
 
   // Post-create operations are best-effort — the tournament is already persisted.
@@ -410,11 +425,27 @@ export async function sendInviteEmails(
         from: process.env.EMAIL_FROM ?? 'noreply@yourdomain.com',
         to: email,
         subject: `You're invited to ${tournamentName}`,
-        html: `
-          <p>You have been invited to join <strong>${tournamentName}</strong>.</p>
-          <p><a href="${domain}/${slug}/register?token=${token}" style="background:#006747;color:white;padding:10px 20px;text-decoration:none;border-radius:4px;display:inline-block;">Accept Invitation</a></p>
-          <p>Or copy this link: ${domain}/${slug}/register?token=${token}</p>
-        `,
+        html: `<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="margin:0;padding:0;background-color:#f4f4f4;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;">
+    <tr><td align="center" style="padding:40px 20px;">
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;max-width:600px;">
+        <tr><td style="padding:40px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#333333;">
+          <p style="margin:0 0 20px;">You have been invited to join <strong>${tournamentName}</strong>.</p>
+          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
+            <tr><td align="center" style="background:#006747;border-radius:4px;">
+              <a href="${domain}/${slug}/register?token=${token}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;text-decoration:none;">Accept Invitation</a>
+            </td></tr>
+          </table>
+          <p style="margin:0;font-size:14px;color:#666666;">Or copy this link: <a href="${domain}/${slug}/register?token=${token}" style="color:#006747;word-break:break-all;">${domain}/${slug}/register?token=${token}</a></p>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`,
       })
     )
   )

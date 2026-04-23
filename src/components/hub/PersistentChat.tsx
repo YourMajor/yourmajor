@@ -11,10 +11,11 @@ interface PersistentChatProps {
   currentUserId: string | null
   currentUserName: string | null
   isRegistered: boolean
+  isAdmin?: boolean
   label?: string
 }
 
-export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered, label }: PersistentChatProps) {
+export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered, isAdmin, label }: PersistentChatProps) {
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasAttack, setHasAttack] = useState(false)
@@ -26,14 +27,15 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, scrollToBottom, bottomRef } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
 
   // Fetch on first open
   useEffect(() => {
     if (open && !loaded) {
       fetchMessages()
+      fetchBanStatus()
     }
-  }, [open, loaded, fetchMessages])
+  }, [open, loaded, fetchMessages, fetchBanStatus])
 
   // Track unread when messages change while closed
   useEffect(() => {
@@ -162,12 +164,33 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
 
           {/* Messages */}
           <div className="flex-1 overflow-y-auto px-4 sm:px-4 py-4 sm:py-3 space-y-3 sm:space-y-2.5">
-            <ChatMessageList messages={messages} variant="light" />
+            <ChatMessageList
+              messages={messages}
+              variant="light"
+              isAdmin={isAdmin}
+              currentUserId={currentUserId}
+              onDeleteMessage={isAdmin ? deleteMessage : undefined}
+              onBanUser={isAdmin ? banUser : undefined}
+            />
             <div ref={bottomRef} />
           </div>
 
           {/* Input */}
-          {isRegistered && (
+          {isRegistered && isBanned ? (
+            <div
+              className="shrink-0 border-t border-border px-4 sm:px-3 py-3 sm:py-2 text-center"
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+            >
+              <p className="text-xs text-red-500 font-medium">
+                {banReason ?? 'You are restricted from chatting'}
+                {banExpiresAt && (
+                  <span className="block text-muted-foreground mt-0.5">
+                    Until {new Date(banExpiresAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+                  </span>
+                )}
+              </p>
+            </div>
+          ) : isRegistered ? (
             <div
               className="shrink-0 border-t border-border px-4 sm:px-3 py-3 sm:py-2 flex gap-2 items-end"
               style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
@@ -191,7 +214,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
                 <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               </button>
             </div>
-          )}
+          ) : null}
         </div>
       )}
     </>

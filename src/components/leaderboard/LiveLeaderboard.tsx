@@ -23,7 +23,7 @@ function ScoreCell({ n, stableford = false, bold = false }: { n: number | null; 
   if (n === null) return <span className="text-muted-foreground">—</span>
   if (stableford) return <span className={bold ? 'font-bold' : 'font-semibold'}>{n}</span>
   const label = vsParLabel(n)
-  const color = n < 0 ? 'text-red-600' : n === 0 ? 'text-foreground' : 'text-foreground'
+  const color = n < 0 ? 'text-score-birdie' : n === 0 ? 'text-score-par' : 'text-score-bogey'
   const weight = bold ? 'font-extrabold' : 'font-semibold'
   return <span className={`${color} ${weight}`}>{label}</span>
 }
@@ -101,8 +101,14 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
 
   useEffect(() => {
     if (status !== 'ACTIVE') return
-    const id = setInterval(refresh, 15000)
-    return () => clearInterval(id)
+    let id: ReturnType<typeof setInterval> | null = null
+    const start = () => { if (!id) id = setInterval(refresh, 15000) }
+    const stop = () => { if (id) { clearInterval(id); id = null } }
+    const onVisibility = () => { if (document.hidden) stop(); else start() }
+
+    if (!document.hidden) start()
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility) }
   }, [status, refresh])
 
   const sorted = useMemo(() => [...standings].sort((a, b) => {
@@ -183,8 +189,9 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
           </div>
         )}
         {standings.length > 0 && (
-          <div className="rounded-lg overflow-hidden">
+          <div className="rounded-lg overflow-hidden overflow-x-auto" role="region" aria-label="Registered players">
             <table className="masters-table">
+              <caption className="sr-only">Registered players — {standings.length} total</caption>
               <thead>
                 <tr>
                   <th className="text-left w-8">POS</th>
@@ -259,7 +266,12 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
           />
         </div>
 
-        {loading && <span className="text-xs text-muted-foreground animate-pulse shrink-0">Updating\u2026</span>}
+        {loading && (
+          <span className="flex items-center gap-1.5 text-xs text-muted-foreground shrink-0">
+            <span className="inline-block h-3 w-3 rounded-full border-2 border-muted-foreground/40 border-t-muted-foreground animate-spin" />
+            Updating
+          </span>
+        )}
 
         {/* Scoring CTA */}
         {scoringCta && (
@@ -277,8 +289,9 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
       </div>
 
       {/* Masters-style leaderboard table */}
-      <div className="rounded-lg overflow-hidden">
+      <div className="rounded-lg overflow-hidden overflow-x-auto" role="region" aria-label="Leaderboard">
         <table className="masters-table">
+          <caption className="sr-only">Tournament leaderboard — {filteredRanks.length} players</caption>
           <thead>
             <tr>
               <th style={{ width: '36px' }} className="px-0">POS</th>
@@ -294,7 +307,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
               )}
             </tr>
           </thead>
-          <tbody>
+          <tbody className={loading ? 'opacity-60 transition-opacity' : 'transition-opacity'}>
             {filteredRanks.map((p) => {
               const totalVal = isStableford ? p.points
                 : scoreType === 'net' ? p.netVsPar
@@ -306,7 +319,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
                 : p.holesPlayed
 
               return (
-                <tr key={p.tournamentPlayerId} className="cursor-pointer hover:bg-muted/50 transition-colors">
+                <tr key={p.tournamentPlayerId} className="cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors">
                   {/* Position */}
                   <td className="text-center px-0" style={{ width: '36px' }}>
                     {p.holesPlayed === 0 ? (

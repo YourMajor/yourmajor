@@ -29,8 +29,8 @@ describe('TIER_LIMITS', () => {
       expect(free.exportResults).toBe(false)
     })
 
-    it('limits to 1 tournament per month', () => {
-      expect(free.maxTournamentsPerMonth).toBe(1)
+    it('allows unlimited tournaments per month', () => {
+      expect(free.maxTournamentsPerMonth).toBe(Infinity)
     })
   })
 

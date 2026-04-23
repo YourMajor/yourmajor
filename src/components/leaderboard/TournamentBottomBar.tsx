@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Trophy, BarChart3, Pencil, ImageIcon, Menu, User } from 'lucide-react'
+import { Trophy, BarChart3, Pencil, Menu, User } from 'lucide-react'
 
 interface TournamentBottomBarProps {
   slug: string

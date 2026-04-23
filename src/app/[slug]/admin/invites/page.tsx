@@ -1,6 +1,7 @@
 import { prisma } from '@/lib/prisma'
 import { Mail, Check, Clock } from 'lucide-react'
 import { InviteForm } from './InviteForm'
+import { ResendButton } from './ResendButton'
 
 export default async function InvitesPage({
   params,
@@ -56,8 +57,11 @@ export default async function InvitesPage({
               <div key={inv.id} className="flex items-center gap-3 px-4 py-3">
                 <Mail className="w-4 h-4 text-muted-foreground shrink-0" />
                 <span className="text-sm">{inv.email}</span>
-                <span className="ml-auto text-xs text-muted-foreground">
-                  {new Date(inv.createdAt).toLocaleDateString()}
+                <span className="ml-auto flex items-center gap-2">
+                  <span className="text-xs text-muted-foreground">
+                    {new Date(inv.createdAt).toLocaleDateString()}
+                  </span>
+                  <ResendButton invitationId={inv.id} />
                 </span>
               </div>
             ))}

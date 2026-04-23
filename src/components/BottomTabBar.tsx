@@ -1,12 +1,13 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, User, MoreHorizontal, X, LogOut, CreditCard, Tag } from 'lucide-react'
+import { LayoutDashboard, Trophy, User, MoreHorizontal, X, LogOut, CreditCard, Tag } from 'lucide-react'
 
 const TABS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
+  { href: '/tournaments', label: 'Tournaments', icon: Trophy },
   { href: '/profile', label: 'Profile', icon: User },
   { href: '#more', label: 'More', icon: MoreHorizontal },
 ] as const
@@ -20,12 +21,22 @@ export function BottomTabBar() {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
 
+  const closeMore = useCallback(() => setMoreOpen(false), [])
+
+  // Close on Escape key
+  useEffect(() => {
+    if (!moreOpen) return
+    const handler = (e: KeyboardEvent) => { if (e.key === 'Escape') closeMore() }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [moreOpen, closeMore])
+
   return (
     <>
       {/* More sheet overlay */}
       {moreOpen && (
-        <div className="fixed inset-0 z-50 md:hidden">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMoreOpen(false)} />
+        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="More menu">
+          <div className="absolute inset-0 bg-black/40" onClick={closeMore} />
           <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl border-t border-border pb-[env(safe-area-inset-bottom,0px)] animate-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between px-5 pt-4 pb-2">
               <h3 className="font-heading font-semibold text-base">More</h3>

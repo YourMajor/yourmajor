@@ -149,6 +149,7 @@ model User {
   standaloneRounds  StandaloneRound[]
   messages          TournamentMessage[]
   photos            TournamentPhoto[]
+  chatBans          ChatBan[]
   purchases         Purchase[]
   stripeCustomerId  String?             @unique
   rosterMemberships LeagueRosterMember[]
@@ -253,6 +254,7 @@ model Tournament {
   draft              Draft?
   messages           TournamentMessage[]
   photos             TournamentPhoto[]
+  chatBans           ChatBan[]
   purchase           Purchase?
   leagueRoster       LeagueRoster?
   seasonSchedule     SeasonScheduleEvent[]
@@ -547,12 +549,14 @@ model Notification {
 // ─── Tournament Chat & Photos ─────────────────────────────────────────────────
 
 model TournamentMessage {
-  id           String   @id @default(cuid())
+  id           String    @id @default(cuid())
   tournamentId String
   userId       String
   content      String
-  isSystem     Boolean  @default(false)
-  createdAt    DateTime @default(now())
+  isSystem     Boolean   @default(false)
+  deletedAt    DateTime?
+  deletedBy    String?
+  createdAt    DateTime  @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -570,6 +574,22 @@ model TournamentPhoto {
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model ChatBan {
+  id           String    @id @default(cuid())
+  tournamentId String
+  userId       String
+  reason       String?
+  expiresAt    DateTime?
+  createdAt    DateTime  @default(now())
+  createdBy    String
+
+  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([tournamentId, userId])
+  @@index([tournamentId])
 }
 
 // ─── Standalone Rounds ────────────────────────────────────────────────────────

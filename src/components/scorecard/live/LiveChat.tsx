@@ -7,19 +7,22 @@ import { ChatMessageList } from '@/components/chat/ChatMessageList'
 
 interface LiveChatProps {
   tournamentId: string
+  currentUserId?: string | null
+  isAdmin?: boolean
   open: boolean
   onClose: () => void
 }
 
-export function LiveChat({ tournamentId, open, onClose }: LiveChatProps) {
-  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, scrollToBottom, bottomRef } = useChat({ tournamentId, channelPrefix: 'live-chat', eager: false })
+export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }: LiveChatProps) {
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser } = useChat({ tournamentId, channelPrefix: 'live-chat', eager: false })
 
   // Fetch on first open
   useEffect(() => {
     if (open && !loaded) {
       fetchMessages()
+      fetchBanStatus()
     }
-  }, [open, loaded, fetchMessages])
+  }, [open, loaded, fetchMessages, fetchBanStatus])
 
   // Scroll when opened
   useEffect(() => {
@@ -46,34 +49,52 @@ export function LiveChat({ tournamentId, open, onClose }: LiveChatProps) {
       </div>
 
       <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
-        <ChatMessageList messages={messages} variant="dark" />
+        <ChatMessageList
+          messages={messages}
+          variant="dark"
+          isAdmin={isAdmin}
+          currentUserId={currentUserId}
+          onDeleteMessage={isAdmin ? deleteMessage : undefined}
+          onBanUser={isAdmin ? banUser : undefined}
+        />
         <div ref={bottomRef} />
       </div>
 
       <div className="shrink-0 px-4 py-3 bg-black/20">
-        <div className="flex gap-2 items-end">
-          <textarea
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            placeholder="Say something..."
-            rows={1}
-            className="flex-1 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
-            onKeyDown={handleKeyDown}
-          />
-          <button
-            type="button"
-            onClick={() => sendMessage()}
-            disabled={sending || !input.trim()}
-            className="shrink-0 p-2.5 rounded-lg disabled:opacity-30 active:scale-90 transition-all touch-manipulation"
-            style={{
-              backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',
-              color: 'var(--color-primary, oklch(0.40 0.11 160))',
-            }}
-            aria-label="Send message"
-          >
-            <Send className="w-4 h-4" />
-          </button>
-        </div>
+        {isBanned ? (
+          <p className="text-xs text-red-300 font-medium text-center py-1">
+            {banReason ?? 'You are restricted from chatting'}
+            {banExpiresAt && (
+              <span className="block text-white/40 mt-0.5">
+                Until {new Date(banExpiresAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
+              </span>
+            )}
+          </p>
+        ) : (
+          <div className="flex gap-2 items-end">
+            <textarea
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Say something..."
+              rows={1}
+              className="flex-1 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-sm text-white placeholder:text-white/30 outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
+              onKeyDown={handleKeyDown}
+            />
+            <button
+              type="button"
+              onClick={() => sendMessage()}
+              disabled={sending || !input.trim()}
+              className="shrink-0 p-2.5 rounded-lg disabled:opacity-30 active:scale-90 transition-all touch-manipulation"
+              style={{
+                backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',
+                color: 'var(--color-primary, oklch(0.40 0.11 160))',
+              }}
+              aria-label="Send message"
+            >
+              <Send className="w-4 h-4" />
+            </button>
+          </div>
+        )}
       </div>
     </div>
   )

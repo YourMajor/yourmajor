@@ -27,6 +27,13 @@
   --color-input: var(--input);
   --color-border: var(--border);
   --color-destructive: var(--destructive);
+  --color-score-eagle: var(--score-eagle);
+  --color-score-birdie: var(--score-birdie);
+  --color-score-par: var(--score-par);
+  --color-score-bogey: var(--score-bogey);
+  --color-score-double: var(--score-double);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
   --color-muted-foreground: var(--muted-foreground);
@@ -68,7 +75,18 @@
   --border:               oklch(0.88 0.01 250);
   --input:                oklch(0.88 0.01 250);
   --ring:                 oklch(0.30 0.08 255);
-  --radius:               0.25rem;
+  --radius:               0.5rem;
+
+  /* ── Score semantic colours ──────────────────────── */
+  --score-eagle:          oklch(0.55 0.15 85);   /* gold — ace / eagle */
+  --score-birdie:         oklch(0.50 0.20 25);   /* red  — under par  */
+  --score-par:            var(--foreground);
+  --score-bogey:          var(--muted-foreground);
+  --score-double:         oklch(0.55 0.02 250);  /* faded grey         */
+
+  /* ── Semantic status colours ─────────────────────── */
+  --success:              oklch(0.55 0.17 145);  /* green  */
+  --warning:              oklch(0.65 0.15 75);   /* amber  */
   --chart-1:              oklch(0.30 0.08 255);
   --chart-2:              oklch(0.72 0.11 78);
   --chart-3:              oklch(0.62 0.18 30);
@@ -119,11 +137,11 @@
 }
 
 /* ── Score colour helpers ──────────────────────────────── */
-.score-eagle   { @apply text-blue-600 font-bold; }
-.score-birdie  { @apply text-red-600 font-semibold; }
-.score-par     { @apply text-foreground; }
-.score-bogey   { @apply text-muted-foreground; }
-.score-double  { @apply text-muted-foreground/70; }
+.score-eagle   { color: var(--score-eagle);  font-weight: 700; }
+.score-birdie  { color: var(--score-birdie); font-weight: 600; }
+.score-par     { color: var(--score-par); }
+.score-bogey   { color: var(--score-bogey); }
+.score-double  { color: var(--score-double); }
 
 /* ── Shake animation (live scoring rejection feedback) ──── */
 @keyframes shake {
@@ -146,12 +164,12 @@
 
 /* ── Embossed logo badge ─────────────────────────────── */
 .tournament-logo-badge {
-  border: 4px solid color-mix(in oklch, var(--color-primary, #1A3260), white 30%);
+  border: 2px solid color-mix(in oklch, var(--color-primary, #1A3260), white 30%);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.18),
     0 2px 6px rgba(0, 0, 0, 0.12),
-    inset 0 2px 0 rgba(255, 255, 255, 0.2),
-    inset 0 -2px 0 rgba(0, 0, 0, 0.12);
+    inset 0 1px 0 rgba(255, 255, 255, 0.2),
+    inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   background: linear-gradient(
     160deg,
     color-mix(in oklch, var(--color-primary, #1A3260), white 10%),
@@ -247,7 +265,7 @@
   color: white;
 }
 .masters-table thead th {
-  font-size: 11px;
+  font-size: 12px;
   text-transform: uppercase;
   letter-spacing: 0.05em;
   font-weight: 600;

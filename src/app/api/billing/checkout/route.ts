@@ -7,16 +7,17 @@ export async function POST(request: NextRequest) {
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { type, tournamentId, tournamentName } = body
+  const { type, tournamentId, tournamentName, slug } = body
 
   const origin = request.headers.get('origin') ?? 'http://localhost:3000'
 
   if (type === 'PRO') {
+    const returnUrl = slug && tournamentId ? `${origin}/${slug}` : `${origin}/pricing`
     const session = await createProCheckoutSession({
       userId: user.id,
       email: user.email,
       ...(tournamentId ? { tournamentId, tournamentName } : {}),
-      returnUrl: `${origin}/pricing`,
+      returnUrl,
     })
     return NextResponse.json({ url: session.url })
   }

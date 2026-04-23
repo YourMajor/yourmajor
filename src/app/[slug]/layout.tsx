@@ -170,6 +170,7 @@ export default async function TournamentLayout({
           currentUserId={user?.id ?? null}
           currentUserName={user?.name ?? null}
           isRegistered={leagueChatAuthorized}
+          isAdmin={showAdmin}
           label={tournament.isLeague ? 'League Chat' : undefined}
         />
       </TournamentProvider>

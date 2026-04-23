@@ -1,21 +1,20 @@
-import Stripe from 'stripe'
+import type Stripe from 'stripe'
 import { prisma } from '@/lib/prisma'
 import type { PricingTier } from '@/generated/prisma/client'
 
-function getStripe() {
+async function getStripe(): Promise<Stripe> {
   if (!process.env.STRIPE_SECRET_KEY) {
     throw new Error('STRIPE_SECRET_KEY is not set')
   }
-  return new Stripe(process.env.STRIPE_SECRET_KEY)
+  const { default: StripeSDK } = await import('stripe')
+  return new StripeSDK(process.env.STRIPE_SECRET_KEY)
 }
 
 let _stripe: Stripe | undefined
-export const stripe = new Proxy({} as Stripe, {
-  get(_, prop) {
-    _stripe ??= getStripe()
-    return (_stripe as unknown as Record<string | symbol, unknown>)[prop]
-  },
-})
+async function resolveStripe(): Promise<Stripe> {
+  _stripe ??= await getStripe()
+  return _stripe
+}
 
 /**
  * Get or create a Stripe customer for a given user.
@@ -28,7 +27,7 @@ async function getOrCreateCustomer(userId: string, email: string): Promise<strin
 
   if (user?.stripeCustomerId) return user.stripeCustomerId
 
-  const customer = await stripe.customers.create({
+  const customer = await (await resolveStripe()).customers.create({
     email,
     metadata: { userId },
   })
@@ -55,7 +54,7 @@ export async function createProCheckoutSession(opts: {
 }) {
   const customerId = await getOrCreateCustomer(opts.userId, opts.email)
 
-  return stripe.checkout.sessions.create({
+  return (await resolveStripe()).checkout.sessions.create({
     customer: customerId,
     mode: 'payment',
     line_items: [
@@ -95,7 +94,7 @@ export async function createClubCheckoutSession(opts: {
 }) {
   const customerId = await getOrCreateCustomer(opts.userId, opts.email)
 
-  return stripe.checkout.sessions.create({
+  return (await resolveStripe()).checkout.sessions.create({
     customer: customerId,
     mode: 'subscription',
     line_items: [
@@ -137,7 +136,7 @@ export async function createLeagueCheckoutSession(opts: {
 }) {
   const customerId = await getOrCreateCustomer(opts.userId, opts.email)
 
-  return stripe.checkout.sessions.create({
+  return (await resolveStripe()).checkout.sessions.create({
     customer: customerId,
     mode: 'payment',
     line_items: [
@@ -258,7 +257,7 @@ export async function createPortalSession(userId: string, returnUrl: string) {
     throw new Error('No Stripe customer found')
   }
 
-  return stripe.billingPortal.sessions.create({
+  return (await resolveStripe()).billingPortal.sessions.create({
     customer: user.stripeCustomerId,
     return_url: returnUrl,
   })
@@ -331,9 +330,18 @@ export async function getUserTier(userId: string): Promise<{
 /**
  * Consume the oldest unused Pro credit by attaching it to a tournament.
  * Returns true if a credit was consumed, false if none available.
+ *
+ * Accepts an optional transaction client so consumption can be atomic
+ * with tournament creation.
  */
-export async function consumeProCredit(userId: string, tournamentId: string): Promise<boolean> {
-  const credit = await prisma.purchase.findFirst({
+export async function consumeProCredit(
+  userId: string,
+  tournamentId: string,
+  tx?: Parameters<Parameters<typeof prisma.$transaction>[0]>[0],
+): Promise<boolean> {
+  const db = tx ?? prisma
+
+  const credit = await db.purchase.findFirst({
     where: {
       userId,
       type: 'EVENT',
@@ -345,7 +353,7 @@ export async function consumeProCredit(userId: string, tournamentId: string): Pr
 
   if (!credit) return false
 
-  await prisma.purchase.update({
+  await db.purchase.update({
     where: { id: credit.id },
     data: { tournamentId },
   })

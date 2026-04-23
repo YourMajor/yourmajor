@@ -359,18 +359,21 @@ export default async function DashboardPage() {
               <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
                 <Trophy className="w-6 h-6 text-muted-foreground" />
               </div>
-              <p className="font-heading font-semibold text-base">No tournaments yet</p>
+              <p className="font-heading font-semibold text-base">Welcome to YourMajor</p>
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
-                Create your first tournament and invite friends to compete.
+                Create a tournament, join with a code from a friend, or find an open event near you.
               </p>
-              <Link
-                href="/tournaments/new"
-                className={buttonVariants({ size: 'sm' }) + ' mt-4'}
-                style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-              >
-                <PlusCircle className="w-4 h-4 mr-1.5" />
-                Create Tournament
-              </Link>
+              <div className="flex flex-col items-center gap-3 mt-5 w-full max-w-xs">
+                <Link
+                  href="/tournaments/new"
+                  className={buttonVariants({ size: 'lg' }) + ' w-full justify-center text-base'}
+                  style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                >
+                  <PlusCircle className="w-5 h-5 mr-2" />
+                  Create Tournament
+                </Link>
+                <FindTournament />
+              </div>
             </CardContent>
           </Card>
         )}

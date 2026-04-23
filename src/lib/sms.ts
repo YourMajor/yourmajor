@@ -9,12 +9,11 @@
  * All functions no-op gracefully if Twilio is not configured.
  */
 
-import twilio from 'twilio'
-
-function getClient() {
+async function getClient() {
   const sid = process.env.TWILIO_ACCOUNT_SID
   const token = process.env.TWILIO_AUTH_TOKEN
   if (!sid || !token) return null
+  const twilio = (await import('twilio')).default
   return twilio(sid, token)
 }
 
@@ -23,7 +22,7 @@ function getClient() {
  */
 export async function sendSMS(to: string, body: string): Promise<void> {
   if (!to) return
-  const client = getClient()
+  const client = await getClient()
   if (!client) return
 
   const from = process.env.TWILIO_PHONE_NUMBER
@@ -43,7 +42,7 @@ export async function sendSMSToMany(
   recipients: Array<{ phone: string | null | undefined }>,
   bodyFn: (recipient: { phone: string }) => string
 ): Promise<void> {
-  const client = getClient()
+  const client = await getClient()
   if (!client) return
 
   const from = process.env.TWILIO_PHONE_NUMBER

@@ -9,7 +9,7 @@ interface Props {
   size?: 'default' | 'sm'
 }
 
-export function DeleteTournamentButton({ tournamentId, tournamentName, size = 'default' }: Props) {
+export function DeleteTournamentButton({ tournamentId, size = 'default' }: Props) {
   const [deleting, setDeleting] = useState(false)
 
   async function handleDelete() {

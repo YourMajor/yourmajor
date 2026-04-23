@@ -13,7 +13,7 @@ type InviteEntry = { type: 'email'; value: string }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
-export function InviteForm({ tournamentId, slug }: { tournamentId: string; slug: string }) {
+export function InviteForm({ tournamentId }: { tournamentId: string; slug: string }) {
   const router = useRouter()
   const [emailInput, setEmailInput] = useState('')
   const [entries, setEntries] = useState<InviteEntry[]>([])

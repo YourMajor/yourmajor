@@ -58,11 +58,7 @@ export async function scheduleLeagueEvent(
       },
     })
     if (tournamentsThisMonth >= tierLimits.maxTournamentsPerMonth) {
-      throw new Error(
-        userTier.tier === 'FREE'
-          ? 'Free accounts are limited to 1 tournament per month. Purchase a Pro credit ($29) or upgrade to Club ($99/mo) for more.'
-          : `Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`
-      )
+      throw new Error(`Club accounts are limited to ${tierLimits.maxTournamentsPerMonth} tournaments per month. Upgrade to Tour for unlimited.`)
     }
   }
 

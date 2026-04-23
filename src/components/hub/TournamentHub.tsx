@@ -26,6 +26,7 @@ interface Props {
     name: string
     description: string | null
     logo: string | null
+    headerImage: string | null
     status: string
     primaryColor: string
     accentColor: string
@@ -110,6 +111,7 @@ export function TournamentHub({
       <TournamentHeader
         name={tournament.name}
         logo={tournament.logo}
+        headerImage={tournament.headerImage}
         status={tournament.status}
         startDate={tournament.startDate}
         endDate={tournament.endDate}

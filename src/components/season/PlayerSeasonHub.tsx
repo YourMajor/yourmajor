@@ -1,8 +1,7 @@
 'use client'
 
-import { useState } from 'react'
 import Link from 'next/link'
-import { Trophy, Target, Users, TrendingUp, Award, ChevronLeft } from 'lucide-react'
+import { ChevronLeft } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +23,7 @@ function ordinal(n: number): string {
   return n + (s[(v - 20) % 10] || s[v] || s[0])
 }
 
-export function PlayerSeasonHub({ stats, slug, isOwnProfile }: PlayerSeasonHubProps) {
+export function PlayerSeasonHub({ stats, slug }: PlayerSeasonHubProps) {
   return (
     <div className="space-y-6">
       {/* Back link */}

@@ -8,6 +8,7 @@ export interface ChatMessage {
   content: string
   isSystem?: boolean
   createdAt: Date
+  userId: string
   user: { name: string | null; image: string | null }
 }
 
@@ -24,6 +25,9 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   const [loaded, setLoaded] = useState(false)
   const [sending, setSending] = useState(false)
   const [input, setInput] = useState('')
+  const [isBanned, setIsBanned] = useState(false)
+  const [banExpiresAt, setBanExpiresAt] = useState<Date | null>(null)
+  const [banReason, setBanReason] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -45,19 +49,52 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     return null
   }, [tournamentId])
 
+  const fetchBanStatus = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/chat-bans/me`)
+      if (res.ok) {
+        const data = await res.json()
+        setIsBanned(data.banned)
+        setBanExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null)
+        setBanReason(data.reason ?? null)
+      }
+    } catch {
+      // Non-critical
+    }
+  }, [tournamentId])
+
   // Eager fetch on mount
   useEffect(() => {
     if (eager && !loaded) {
       fetchMessages()
+      fetchBanStatus()
     }
-  }, [eager, loaded, fetchMessages])
+  }, [eager, loaded, fetchMessages, fetchBanStatus])
 
   // Scroll when messages change
   useEffect(() => {
     scrollToBottom()
   }, [messages, scrollToBottom])
 
-  // Supabase real-time subscription
+  // Auto-clear temporary bans when they expire
+  useEffect(() => {
+    if (!isBanned || !banExpiresAt) return
+    const ms = banExpiresAt.getTime() - Date.now()
+    if (ms <= 0) {
+      setIsBanned(false)
+      setBanExpiresAt(null)
+      setBanReason(null)
+      return
+    }
+    const timer = setTimeout(() => {
+      setIsBanned(false)
+      setBanExpiresAt(null)
+      setBanReason(null)
+    }, ms)
+    return () => clearTimeout(timer)
+  }, [isBanned, banExpiresAt])
+
+  // Supabase real-time subscription (INSERT + UPDATE for soft-delete)
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -67,13 +104,18 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
         { event: 'INSERT', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
         () => fetchMessages(),
       )
+      .on(
+        'postgres_changes',
+        { event: 'UPDATE', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
+        () => fetchMessages(),
+      )
       .subscribe()
     return () => { supabase.removeChannel(channel) }
   }, [tournamentId, channelPrefix, fetchMessages])
 
   const sendMessage = useCallback(async (content?: string) => {
     const text = (content ?? input).trim()
-    if (!text || sending) return false
+    if (!text || sending || isBanned) return false
     setSending(true)
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/messages`, {
@@ -89,11 +131,44 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
         setInput('')
         return true
       }
+      // Handle ban / rate-limit responses
+      if (res.status === 403 || res.status === 429) {
+        const data = await res.json()
+        setIsBanned(true)
+        setBanExpiresAt(data.expiresAt ? new Date(data.expiresAt) : null)
+        setBanReason(data.error ?? null)
+      }
     } finally {
       setSending(false)
     }
     return false
-  }, [input, sending, tournamentId])
+  }, [input, sending, isBanned, tournamentId])
+
+  const deleteMessage = useCallback(async (messageId: string) => {
+    const res = await fetch(`/api/tournaments/${tournamentId}/messages/${messageId}`, { method: 'DELETE' })
+    if (res.ok) {
+      setMessages((prev) => prev.filter((m) => m.id !== messageId))
+    }
+    return res.ok
+  }, [tournamentId])
+
+  const banUser = useCallback(async (userId: string, reason?: string) => {
+    const res = await fetch(`/api/tournaments/${tournamentId}/chat-bans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId, reason }),
+    })
+    return res.ok
+  }, [tournamentId])
+
+  const unbanUser = useCallback(async (userId: string) => {
+    const res = await fetch(`/api/tournaments/${tournamentId}/chat-bans`, {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+    return res.ok
+  }, [tournamentId])
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -111,7 +186,14 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     sendMessage,
     handleKeyDown,
     fetchMessages,
+    fetchBanStatus,
     scrollToBottom,
     bottomRef,
+    isBanned,
+    banExpiresAt,
+    banReason,
+    deleteMessage,
+    banUser,
+    unbanUser,
   }
 }

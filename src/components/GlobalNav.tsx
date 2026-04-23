@@ -6,6 +6,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 const NAV_LINKS: { label: string; href: string }[] = [
+  { label: 'Dashboard', href: '/dashboard' },
   { label: 'Pricing', href: '/pricing' },
 ]
 
@@ -38,7 +39,7 @@ export async function GlobalNav() {
           <Image src="/logos/eagle-flags.svg" alt="" width={56} height={56} className="h-14 w-auto" style={{ overflow: 'visible' }} />
           <span className="font-heading leading-none text-left">
             <span className="block text-lg font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
-            <span className="block text-3xl font-black -mt-2" style={{ color: '#DAA520' }}>MAJOR</span>
+            <span className="block text-3xl font-black -mt-2 text-accent">MAJOR</span>
           </span>
         </Link>
 
