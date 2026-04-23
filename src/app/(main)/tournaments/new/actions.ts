@@ -88,13 +88,21 @@ async function generateSlug(name: string): Promise<string> {
   return `${base}-${i}`
 }
 
-export async function createTournamentFromWizard(data: WizardPayload): Promise<{ slug: string } | { error: string }> {
-  const user = await getUser()
-  if (!user) redirect('/auth/login')
+function isNextRedirectError(err: unknown): boolean {
+  return typeof err === 'object' && err !== null && 'digest' in err &&
+    typeof (err as { digest: string }).digest === 'string' &&
+    (err as { digest: string }).digest.startsWith('NEXT_REDIRECT')
+}
 
+export async function createTournamentFromWizard(data: WizardPayload): Promise<{ slug: string } | { error: string }> {
   try {
-  return await _createTournament(data, user)
+    const user = await getUser()
+    if (!user) redirect('/auth/login')
+
+    return await _createTournament(data, user)
   } catch (err) {
+    // Let Next.js redirect/notFound errors propagate — framework handles them
+    if (isNextRedirectError(err)) throw err
     console.error('[createTournamentFromWizard] unexpected error:', err)
     return { error: friendlyPrismaError(err) }
   }
