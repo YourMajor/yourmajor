@@ -24,7 +24,16 @@ export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
   const { id } = await params
+
+  const player = await prisma.tournamentPlayer.findUnique({
+    where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
+  })
+  if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
+
   const photos = await prisma.tournamentPhoto.findMany({
     where: { tournamentId: id },
     orderBy: { createdAt: 'desc' },
