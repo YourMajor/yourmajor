@@ -5,9 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { Prisma, type User } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabase'
 import { generateJoinCode } from '@/lib/join-code'
-import { Resend } from 'resend'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
 import { sendSMS } from '@/lib/sms'
@@ -186,7 +184,8 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
 
   const slug = await generateSlug(data.name)
 
-  // Upload logo if provided
+  // Upload logo if provided — lazy import to avoid module-level crash
+  const { supabaseAdmin } = await import('@/lib/supabase')
   let logoUrl: string | null = null
   if (data.logoBase64 && data.logoMime && data.logoExt) {
     const base64Data = data.logoBase64.replace(/^data:[^;]+;base64,/, '')
@@ -424,6 +423,7 @@ export async function sendInviteEmails(
   const resendKey = process.env.RESEND_API_KEY
   if (!resendKey) return
 
+  const { Resend } = await import('resend')
   const resend = new Resend(resendKey)
   const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
 
