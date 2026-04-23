@@ -35,7 +35,7 @@ export async function GlobalNav() {
   return (
     <header className="bg-white border-b border-border sticky top-0 z-50" suppressHydrationWarning>
       <div className="max-w-5xl mx-auto px-4 py-5 flex items-center justify-between relative">
-        <Link href="/" className="flex items-center gap-3 shrink-0 md:absolute md:left-1/2 md:-translate-x-1/2">
+        <Link href="/" className="flex items-center gap-3 shrink-0 lg:absolute lg:left-1/2 lg:-translate-x-1/2">
           <Image src="/logos/eagle-flags.svg" alt="" width={56} height={56} className="h-14 w-auto" style={{ overflow: 'visible' }} />
           <span className="font-heading leading-none text-left">
             <span className="block text-lg font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
@@ -45,7 +45,7 @@ export async function GlobalNav() {
 
         {user ? (
           /* Desktop nav — mobile navigation handled by BottomTabBar */
-          <nav className="hidden md:flex items-center gap-1 text-sm">
+          <nav className="hidden lg:flex items-center gap-1 text-sm">
             {NAV_LINKS.map((link) => (
               <Link
                 key={link.href}

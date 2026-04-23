@@ -35,7 +35,7 @@ export function BottomTabBar() {
     <>
       {/* More sheet overlay */}
       {moreOpen && (
-        <div className="fixed inset-0 z-50 md:hidden" role="dialog" aria-modal="true" aria-label="More menu">
+        <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="More menu">
           <div className="absolute inset-0 bg-black/40" onClick={closeMore} />
           <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl border-t border-border pb-[env(safe-area-inset-bottom,0px)] animate-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between px-5 pt-4 pb-2">
@@ -75,7 +75,7 @@ export function BottomTabBar() {
       )}
 
       {/* Bottom tab bar */}
-      <nav className="fixed bottom-0 left-0 right-0 z-40 md:hidden bg-background/95 backdrop-blur-md border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
+      <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-background/95 backdrop-blur-md border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
         <div className="flex items-center justify-around h-16">
           {TABS.map((tab) => {
             const isMore = tab.href === '#more'
