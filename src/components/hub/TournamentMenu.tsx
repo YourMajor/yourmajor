@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X, Trophy, Swords, ImageIcon, Crown, Settings, Pencil, Home } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import type { PastChampion } from '@/lib/tournament-chain'
@@ -72,11 +73,12 @@ export function TournamentMenu({
         {/* Header image area (if uploaded) */}
         {headerImage ? (
           <div className="relative shrink-0 h-40 overflow-hidden">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img
+            <Image
               src={headerImage}
               alt=""
-              className="w-full h-full object-cover"
+              fill
+              sizes="(max-width: 640px) 100vw, 400px"
+              className="object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent" />
             <div className="absolute bottom-3 left-4 right-12">

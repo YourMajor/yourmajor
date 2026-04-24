@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useCallback } from 'react'
+import Image from 'next/image'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DraftBoard } from './DraftBoard'
@@ -74,8 +75,7 @@ function SortablePlayerCard({ playerId, player, index }: { playerId: string; pla
       </button>
       <span className="text-lg font-bold text-muted-foreground w-7 shrink-0 text-right">{index + 1}</span>
       {player.user.image ? (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={player.user.image} alt="" className="w-11 h-11 rounded-full shrink-0 border-2 border-border" />
+        <Image src={player.user.image} alt="" width={44} height={44} className="w-11 h-11 rounded-full shrink-0 border-2 border-border object-cover" />
       ) : (
         <div className="w-11 h-11 rounded-full shrink-0 border-2 border-border bg-muted flex items-center justify-center">
           <span className="text-base font-bold text-muted-foreground">

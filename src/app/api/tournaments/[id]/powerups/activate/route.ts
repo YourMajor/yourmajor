@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
-import { canActivate, computeAutoModifier, isVariablePowerup, type PowerupEffect } from '@/lib/powerup-engine'
+import { canActivate, computeAutoModifier, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
 
 export async function POST(
   req: NextRequest,
@@ -44,7 +44,12 @@ export async function POST(
     return NextResponse.json({ error: 'Powerup already used' }, { status: 400 })
   }
 
-  const effect = playerPowerup.powerup.effect as unknown as PowerupEffect
+  let effect
+  try {
+    effect = parsePowerupEffect(playerPowerup.powerup.effect)
+  } catch {
+    return NextResponse.json({ error: 'Powerup effect data is malformed' }, { status: 500 })
+  }
 
   // Validate restrictions
   const round = await prisma.tournamentRound.findUnique({

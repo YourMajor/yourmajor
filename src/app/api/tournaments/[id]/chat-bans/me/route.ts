@@ -15,7 +15,12 @@ export async function GET(
     where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
   })
 
-  if (!ban || (ban.expiresAt && ban.expiresAt <= new Date())) {
+  if (!ban) return NextResponse.json({ banned: false })
+
+  if (ban.expiresAt && ban.expiresAt <= new Date()) {
+    // Keep ban cleanup consistent with POST /messages — expired rows get
+    // removed whenever encountered so the DB doesn't accumulate dead state.
+    await prisma.chatBan.delete({ where: { id: ban.id } })
     return NextResponse.json({ banned: false })
   }
 

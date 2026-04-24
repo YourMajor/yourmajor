@@ -2,23 +2,37 @@
  * Powerup engine — validation, score computation, and input requirements.
  */
 
-export interface PowerupEffect {
-  scoring: {
-    mode: 'auto' | 'manual' | 'behavioral' | 'variable'
-    modifier: number | null
-    conditionalKey: string | null
-  }
-  duration: number
-  requiresTarget: boolean
-  input: {
-    type: 'none' | 'player_select' | 'club_select' | 'number_input' | 'hole_select'
-    label: string | null
-    count: number | null
-  } | null
-  restrictions: {
-    excludePar3: boolean
-  }
-  flavorText: string
+import { z } from 'zod'
+
+export const powerupEffectSchema = z.object({
+  scoring: z.object({
+    mode: z.enum(['auto', 'manual', 'behavioral', 'variable']),
+    modifier: z.number().nullable(),
+    conditionalKey: z.string().nullable(),
+  }),
+  duration: z.number(),
+  requiresTarget: z.boolean(),
+  input: z
+    .object({
+      type: z.enum(['none', 'player_select', 'club_select', 'number_input', 'hole_select']),
+      label: z.string().nullable(),
+      count: z.number().nullable(),
+    })
+    .nullable(),
+  restrictions: z.object({
+    excludePar3: z.boolean(),
+  }),
+  flavorText: z.string(),
+})
+
+export type PowerupEffect = z.infer<typeof powerupEffectSchema>
+
+/**
+ * Parse a raw Prisma Json value into a PowerupEffect. Throws on shape
+ * mismatch so callers get a clear error instead of a silent undefined read.
+ */
+export function parsePowerupEffect(raw: unknown): PowerupEffect {
+  return powerupEffectSchema.parse(raw)
 }
 
 /**

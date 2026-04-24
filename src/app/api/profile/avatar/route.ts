@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabase'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
@@ -22,6 +21,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Image must be under 5 MB' }, { status: 400 })
   }
 
+  const { supabaseAdmin } = await import('@/lib/supabase')
   const ext = file.name.split('.').pop() ?? 'jpg'
   const path = `${user.id}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())

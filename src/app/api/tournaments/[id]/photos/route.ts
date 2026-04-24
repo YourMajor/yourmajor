@@ -3,7 +3,6 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
-import { supabaseAdmin } from '@/lib/supabase'
 import { randomUUID } from 'crypto'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
@@ -86,6 +85,7 @@ export async function POST(
     )
   }
 
+  const { supabaseAdmin } = await import('@/lib/supabase')
   const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
   const path = `${id}/${randomUUID()}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())

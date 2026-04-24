@@ -397,6 +397,7 @@ model Invitation {
   token        String    @unique @default(cuid())
   userId       String?
   acceptedAt   DateTime?
+  expiresAt    DateTime?
   createdAt    DateTime  @default(now())
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)

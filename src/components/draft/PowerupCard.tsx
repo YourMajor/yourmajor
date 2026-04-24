@@ -1,5 +1,6 @@
 'use client'
 
+import Image from 'next/image'
 import { SlugIcon } from './CardHand'
 
 export interface PowerupCardData {
@@ -111,8 +112,7 @@ export function PowerupCard({
         <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40">
           <div className="text-center">
             {pickedBy.image && (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={pickedBy.image} alt="" className="w-8 h-8 rounded-full mx-auto mb-1 border-2 border-white/40" />
+              <Image src={pickedBy.image} alt="" width={32} height={32} className="w-8 h-8 rounded-full mx-auto mb-1 border-2 border-white/40 object-cover" />
             )}
             <p className="text-[11px] font-semibold text-white">
               {pickedBy.name ?? 'Player'}

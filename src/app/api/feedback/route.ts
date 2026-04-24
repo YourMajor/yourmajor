@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
-import { Resend } from 'resend'
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -63,6 +62,7 @@ export async function POST(request: NextRequest) {
     )
   }
 
+  const { Resend } = await import('resend')
   const resend = new Resend(resendKey)
   const categoryLabel = CATEGORY_LABELS[category] ?? category
   const stars = buildStars(rating)

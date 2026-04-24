@@ -153,25 +153,31 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
 
   for (const event of scorableEvents) {
     const standings = await getLeaderboard(event.id)
+    if (standings.length === 0) continue
+
+    // Batch: resolve all tournamentPlayer.userId in one query instead of
+    // one findUnique per standing (was O(events × players)).
+    const tpIds = standings.map((s) => s.tournamentPlayerId)
+    const tps = await prisma.tournamentPlayer.findMany({
+      where: { id: { in: tpIds } },
+      select: { id: true, userId: true },
+    })
+    const tpUserId = new Map(tps.map((t) => [t.id, t.userId]))
 
     for (const s of standings) {
-      // Resolve userId from tournamentPlayer
-      const tp = await prisma.tournamentPlayer.findUnique({
-        where: { id: s.tournamentPlayerId },
-        select: { userId: true },
-      })
-      if (!tp) continue
+      const userId = tpUserId.get(s.tournamentPlayerId)
+      if (!userId) continue
 
-      if (!playerMap.has(tp.userId)) {
-        playerMap.set(tp.userId, {
-          userId: tp.userId,
+      if (!playerMap.has(userId)) {
+        playerMap.set(userId, {
+          userId,
           playerName: s.playerName,
           avatarUrl: s.avatarUrl,
           eventResults: [],
         })
       }
 
-      const player = playerMap.get(tp.userId)!
+      const player = playerMap.get(userId)!
       // Update name/avatar to latest
       player.playerName = s.playerName
       if (s.avatarUrl) player.avatarUrl = s.avatarUrl
@@ -425,17 +431,23 @@ export async function getPlayerSeasonStats(
 
   for (const event of scorableEvents) {
     const standings = await getLeaderboard(event.id)
+    if (standings.length === 0) continue
+
+    // Batch-resolve every standing's userId in one query so we can do both
+    // "find this player's standing" and head-to-head lookups without N+1.
+    const tpIds = standings.map((s) => s.tournamentPlayerId)
+    const tps = await prisma.tournamentPlayer.findMany({
+      where: { id: { in: tpIds } },
+      select: { id: true, userId: true },
+    })
+    const tpUserId = new Map(tps.map((t) => [t.id, t.userId]))
 
     // Find this player's standing
     let playerStanding: PlayerStanding | null = null
     let playerTpId: string | null = null
 
     for (const s of standings) {
-      const tp = await prisma.tournamentPlayer.findUnique({
-        where: { id: s.tournamentPlayerId },
-        select: { userId: true },
-      })
-      if (tp?.userId === userId) {
+      if (tpUserId.get(s.tournamentPlayerId) === userId) {
         playerStanding = s
         playerTpId = s.tournamentPlayerId
         break
@@ -494,23 +506,21 @@ export async function getPlayerSeasonStats(
       mostBirdiesDate = event.startDate?.toISOString() ?? null
     }
 
-    // Head-to-head: compare vs every other player in same event
+    // Head-to-head: compare vs every other player in same event. Uses the
+    // tpUserId map built above — no per-opponent findUnique.
     for (const opponent of standings) {
       if (opponent.tournamentPlayerId === playerTpId) continue
-      const oppTp = await prisma.tournamentPlayer.findUnique({
-        where: { id: opponent.tournamentPlayerId },
-        select: { userId: true },
-      })
-      if (!oppTp) continue
+      const oppUserId = tpUserId.get(opponent.tournamentPlayerId)
+      if (!oppUserId) continue
 
-      if (!h2hMap.has(oppTp.userId)) {
-        h2hMap.set(oppTp.userId, {
+      if (!h2hMap.has(oppUserId)) {
+        h2hMap.set(oppUserId, {
           name: opponent.playerName,
           avatar: opponent.avatarUrl,
           wins: 0, losses: 0, ties: 0,
         })
       }
-      const record = h2hMap.get(oppTp.userId)!
+      const record = h2hMap.get(oppUserId)!
       record.name = opponent.playerName
       if (opponent.avatarUrl) record.avatar = opponent.avatarUrl
 

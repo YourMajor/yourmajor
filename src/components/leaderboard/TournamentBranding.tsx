@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
@@ -26,10 +27,9 @@ export function TournamentBranding({ name, logo, status, startDate, endDate, slu
       <div className="max-w-5xl mx-auto flex flex-col items-center text-center">
         {/* Large logo with embossed badge treatment */}
         <Link href={`/${slug}`} aria-label={`${name} home`}>
-          <div className="tournament-logo-badge w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center overflow-hidden">
+          <div className="tournament-logo-badge relative w-24 h-24 sm:w-32 sm:h-32 rounded-full flex items-center justify-center overflow-hidden">
             {logo ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={logo} alt={name} className="w-full h-full object-cover" />
+              <Image src={logo} alt={name} fill sizes="(max-width: 640px) 96px, 128px" className="object-cover" />
             ) : (
               <span
                 className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl font-heading font-bold text-white"

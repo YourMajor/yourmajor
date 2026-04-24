@@ -335,6 +335,34 @@
   100% { transform: translate(-50%, 80vh) scale(0.25) rotate(15deg); opacity: 0; }
 }
 
+/* ── Hero mount stagger animation ───────────────────── */
+@keyframes heroFadeUp {
+  from { opacity: 0; transform: translateY(30px); }
+  to { opacity: 1; transform: none; }
+}
+.hero-stagger-1 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.3s both; }
+.hero-stagger-2 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.5s both; }
+.hero-stagger-3 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.7s both; }
+.hero-stagger-4 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
+.hero-stagger-5 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.1s both; }
+
+/* ── Scroll indicator bounce ────────────────────────── */
+@keyframes scrollBounce {
+  0%, 100% { transform: translateY(0); opacity: 0.6; }
+  50%      { transform: translateY(8px); opacity: 1; }
+}
+.animate-scroll-hint { animation: scrollBounce 2s ease-in-out infinite; }
+
+/* ── Hide scrollbar but keep scrolling ──────────────── */
+.scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
+.scrollbar-hide::-webkit-scrollbar { display: none; }
+
+/* ── Dark landing page sections ─────────────────────── */
+.landing-section-dark {
+  background-color: oklch(0.20 0.06 255);
+  color: white;
+}
+
 /* Native select dropdown with custom chevron */
 select.native-select {
   appearance: none;

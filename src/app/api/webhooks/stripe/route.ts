@@ -29,6 +29,15 @@ export async function POST(request: NextRequest) {
 
         if (!userId || !purchaseType) break
 
+        // Idempotency: stripeSessionId is @unique in schema. Stripe retries
+        // webhooks on any non-2xx or timeout, so dedupe by session.id and
+        // ack with 200 instead of letting the unique constraint throw.
+        const existing = await prisma.purchase.findUnique({
+          where: { stripeSessionId: session.id },
+          select: { id: true },
+        })
+        if (existing) break
+
         if (purchaseType === 'EVENT') {
           // tournamentId may be null for "credit" purchases from the pricing page
           await prisma.purchase.create({

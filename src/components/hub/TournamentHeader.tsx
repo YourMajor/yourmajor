@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const STATUS_LABELS: Record<string, string> = {
   DRAFT: 'Draft',
@@ -26,11 +27,12 @@ export function TournamentHeader({ name, logo, headerImage, status, startDate, e
       {/* Background: primary color + optional banner at 30% opacity */}
       <div className="absolute inset-0 tournament-header" />
       {headerImage && (
-        // eslint-disable-next-line @next/next/no-img-element
-        <img
+        <Image
           src={headerImage}
           alt=""
-          className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
+          fill
+          sizes="100vw"
+          className="object-cover opacity-30 pointer-events-none"
         />
       )}
 
@@ -38,10 +40,9 @@ export function TournamentHeader({ name, logo, headerImage, status, startDate, e
         <div className="flex flex-col items-center text-center">
           {/* Large logo — dynamically sized */}
           <Link href={`/${slug}`} aria-label={`${name} home`}>
-            <div className="tournament-logo-badge w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center overflow-hidden">
+            <div className="tournament-logo-badge relative w-24 h-24 sm:w-32 sm:h-32 md:w-40 md:h-40 rounded-full flex items-center justify-center overflow-hidden">
               {logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={logo} alt={name} className="w-full h-full object-cover" />
+                <Image src={logo} alt={name} fill sizes="(max-width: 640px) 96px, (max-width: 768px) 128px, 160px" className="object-cover" />
               ) : (
                 <span
                   className="w-full h-full flex items-center justify-center text-4xl sm:text-5xl md:text-6xl font-heading font-bold text-white"

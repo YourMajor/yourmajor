@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Trophy, User, MoreHorizontal, X, LogOut, CreditCard, Tag } from 'lucide-react'
+import { LayoutDashboard, Trophy, User, MoreHorizontal, X, LogOut, CreditCard, Tag, Sparkles } from 'lucide-react'
 
 const TABS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -13,6 +13,7 @@ const TABS = [
 ] as const
 
 const MORE_LINKS: { href: string; label: string; icon: typeof LayoutDashboard }[] = [
+  { href: '/features', label: 'Features', icon: Sparkles },
   { href: '/pricing', label: 'Pricing', icon: Tag },
   { href: '/billing', label: 'Billing', icon: CreditCard },
 ]

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
-import { supabaseAdmin } from '@/lib/supabase'
 
 export async function DELETE(
   _req: NextRequest,
@@ -16,6 +15,7 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  const { supabaseAdmin } = await import('@/lib/supabase')
   const photo = await prisma.tournamentPhoto.findUnique({ where: { id: photoId } })
   if (!photo || photo.tournamentId !== id) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })

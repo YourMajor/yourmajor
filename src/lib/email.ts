@@ -1,13 +1,22 @@
-import { Resend } from 'resend'
+import type { Resend } from 'resend'
 
-const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+let resend: Resend | null = null
 const from = process.env.EMAIL_FROM ?? 'noreply@resend.dev'
 const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://turfwar.app'
+
+async function getResend(): Promise<Resend | null> {
+  if (resend) return resend
+  if (!process.env.RESEND_API_KEY) return null
+  const { Resend: ResendClass } = await import('resend')
+  resend = new ResendClass(process.env.RESEND_API_KEY)
+  return resend
+}
 
 /**
  * Send an email. No-ops silently if RESEND_API_KEY is not configured.
  */
 export async function sendEmail(to: string, subject: string, html: string) {
+  const resend = await getResend()
   if (!resend) return
   try {
     await resend.emails.send({ from, to, subject, html })
@@ -24,10 +33,11 @@ export async function sendEmailToMany(
   subject: string,
   htmlFn: (recipient: { email: string; name?: string }) => string,
 ) {
+  const resend = await getResend()
   if (!resend) return
   await Promise.allSettled(
     recipients.map((r) =>
-      resend!.emails.send({ from, to: r.email, subject, html: htmlFn(r) }).catch((e) => {
+      resend.emails.send({ from, to: r.email, subject, html: htmlFn(r) }).catch((e) => {
         console.error(`[sendEmailToMany] failed to ${r.email}:`, e)
       }),
     ),

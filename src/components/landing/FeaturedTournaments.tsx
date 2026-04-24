@@ -48,10 +48,10 @@ export async function FeaturedTournaments() {
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <Trophy className="w-4 h-4 text-muted-foreground" />
-        <h2 className="font-heading font-semibold text-lg">Featured Tournaments</h2>
+        <Trophy className="w-4 h-4 lg:w-5 lg:h-5 text-white/60" />
+        <h2 className="font-heading font-bold text-xl sm:text-2xl lg:text-4xl text-white">Featured Tournaments</h2>
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-xs sm:text-sm lg:text-lg text-white/50">
         Featured public tournaments near you
       </p>
 
@@ -61,13 +61,13 @@ export async function FeaturedTournaments() {
           emptyMessage="No featured tournaments right now."
         />
       ) : (
-        <Card className="border-dashed border-2 border-border shadow-none">
+        <Card className="border-dashed border-2 border-white/15 shadow-none bg-white/[0.03]">
           <CardContent className="py-8 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
-              <Trophy className="w-6 h-6 text-muted-foreground" />
+            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
+              <Trophy className="w-6 h-6 text-white/50" />
             </div>
-            <p className="font-heading font-semibold text-base">No featured tournaments</p>
-            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+            <p className="font-heading font-semibold text-base text-white">No featured tournaments</p>
+            <p className="text-sm text-white/50 mt-1 max-w-xs">
               No featured tournaments right now. Sign in to create your own.
             </p>
             <Link
@@ -82,9 +82,9 @@ export async function FeaturedTournaments() {
         </Card>
       )}
 
-      <p className="text-sm text-muted-foreground pt-4">
+      <p className="text-sm text-white/50 pt-4">
         Have a tournament code?{' '}
-        <Link href="/auth/login" className="text-primary font-semibold hover:underline">
+        <Link href="/auth/login" className="text-accent font-semibold hover:underline">
           Sign in
         </Link>{' '}
         to see your tournaments.

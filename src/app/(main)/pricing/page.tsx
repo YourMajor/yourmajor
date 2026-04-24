@@ -13,16 +13,23 @@ export const metadata = {
 
 export default function PricingPage() {
   return (
-    <main className="max-w-5xl mx-auto px-4 sm:px-6 py-10 space-y-10">
-      {/* Header */}
-      <div className="text-center space-y-3">
-        <h1 className="font-heading text-3xl sm:text-4xl font-bold tracking-tight">
-          Simple pricing for every tournament
-        </h1>
-        <p className="text-muted-foreground max-w-xl mx-auto">
-          Free for your casual round with friends. Upgrade when you need more players, powerups, or a full season.
-        </p>
-      </div>
+    <main className="landing-section-dark">
+      {/* Hero header */}
+      <section className="landing-hero landing-hero-pattern relative overflow-hidden pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-20">
+        <div className="relative z-10 max-w-3xl lg:max-w-4xl mx-auto px-4 sm:px-6 text-center">
+          <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold text-accent mb-3 sm:mb-4 hero-stagger-1">Pricing</p>
+          <h1 className="font-heading text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-[1.08] hero-stagger-2">
+            Simple pricing for every tournament
+          </h1>
+          <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg text-white/60 max-w-xl lg:max-w-2xl mx-auto hero-stagger-3">
+            Free for your casual round with friends. Upgrade when you need more players, powerups, or a full season.
+          </p>
+        </div>
+        <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
+             style={{ background: 'linear-gradient(to bottom, transparent, oklch(0.20 0.06 255))' }} />
+      </section>
+
+      <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14 space-y-10 lg:space-y-14">
 
       {/* Pricing Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
@@ -33,12 +40,12 @@ export default function PricingPage() {
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                 <Trophy className="w-4 h-4 text-muted-foreground" />
               </div>
-              <CardTitle className="text-lg">Casual Round</CardTitle>
+              <CardTitle className="text-lg lg:text-xl">Casual Round</CardTitle>
             </div>
-            <CardDescription className="min-h-0">Perfect for a round with your crew</CardDescription>
+            <CardDescription className="min-h-[56px]">Perfect for a round with your crew</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-end min-h-[80px]">
               <div>
                 <span className="font-heading text-4xl font-bold">$0</span>
                 <span className="text-muted-foreground ml-1">forever</span>
@@ -52,7 +59,7 @@ export default function PricingPage() {
             </Link>
             <ul className="space-y-1.5">
               {TIER_FEATURES.FREE.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
+                <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
                   <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
@@ -61,7 +68,7 @@ export default function PricingPage() {
             {TIER_NEGATIVES.FREE.length > 0 && (
               <ul className="space-y-1.5 border-t border-border pt-4">
                 {TIER_NEGATIVES.FREE.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <li key={f} className="flex items-start gap-2 text-sm lg:text-base text-muted-foreground">
                     <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
@@ -81,12 +88,12 @@ export default function PricingPage() {
               <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                 <Zap className="w-4 h-4 text-accent" />
               </div>
-              <CardTitle className="text-lg">The Major</CardTitle>
+              <CardTitle className="text-lg lg:text-xl">The Major</CardTitle>
             </div>
-            <CardDescription className="min-h-0">For bigger events with all the bells and whistles</CardDescription>
+            <CardDescription className="min-h-[56px]">For bigger events with all the bells and whistles</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-end min-h-[80px]">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.PRO.label}</span>
                 <span className="text-muted-foreground ml-1">{TIER_PRICES.PRO.description}</span>
@@ -95,7 +102,7 @@ export default function PricingPage() {
             <PricingActions tier="PRO" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.PRO.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
+                <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
                   <Check className="w-4 h-4 text-accent mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
@@ -104,7 +111,7 @@ export default function PricingPage() {
             {TIER_NEGATIVES.PRO.length > 0 && (
               <ul className="space-y-1.5 border-t border-border pt-4">
                 {TIER_NEGATIVES.PRO.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <li key={f} className="flex items-start gap-2 text-sm lg:text-base text-muted-foreground">
                     <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
@@ -121,12 +128,12 @@ export default function PricingPage() {
               <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
                 <Users className="w-4 h-4 text-blue-500" />
               </div>
-              <CardTitle className="text-lg">The Club</CardTitle>
+              <CardTitle className="text-lg lg:text-xl">The Club</CardTitle>
             </div>
-            <CardDescription className="min-h-0">For regulars who play multiple events a month</CardDescription>
+            <CardDescription className="min-h-[56px]">For regulars who play multiple events a month</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-end min-h-[80px]">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.CLUB.label}</span>
                 <span className="text-muted-foreground ml-1">{TIER_PRICES.CLUB.description}</span>
@@ -138,7 +145,7 @@ export default function PricingPage() {
             <PricingActions tier="CLUB" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.CLUB.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
+                <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
                   <Check className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
@@ -147,7 +154,7 @@ export default function PricingPage() {
             {TIER_NEGATIVES.CLUB.length > 0 && (
               <ul className="space-y-1.5 border-t border-border pt-4">
                 {TIER_NEGATIVES.CLUB.map((f) => (
-                  <li key={f} className="flex items-start gap-2 text-sm text-muted-foreground">
+                  <li key={f} className="flex items-start gap-2 text-sm lg:text-base text-muted-foreground">
                     <X className="w-4 h-4 text-muted-foreground/50 mt-0.5 shrink-0" />
                     <span>{f}</span>
                   </li>
@@ -164,12 +171,12 @@ export default function PricingPage() {
               <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
                 <Crown className="w-4 h-4 text-primary" />
               </div>
-              <CardTitle className="text-lg">The Tour</CardTitle>
+              <CardTitle className="text-lg lg:text-xl">The Tour</CardTitle>
             </div>
-            <CardDescription className="min-h-0">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
+            <CardDescription className="min-h-[56px]">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-center">
+            <div className="flex flex-col justify-end min-h-[80px]">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.LEAGUE_SEASON.label}</span>
                 <span className="text-muted-foreground ml-1">/year</span>
@@ -181,7 +188,7 @@ export default function PricingPage() {
             <PricingActions tier="LEAGUE" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.LEAGUE.map((f) => (
-                <li key={f} className="flex items-start gap-2 text-sm">
+                <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
                   <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
@@ -193,9 +200,9 @@ export default function PricingPage() {
 
       {/* Feature Comparison Table */}
       <div className="space-y-4">
-        <h2 className="font-heading text-xl font-semibold text-center">Compare Plans</h2>
-        <div className="overflow-x-auto rounded-lg border border-border">
-          <table className="w-full text-sm">
+        <h2 className="font-heading text-xl lg:text-3xl font-semibold text-center text-white">Compare Plans</h2>
+        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+          <table className="w-full text-sm lg:text-base">
             <thead>
               <tr className="border-b border-border bg-muted/50">
                 <th className="text-left px-4 py-3 font-heading font-semibold">Feature</th>
@@ -241,8 +248,8 @@ export default function PricingPage() {
       </div>
 
       {/* FAQ */}
-      <div className="space-y-4 max-w-2xl mx-auto">
-        <h2 className="font-heading text-xl font-semibold text-center">Frequently Asked Questions</h2>
+      <div className="space-y-4 max-w-2xl lg:max-w-3xl mx-auto">
+        <h2 className="font-heading text-xl lg:text-3xl font-semibold text-center text-white">Frequently Asked Questions</h2>
         <div className="space-y-3">
           <FaqItem
             q="Can I try all features before paying?"
@@ -274,6 +281,7 @@ export default function PricingPage() {
           />
         </div>
       </div>
+      </div>
     </main>
   )
 }
@@ -295,12 +303,12 @@ function ComparisonCell({ value }: { value: string | boolean }) {
 
 function FaqItem({ q, a }: { q: string; a: string }) {
   return (
-    <details className="group rounded-lg border border-border px-4 py-3">
-      <summary className="cursor-pointer font-heading font-medium text-sm list-none flex items-center justify-between">
+    <details className="group rounded-lg border border-white/10 bg-white/[0.03] px-4 lg:px-6 py-3 lg:py-4">
+      <summary className="cursor-pointer font-heading font-medium text-sm lg:text-base text-white list-none flex items-center justify-between">
         {q}
-        <span className="text-muted-foreground transition-transform group-open:rotate-180">&#9662;</span>
+        <span className="text-white/40 transition-transform group-open:rotate-180">&#9662;</span>
       </summary>
-      <p className="text-sm text-muted-foreground mt-2">{a}</p>
+      <p className="text-sm lg:text-base text-white/50 mt-2">{a}</p>
     </details>
   )
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { buttonVariants } from '@/components/ui/button'
 import { TournamentHeader } from './TournamentHeader'
 import { NextRoundBanner } from './NextRoundBanner'
@@ -63,12 +64,15 @@ function ActionCard({
       className="group relative block rounded-2xl overflow-hidden shadow-md hover:shadow-xl transition-shadow"
     >
       {/* Background image */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img
-        src={image}
-        alt=""
-        className="w-full h-32 sm:h-36 object-cover transition-transform duration-500 group-hover:scale-105"
-      />
+      <div className="relative w-full h-32 sm:h-36 overflow-hidden">
+        <Image
+          src={image}
+          alt=""
+          fill
+          sizes="(max-width: 640px) 100vw, 33vw"
+          className="object-cover transition-transform duration-500 group-hover:scale-105"
+        />
+      </div>
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-black/10" />
 

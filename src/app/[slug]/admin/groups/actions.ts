@@ -165,13 +165,19 @@ export async function updateGroupTeeTime(tournamentId: string, groupId: string, 
     return
   }
 
+  const match = /^([01]\d|2[0-3]):([0-5]\d)$/.exec(teeTime)
+  if (!match) {
+    throw new Error('Tee time must be HH:mm (00:00–23:59)')
+  }
+  const hours = Number(match[1])
+  const minutes = Number(match[2])
+
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: { startDate: true },
   })
 
   const baseDate = tournament?.startDate ?? new Date()
-  const [hours, minutes] = teeTime.split(':').map(Number)
   const dt = new Date(baseDate)
   dt.setUTCHours(hours, minutes, 0, 0)
 
