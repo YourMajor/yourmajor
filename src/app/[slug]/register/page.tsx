@@ -56,7 +56,7 @@ export default async function RegisterPage({
       // Validate the provided token
       const invitation = await prisma.invitation.findUnique({
         where: { token },
-        select: { id: true, acceptedAt: true, tournamentId: true },
+        select: { id: true, acceptedAt: true, tournamentId: true, expiresAt: true },
       })
 
       if (!invitation || invitation.tournamentId !== tournament.id) {
@@ -65,6 +65,17 @@ export default async function RegisterPage({
             icon={ShieldX}
             heading="Invalid Invitation"
             description="This invitation link is invalid or has expired."
+            backHref={`/${slug}`}
+          />
+        )
+      }
+
+      if (invitation.expiresAt && invitation.expiresAt < new Date()) {
+        return (
+          <TournamentMessage
+            icon={ShieldX}
+            heading="Invitation Expired"
+            description="This invitation has expired. Ask the tournament admin to send a new one."
             backHref={`/${slug}`}
           />
         )

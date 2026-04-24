@@ -307,14 +307,16 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
       }
     }
 
-    // Invitations
+    // Invitations — expire in 14 days so leaked links do not remain valid forever
     const inviteList = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
     if (!data.isOpenRegistration && inviteList.length > 0) {
+      const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
       await tx.invitation.createMany({
         data: inviteList.map((entry) => ({
           tournamentId: t.id,
           email: entry.type === 'email' ? entry.value : null,
           phone: entry.type === 'phone' ? entry.value : null,
+          expiresAt,
         })),
       })
     }
@@ -505,11 +507,13 @@ export async function sendLateInvites(
 
   if (newEntries.length === 0) return
 
+  const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
   await prisma.invitation.createMany({
     data: newEntries.map((entry) => ({
       tournamentId,
       email: entry.type === 'email' ? entry.value : null,
       phone: entry.type === 'phone' ? entry.value : null,
+      expiresAt,
     })),
   })
 
