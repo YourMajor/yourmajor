@@ -2,6 +2,7 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 
@@ -182,7 +183,9 @@ export async function updateSeasonConfig(
     seasonBestOf: number | null
     seasonPointsTable: Record<number, number> | null
     leagueEndDate?: string | null
-  }
+    seasonDropLowest?: number | null
+    seasonTiebreakers?: string[] | null
+  },
 ) {
   await requireAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
@@ -195,6 +198,12 @@ export async function updateSeasonConfig(
       seasonPointsTable: config.seasonPointsTable ?? undefined,
       ...(config.leagueEndDate !== undefined && {
         leagueEndDate: config.leagueEndDate ? new Date(config.leagueEndDate) : null,
+      }),
+      ...(config.seasonDropLowest !== undefined && {
+        seasonDropLowest: config.seasonDropLowest,
+      }),
+      ...(config.seasonTiebreakers !== undefined && {
+        seasonTiebreakers: (config.seasonTiebreakers ?? undefined) as Prisma.InputJsonValue | undefined,
       }),
     },
   })

@@ -2,7 +2,8 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { getOrCreateRoster } from '@/lib/roster-actions'
-import { getSeasonAttendance } from '@/lib/season-standings'
+import { listSeasonAdjustments } from '@/lib/season-standings-actions'
+import { getSeasonAttendance, getSeasonAwards, DEFAULT_TIEBREAKERS, parseTiebreakers } from '@/lib/season-standings'
 import { SeasonAdminDashboard } from '@/components/season/SeasonAdminDashboard'
 
 export default async function AdminSeasonPage({
@@ -38,6 +39,8 @@ export default async function AdminSeasonPage({
       seasonScoringMethod: true,
       seasonBestOf: true,
       seasonPointsTable: true,
+      seasonDropLowest: true,
+      seasonTiebreakers: true,
       leagueEndDate: true,
     },
   })
@@ -67,7 +70,7 @@ export default async function AdminSeasonPage({
     },
   })
 
-  const [roster, attendance, schedule] = await Promise.all([
+  const [roster, attendance, schedule, adjustments, awards] = await Promise.all([
     getOrCreateRoster(tournament.id),
     getSeasonAttendance(tournament.id),
     prisma.seasonScheduleEvent.findMany({
@@ -79,6 +82,8 @@ export default async function AdminSeasonPage({
         },
       },
     }),
+    listSeasonAdjustments(tournament.id),
+    getSeasonAwards(tournament.id).catch(() => []),
   ])
 
   return (
@@ -113,7 +118,13 @@ export default async function AdminSeasonPage({
           bestOf: rootTournament?.seasonBestOf ?? null,
           pointsTable: (rootTournament?.seasonPointsTable as Record<number, number>) ?? null,
           leagueEndDate: rootTournament?.leagueEndDate?.toISOString().split('T')[0] ?? null,
+          dropLowest: rootTournament?.seasonDropLowest ?? null,
+          tiebreakers: rootTournament?.seasonTiebreakers
+            ? parseTiebreakers(rootTournament.seasonTiebreakers)
+            : DEFAULT_TIEBREAKERS,
         }}
+        adjustments={adjustments}
+        awards={awards}
         schedule={schedule.map((s) => ({
           id: s.id,
           title: s.title,

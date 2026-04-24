@@ -1,14 +1,16 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus } from 'lucide-react'
+import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus, Trophy, Plus, Trash2 } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { updateRosterMemberStatus, removeRosterMember, toggleAutoAddNew, updateSeasonConfig } from '@/lib/roster-actions'
+import { addSeasonAdjustment, deleteSeasonAdjustment, type AdjustmentRow } from '@/lib/season-standings-actions'
 import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
-import type { AttendanceRow, SeasonEvent } from '@/lib/season-standings'
+import type { AttendanceRow, SeasonEvent, SeasonAward } from '@/lib/season-standings'
+import type { Tiebreaker } from '@/lib/season-tiebreakers'
 
 interface RosterMember {
   id: string
@@ -52,7 +54,11 @@ interface SeasonAdminDashboardProps {
     bestOf: number | null
     pointsTable: Record<number, number> | null
     leagueEndDate: string | null
+    dropLowest: number | null
+    tiebreakers: Tiebreaker[]
   }
+  adjustments: AdjustmentRow[]
+  awards: SeasonAward[]
   schedule: ScheduleEvent[]
   leagueInfo: LeagueInfo | null
   slug: string
@@ -67,6 +73,8 @@ export function SeasonAdminDashboard({
   roster,
   attendance,
   seasonConfig,
+  adjustments,
+  awards,
   schedule,
   leagueInfo,
   slug,
@@ -77,7 +85,8 @@ export function SeasonAdminDashboard({
         {leagueInfo && <TabsTrigger value="events">Events</TabsTrigger>}
         <TabsTrigger value="roster">Roster</TabsTrigger>
         <TabsTrigger value="attendance">Attendance</TabsTrigger>
-        <TabsTrigger value="config">Season Config</TabsTrigger>
+        <TabsTrigger value="standings">Standings</TabsTrigger>
+        <TabsTrigger value="awards">Awards</TabsTrigger>
       </TabsList>
 
       {leagueInfo && (
@@ -101,8 +110,17 @@ export function SeasonAdminDashboard({
         <AttendancePanel attendance={attendance} />
       </TabsContent>
 
-      <TabsContent value="config">
+      <TabsContent value="standings">
         <SeasonConfigPanel tournamentId={tournamentId} config={seasonConfig} />
+        <AdjustmentsPanel
+          tournamentId={tournamentId}
+          adjustments={adjustments}
+          rosterMembers={roster?.members ?? []}
+        />
+      </TabsContent>
+
+      <TabsContent value="awards">
+        <AwardsPanel awards={awards} />
       </TabsContent>
     </Tabs>
   )
@@ -278,10 +296,19 @@ function SeasonConfigPanel({
   config,
 }: {
   tournamentId: string
-  config: { scoringMethod: string | null; bestOf: number | null; pointsTable: Record<number, number> | null; leagueEndDate: string | null }
+  config: {
+    scoringMethod: string | null
+    bestOf: number | null
+    pointsTable: Record<number, number> | null
+    leagueEndDate: string | null
+    dropLowest: number | null
+    tiebreakers: Tiebreaker[]
+  }
 }) {
   const [method, setMethod] = useState(config.scoringMethod ?? 'POINTS')
-  const [bestOf, setBestOf] = useState(config.bestOf ?? '')
+  const [bestOf, setBestOf] = useState<number | ''>(config.bestOf ?? '')
+  const [dropLowest, setDropLowest] = useState<number | ''>(config.dropLowest ?? '')
+  const [tiebreakers, setTiebreakers] = useState<Tiebreaker[]>(config.tiebreakers)
   const [leagueEndDate, setLeagueEndDate] = useState(config.leagueEndDate ?? '')
   const [isPending, startTransition] = useTransition()
   const [saved, setSaved] = useState(false)
@@ -293,6 +320,14 @@ function SeasonConfigPanel({
     { value: 'STABLEFORD_CUMULATIVE', label: 'Cumulative Stableford', desc: 'Sum of Stableford points across all events' },
   ]
 
+  function moveTiebreaker(idx: number, dir: -1 | 1) {
+    const next = [...tiebreakers]
+    const target = idx + dir
+    if (target < 0 || target >= next.length) return
+    ;[next[idx], next[target]] = [next[target], next[idx]]
+    setTiebreakers(next)
+  }
+
   function handleSave() {
     startTransition(async () => {
       await updateSeasonConfig(tournamentId, {
@@ -300,10 +335,19 @@ function SeasonConfigPanel({
         seasonBestOf: bestOf ? Number(bestOf) : null,
         seasonPointsTable: null, // Use defaults for now
         leagueEndDate: leagueEndDate || null,
+        seasonDropLowest: dropLowest ? Number(dropLowest) : null,
+        seasonTiebreakers: tiebreakers,
       })
       setSaved(true)
       setTimeout(() => setSaved(false), 2000)
     })
+  }
+
+  const tiebreakerLabels: Record<Tiebreaker, string> = {
+    HEAD_TO_HEAD: 'Head-to-head',
+    BEST_FINISH: 'Best single finish',
+    COUNTBACK: 'Countback (most recent)',
+    LOW_STROKES: 'Lowest total strokes',
   }
 
   return (
@@ -350,6 +394,61 @@ function SeasonConfigPanel({
           />
         </div>
       )}
+
+      {/* Drop Lowest */}
+      <div>
+        <label className="text-sm font-semibold text-foreground block mb-1.5">
+          Drop Lowest N (optional)
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
+          Discard each player&apos;s worst N events before computing standings. Useful if players miss a few.
+        </p>
+        <input
+          type="number"
+          min={0}
+          max={20}
+          value={dropLowest}
+          onChange={(e) => setDropLowest(e.target.value ? Number(e.target.value) : '')}
+          placeholder="e.g., 2"
+          className="w-24 px-3 py-2 rounded-lg border border-border text-sm bg-background text-foreground"
+        />
+      </div>
+
+      {/* Tiebreakers */}
+      <div>
+        <label className="text-sm font-semibold text-foreground block mb-1.5">
+          Tiebreakers
+        </label>
+        <p className="text-xs text-muted-foreground mb-2">
+          Order matters — earlier rules try first. Reorder by tapping the arrows.
+        </p>
+        <ol className="space-y-1.5">
+          {tiebreakers.map((t, i) => (
+            <li key={t} className="flex items-center justify-between gap-2 px-3 py-2 rounded-lg border border-border">
+              <span className="text-sm">
+                <span className="text-muted-foreground tabular-nums mr-2">{i + 1}.</span>
+                {tiebreakerLabels[t]}
+              </span>
+              <span className="flex items-center gap-1">
+                <button
+                  type="button"
+                  onClick={() => moveTiebreaker(i, -1)}
+                  disabled={i === 0}
+                  className="px-2 py-0.5 text-xs rounded border border-border bg-background disabled:opacity-30 hover:bg-muted/40"
+                  aria-label={`Move ${tiebreakerLabels[t]} up`}
+                >↑</button>
+                <button
+                  type="button"
+                  onClick={() => moveTiebreaker(i, 1)}
+                  disabled={i === tiebreakers.length - 1}
+                  className="px-2 py-0.5 text-xs rounded border border-border bg-background disabled:opacity-30 hover:bg-muted/40"
+                  aria-label={`Move ${tiebreakerLabels[t]} down`}
+                >↓</button>
+              </span>
+            </li>
+          ))}
+        </ol>
+      </div>
 
       {/* League End Date */}
       <div>
@@ -592,6 +691,187 @@ function ScheduleEventsPanel({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Adjustments Panel ───────────────────────────────────────────────────────
+
+function AdjustmentsPanel({
+  tournamentId,
+  adjustments,
+  rosterMembers,
+}: {
+  tournamentId: string
+  adjustments: AdjustmentRow[]
+  rosterMembers: RosterMember[]
+}) {
+  const [isPending, startTransition] = useTransition()
+  const [showForm, setShowForm] = useState(false)
+  const [userId, setUserId] = useState<string>('')
+  const [delta, setDelta] = useState<number | ''>('')
+  const [reason, setReason] = useState('')
+  const [error, setError] = useState('')
+
+  function reset() {
+    setUserId('')
+    setDelta('')
+    setReason('')
+    setError('')
+    setShowForm(false)
+  }
+
+  function handleAdd() {
+    if (!userId) { setError('Pick a player.'); return }
+    if (!delta || delta === 0) { setError('Delta must be a non-zero number.'); return }
+    if (!reason.trim()) { setError('A reason is required.'); return }
+    setError('')
+    startTransition(async () => {
+      try {
+        await addSeasonAdjustment(tournamentId, { userId, delta: Number(delta), reason })
+        reset()
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to add adjustment.')
+      }
+    })
+  }
+
+  return (
+    <div className="mt-10 pt-6 border-t border-border">
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h3 className="text-sm font-semibold text-foreground">Manual Adjustments</h3>
+          <p className="text-xs text-muted-foreground">Adjust an individual player&apos;s season total. Applies on top of computed standings.</p>
+        </div>
+        {!showForm && (
+          <button
+            type="button"
+            onClick={() => setShowForm(true)}
+            className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted/40 transition-colors"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            Add adjustment
+          </button>
+        )}
+      </div>
+
+      {showForm && (
+        <div className="space-y-3 px-4 py-4 rounded-lg border border-border bg-muted/20">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+            <select
+              value={userId}
+              onChange={(e) => setUserId(e.target.value)}
+              className="px-3 py-2 rounded-lg border border-border text-sm bg-background"
+            >
+              <option value="">Select player…</option>
+              {rosterMembers.map((m) => (
+                <option key={m.userId} value={m.userId}>{m.name}</option>
+              ))}
+            </select>
+            <input
+              type="number"
+              step={1}
+              value={delta}
+              onChange={(e) => setDelta(e.target.value ? Number(e.target.value) : '')}
+              placeholder="Delta (e.g. +5 or -3)"
+              className="px-3 py-2 rounded-lg border border-border text-sm bg-background"
+            />
+            <input
+              type="text"
+              value={reason}
+              onChange={(e) => setReason(e.target.value)}
+              placeholder="Reason"
+              className="px-3 py-2 rounded-lg border border-border text-sm bg-background"
+            />
+          </div>
+          {error && <p className="text-xs text-red-500">{error}</p>}
+          <div className="flex gap-2">
+            <button
+              type="button"
+              onClick={handleAdd}
+              disabled={isPending}
+              className="px-4 py-1.5 rounded-md text-xs font-semibold text-white disabled:opacity-50"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              {isPending ? 'Saving…' : 'Save'}
+            </button>
+            <button
+              type="button"
+              onClick={reset}
+              disabled={isPending}
+              className="px-4 py-1.5 rounded-md text-xs font-medium border border-border hover:bg-muted/40"
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="mt-3 space-y-1">
+        {adjustments.length === 0 ? (
+          <p className="py-4 text-xs text-muted-foreground">No adjustments yet.</p>
+        ) : (
+          adjustments.map((a) => (
+            <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg hover:bg-muted/30">
+              <div className="flex items-center gap-3 min-w-0">
+                <Avatar size="sm">
+                  <AvatarImage src={a.playerAvatar ?? undefined} alt={a.playerName} />
+                  <AvatarFallback>{getInitials(a.playerName)}</AvatarFallback>
+                </Avatar>
+                <div className="min-w-0">
+                  <p className="text-sm font-medium text-foreground truncate">
+                    {a.playerName}
+                    <span className={`ml-2 tabular-nums ${a.delta > 0 ? 'text-green-600' : 'text-red-500'}`}>
+                      {a.delta > 0 ? '+' : ''}{a.delta}
+                    </span>
+                  </p>
+                  <p className="text-[11px] text-muted-foreground">{a.reason}</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                disabled={isPending}
+                onClick={() => startTransition(() => deleteSeasonAdjustment(tournamentId, a.id))}
+                className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                title="Remove adjustment"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  )
+}
+
+// ─── Awards Panel ────────────────────────────────────────────────────────────
+
+function AwardsPanel({ awards }: { awards: SeasonAward[] }) {
+  if (awards.length === 0) {
+    return <p className="py-8 text-center text-muted-foreground">No awards yet — awards appear once events are scored.</p>
+  }
+  return (
+    <div className="mt-4 grid grid-cols-1 sm:grid-cols-2 gap-3">
+      {awards.map((a) => (
+        <div key={a.title} className="rounded-xl border border-border px-4 py-4">
+          <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+            <Trophy className="w-3.5 h-3.5" />
+            {a.title}
+          </div>
+          <div className="mt-2 flex items-center gap-3">
+            <Avatar size="sm">
+              <AvatarImage src={a.playerAvatar ?? undefined} alt={a.playerName} />
+              <AvatarFallback>{getInitials(a.playerName)}</AvatarFallback>
+            </Avatar>
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground truncate">{a.playerName}</p>
+              <p className="text-[11px] text-muted-foreground">{a.description}</p>
+            </div>
+            <span className="ml-auto text-sm font-semibold tabular-nums">{a.value}</span>
+          </div>
+        </div>
+      ))}
     </div>
   )
 }
