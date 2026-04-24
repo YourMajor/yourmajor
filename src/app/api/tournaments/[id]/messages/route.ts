@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
+import { containsProfanity } from '@/lib/content-moderation'
 
 export async function GET(
   _req: NextRequest,
@@ -86,6 +87,18 @@ export async function POST(
     return NextResponse.json(
       { error: 'Slow down — you are temporarily muted', expiresAt },
       { status: 429 },
+    )
+  }
+
+  // Language filter for chat in publicly discoverable tournaments
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { tournamentType: true },
+  })
+  if (tournament?.tournamentType === 'PUBLIC' && containsProfanity(content)) {
+    return NextResponse.json(
+      { error: 'Message contains inappropriate language.' },
+      { status: 400 },
     )
   }
 

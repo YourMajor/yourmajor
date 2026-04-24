@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { containsProfanity } from '@/lib/content-moderation'
 import { randomUUID } from 'crypto'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
@@ -67,6 +68,19 @@ export async function POST(
   const caption = (form.get('caption') as string | null)?.trim() ?? null
 
   if (!file) return NextResponse.json({ error: 'File required' }, { status: 400 })
+
+  // Language filter for captions in publicly discoverable tournaments — run before upload
+  // so we don't orphan a Supabase blob when the caption is rejected.
+  const tournament = await prisma.tournament.findUnique({
+    where: { id },
+    select: { tournamentType: true },
+  })
+  if (tournament?.tournamentType === 'PUBLIC' && containsProfanity(caption)) {
+    return NextResponse.json(
+      { error: 'Caption contains inappropriate language.' },
+      { status: 400 },
+    )
+  }
 
   // Validate file size
   if (file.size > MAX_SIZE) {

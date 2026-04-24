@@ -120,6 +120,11 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
               className="flex w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring resize-none"
             />
             <p className="text-xs text-muted-foreground text-right">{value.description.length}/250</p>
+            {tournamentType === 'PUBLIC' && (
+              <p className="text-xs text-muted-foreground">
+                Public tournaments are visible to all users. Please keep names and descriptions appropriate.
+              </p>
+            )}
           </div>
 
           {/* League toggle */}
