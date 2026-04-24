@@ -1,10 +1,13 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
 import { PlusCircle } from 'lucide-react'
 import { CountUp } from '@/components/motion/CountUp'
 import { FindTournament } from '@/components/FindTournament'
+
+// No-op subscribe — greeting is computed on mount, doesn't need to react to changes.
+const noopSubscribe = () => () => {}
 
 interface DashboardHeroProps {
   displayName: string
@@ -42,11 +45,12 @@ export function DashboardHero({
   hasActiveRoundToScore,
 }: DashboardHeroProps) {
   const firstName = displayName.split(' ')[0]
-  const [greeting, setGreeting] = useState(`Welcome, ${firstName}.`)
-
-  useEffect(() => {
-    setGreeting(greetingFor(new Date().getHours(), firstName))
-  }, [firstName])
+  // Read client hour on mount, SSR falls back to neutral "Welcome" to avoid hydration mismatch.
+  const greeting = useSyncExternalStore(
+    noopSubscribe,
+    () => greetingFor(new Date().getHours(), firstName),
+    () => `Welcome, ${firstName}.`,
+  )
 
   return (
     <section className="relative w-full overflow-hidden">
