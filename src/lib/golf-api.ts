@@ -64,9 +64,14 @@ export type GolfCourseApiSearchResponse = {
 /**
  * Search courses by name. Returns matching courses with full tee/hole data.
  */
+export const GOLF_COURSE_CACHE_TAG = 'golf-courses'
+
 export async function searchCourses(query: string): Promise<GolfCourseApiCourse[]> {
   const url = `${BASE_URL}/v1/search?search_query=${encodeURIComponent(query)}`
-  const res = await fetch(url, { headers: getHeaders(), next: { revalidate: 3600 } })
+  const res = await fetch(url, {
+    headers: getHeaders(),
+    next: { revalidate: 3600, tags: [GOLF_COURSE_CACHE_TAG] },
+  })
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`GolfCourseAPI /v1/search error ${res.status}: ${text}`)

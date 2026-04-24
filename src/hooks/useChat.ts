@@ -28,6 +28,7 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   const [isBanned, setIsBanned] = useState(false)
   const [banExpiresAt, setBanExpiresAt] = useState<Date | null>(null)
   const [banReason, setBanReason] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
@@ -41,10 +42,12 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
         const data = await res.json()
         setMessages(data)
         setLoaded(true)
+        setError(null)
         return data as ChatMessage[]
       }
+      setError('Failed to load chat.')
     } catch {
-      // Non-critical
+      setError('Failed to load chat.')
     }
     return null
   }, [tournamentId])
@@ -59,7 +62,7 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
         setBanReason(data.reason ?? null)
       }
     } catch {
-      // Non-critical
+      // Non-critical — ban status failing silently is acceptable
     }
   }, [tournamentId])
 
@@ -195,5 +198,6 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     deleteMessage,
     banUser,
     unbanUser,
+    error,
   }
 }
