@@ -237,7 +237,7 @@ export default function PricingPage() {
             <tbody>
               {COMPARISON_FEATURES.map((row, i) => (
                 <tr key={row.label} className={i % 2 === 0 ? '' : 'bg-muted/30'}>
-                  <td className="px-4 py-2.5 font-medium">{row.label}</td>
+                  <td className="px-4 py-2.5 font-medium text-foreground">{row.label}</td>
                   <ComparisonCell value={row.free} />
                   <ComparisonCell value={row.pro} />
                   <ComparisonCell value={row.club} />
