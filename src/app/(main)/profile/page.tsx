@@ -7,16 +7,18 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Separator } from '@/components/ui/separator'
 import { ProfileEditForm } from './ProfileEditForm'
 import { Trophy, Zap, Crown } from 'lucide-react'
+import { IdentityHero } from '@/components/profile/IdentityHero'
 
 export default async function ProfilePage({
   searchParams,
 }: {
-  searchParams: Promise<{ ref?: string }>
+  searchParams: Promise<{ ref?: string; edit?: string }>
 }) {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  const { ref: tournamentRef } = await searchParams
+  const { ref: tournamentRef, edit } = await searchParams
+  const isEditing = edit === '1'
   const userTier = await getUserTier(user.id)
 
   const profile = await prisma.playerProfile.findUnique({ where: { userId: user.id } })
@@ -148,28 +150,33 @@ export default async function ProfilePage({
   const initialName = profile?.displayName ?? user.name ?? user.email.split('@')[0]
   const initialAvatarUrl = profile?.avatar ?? user.image ?? null
 
-  return (
-    <main className="max-w-2xl mx-auto px-4 py-6 sm:px-6 space-y-6">
-      <div className="flex items-start justify-between gap-4">
-        <h1 className="text-2xl font-heading font-bold">Profile</h1>
-        {tournamentRef && (
-          <Link
-            href={`/${tournamentRef}`}
-            className="shrink-0 inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
-          >
-            &larr; Back to Tournament
-          </Link>
-        )}
-      </div>
+  const totalRounds = tournamentRoundCount.length + standaloneCount
 
-      <ProfileEditForm
-        initialName={initialName}
-        initialEmail={user.email}
-        initialAvatarUrl={initialAvatarUrl}
-        initialHandicap={handicap}
-        initialPhone={user.phone ?? ''}
-        initialSmsNotifications={user.smsNotifications}
-      />
+  return (
+    <>
+    <IdentityHero
+      displayName={initialName}
+      avatarUrl={initialAvatarUrl}
+      tier={userTier.tier}
+      handicap={Number(handicap)}
+      totalRounds={totalRounds}
+      avgVsPar={avgRound}
+      tournamentBackRef={tournamentRef ?? null}
+      isEditing={isEditing}
+    />
+
+    <main className="max-w-2xl mx-auto px-4 py-6 sm:px-6 space-y-6">
+      {isEditing && (
+        <div id="profile-edit" className="scroll-mt-16">
+          <ProfileEditForm
+            initialName={initialName}
+            initialEmail={user.email}
+            initialHandicap={handicap}
+            initialPhone={user.phone ?? ''}
+            initialSmsNotifications={user.smsNotifications}
+          />
+        </div>
+      )}
 
       {/* Membership */}
       <Card>
@@ -417,5 +424,6 @@ export default async function ProfilePage({
         )
       )}
     </main>
+    </>
   )
 }

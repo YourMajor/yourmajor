@@ -5,12 +5,12 @@ import { getUser } from '@/lib/auth'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 
-import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { PlusCircle, Trophy, Clock, MapPin, ChevronRight, Repeat } from 'lucide-react'
+import { PlusCircle, Trophy, Clock, MapPin, Repeat } from 'lucide-react'
 import NearbyTournaments from '@/components/NearbyTournaments'
 import { FindTournament } from '@/components/FindTournament'
 import { DashboardInfoCard } from '@/components/DashboardInfoCard'
 import { TournamentCard } from '@/components/TournamentCard'
+import { DashboardHero } from '@/components/dashboard/DashboardHero'
 
 export default async function DashboardPage() {
   const user = await getUser()
@@ -209,70 +209,22 @@ export default async function DashboardPage() {
 
   const handicap = profile?.handicap ?? memberships[0]?.handicap ?? 0
   const displayName = profile?.displayName ?? user.name ?? user.email.split('@')[0]
-  const avatarUrl = profile?.avatar ?? user.image ?? null
 
   const mostRecentIsComplete = mostRecentRoundHoles >= 18
   const mostRecentDiff = (mostRecentRoundGross ?? 0) - (mostRecentRoundPar ?? 0)
 
+  const hasActiveRoundToScore = Boolean(mostRecentScore && !mostRecentIsComplete)
+
   return (
     <>
-    {/* Player header bar — full width */}
-    <div className="w-full" style={{ backgroundColor: 'var(--primary)' }}>
-      <div className="max-w-4xl mx-auto px-4 sm:px-6 py-4 space-y-0">
-        <div className="flex items-center justify-between gap-4">
-          <Link href="/profile" className="flex items-center gap-4 group min-w-0">
-            <Avatar className="h-12 w-12 sm:h-16 sm:w-16 shrink-0 border-2 border-white/20 group-hover:border-white/40 transition-colors">
-              <AvatarImage src={avatarUrl ?? undefined} />
-              <AvatarFallback className="text-xl font-bold bg-white/20 text-white">
-                {displayName.charAt(0).toUpperCase()}
-              </AvatarFallback>
-            </Avatar>
-            <div className="min-w-0">
-              <div className="flex items-center gap-1.5">
-                <h1 className="text-xl font-heading font-bold text-white truncate">{displayName}</h1>
-                <ChevronRight className="w-4 h-4 text-white/40 group-hover:text-white/60 transition-colors shrink-0" />
-              </div>
-              <p className="text-sm text-white/60 mt-0.5 truncate">{user.email}</p>
-            </div>
-          </Link>
-          <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-1.5 sm:gap-2 shrink-0">
-            <FindTournament />
-            <Link
-              href="/tournaments/new"
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg border border-white/20 bg-white/10 px-3 py-2 text-xs font-semibold text-white hover:bg-white/20 transition-colors"
-            >
-              <PlusCircle className="w-4 h-4" />
-              <span className="hidden sm:inline">Create Tournament</span>
-              <span className="sm:hidden">Create</span>
-            </Link>
-          </div>
-        </div>
-
-        {/* Stats strip */}
-        <div className="flex items-center gap-4 mt-3 pt-3 border-t border-white/10">
-          <div className="text-center">
-            <p className="text-lg font-heading font-bold text-white">{handicap}</p>
-            <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Handicap</p>
-          </div>
-          <div className="w-px h-8 bg-white/10" />
-          <div className="text-center">
-            <p className="text-lg font-heading font-bold text-white">{totalRounds}</p>
-            <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Rounds</p>
-          </div>
-          {scoringAvg !== null && (
-            <>
-              <div className="w-px h-8 bg-white/10" />
-              <div className="text-center">
-                <p className="text-lg font-heading font-bold text-white">
-                  {scoringAvg >= 0 ? '+' : ''}{scoringAvg.toFixed(1)}
-                </p>
-                <p className="text-[11px] text-white/50 uppercase tracking-wide font-semibold">Avg vs Par</p>
-              </div>
-            </>
-          )}
-        </div>
-      </div>
-    </div>
+    <DashboardHero
+      displayName={displayName}
+      handicap={Number(handicap)}
+      totalRounds={totalRounds}
+      scoringAvg={scoringAvg}
+      activeTournamentCount={activeMemberships.length + activeLeagues.length}
+      hasActiveRoundToScore={hasActiveRoundToScore}
+    />
 
     <main className="max-w-4xl mx-auto px-4 py-6 sm:px-6 space-y-10">
       {/* Most Recent Round */}

@@ -36,6 +36,8 @@
   --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-club: var(--club);
+  --color-tour: var(--tour);
   --color-muted-foreground: var(--muted-foreground);
   --color-muted: var(--muted);
   --color-secondary-foreground: var(--secondary-foreground);
@@ -71,6 +73,8 @@
   --muted-foreground:     oklch(0.50 0.02 250);
   --accent:               oklch(0.72 0.11 78);
   --accent-foreground:    oklch(0.15 0.02 40);
+  --club:                 oklch(0.55 0.14 158);
+  --tour:                 oklch(0.42 0.16 20);
   --destructive:          oklch(0.577 0.245 27.325);
   --border:               oklch(0.88 0.01 250);
   --input:                oklch(0.88 0.01 250);

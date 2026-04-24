@@ -30,7 +30,7 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
 
   const labels: Record<string, string> = {
     PRO: 'Create Pro Tournament',
-    CLUB: 'Subscribe Monthly',
+    CLUB: 'Start a League',
     LEAGUE: 'Get Annual Pass',
   }
 
@@ -42,6 +42,8 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
         buttonVariants({ size: 'lg' }),
         'w-full',
         tier === 'PRO' && 'bg-accent text-accent-foreground hover:bg-accent/90',
+        tier === 'CLUB' && 'bg-club text-white hover:bg-club/90',
+        tier === 'LEAGUE' && 'bg-tour text-white hover:bg-tour/90',
       )}
     >
       {loading ? 'Redirecting...' : labels[tier]}

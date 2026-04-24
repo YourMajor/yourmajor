@@ -1,13 +1,17 @@
 export async function getCroppedImageBlob(
   imageSrc: string,
   cropPixels: { x: number; y: number; width: number; height: number },
-  outputSize = 480
+  maxOutputSize = 1024
 ): Promise<Blob> {
   const image = await loadImage(imageSrc)
+  // Don't upscale beyond the actual source crop — preserves sharpness.
+  const outputSize = Math.min(maxOutputSize, Math.floor(Math.min(cropPixels.width, cropPixels.height)))
   const canvas = document.createElement('canvas')
   canvas.width = outputSize
   canvas.height = outputSize
   const ctx = canvas.getContext('2d')!
+  ctx.imageSmoothingEnabled = true
+  ctx.imageSmoothingQuality = 'high'
 
   ctx.drawImage(
     image,
@@ -25,7 +29,7 @@ export async function getCroppedImageBlob(
     canvas.toBlob(
       (blob) => (blob ? resolve(blob) : reject(new Error('Canvas toBlob failed'))),
       'image/jpeg',
-      0.92
+      0.95
     )
   })
 }
