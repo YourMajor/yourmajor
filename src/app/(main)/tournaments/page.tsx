@@ -3,17 +3,35 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
-import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
-import { PlusCircle } from 'lucide-react'
-import { TournamentCardMenu } from '@/components/TournamentCardMenu'
+import { PlusCircle, Trophy, Clock, Repeat, Users } from 'lucide-react'
+import { TournamentCard } from '@/components/TournamentCard'
 
-const STATUS_LABEL: Record<string, string> = {
-  DRAFT: 'Draft',
-  REGISTRATION: 'Upcoming',
-  ACTIVE: 'Live',
-  COMPLETED: 'Completed',
-}
+const TOURNAMENT_SELECT = {
+  id: true,
+  slug: true,
+  name: true,
+  description: true,
+  handicapSystem: true,
+  status: true,
+  startDate: true,
+  endDate: true,
+  primaryColor: true,
+  accentColor: true,
+  logo: true,
+  headerImage: true,
+  registrationDeadline: true,
+  registrationClosed: true,
+  isOpenRegistration: true,
+  tournamentType: true,
+  isLeague: true,
+  leagueEndDate: true,
+  parentTournamentId: true,
+  rounds: {
+    select: { course: { select: { name: true, par: true } } },
+  },
+  _count: { select: { players: true, rounds: true } },
+} as const
 
 export default async function TournamentsPage() {
   const user = await getUser()
@@ -21,48 +39,57 @@ export default async function TournamentsPage() {
 
   const memberships = await prisma.tournamentPlayer.findMany({
     where: { userId: user.id },
-    include: {
-      tournament: {
-        select: {
-          id: true,
-          slug: true,
-          name: true,
-          status: true,
-          startDate: true,
-          _count: { select: { players: true } },
-        },
-      },
-    },
+    include: { tournament: { select: TOURNAMENT_SELECT } },
     orderBy: { createdAt: 'desc' },
   })
 
-  const joinedIds = memberships.map((m) => m.tournamentId)
-  const openTournaments = await prisma.tournament.findMany({
-    where: {
-      status: { in: ['REGISTRATION', 'ACTIVE'] },
-      tournamentType: { in: ['PUBLIC', 'OPEN'] },
-      id: { notIn: joinedIds },
-    },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      status: true,
-      startDate: true,
-      _count: { select: { players: true } },
-    },
-    orderBy: { startDate: 'asc' },
-    take: 10,
+  // Organising / Playing: active non-league tournaments where the user has the role.
+  const organising = memberships.filter(
+    (m) => m.isAdmin && m.tournament.status !== 'COMPLETED' && !m.tournament.isLeague
+  )
+  const playing = memberships.filter(
+    (m) => !m.isAdmin && m.tournament.status !== 'COMPLETED' && !m.tournament.isLeague
+  )
+
+  // Leagues: dedupe by name (league events share a name). Keep the most recent membership per chain.
+  const leaguesByName = new Map<string, (typeof memberships)[number]>()
+  for (const m of memberships) {
+    if (!m.tournament.isLeague) continue
+    if (!leaguesByName.has(m.tournament.name)) {
+      leaguesByName.set(m.tournament.name, m)
+    }
+  }
+  const now = new Date()
+  const activeLeagues = Array.from(leaguesByName.values()).filter((m) => {
+    if (m.tournament.leagueEndDate) return new Date(m.tournament.leagueEndDate) >= now
+    return m.tournament.status !== 'COMPLETED'
+  })
+  const completedLeagues = Array.from(leaguesByName.values()).filter((m) => {
+    if (m.tournament.leagueEndDate) return new Date(m.tournament.leagueEndDate) < now
+    return m.tournament.status === 'COMPLETED'
   })
 
-  const managed = memberships.filter((m) => m.isAdmin && m.tournament.status !== 'COMPLETED')
-  const playing = memberships.filter((m) => !m.isAdmin && m.tournament.status !== 'COMPLETED')
-  const completed = memberships.filter((m) => m.tournament.status === 'COMPLETED')
+  // Tournament history: completed non-league tournaments plus completed league roots.
+  const completedNonLeague = memberships.filter(
+    (m) => m.tournament.status === 'COMPLETED' && !m.tournament.isLeague
+  )
+  const history = [...completedNonLeague, ...completedLeagues]
+
+  const hasAny =
+    history.length > 0 ||
+    organising.length > 0 ||
+    playing.length > 0 ||
+    activeLeagues.length > 0
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-6 sm:p-6 space-y-8">
+    <main className="max-w-4xl mx-auto px-4 py-6 sm:px-6 space-y-10">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-heading font-bold">Tournaments</h1>
+        <div>
+          <h1 className="text-2xl font-heading font-bold">Tournaments</h1>
+          <p className="text-sm text-muted-foreground mt-0.5">
+            Your full tournament history and any active events not on your dashboard.
+          </p>
+        </div>
         <Link href="/tournaments/new">
           <Button className="gap-2 bg-primary text-primary-foreground hover:bg-primary/90">
             <PlusCircle className="w-4 h-4" />
@@ -71,112 +98,86 @@ export default async function TournamentsPage() {
         </Link>
       </div>
 
-      {managed.length > 0 && (
+      {!hasAny && (
+        <Card className="border-dashed border-2 border-border shadow-none">
+          <CardContent className="py-10 flex flex-col items-center text-center">
+            <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
+              <Trophy className="w-6 h-6 text-muted-foreground" />
+            </div>
+            <p className="font-heading font-semibold text-base">No tournaments yet</p>
+            <p className="text-sm text-muted-foreground mt-1 max-w-xs">
+              Once you create or join a tournament, your history will live here.
+            </p>
+          </CardContent>
+        </Card>
+      )}
+
+      {history.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-heading font-semibold text-lg">Organising</h2>
-          {managed.map((m) => (
-            <TournamentRow key={m.id} t={m.tournament} showAdmin handicap={m.handicap} />
+          <div className="flex items-center gap-2">
+            <Clock className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Tournament History</h2>
+          </div>
+          {history.map((m) => (
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={m.isAdmin}
+            />
+          ))}
+        </section>
+      )}
+
+      {organising.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Trophy className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Organising</h2>
+          </div>
+          {organising.map((m) => (
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={m.isAdmin}
+              isRegistered
+            />
           ))}
         </section>
       )}
 
       {playing.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-heading font-semibold text-lg">Playing</h2>
+          <div className="flex items-center gap-2">
+            <Users className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Playing</h2>
+          </div>
           {playing.map((m) => (
-            <TournamentRow key={m.id} t={m.tournament} showAdmin={false} handicap={m.handicap} />
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={false}
+              isRegistered
+            />
           ))}
         </section>
       )}
 
-      {memberships.length === 0 && (
-        <p className="text-sm text-muted-foreground">
-          You haven&apos;t joined any tournaments yet.
-        </p>
-      )}
-
-      {openTournaments.length > 0 && (
+      {activeLeagues.length > 0 && (
         <section className="space-y-3">
-          <h2 className="font-heading font-semibold text-lg">Open to Join</h2>
-          {openTournaments.map((t) => (
-            <TournamentRow key={t.id} t={t} showAdmin={false} />
-          ))}
-        </section>
-      )}
-
-      {completed.length > 0 && (
-        <section className="space-y-3">
-          <h2 className="font-heading font-semibold text-lg">Completed</h2>
-          {completed.map((m) => (
-            <TournamentRow key={m.id} t={m.tournament} showAdmin={m.isAdmin} handicap={m.handicap} />
+          <div className="flex items-center gap-2">
+            <Repeat className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Your Leagues</h2>
+          </div>
+          {activeLeagues.map((m) => (
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={m.isAdmin}
+              isRegistered
+            />
           ))}
         </section>
       )}
     </main>
-  )
-}
-
-function TournamentRow({
-  t,
-  showAdmin,
-  handicap,
-}: {
-  t: { id: string; slug: string; name: string; status: string; startDate: Date | null; _count: { players: number } }
-  showAdmin: boolean
-  handicap?: number
-}) {
-  return (
-    <Card className="relative overflow-visible">
-      {/* Status tag — top left */}
-      <div className="absolute top-0 left-0">
-        {t.status === 'ACTIVE' ? (
-          <span className="inline-flex items-center gap-1.5 rounded-br-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
-            <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-            Live
-          </span>
-        ) : (
-          <span className={`inline-flex items-center rounded-br-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-            t.status === 'REGISTRATION'
-              ? 'bg-blue-100 text-blue-700'
-              : 'bg-muted text-muted-foreground'
-          }`}>
-            {STATUS_LABEL[t.status] ?? t.status}
-          </span>
-        )}
-      </div>
-
-      {/* Admin overflow menu — top right */}
-      {showAdmin && (
-        <div className="absolute top-1.5 right-1.5">
-          <TournamentCardMenu
-            slug={t.slug}
-            tournamentId={t.id}
-            tournamentName={t.name}
-            showRenew={t.status === 'COMPLETED'}
-          />
-        </div>
-      )}
-
-      <CardContent className="flex items-center justify-between pt-8 pb-4 gap-4">
-        <div className="min-w-0">
-          <p className="text-lg font-heading font-bold truncate">{t.name}</p>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {t._count.players} player{t._count.players !== 1 ? 's' : ''}
-            {t.startDate ? ` · ${new Date(t.startDate).toLocaleDateString()}` : ''}
-            {handicap !== undefined ? ` · HCP ${handicap}` : ''}
-          </p>
-        </div>
-        <div className="flex items-center gap-2 shrink-0">
-          {t.status === 'REGISTRATION' && (
-            <Link href={`/${t.slug}/register`} className={buttonVariants({ size: 'sm' }) + ' bg-primary text-primary-foreground hover:bg-primary/90'}>
-              Register
-            </Link>
-          )}
-          <Link href={`/${t.slug}`} className={buttonVariants({ variant: 'outline', size: 'sm' })}>
-            View
-          </Link>
-        </div>
-      </CardContent>
-    </Card>
   )
 }
