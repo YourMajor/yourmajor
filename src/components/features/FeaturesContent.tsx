@@ -5,7 +5,7 @@ import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import {
   BarChart3, ClipboardList, Zap, Users, Camera, Shield,
   MessageSquare, TrendingUp, Map, Smartphone, Settings,
-  Bell, Repeat, Timer, Globe, Crosshair, Palette, Trophy,
+  Repeat, Timer, Globe, Crosshair, Palette, Trophy,
 } from 'lucide-react'
 
 /* ═══════════════════════════════════════════════════════
@@ -47,7 +47,7 @@ function LeaderboardVisual() {
         <span className="text-center">Pos</span><span>Player</span><span className="text-center">Tot</span>
       </div>
       {rows.map((r, i) => (
-        <div key={r.name} className="grid grid-cols-[32px_1fr_40px] items-center px-3 py-2 text-xs transition-all duration-700"
+        <div key={r.name} className="grid grid-cols-[32px_1fr_40px] items-center px-3 py-2 text-xs transition-all duration-[525ms]"
           style={{ background: r.hl ? 'oklch(0.50 0.20 25 / 0.06)' : i % 2 === 1 ? 'oklch(0.97 0.003 95)' : 'white', borderBottom: '1px solid oklch(0.88 0.01 140)' }}>
           <span className="text-center font-bold" style={{ color: 'oklch(0.30 0.08 255)' }}>{r.pos}</span>
           <div className="flex items-center gap-2">
@@ -87,13 +87,13 @@ function ScoringVisual() {
       <div className="px-4 pt-4 pb-2 flex items-center justify-between">
         <div>
           <span className="text-xl font-bold font-heading text-white">Hole 7</span>
-          <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold transition-all duration-300" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
+          <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold transition-all duration-[225ms]" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
         </div>
         <span className="text-lg font-bold text-white">{diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff}</span>
       </div>
       <div className="h-px bg-white/10" />
       <div className="flex items-center justify-center gap-6 py-6">
-        <div className={`w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white text-lg font-bold transition-transform duration-150 ${tapping ? 'scale-90 bg-white/25' : ''}`}>−</div>
+        <div className={`w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white text-lg font-bold transition-transform duration-[120ms] ${tapping ? 'scale-90 bg-white/25' : ''}`}>−</div>
         <span className="text-5xl font-heading font-bold text-white tabular-nums">{strokes}</span>
         <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white text-lg font-bold">+</div>
       </div>
@@ -101,9 +101,9 @@ function ScoringVisual() {
         {[{ label: 'Fairway Hit', on: true }, { label: 'Green in Reg', on: strokes <= 4 }].map(s => (
           <div key={s.label} className="flex items-center justify-between py-1">
             <span className="text-xs font-semibold text-white/70">{s.label}</span>
-            <div className={`w-8 h-4 rounded-full relative transition-all duration-300 ${s.on ? '' : 'bg-white/15'}`}
+            <div className={`w-8 h-4 rounded-full relative transition-all duration-[225ms] ${s.on ? '' : 'bg-white/15'}`}
                  style={s.on ? { background: 'oklch(0.72 0.11 78)' } : {}}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all duration-300 ${s.on ? 'left-[16px]' : 'left-0.5'}`} />
+              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all duration-[225ms] ${s.on ? 'left-[16px]' : 'left-0.5'}`} />
             </div>
           </div>
         ))}
@@ -134,13 +134,13 @@ function PowerupsVisual() {
         const angle = -spread / 2 + (i / (cards.length - 1)) * spread
         const yOff = Math.abs(i - (cards.length - 1) / 2) * 6
         return (
-          <div key={i} className="absolute rounded-2xl border-[3px] shadow-md flex flex-col overflow-hidden select-none hover:!-translate-y-5 hover:!rotate-0 hover:z-50 hover:shadow-xl transition-all duration-300"
+          <div key={i} className="absolute rounded-2xl border-[3px] shadow-md flex flex-col overflow-hidden select-none hover:!-translate-y-5 hover:!rotate-0 hover:z-50 hover:shadow-xl transition-all duration-[225ms]"
             style={{
               width: '100px', height: '148px', background: '#f5f0e8',
               borderColor: isB ? 'rgb(6, 95, 70)' : 'rgb(185, 28, 28)',
               left: `calc(50% + ${(i - (cards.length - 1) / 2) * 28}px - 50px)`,
               bottom: `${yOff}px`, transform: `rotate(${angle}deg)`, transformOrigin: 'bottom center', zIndex: i + 1,
-              animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.2 + i * 0.08}s both`,
+              animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.2 + i * 0.08}s both`,
             }}>
             <div className="flex items-start justify-between px-2 pt-2">
               <span className="text-base">{c.icon}</span>
@@ -173,7 +173,7 @@ function BrandingVisual() {
   return (
     <div className="space-y-3">
       {t.map((x, i) => (
-        <div key={i} className="rounded-xl overflow-hidden shadow-md" style={{ animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.12}s both` }}>
+        <div key={i} className="rounded-xl overflow-hidden shadow-md" style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.12}s both` }}>
           <div className="relative px-4 py-3 flex flex-col items-center text-center" style={{ background: x.primary }}>
             <div className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-heading font-bold text-white/90"
                  style={{ border: `2px solid color-mix(in oklch, ${x.primary}, white 30%)`, boxShadow: '0 4px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.2)', background: `linear-gradient(160deg, color-mix(in oklch, ${x.primary}, white 10%), color-mix(in oklch, ${x.primary}, black 8%))` }}>
@@ -205,7 +205,7 @@ function StatsVisual() {
     <div className="grid grid-cols-2 gap-2">
       {stats.map((s, i) => (
         <div key={i} className="rounded-lg bg-white/5 border border-white/8 p-3 flex flex-col items-center justify-center"
-          style={{ animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.08}s both` }}>
+          style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.08}s both` }}>
           <div className={`text-xl font-bold font-heading tabular-nums ${s.accent ? 'text-accent' : 'text-white'}`}>{s.value}</div>
           <div className="text-[8px] text-white/40 uppercase tracking-wider mt-1">{s.label}</div>
         </div>
@@ -226,7 +226,7 @@ function ChatVisual() {
     <div className="space-y-2">
       {msgs.map((m, i) => (
         <div key={i} className={`flex ${m.right ? 'justify-end' : 'justify-start'}`}
-          style={{ animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.4 + i * 0.12}s both` }}>
+          style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.4 + i * 0.12}s both` }}>
           <div className={`max-w-[85%] rounded-xl px-3 py-2 ${m.right ? 'bg-accent/20 rounded-br-sm' : 'bg-white/8 rounded-bl-sm'}`}>
             <span className="text-[9px] font-bold text-white/50 block">{m.name}</span>
             <span className="text-xs text-white/80">{m.text}</span>
@@ -237,52 +237,30 @@ function ChatVisual() {
   )
 }
 
-/* ── Notifications ─────────────────────────────────── */
-function NotificationsVisual() {
-  const notifs = [
-    { text: 'T. Watson scored a birdie on Hole 7', time: '2m ago', type: 'score' },
-    { text: 'Mulligan activated by B. Hogan', time: '5m ago', type: 'powerup' },
-    { text: 'New player registered: S. Snead', time: '12m ago', type: 'player' },
+/* ── GPS yardages mockup ───────────────────────────── */
+function GPSVisual() {
+  const greens = [
+    { label: 'Front', value: '258' },
+    { label: 'Middle', value: '275' },
+    { label: 'Back', value: '290' },
   ]
   return (
-    <div className="space-y-2">
-      {notifs.map((n, i) => (
-        <div key={i} className="flex items-start gap-2 rounded-lg bg-white/5 border border-white/8 px-3 py-2.5"
-          style={{ animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.1}s both` }}>
-          <div className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.type === 'score' ? 'bg-red-500' : n.type === 'powerup' ? 'bg-purple-500' : 'bg-emerald-500'}`} />
-          <div className="min-w-0">
-            <p className="text-xs text-white/80">{n.text}</p>
-            <p className="text-[9px] text-white/30 mt-0.5">{n.time}</p>
-          </div>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-/* ── GPS Map mockup ────────────────────────────────── */
-function GPSVisual() {
-  return (
-    <div className="rounded-xl overflow-hidden border border-white/10" style={{ background: 'oklch(0.35 0.08 150)' }}>
+    <div className="rounded-xl overflow-hidden border border-white/10" style={{ background: 'oklch(0.22 0.05 255)' }}>
       <div className="px-3 py-2 flex items-center justify-between" style={{ background: 'oklch(0.30 0.08 255)' }}>
-        <span className="text-[10px] font-bold text-white/80">Hole 4 · Par 5 · 520 yds</span>
+        <span className="text-[10px] font-bold text-white/80">Hole 4 · Par 5</span>
         <span className="text-[9px] text-accent font-bold">GPS</span>
       </div>
-      <div className="relative p-4 flex items-center justify-center" style={{ height: '140px' }}>
-        {/* Fairway shape */}
-        <div className="absolute inset-4 rounded-full opacity-30" style={{ background: 'radial-gradient(ellipse 40% 80% at 50% 50%, oklch(0.55 0.15 145), transparent)' }} />
-        {/* Distances */}
-        {[{ label: '250', top: '20%', left: '30%' }, { label: '180', top: '45%', left: '55%' }, { label: '95', top: '70%', left: '45%' }].map((d, i) => (
-          <div key={i} className="absolute flex flex-col items-center" style={{ top: d.top, left: d.left, animation: `heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) ${0.4 + i * 0.15}s both` }}>
-            <div className="w-3 h-3 rounded-full border-2 border-white/60 bg-white/20" />
-            <span className="text-[10px] font-bold text-white mt-0.5">{d.label}</span>
-            <span className="text-[7px] text-white/40">yds</span>
+      <div className="p-3 space-y-2">
+        {greens.map((g, i) => (
+          <div key={g.label} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/8 px-4 py-3"
+            style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.12}s both` }}>
+            <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">{g.label}</span>
+            <div className="flex items-baseline gap-1">
+              <span className="text-2xl font-heading font-bold text-white tabular-nums">{g.value}</span>
+              <span className="text-[9px] text-white/40 uppercase tracking-wider">yds</span>
+            </div>
           </div>
         ))}
-        {/* Flag */}
-        <div className="absolute" style={{ top: '15%', right: '30%', animation: 'heroFadeUp 0.5s cubic-bezier(0.16, 1, 0.3, 1) 0.8s both' }}>
-          <span className="text-lg">⛳</span>
-        </div>
       </div>
     </div>
   )
@@ -309,8 +287,7 @@ const MORE_FEATURES: FeatureSection[] = [
   { icon: Palette, title: 'Custom Branding', description: 'Choose primary and accent colors, upload a logo, and watch it come to life across embossed badges, tournament headers, and the full player experience.', visual: <BrandingVisual /> },
   { icon: TrendingUp, title: 'Stats & Insights', description: 'Scoring averages, fairway percentages, GIR, putting stats, and round-over-round trends — all calculated automatically from your scorecard data.', visual: <StatsVisual /> },
   { icon: MessageSquare, title: 'Tournament Chat', description: 'Built-in group chat keeps the banter going. React to scores, trash talk powerup plays, and celebrate birdies in real time.', visual: <ChatVisual /> },
-  { icon: Bell, title: 'Real-Time Notifications', description: 'Instant alerts for scores, draft picks, powerup activations, and tournament updates. Never miss a leaderboard shake-up.', visual: <NotificationsVisual /> },
-  { icon: Map, title: 'GPS & Yardages', description: 'Interactive course maps with distances to pin, hazards, and layup targets. Know your yardage before you pull a club.', visual: <GPSVisual /> },
+  { icon: Map, title: 'GPS & Yardages', description: 'Yardage to the front, middle, and back of every green. Pull the right club without pulling up a separate app.', visual: <GPSVisual /> },
 ]
 
 const GRID_FEATURES = [
@@ -328,7 +305,7 @@ const GRID_FEATURES = [
 
 function FeatureRow({ feature, reverse, delay }: { feature: FeatureSection; reverse?: boolean; delay?: number }) {
   return (
-    <ScrollReveal direction="up" delay={delay ?? 0}>
+    <ScrollReveal direction="up" delay={delay ?? 0} duration={600}>
       <div className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-6 sm:gap-8 lg:gap-14 items-center`}>
         {/* Text */}
         <div className="flex-1 min-w-0">
@@ -353,13 +330,13 @@ export function FeaturesContent() {
       {/* Core features — alternating layout */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 lg:py-20 space-y-12 sm:space-y-16 lg:space-y-20">
         {CORE_FEATURES.map((f, i) => (
-          <FeatureRow key={f.title} feature={f} reverse={i % 2 === 1} delay={i * 100} />
+          <FeatureRow key={f.title} feature={f} reverse={i % 2 === 1} delay={i * 75} />
         ))}
       </section>
 
       {/* More features — alternating layout */}
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 lg:pb-20 space-y-10 sm:space-y-14 lg:space-y-16">
-        <ScrollReveal direction="up">
+        <ScrollReveal direction="up" duration={600}>
           <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-white">
             And <span className="text-accent">so much</span> more
           </h2>
@@ -374,8 +351,8 @@ export function FeaturesContent() {
       <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 lg:pb-24">
         <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
           {GRID_FEATURES.map((f, i) => (
-            <ScrollReveal key={f.title} direction="up" delay={i * 50} className="h-full">
-              <div className="h-full rounded-xl border border-white/8 bg-white/[0.02] p-3 sm:p-5 transition-all duration-300 hover:border-white/15 hover:bg-white/[0.04]">
+            <ScrollReveal key={f.title} direction="up" delay={i * 40} duration={600} className="h-full">
+              <div className="h-full rounded-xl border border-white/8 bg-white/[0.02] p-3 sm:p-5 transition-all duration-[225ms] hover:border-white/15 hover:bg-white/[0.04]">
                 <f.icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/30 mb-2 sm:mb-3" />
                 <h3 className="font-heading font-bold text-xs sm:text-sm text-white mb-0.5 sm:mb-1">{f.title}</h3>
                 <p className="text-white/40 text-[10px] sm:text-xs leading-relaxed">{f.desc}</p>

@@ -45,11 +45,12 @@ export default function PricingPage() {
             <CardDescription className="min-h-[56px]">Perfect for a round with your crew</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-end min-h-[80px]">
+            <div className="flex flex-col">
               <div>
                 <span className="font-heading text-4xl font-bold">$0</span>
                 <span className="text-muted-foreground ml-1">forever</span>
               </div>
+              <span className="text-xs text-muted-foreground mt-1" aria-hidden="true">&nbsp;</span>
             </div>
             <Link
               href="/dashboard"
@@ -93,11 +94,12 @@ export default function PricingPage() {
             <CardDescription className="min-h-[56px]">For bigger events with all the bells and whistles</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-end min-h-[80px]">
+            <div className="flex flex-col">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.PRO.label}</span>
                 <span className="text-muted-foreground ml-1">{TIER_PRICES.PRO.description}</span>
               </div>
+              <span className="text-xs text-muted-foreground mt-1" aria-hidden="true">&nbsp;</span>
             </div>
             <PricingActions tier="PRO" />
             <ul className="space-y-1.5">
@@ -133,7 +135,7 @@ export default function PricingPage() {
             <CardDescription className="min-h-[56px]">For regulars who play multiple events a month</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-end min-h-[80px]">
+            <div className="flex flex-col">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.CLUB.label}</span>
                 <span className="text-muted-foreground ml-1">{TIER_PRICES.CLUB.description}</span>
@@ -176,7 +178,7 @@ export default function PricingPage() {
             <CardDescription className="min-h-[56px]">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col justify-end min-h-[80px]">
+            <div className="flex flex-col">
               <div>
                 <span className="font-heading text-4xl font-bold">{TIER_PRICES.LEAGUE_SEASON.label}</span>
                 <span className="text-muted-foreground ml-1">/year</span>
@@ -201,7 +203,7 @@ export default function PricingPage() {
       {/* Feature Comparison Table */}
       <div className="space-y-4">
         <h2 className="font-heading text-xl lg:text-3xl font-semibold text-center text-white">Compare Plans</h2>
-        <div className="overflow-x-auto rounded-lg border border-border bg-card">
+        <div className="overflow-x-auto rounded-lg border border-border bg-card text-foreground">
           <table className="w-full text-sm lg:text-base">
             <thead>
               <tr className="border-b border-border bg-muted/50">
