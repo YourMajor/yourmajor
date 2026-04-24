@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { buttonVariants } from '@/components/ui/button-variants'
@@ -10,6 +11,7 @@ import { PlusCircle, Trophy, Clock, MapPin, ChevronRight, CalendarClock, Repeat 
 import NearbyTournaments from '@/components/NearbyTournaments'
 import { TournamentCardMenu } from '@/components/TournamentCardMenu'
 import { FindTournament } from '@/components/FindTournament'
+import { DashboardInfoCard } from '@/components/DashboardInfoCard'
 
 const STATUS_LABEL: Record<string, string> = {
   REGISTRATION: 'Upcoming',
@@ -414,6 +416,9 @@ export default async function DashboardPage() {
         </section>
       )}
 
+      {/* What YourMajor can do */}
+      <DashboardInfoCard />
+
       {/* Open Near You */}
       <div className="section-gold-rule max-w-xs mx-auto" />
       <section className="space-y-3">
@@ -501,10 +506,11 @@ function TournamentCard({
             {/* Logo + Name */}
             <div className="flex items-center gap-2.5 min-w-0 flex-1">
               {t.logo ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={t.logo}
                   alt=""
+                  width={40}
+                  height={40}
                   className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
                   style={{ borderColor: t.accentColor }}
                 />

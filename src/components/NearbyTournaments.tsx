@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
 import { MapPinOff, Loader2 } from 'lucide-react'
 
@@ -128,10 +129,11 @@ export default function NearbyTournaments() {
                 {/* Logo + Name */}
                 <div className="flex items-center gap-2.5 min-w-0 flex-1">
                   {t.logo ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={t.logo}
                       alt=""
+                      width={40}
+                      height={40}
                       className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
                       style={{ borderColor: t.accentColor }}
                     />

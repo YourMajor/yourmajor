@@ -82,29 +82,29 @@ export function NearbyTournamentsSection() {
   return (
     <section className="space-y-3">
       <div className="flex items-center gap-2">
-        <MapPin className="w-4 h-4 text-muted-foreground" />
-        <h2 className="font-heading font-semibold text-lg">Nearby Tournaments</h2>
+        <MapPin className="w-4 h-4 lg:w-5 lg:h-5 text-white/60" />
+        <h2 className="font-heading font-bold text-xl sm:text-2xl lg:text-4xl text-white">Nearby Tournaments</h2>
       </div>
-      <p className="text-sm text-muted-foreground">
+      <p className="text-xs sm:text-sm lg:text-lg text-white/50">
         Open tournaments close to you
       </p>
 
       {isLoading && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+        <div className="flex items-center gap-2 text-sm text-white/50 py-2">
           <Loader2 className="w-4 h-4 animate-spin" />
           {state === 'loading' ? 'Finding nearby tournaments\u2026' : 'Getting your location\u2026'}
         </div>
       )}
 
       {state === 'denied' && (
-        <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
+        <div className="flex items-center gap-2 text-sm text-white/50 py-2">
           <MapPinOff className="w-4 h-4" />
           Enable location access to see tournaments near you.
         </div>
       )}
 
       {state === 'error' && (
-        <p className="text-sm text-muted-foreground py-2">
+        <p className="text-sm text-white/50 py-2">
           Couldn&apos;t load nearby tournaments. Try again later.
         </p>
       )}
@@ -139,17 +139,17 @@ export function NearbyTournamentsSection() {
                   ))}
                 </div>
               ) : (
-                <p className="text-sm text-muted-foreground py-2">
+                <p className="text-sm text-white/50 py-2">
                   No nearby tournaments in this month.
                 </p>
               )}
 
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-white/40">
                 Showing open tournaments within 50 km
               </p>
             </div>
           ) : (
-            <p className="text-sm text-muted-foreground py-2">
+            <p className="text-sm text-white/50 py-2">
               No open tournaments within 50 km of your location.
             </p>
           )}

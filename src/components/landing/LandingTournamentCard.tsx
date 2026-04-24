@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 
 const STATUS_LABEL: Record<string, string> = {
   REGISTRATION: 'Upcoming',
@@ -74,21 +75,22 @@ export function LandingTournamentCard({
           <div className="w-full sm:w-1/2 min-w-0 px-4 sm:px-6 py-4 flex items-center">
             <div className="flex items-center gap-3 min-w-0 pt-3">
               {logo && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <Image
                   src={logo}
                   alt=""
+                  width={40}
+                  height={40}
                   className="h-10 w-10 rounded-full object-cover shrink-0"
                 />
               )}
               <div className="min-w-0">
-                <p className="text-lg font-heading font-bold truncate">{name}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">
+                <p className="text-lg lg:text-xl font-heading font-bold truncate">{name}</p>
+                <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
                   {playerCount} player{playerCount !== 1 ? 's' : ''}
                   {` \u00b7 ${formatDateRange(startDate, endDate)}`}
                 </p>
                 {description && (
-                  <p className="text-xs text-muted-foreground mt-1 line-clamp-3 sm:line-clamp-2">
+                  <p className="text-xs lg:text-sm text-muted-foreground mt-1 line-clamp-3 sm:line-clamp-2">
                     {description}
                   </p>
                 )}

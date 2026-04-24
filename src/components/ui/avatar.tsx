@@ -1,6 +1,7 @@
 'use client'
 
 import * as React from 'react'
+import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 interface AvatarProps extends React.ComponentProps<'div'> {
@@ -23,16 +24,16 @@ function Avatar({ className, size = 'default', children, ...props }: AvatarProps
   )
 }
 
-function AvatarImage({ className, src, alt, ...props }: React.ComponentProps<'img'>) {
+function AvatarImage({ className, src, alt }: Pick<React.ComponentProps<'img'>, 'className' | 'src' | 'alt'>) {
   if (!src) return null
   return (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img
+    <Image
       data-slot="avatar-image"
-      src={src}
+      src={typeof src === 'string' ? src : ''}
       alt={alt ?? ''}
-      className={cn('aspect-square size-full rounded-full object-cover', className)}
-      {...props}
+      fill
+      sizes="64px"
+      className={cn('aspect-square rounded-full object-cover', className)}
     />
   )
 }
