@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
-import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus, Trophy, Plus, Trash2 } from 'lucide-react'
+import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus, Trophy, Plus, Trash2, Upload } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
@@ -9,6 +9,7 @@ import { updateRosterMemberStatus, removeRosterMember, toggleAutoAddNew, updateS
 import { addSeasonAdjustment, deleteSeasonAdjustment, type AdjustmentRow } from '@/lib/season-standings-actions'
 import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
+import { RosterImportDialog } from '@/components/season/RosterImportDialog'
 import type { AttendanceRow, SeasonEvent, SeasonAward } from '@/lib/season-standings'
 import type { Tiebreaker } from '@/lib/season-tiebreakers'
 
@@ -130,6 +131,7 @@ export function SeasonAdminDashboard({
 
 function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: RosterData | null }) {
   const [isPending, startTransition] = useTransition()
+  const [importOpen, setImportOpen] = useState(false)
 
   if (!roster) {
     return <p className="py-8 text-center text-muted-foreground">No roster available. Create a linked tournament to enable roster management.</p>
@@ -140,6 +142,19 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
 
   return (
     <div className="mt-4 space-y-6">
+      <RosterImportDialog tournamentId={tournamentId} open={importOpen} onOpenChange={setImportOpen} />
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setImportOpen(true)}
+          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted/40 transition-colors"
+        >
+          <Upload className="w-3.5 h-3.5" />
+          Bulk Import (CSV)
+        </button>
+      </div>
+
       {/* Auto-add toggle */}
       <div className="flex items-center justify-between gap-4 rounded-xl border border-border px-5 py-4">
         <div>
