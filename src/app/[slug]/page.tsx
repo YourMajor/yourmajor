@@ -7,6 +7,7 @@ import { getLeaderboard } from '@/lib/scoring'
 import { maybeAutoAdvanceStatus } from '@/lib/tournament-status'
 import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
 import { TournamentStats } from '@/components/leaderboard/TournamentStats'
+import { TournamentHeaderBlock } from '@/components/leaderboard/TournamentHeaderBlock'
 import { RegistrationBanner } from '@/components/RegistrationBanner'
 import { UpgradeSuccessBanner } from '@/components/UpgradeSuccessBanner'
 
@@ -205,20 +206,14 @@ export default async function TournamentPage({
         </div>
       )}
 
-      <div className="mb-6">
-        <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-foreground">
-          {tournament.name}
-        </h1>
-        {tournament.description && (
-          <p className="text-sm text-muted-foreground mt-1 max-w-2xl">{tournament.description}</p>
-        )}
-        {tournament.startDate && (
-          <p className="text-xs text-muted-foreground mt-2">
-            {new Date(tournament.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-            {tournament.endDate ? ` \u2013 ${new Date(tournament.endDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}` : ''}
-          </p>
-        )}
-      </div>
+      <TournamentHeaderBlock
+        name={tournament.name}
+        description={tournament.description}
+        logo={tournament.logo}
+        startDate={tournament.startDate}
+        endDate={tournament.endDate}
+        status={effectiveStatus}
+      />
 
       <LiveLeaderboard
         initialData={initialStandings}

@@ -24,7 +24,7 @@ function Avatar({ className, size = 'default', children, ...props }: AvatarProps
   )
 }
 
-function AvatarImage({ className, src, alt }: Pick<React.ComponentProps<'img'>, 'className' | 'src' | 'alt'>) {
+function AvatarImage({ className, src, alt, sizes = '192px' }: Pick<React.ComponentProps<'img'>, 'className' | 'src' | 'alt'> & { sizes?: string }) {
   if (!src) return null
   return (
     <Image
@@ -32,7 +32,7 @@ function AvatarImage({ className, src, alt }: Pick<React.ComponentProps<'img'>, 
       src={typeof src === 'string' ? src : ''}
       alt={alt ?? ''}
       fill
-      sizes="64px"
+      sizes={sizes}
       className={cn('aspect-square rounded-full object-cover', className)}
     />
   )

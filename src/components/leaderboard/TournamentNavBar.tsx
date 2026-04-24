@@ -102,7 +102,6 @@ export function TournamentNavBar({
   }
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [hoveredChampionIdx, setHoveredChampionIdx] = useState<number | null>(null)
-  const isLive = status === 'ACTIVE'
 
   const light = isLightColor(primaryColor)
   const menuText = light ? 'text-gray-900' : 'text-white'
@@ -148,7 +147,7 @@ export function TournamentNavBar({
       {/* ── Nav bar ── */}
       <header className="tournament-header sticky top-0 z-50">
         <div className="relative overflow-hidden">
-          {/* Banner image overlay at 30% opacity */}
+          {/* Banner image overlay — 30% opacity, faded to transparent at left and right edges */}
           {headerImage && (
             <Image
               src={headerImage}
@@ -156,6 +155,12 @@ export function TournamentNavBar({
               fill
               sizes="100vw"
               className="object-cover opacity-30 pointer-events-none"
+              style={{
+                maskImage:
+                  'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%)',
+                WebkitMaskImage:
+                  'linear-gradient(to right, transparent 0%, black 22%, black 78%, transparent 100%)',
+              }}
             />
           )}
           <div className="relative max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center">
@@ -171,43 +176,6 @@ export function TournamentNavBar({
                 <span className="hidden sm:inline">Menu</span>
               </button>
             </div>
-
-            {/* CENTER */}
-            <Link href={`/${slug}`} className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
-              <div className="tournament-logo-badge relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center overflow-hidden shrink-0">
-                {logo ? (
-                  <Image src={logo} alt="" fill sizes="56px" className="object-cover" />
-                ) : (
-                  <span className="w-full h-full flex items-center justify-center text-lg sm:text-xl font-heading font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
-                    {tournamentName.charAt(0).toUpperCase()}
-                  </span>
-                )}
-              </div>
-              <div className="flex flex-col items-start min-w-0">
-                <span className="font-heading text-sm sm:text-base font-bold text-white truncate max-w-[140px] sm:max-w-[220px] lg:max-w-none leading-tight">
-                  {tournamentName}
-                </span>
-                {!isLeague && (
-                  <div className="flex items-center gap-1.5">
-                    {startDate && (
-                      <span className="text-[11px] sm:text-xs text-white/50">
-                        {fmt(startDate)}{endDate ? ` \u2013 ${fmt(endDate)}` : ''}
-                      </span>
-                    )}
-                    {isLive ? (
-                      <span className="inline-flex items-center gap-1 text-[9px] sm:text-[11px] font-bold text-white/90 uppercase tracking-wider">
-                        <span className="h-1.5 w-1.5 rounded-full bg-green-400 animate-pulse" />
-                        Live
-                      </span>
-                    ) : (
-                      <span className="text-[9px] sm:text-[11px] font-semibold text-white/50 uppercase tracking-wider">
-                        {STATUS_LABELS[status] ?? status}
-                      </span>
-                    )}
-                  </div>
-                )}
-              </div>
-            </Link>
 
             {/* RIGHT */}
             <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
