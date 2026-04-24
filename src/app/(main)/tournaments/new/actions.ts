@@ -9,6 +9,7 @@ import { generateJoinCode } from '@/lib/join-code'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
 import { sendSMS } from '@/lib/sms'
+import { containsProfanity } from '@/lib/content-moderation'
 
 function friendlyPrismaError(err: unknown): string {
   if (err instanceof Prisma.PrismaClientValidationError) {
@@ -107,6 +108,16 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
 }
 
 async function _createTournament(data: WizardPayload, user: User): Promise<{ slug: string } | { error: string }> {
+  // Language filter for publicly discoverable tournaments
+  if (data.tournamentType === 'PUBLIC') {
+    if (containsProfanity(data.name)) {
+      return { error: 'Tournament name contains inappropriate language. Please revise.' }
+    }
+    if (containsProfanity(data.description)) {
+      return { error: 'Tournament description contains inappropriate language. Please revise.' }
+    }
+  }
+
   // Validate round dates
   if (data.startDate && data.endDate && new Date(data.startDate) > new Date(data.endDate)) {
     return { error: 'Start date must be before end date.' }

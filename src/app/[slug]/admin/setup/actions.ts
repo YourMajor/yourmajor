@@ -5,12 +5,14 @@ import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, isTournamentAdmin } from '@/lib/auth'
+import { containsProfanity, ProfanityError } from '@/lib/content-moderation'
 
 const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a #RRGGBB color')
 const updateTournamentSchema = z.object({
   name: z.string().trim().min(1).max(120),
+  description: z.string().trim().max(250).optional(),
   slug: z.string().trim().min(1).max(80),
   primaryColor: hexColor,
   accentColor: hexColor,
@@ -41,8 +43,10 @@ export async function updateTournament(
   }
 
   const rawSlug = String(formData.get('slug') ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '-')
+  const rawDescription = formData.get('description')
   const parsed = updateTournamentSchema.parse({
     name: String(formData.get('name') ?? ''),
+    description: rawDescription != null ? String(rawDescription) : undefined,
     slug: rawSlug,
     primaryColor: String(formData.get('primaryColor') ?? ''),
     accentColor: String(formData.get('accentColor') ?? ''),
@@ -57,6 +61,13 @@ export async function updateTournament(
 
   // Re-fetch current state server-side for guards
   const currentTournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
+
+  // Language filter for publicly discoverable tournaments
+  if (currentTournament?.tournamentType === 'PUBLIC') {
+    if (containsProfanity(parsed.name)) throw new ProfanityError('Tournament name')
+    if (containsProfanity(parsed.description)) throw new ProfanityError('Tournament description')
+  }
+
   const serverScoreCount = await prisma.score.count({
     where: { round: { tournamentId } },
   })
@@ -124,6 +135,7 @@ export async function updateTournament(
     where: { id: tournamentId },
     data: {
       name: parsed.name,
+      ...(parsed.description !== undefined ? { description: parsed.description || null } : {}),
       slug: parsed.slug,
       primaryColor: parsed.primaryColor,
       accentColor: parsed.accentColor,
