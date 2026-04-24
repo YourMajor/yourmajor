@@ -1,11 +1,29 @@
 'use client'
 
-import { Card, CardContent } from '@/components/ui/card'
 import { FORMATS } from '@/lib/formats/registry'
-import type { FormatId } from '@/lib/formats/types'
+import type { FormatId, FormatDef } from '@/lib/formats/types'
 
 // Free tier is restricted to the most casual formats; everything else requires a paid plan.
 const FREE_FORMATS: FormatId[] = ['STROKE_PLAY', 'STABLEFORD', 'SCRAMBLE']
+
+// Hide legacy enum aliases from the UI; they're kept in the registry for backwards compat.
+const HIDDEN: FormatId[] = ['BEST_BALL', 'SKINS']
+
+type GroupKey = 'individual' | 'team' | 'match' | 'combined'
+
+const GROUP_ORDER: Array<{ key: GroupKey; label: string; description: string }> = [
+  { key: 'individual', label: 'Individual', description: 'Each player for themselves.' },
+  { key: 'team',       label: 'Team',       description: 'Pairs or foursomes play as one.' },
+  { key: 'match',      label: 'Match',      description: 'Hole-by-hole, head-to-head.' },
+  { key: 'combined',   label: 'Combined',   description: 'Two competitions in one.' },
+]
+
+function groupFor(f: FormatDef): GroupKey {
+  if (f.kind === 'match') return 'match'
+  if (f.scoringMode === 'COMBINED') return 'combined'
+  if (f.requiresTeams) return 'team'
+  return 'individual'
+}
 
 interface Props {
   value: FormatId
@@ -14,55 +32,70 @@ interface Props {
 }
 
 export function StepFormat({ value, onChange, isFree = false }: Props) {
+  const visible = FORMATS.filter((f) => !HIDDEN.includes(f.id))
+
   return (
-    <div className="space-y-3">
+    <div className="space-y-5">
       <p className="text-sm text-muted-foreground">
-        Choose the tournament format. This controls how scoring works — individual stroke play, points-based Stableford, team Best Ball, Skins, Match Play, and more.
+        Choose your format — controls how scoring works. Defaults to Stroke Play.
       </p>
-      {FORMATS.filter((f) => f.id !== 'BEST_BALL' && f.id !== 'SKINS').map((f) => {
-        const locked = isFree && !FREE_FORMATS.includes(f.id)
-        const isTeam = f.requiresTeams
+
+      {GROUP_ORDER.map((g) => {
+        const formats = visible.filter((f) => groupFor(f) === g.key)
+        if (formats.length === 0) return null
         return (
-          <Card
-            key={f.id}
-            onClick={() => !locked && onChange(f.id)}
-            className={`transition-all ${locked ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'} ${value === f.id ? 'ring-2 ring-[var(--color-primary)] bg-[var(--color-primary)]/5' : locked ? '' : 'hover:bg-muted/40'}`}
-          >
-            <CardContent className="pt-4 pb-4">
-              <div className="flex items-start gap-3">
-                <input
-                  type="radio"
-                  name="tournamentFormat"
-                  value={f.id}
-                  checked={value === f.id}
-                  onChange={() => !locked && onChange(f.id)}
-                  disabled={locked}
-                  className="mt-0.5 shrink-0"
-                />
-                <div className="flex-1">
-                  <p className="text-sm font-semibold flex flex-wrap items-center gap-2">
-                    {f.label}
-                    {isTeam && (
-                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        Team
-                      </span>
-                    )}
-                    {f.kind === 'match' && (
-                      <span className="text-[10px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
-                        Match Play
-                      </span>
-                    )}
+          <div key={g.key} className="space-y-2">
+            <div>
+              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                {g.label}
+              </h3>
+              <p className="text-[11px] text-muted-foreground/70">{g.description}</p>
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+              {formats.map((f) => {
+                const locked = isFree && !FREE_FORMATS.includes(f.id)
+                const selected = value === f.id
+                return (
+                  <button
+                    key={f.id}
+                    type="button"
+                    onClick={() => !locked && onChange(f.id)}
+                    disabled={locked}
+                    aria-pressed={selected}
+                    className={[
+                      'group relative flex flex-col items-start text-left rounded-lg border p-3 transition-all',
+                      'min-h-[78px]',
+                      locked
+                        ? 'opacity-50 cursor-not-allowed border-border'
+                        : selected
+                          ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 ring-1 ring-[var(--color-primary)] cursor-pointer'
+                          : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted/40 cursor-pointer',
+                    ].join(' ')}
+                  >
+                    <span className="text-sm font-semibold leading-tight">
+                      {f.label}
+                    </span>
+                    <span className="mt-1 text-[11px] leading-snug text-muted-foreground line-clamp-2">
+                      {f.description}
+                    </span>
                     {locked && (
-                      <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
-                        Pro / Tour
+                      <span className="absolute top-1.5 right-1.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                        Pro
                       </span>
                     )}
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-0.5">{f.description}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+                    {selected && !locked && (
+                      <span
+                        aria-hidden
+                        className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white text-[10px] leading-none"
+                      >
+                        ✓
+                      </span>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
         )
       })}
     </div>
