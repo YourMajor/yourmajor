@@ -59,6 +59,14 @@ export type WizardPayload = {
   accentColor: string
   rounds: RoundConfig[]
   handicapSystem: 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'
+  tournamentFormat?:
+    | 'STROKE_PLAY' | 'STABLEFORD' | 'MODIFIED_STABLEFORD'
+    | 'BEST_BALL' | 'BEST_BALL_2' | 'BEST_BALL_4'
+    | 'SCRAMBLE' | 'SHAMBLE'
+    | 'MATCH_PLAY' | 'RYDER_CUP'
+    | 'SKINS' | 'SKINS_GROSS' | 'SKINS_NET'
+    | 'QUOTA' | 'CHAPMAN' | 'PINEHURST' | 'LOW_GROSS_LOW_NET'
+  formatConfig?: Record<string, unknown> | null
   powerupsEnabled: boolean
   powerupsPerPlayer: number
   maxAttacksPerPlayer: number
@@ -244,6 +252,10 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
         accentColor: data.accentColor,
         tournamentType: data.tournamentType,
         handicapSystem: data.handicapSystem,
+        tournamentFormat: data.tournamentFormat ?? 'STROKE_PLAY',
+        formatConfig: data.formatConfig
+          ? (data.formatConfig as Prisma.InputJsonValue)
+          : Prisma.JsonNull,
         powerupsEnabled: data.powerupsEnabled,
         powerupsPerPlayer: data.powerupsPerPlayer,
         maxAttacksPerPlayer: data.maxAttacksPerPlayer,

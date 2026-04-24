@@ -8,7 +8,10 @@ import { StepTournamentType, type TournamentTypeState } from '@/components/wizar
 import { StepBasicInfo, type BasicInfoState } from '@/components/wizard/StepBasicInfo'
 import { StepRounds, buildDefaultRounds, type RoundState } from '@/components/wizard/StepRounds'
 import { StepHandicap } from '@/components/wizard/StepHandicap'
+import { StepFormat } from '@/components/wizard/StepFormat'
 import { StepPowerups, type PowerupsState } from '@/components/wizard/StepPowerups'
+import type { FormatId } from '@/lib/formats/types'
+import { defaultFormatConfig } from '@/lib/formats/registry'
 import { UpgradeBanner } from '@/components/UpgradeBanner'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { createTournamentFromWizard } from './actions'
@@ -94,6 +97,8 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     userTier === 'FREE' ? 'NONE' : (renewalDefaults?.handicapSystem ?? 'WHS')
   )
 
+  const [tournamentFormat, setTournamentFormat] = useState<FormatId>('STROKE_PLAY')
+
   const [powerups, setPowerups] = useState<PowerupsState>({
     powerupsEnabled: renewalDefaults?.powerupsEnabled ?? false,
     powerupsPerPlayer: renewalDefaults?.powerupsPerPlayer ?? 3,
@@ -112,7 +117,8 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       { label: 'Type', short: '1' },
       { label: 'Basics', short: '2' },
       { label: 'Rounds', short: '3' },
-      { label: 'Handicap', short: '4' },
+      { label: 'Format', short: '4' },
+      { label: 'Handicap', short: '5' },
     ]
     // Public tournaments and free-tier users skip Powerups step
     if (!isPublic && !isFree) {
@@ -203,6 +209,8 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
             holeTees: r.teeMode === 'CUSTOM' ? r.holeTees : [],
           })),
           handicapSystem,
+          tournamentFormat,
+          formatConfig: defaultFormatConfig(tournamentFormat),
           ...effectivePowerups,
           isOpenRegistration,
           inviteEmails,
@@ -244,7 +252,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   }, [basicInfo.numRounds, isPublic, powerups.powerupsEnabled])
 
   // Map step index to content
-  // Step 0: Type, Step 1: Basics, Step 2: Rounds, Step 3: Handicap, Step 4: Powerups (non-public only)
+  // Step 0: Type, Step 1: Basics, Step 2: Rounds, Step 3: Format, Step 4: Handicap, Step 5: Powerups (non-public only)
   function renderStep() {
     switch (step) {
       case 0:
@@ -254,8 +262,10 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 2:
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} startDate={basicInfo.startDate || undefined} endDate={basicInfo.endDate || undefined} isOpenRegistration={isPublic} />
       case 3:
-        return <StepHandicap value={handicapSystem} onChange={setHandicapSystem} isFree={isFree} />
+        return <StepFormat value={tournamentFormat} onChange={setTournamentFormat} isFree={isFree} />
       case 4:
+        return <StepHandicap value={handicapSystem} onChange={setHandicapSystem} isFree={isFree} />
+      case 5:
         // Only reached for non-public tournaments
         return <StepPowerups value={powerups} onChange={setPowerups} />
       default:

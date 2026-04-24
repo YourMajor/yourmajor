@@ -84,9 +84,22 @@ enum TournamentType {
 
 enum TournamentFormat {
   STROKE_PLAY
-  SCRAMBLE
+  STABLEFORD
+  MODIFIED_STABLEFORD
   BEST_BALL
+  BEST_BALL_2
+  BEST_BALL_4
+  SCRAMBLE
+  SHAMBLE
+  MATCH_PLAY
+  RYDER_CUP
   SKINS
+  SKINS_GROSS
+  SKINS_NET
+  QUOTA
+  CHAPMAN
+  PINEHURST
+  LOW_GROSS_LOW_NET
 }
 
 enum PricingTier {
@@ -138,8 +151,8 @@ model User {
   role          Role      @default(PLAYER)
   createdAt     DateTime  @default(now())
 
-  phone             String?
-  smsNotifications  Boolean   @default(false)
+  phone            String?
+  smsNotifications Boolean @default(false)
 
   accounts          Account[]
   sessions          Session[]
@@ -151,7 +164,7 @@ model User {
   photos            TournamentPhoto[]
   chatBans          ChatBan[]
   purchases         Purchase[]
-  stripeCustomerId  String?             @unique
+  stripeCustomerId  String?              @unique
   rosterMemberships LeagueRosterMember[]
   seasonRSVPs       SeasonRSVP[]
 }
@@ -207,30 +220,32 @@ model PlayerProfile {
 // ─── Tournament ───────────────────────────────────────────────────────────────
 
 model Tournament {
-  id                 String           @id @default(cuid())
-  slug               String           @unique
-  joinCode           String?          @unique
-  name               String
-  description        String?
-  logo               String?
-  headerImage        String?
-  primaryColor       String           @default("#006747")
-  accentColor        String           @default("#C9A84C")
-  status             TournamentStatus @default(REGISTRATION)
-  tournamentType     TournamentType   @default(OPEN)
-  isOpenRegistration Boolean          @default(false)
-  registrationClosed Boolean          @default(false)
-  handicapSystem     HandicapSystem   @default(WHS)
-  tournamentFormat   TournamentFormat @default(STROKE_PLAY)
-  teamSize           Int?
+  id                   String           @id @default(cuid())
+  slug                 String           @unique
+  joinCode             String?          @unique
+  name                 String
+  description          String?
+  logo                 String?
+  headerImage          String?
+  primaryColor         String           @default("#006747")
+  accentColor          String           @default("#C9A84C")
+  status               TournamentStatus @default(REGISTRATION)
+  tournamentType       TournamentType   @default(OPEN)
+  isOpenRegistration   Boolean          @default(false)
+  registrationClosed   Boolean          @default(false)
+  handicapSystem       HandicapSystem   @default(WHS)
+  tournamentFormat     TournamentFormat @default(STROKE_PLAY)
+  formatConfig         Json?
+  teamsEnabled         Boolean          @default(false)
+  teamSize             Int?
   powerupsEnabled      Boolean          @default(false)
   powerupsPerPlayer    Int              @default(3)
   maxAttacksPerPlayer  Int              @default(1)
   distributionMode     DistributionMode @default(DRAFT)
-  startDate              DateTime?
-  endDate                DateTime?
-  registrationDeadline   DateTime?
-  createdAt              DateTime         @default(now())
+  startDate            DateTime?
+  endDate              DateTime?
+  registrationDeadline DateTime?
+  createdAt            DateTime         @default(now())
 
   // ── Renewal chain ──
   parentTournamentId String?
@@ -258,6 +273,31 @@ model Tournament {
   purchase           Purchase?
   leagueRoster       LeagueRoster?
   seasonSchedule     SeasonScheduleEvent[]
+  teams              TournamentTeam[]
+}
+
+model TournamentTeam {
+  id           String   @id @default(cuid())
+  tournamentId String
+  name         String
+  color        String?
+  createdAt    DateTime @default(now())
+
+  tournament Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  members    TournamentTeamMember[]
+
+  @@index([tournamentId])
+}
+
+model TournamentTeamMember {
+  id                 String @id @default(cuid())
+  teamId             String
+  tournamentPlayerId String @unique
+
+  team             TournamentTeam   @relation(fields: [teamId], references: [id], onDelete: Cascade)
+  tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+
+  @@index([teamId])
 }
 
 model TournamentRound {
@@ -297,13 +337,13 @@ model Course {
 }
 
 model Hole {
-  id        String @id @default(cuid())
-  courseId  String
-  number    Int
-  par       Int
-  handicap  Int?
+  id       String @id @default(cuid())
+  courseId String
+  number   Int
+  par      Int
+  handicap Int?
 
-  course           Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
   yardages         HoleYardage[]
   scores           Score[]
   standaloneScores StandaloneScore[]
@@ -312,15 +352,15 @@ model Hole {
 }
 
 model TeeOption {
-  id           String @id @default(cuid())
-  courseId      String
+  id           String  @id @default(cuid())
+  courseId     String
   name         String
   color        String?
-  courseRating  Float?
+  courseRating Float?
   slopeRating  Int?
 
-  course          Course           @relation(fields: [courseId], references: [id], onDelete: Cascade)
-  yardages        HoleYardage[]
+  course           Course            @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  yardages         HoleYardage[]
   standaloneRounds StandaloneRound[]
   roundPlayerTees  RoundPlayerTee[]
   roundHoleTees    RoundHoleTee[]
@@ -368,23 +408,24 @@ model RoundHoleTee {
 // ─── Tournament Players ───────────────────────────────────────────────────────
 
 model TournamentPlayer {
-  id               String    @id @default(cuid())
-  tournamentId     String
-  userId           String
-  tee              String?
-  handicap         Float     @default(0)
-  isAdmin          Boolean   @default(false)
-  isParticipant    Boolean   @default(true)
-  createdAt        DateTime  @default(now())
+  id            String   @id @default(cuid())
+  tournamentId  String
+  userId        String
+  tee           String?
+  handicap      Float    @default(0)
+  isAdmin       Boolean  @default(false)
+  isParticipant Boolean  @default(true)
+  createdAt     DateTime @default(now())
 
-  tournament       Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user             User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
-  scores           Score[]
-  playerPowerups   PlayerPowerup[]
-  draftPicks       DraftPick[]
-  notifications    Notification[]
-  roundPlayerTees  RoundPlayerTee[]
-  groupMembership  TournamentGroupMember?
+  tournament      Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user            User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  scores          Score[]
+  playerPowerups  PlayerPowerup[]
+  draftPicks      DraftPick[]
+  notifications   Notification[]
+  roundPlayerTees RoundPlayerTee[]
+  groupMembership TournamentGroupMember?
+  teamMembership  TournamentTeamMember?
 
   @@unique([tournamentId, userId])
 }
@@ -407,9 +448,9 @@ model Invitation {
 // ─── Tournament Groups (Foursomes) ────────────────────────────────────────
 
 model TournamentGroup {
-  id            String    @id @default(cuid())
-  tournamentId  String
-  name          String
+  id                    String    @id @default(cuid())
+  tournamentId          String
+  name                  String
   teeTime               DateTime?
   startingHole          Int?
   lastNotifiedTeeTime   DateTime?
@@ -423,9 +464,9 @@ model TournamentGroup {
 }
 
 model TournamentGroupMember {
-  id                 String @id @default(cuid())
+  id                 String    @id @default(cuid())
   groupId            String
-  tournamentPlayerId String @unique
+  tournamentPlayerId String    @unique
   position           Int
   notifiedAt         DateTime?
 
@@ -513,7 +554,7 @@ model Draft {
   currentPick  Int         @default(0)
   createdAt    DateTime    @default(now())
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   picks      DraftPick[]
 }
 
@@ -596,11 +637,11 @@ model ChatBan {
 // ─── Standalone Rounds ────────────────────────────────────────────────────────
 
 model StandaloneRound {
-  id                  String    @id @default(cuid())
+  id                  String   @id @default(cuid())
   userId              String
   courseId            String?
   selectedTeeOptionId String?
-  playedAt            DateTime  @default(now())
+  playedAt            DateTime @default(now())
   notes               String?
 
   user              User              @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -630,12 +671,12 @@ model StandaloneScore {
 // ─── League Roster ────────────────────────────────────────────────────────────
 
 model LeagueRoster {
-  id               String               @id @default(cuid())
-  rootTournamentId String               @unique
-  autoAddNew       Boolean              @default(true)
-  createdAt        DateTime             @default(now())
+  id               String   @id @default(cuid())
+  rootTournamentId String   @unique
+  autoAddNew       Boolean  @default(true)
+  createdAt        DateTime @default(now())
 
-  rootTournament Tournament             @relation(fields: [rootTournamentId], references: [id], onDelete: Cascade)
+  rootTournament Tournament           @relation(fields: [rootTournamentId], references: [id], onDelete: Cascade)
   members        LeagueRosterMember[]
 }
 
@@ -655,25 +696,25 @@ model LeagueRosterMember {
 // ─── Season Schedule & RSVP ──────────────────────────────────────────────────
 
 model SeasonScheduleEvent {
-  id           String    @id @default(cuid())
+  id           String   @id @default(cuid())
   tournamentId String
   title        String
   date         DateTime
-  courseId      String?
+  courseId     String?
   notes        String?
-  createdAt    DateTime  @default(now())
+  createdAt    DateTime @default(now())
 
-  tournament Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  tournament Tournament   @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   rsvps      SeasonRSVP[]
 
   @@index([tournamentId])
 }
 
 model SeasonRSVP {
-  id       String     @id @default(cuid())
-  eventId  String
-  userId   String
-  status   RSVPStatus @default(GOING)
+  id      String     @id @default(cuid())
+  eventId String
+  userId  String
+  status  RSVPStatus @default(GOING)
 
   event SeasonScheduleEvent @relation(fields: [eventId], references: [id], onDelete: Cascade)
   user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
@@ -691,7 +732,7 @@ model Purchase {
   status          PurchaseStatus @default(ACTIVE)
   stripeSessionId String?        @unique
   stripeSubId     String?        @unique
-  amount          Int            // cents
+  amount          Int // cents
   expiresAt       DateTime?
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
