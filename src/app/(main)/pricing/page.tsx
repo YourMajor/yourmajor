@@ -32,26 +32,26 @@ export default function PricingPage() {
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14 space-y-10 lg:space-y-14">
 
       {/* Pricing Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 items-stretch pt-2">
         {/* Free Tier */}
         <Card className="relative flex flex-col">
-          <CardHeader>
+          <CardHeader className="content-start min-h-[180px]">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center">
                 <Trophy className="w-4 h-4 text-muted-foreground" />
               </div>
               <CardTitle className="text-lg lg:text-xl">Casual Round</CardTitle>
             </div>
-            <CardDescription className="min-h-[56px]">Perfect for a round with your crew</CardDescription>
+            <CardDescription className="min-h-[60px]">Perfect for a round with your crew</CardDescription>
+            <div className="flex flex-col items-center text-center mt-3 rounded-lg border border-border bg-muted/40 p-4">
+              <div className="flex items-baseline justify-center gap-1.5">
+                <span className="font-heading text-4xl font-bold">$0</span>
+                <span className="text-muted-foreground">forever</span>
+              </div>
+              <div className="min-h-[1.25rem] mt-1" />
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col">
-              <div>
-                <span className="font-heading text-4xl font-bold">$0</span>
-                <span className="text-muted-foreground ml-1">forever</span>
-              </div>
-              <span className="text-xs text-muted-foreground mt-1" aria-hidden="true">&nbsp;</span>
-            </div>
             <Link
               href="/dashboard"
               className={buttonVariants({ variant: 'outline', size: 'lg' }) + ' w-full'}
@@ -61,7 +61,7 @@ export default function PricingPage() {
             <ul className="space-y-1.5">
               {TIER_FEATURES.FREE.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
-                  <Check className="w-4 h-4 text-emerald-500 mt-0.5 shrink-0" />
+                  <Check className="w-4 h-4 text-muted-foreground mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -84,23 +84,23 @@ export default function PricingPage() {
           <div className="absolute -top-3 left-1/2 -translate-x-1/2 z-10">
             <Badge className="bg-accent text-accent-foreground">Most Popular</Badge>
           </div>
-          <CardHeader>
+          <CardHeader className="content-start min-h-[180px]">
             <div className="flex items-center gap-2 mb-1">
               <div className="w-8 h-8 rounded-full bg-accent/10 flex items-center justify-center">
                 <Zap className="w-4 h-4 text-accent" />
               </div>
               <CardTitle className="text-lg lg:text-xl">The Major</CardTitle>
             </div>
-            <CardDescription className="min-h-[56px]">For bigger events with all the bells and whistles</CardDescription>
+            <CardDescription className="min-h-[60px]">For bigger events with all the bells and whistles</CardDescription>
+            <div className="flex flex-col items-center text-center mt-3 rounded-lg border border-border bg-muted/40 p-4">
+              <div className="flex items-baseline justify-center gap-1.5">
+                <span className="font-heading text-4xl font-bold">{TIER_PRICES.PRO.label}</span>
+                <span className="text-muted-foreground">{TIER_PRICES.PRO.description}</span>
+              </div>
+              <div className="min-h-[1.25rem] mt-1" />
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col">
-              <div>
-                <span className="font-heading text-4xl font-bold">{TIER_PRICES.PRO.label}</span>
-                <span className="text-muted-foreground ml-1">{TIER_PRICES.PRO.description}</span>
-              </div>
-              <span className="text-xs text-muted-foreground mt-1" aria-hidden="true">&nbsp;</span>
-            </div>
             <PricingActions tier="PRO" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.PRO.map((f) => (
@@ -125,30 +125,30 @@ export default function PricingPage() {
 
         {/* Club Tier */}
         <Card className="relative flex flex-col">
-          <CardHeader>
+          <CardHeader className="content-start min-h-[180px]">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-full bg-blue-500/10 flex items-center justify-center">
-                <Users className="w-4 h-4 text-blue-500" />
+              <div className="w-8 h-8 rounded-full bg-club/10 flex items-center justify-center">
+                <Users className="w-4 h-4 text-club" />
               </div>
               <CardTitle className="text-lg lg:text-xl">The Club</CardTitle>
             </div>
-            <CardDescription className="min-h-[56px]">For regulars who play multiple events a month</CardDescription>
+            <CardDescription className="min-h-[60px]">For regulars who play multiple events a month</CardDescription>
+            <div className="flex flex-col items-center text-center mt-3 rounded-lg border border-border bg-muted/40 p-4">
+              <div className="flex items-baseline justify-center gap-1.5">
+                <span className="font-heading text-4xl font-bold">{TIER_PRICES.CLUB.label}</span>
+                <span className="text-muted-foreground">{TIER_PRICES.CLUB.description}</span>
+              </div>
+              <div className="min-h-[1.25rem] mt-1">
+                <span className="text-xs text-muted-foreground">Cancel anytime</span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col">
-              <div>
-                <span className="font-heading text-4xl font-bold">{TIER_PRICES.CLUB.label}</span>
-                <span className="text-muted-foreground ml-1">{TIER_PRICES.CLUB.description}</span>
-              </div>
-              <span className="text-xs text-muted-foreground mt-1">
-                Cancel anytime
-              </span>
-            </div>
             <PricingActions tier="CLUB" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.CLUB.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
-                  <Check className="w-4 h-4 text-blue-500 mt-0.5 shrink-0" />
+                  <Check className="w-4 h-4 text-club mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -168,30 +168,30 @@ export default function PricingPage() {
 
         {/* Tour Tier */}
         <Card className="relative flex flex-col">
-          <CardHeader>
+          <CardHeader className="content-start min-h-[180px]">
             <div className="flex items-center gap-2 mb-1">
-              <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
-                <Crown className="w-4 h-4 text-primary" />
+              <div className="w-8 h-8 rounded-full bg-tour/10 flex items-center justify-center">
+                <Crown className="w-4 h-4 text-tour" />
               </div>
               <CardTitle className="text-lg lg:text-xl">The Tour</CardTitle>
             </div>
-            <CardDescription className="min-h-[56px]">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
+            <CardDescription className="min-h-[60px]">Built for golf clubs, organizations, and leagues running events all year</CardDescription>
+            <div className="flex flex-col items-center text-center mt-3 rounded-lg border border-border bg-muted/40 p-4">
+              <div className="flex items-baseline justify-center gap-1.5">
+                <span className="font-heading text-4xl font-bold">{TIER_PRICES.LEAGUE_SEASON.label}</span>
+                <span className="text-muted-foreground">/year</span>
+              </div>
+              <div className="min-h-[1.25rem] mt-1">
+                <span className="text-xs text-muted-foreground">*~$125/month over 12 months</span>
+              </div>
+            </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <div className="flex flex-col">
-              <div>
-                <span className="font-heading text-4xl font-bold">{TIER_PRICES.LEAGUE_SEASON.label}</span>
-                <span className="text-muted-foreground ml-1">/year</span>
-              </div>
-              <span className="text-xs text-muted-foreground mt-1">
-                *~$125/month over 12 months
-              </span>
-            </div>
             <PricingActions tier="LEAGUE" />
             <ul className="space-y-1.5">
               {TIER_FEATURES.LEAGUE.map((f) => (
                 <li key={f} className="flex items-start gap-2 text-sm lg:text-base">
-                  <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                  <Check className="w-4 h-4 text-tour mt-0.5 shrink-0" />
                   <span>{f}</span>
                 </li>
               ))}
@@ -222,13 +222,13 @@ export default function PricingPage() {
                 </th>
                 <th className="text-center px-4 py-3 font-heading font-semibold">
                   <div className="flex items-center justify-center gap-1.5">
-                    <Users className="w-3.5 h-3.5 text-blue-500" />
+                    <Users className="w-3.5 h-3.5 text-club" />
                     Club
                   </div>
                 </th>
                 <th className="text-center px-4 py-3 font-heading font-semibold">
                   <div className="flex items-center justify-center gap-1.5">
-                    <Crown className="w-3.5 h-3.5 text-primary" />
+                    <Crown className="w-3.5 h-3.5 text-tour" />
                     Tour
                   </div>
                 </th>
