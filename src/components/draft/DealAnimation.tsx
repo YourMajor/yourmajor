@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import Image from 'next/image'
 import { Zap } from 'lucide-react'
 
 interface Player {
@@ -105,8 +106,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
             {/* Player receiving */}
             <div className="flex items-center justify-center gap-3">
               {currentPlayer.user.image ? (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={currentPlayer.user.image} alt="" className="w-10 h-10 rounded-full border-2 border-white/30" />
+                <Image src={currentPlayer.user.image} alt="" width={40} height={40} className="w-10 h-10 rounded-full border-2 border-white/30 object-cover" />
               ) : (
                 <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center">
                   <span className="text-sm font-bold text-white">

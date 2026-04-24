@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
@@ -149,11 +150,12 @@ export function TournamentNavBar({
         <div className="relative overflow-hidden">
           {/* Banner image overlay at 30% opacity */}
           {headerImage && (
-            // eslint-disable-next-line @next/next/no-img-element
-            <img
+            <Image
               src={headerImage}
               alt=""
-              className="absolute inset-0 w-full h-full object-cover opacity-30 pointer-events-none"
+              fill
+              sizes="100vw"
+              className="object-cover opacity-30 pointer-events-none"
             />
           )}
           <div className="relative max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center">
@@ -172,10 +174,9 @@ export function TournamentNavBar({
 
             {/* CENTER */}
             <Link href={`/${slug}`} className="flex items-center gap-2.5 sm:gap-3 shrink-0 group">
-              <div className="tournament-logo-badge w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center overflow-hidden shrink-0">
+              <div className="tournament-logo-badge relative w-11 h-11 sm:w-14 sm:h-14 rounded-full flex items-center justify-center overflow-hidden shrink-0">
                 {logo ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="" className="w-full h-full object-cover" />
+                  <Image src={logo} alt="" fill sizes="56px" className="object-cover" />
                 ) : (
                   <span className="w-full h-full flex items-center justify-center text-lg sm:text-xl font-heading font-bold text-white" style={{ backgroundColor: 'var(--color-primary)' }}>
                     {tournamentName.charAt(0).toUpperCase()}
@@ -256,8 +257,7 @@ export function TournamentNavBar({
             <div className="mb-8 sm:mb-10">
               <div className="flex items-center gap-3">
                 {logo && (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={logo} alt="" className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                  <Image src={logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover border border-white/20" />
                 )}
                 <div>
                   {!isLeague && (
@@ -453,11 +453,12 @@ export function TournamentNavBar({
               <div className="flex-1 h-full flex items-center justify-center">
                 <div className="relative w-full h-full max-h-[75vh] rounded-lg overflow-hidden">
                   {currentImage ? (
-                    // eslint-disable-next-line @next/next/no-img-element
-                    <img
+                    <Image
                       src={currentImage}
                       alt=""
-                      className="w-full h-full object-cover transition-all duration-500 ease-out"
+                      fill
+                      sizes="(max-width: 768px) 100vw, 62vw"
+                      className="object-cover transition-all duration-500 ease-out"
                       key={currentImage}
                     />
                   ) : (

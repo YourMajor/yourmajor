@@ -2,6 +2,7 @@
 
 import { useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Trash2 } from 'lucide-react'
 
@@ -282,8 +283,15 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
               )}
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={photo.url} alt={photo.caption ?? ''} className="w-full h-36 object-cover" />
+              <div className="relative w-full h-36">
+                <Image
+                  src={photo.url}
+                  alt={photo.caption ?? ''}
+                  fill
+                  sizes="(max-width: 640px) 50vw, (max-width: 1024px) 33vw, 240px"
+                  className="object-cover"
+                />
+              </div>
               <div className="p-2">
                 {photo.caption && <p className="text-xs font-medium truncate">{photo.caption}</p>}
                 <p className="text-xs text-muted-foreground mt-0.5">{photo.user.name ?? 'Player'}</p>

@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -136,8 +137,7 @@ export default async function TournamentSetup({
             <div className="space-y-2">
               <Label htmlFor="logo">Logo</Label>
               {tournament.logo && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={tournament.logo} alt="Logo" className="h-10 object-contain mb-2" />
+                <Image src={tournament.logo} alt="Logo" width={120} height={40} className="h-10 w-auto object-contain mb-2" />
               )}
               <Input id="logo" name="logo" type="file" accept="image/*" />
             </div>
@@ -146,8 +146,9 @@ export default async function TournamentSetup({
               <Label htmlFor="headerImage">Banner Image</Label>
               <p className="text-xs text-muted-foreground">Displayed at 30% opacity behind your brand color in the header bar. Wide landscape images work best.</p>
               {tournament.headerImage && (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img src={tournament.headerImage} alt="Banner" className="h-16 w-full object-cover rounded-md mb-2" />
+                <div className="relative h-16 w-full rounded-md overflow-hidden mb-2">
+                  <Image src={tournament.headerImage} alt="Banner" fill sizes="(max-width: 640px) 100vw, 600px" className="object-cover" />
+                </div>
               )}
               <Input id="headerImage" name="headerImage" type="file" accept="image/*" />
             </div>

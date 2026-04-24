@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import { SlugIcon } from './CardHand'
 
 interface PickEffect {
@@ -118,8 +119,7 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
                   >
                     <div className="flex items-center gap-1 sm:gap-1.5 overflow-hidden">
                       {info?.image ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img src={info.image} alt="" className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0 object-cover" />
+                        <Image src={info.image} alt="" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0 object-cover" />
                       ) : (
                         <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary, #006747)' }}>
                           <span className="text-[8px] sm:text-[9px] font-bold text-white">

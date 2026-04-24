@@ -1,6 +1,7 @@
 'use client'
 
 import { useState } from 'react'
+import Image from 'next/image'
 import type { ChatMessage } from '@/hooks/useChat'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Trash2, Ban } from 'lucide-react'
@@ -117,8 +118,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
             {isDark ? (
               <div className="shrink-0 w-8 h-8 rounded-full bg-white/15 flex items-center justify-center overflow-hidden">
                 {m.user.image ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={m.user.image} alt="" className="w-full h-full object-cover" />
+                  <Image src={m.user.image} alt="" fill sizes="32px" className="object-cover" />
                 ) : (
                   <span className="text-xs font-bold text-white/70">{initials}</span>
                 )}
