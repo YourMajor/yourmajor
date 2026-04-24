@@ -255,11 +255,15 @@ model Tournament {
   championName       String?
 
   // ── Season/League config (Tour tier) ──
-  isLeague            Boolean              @default(false)
-  leagueEndDate       DateTime?
-  seasonScoringMethod SeasonScoringMethod?
-  seasonBestOf        Int?
-  seasonPointsTable   Json?
+  isLeague              Boolean              @default(false)
+  leagueEndDate         DateTime?
+  seasonScoringMethod   SeasonScoringMethod?
+  seasonBestOf          Int?
+  seasonPointsTable     Json?
+  seasonDropLowest      Int?
+  seasonTiebreakers     Json?
+  seasonAttendanceBonus Json?
+  seasonAdjustments     SeasonAdjustment[]   @relation("SeasonAdjustmentsForRoot")
 
   rounds             TournamentRound[]
   players            TournamentPlayer[]
@@ -274,6 +278,20 @@ model Tournament {
   leagueRoster       LeagueRoster?
   seasonSchedule     SeasonScheduleEvent[]
   teams              TournamentTeam[]
+}
+
+model SeasonAdjustment {
+  id               String   @id @default(cuid())
+  rootTournamentId String
+  userId           String
+  delta            Int
+  reason           String
+  createdAt        DateTime @default(now())
+  createdBy        String
+
+  rootTournament Tournament @relation("SeasonAdjustmentsForRoot", fields: [rootTournamentId], references: [id], onDelete: Cascade)
+
+  @@index([rootTournamentId])
 }
 
 model TournamentTeam {
