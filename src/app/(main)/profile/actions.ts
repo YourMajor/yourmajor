@@ -1,11 +1,20 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { createClient } from '@/utils/supabase/server'
-import { supabaseAdmin } from '@/lib/supabase'
 import { normalizePhone } from '@/lib/phone'
+
+const profileSchema = z.object({
+  firstName: z.string().trim().min(1, 'First name is required').max(60),
+  lastName: z.string().trim().max(60).optional().default(''),
+  email: z.string().trim().toLowerCase().email('A valid email address is required').max(254),
+  handicap: z.number().min(0).max(54).nullable(),
+  phone: z.string().nullable(),
+  smsNotifications: z.boolean(),
+})
 
 export async function updateProfile(
   formData: FormData
@@ -13,19 +22,22 @@ export async function updateProfile(
   const user = await getUser()
   if (!user) return { error: 'Unauthorized' }
 
-  const firstName = (formData.get('firstName') as string | null)?.trim() ?? ''
-  const lastName = (formData.get('lastName') as string | null)?.trim() ?? ''
-  const email = (formData.get('email') as string | null)?.trim() ?? ''
   const handicapStr = formData.get('handicap') as string | null
-  const handicap = handicapStr !== null ? parseFloat(handicapStr) : null
+  const rawHandicap = handicapStr != null && handicapStr !== '' ? parseFloat(handicapStr) : null
   const rawPhone = (formData.get('phone') as string | null)?.trim() || null
-  const phone = rawPhone ? normalizePhone(rawPhone) : null
-  const smsNotifications = formData.get('smsNotifications') === '1'
 
-  if (!firstName) return { error: 'First name is required' }
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return { error: 'A valid email address is required' }
+  const result = profileSchema.safeParse({
+    firstName: (formData.get('firstName') as string | null) ?? '',
+    lastName: (formData.get('lastName') as string | null) ?? '',
+    email: (formData.get('email') as string | null) ?? '',
+    handicap: rawHandicap !== null && Number.isFinite(rawHandicap) ? rawHandicap : null,
+    phone: rawPhone ? normalizePhone(rawPhone) : null,
+    smsNotifications: formData.get('smsNotifications') === '1',
+  })
+  if (!result.success) {
+    return { error: result.error.issues[0]?.message ?? 'Invalid input' }
   }
+  const { firstName, lastName, email, handicap, phone, smsNotifications } = result.data
 
   const fullName = [firstName, lastName].filter(Boolean).join(' ')
 
@@ -35,6 +47,7 @@ export async function updateProfile(
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) return { error: 'Session expired. Please sign in again.' }
 
+      const { supabaseAdmin } = await import('@/lib/supabase')
       const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
         authUser.id,
         { email }

@@ -6,8 +6,19 @@ export async function getUser(): Promise<User | null> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
-    if (!user?.email) return null
-    return prisma.user.findUnique({ where: { email: user.email } })
+    if (!user?.id) return null
+    // Prisma User.id mirrors Supabase user.id (set at signup in
+    // /api/auth/callback). Looking up by id avoids the email-rebinding
+    // fragility where a changed Supabase email could match a different
+    // Prisma user row.
+    const byId = await prisma.user.findUnique({ where: { id: user.id } })
+    if (byId) return byId
+    // Legacy fallback: older rows may predate id-mirroring. Match by email
+    // only when no id match exists.
+    if (user.email) {
+      return await prisma.user.findUnique({ where: { email: user.email } })
+    }
+    return null
   } catch {
     return null
   }

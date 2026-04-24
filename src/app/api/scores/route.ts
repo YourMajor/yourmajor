@@ -1,11 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { getUser } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const dbUser = await getUser()
+  if (!dbUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
   const { tournamentPlayerId, holeId, roundId, strokes, fairwayHit, gir, putts } = body
@@ -20,10 +19,6 @@ export async function POST(request: NextRequest) {
   if (putts != null && (typeof putts !== 'number' || !Number.isInteger(putts) || putts < 0 || putts > 10)) {
     return NextResponse.json({ error: 'Putts must be an integer between 0 and 10' }, { status: 400 })
   }
-
-  // Verify the player belongs to the authenticated user
-  const dbUser = await prisma.user.findUnique({ where: { email: user.email } })
-  if (!dbUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const tp = await prisma.tournamentPlayer.findUnique({
     where: { id: tournamentPlayerId },

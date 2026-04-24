@@ -2,8 +2,31 @@
 
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
-import { supabaseAdmin } from '@/lib/supabase'
+import { requireAuth, isTournamentAdmin } from '@/lib/auth'
+
+const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a #RRGGBB color')
+const updateTournamentSchema = z.object({
+  name: z.string().trim().min(1).max(120),
+  slug: z.string().trim().min(1).max(80),
+  primaryColor: hexColor,
+  accentColor: hexColor,
+  handicapSystem: z.enum(['NONE', 'WHS', 'STABLEFORD', 'CALLAWAY', 'PEORIA']),
+  powerupsEnabled: z.boolean(),
+  powerupsPerPlayer: z.number().int().min(0).max(20),
+  maxAttacksPerPlayer: z.number().int().min(0).max(10),
+  distributionMode: z.enum(['DRAFT', 'RANDOM']),
+  startDate: z.string().optional(),
+  endDate: z.string().optional(),
+})
+
+function parseIntOr(value: FormDataEntryValue | null, fallback: number): number {
+  const n = parseInt(String(value ?? ''), 10)
+  return Number.isFinite(n) ? n : fallback
+}
 
 export async function updateTournament(
   tournamentId: string,
@@ -12,11 +35,25 @@ export async function updateTournament(
   currentHeaderImage: string | null,
   formData: FormData,
 ) {
-  const name = formData.get('name') as string
-  const newSlug = (formData.get('slug') as string).toLowerCase().replace(/[^a-z0-9-]/g, '-')
-  const primaryColor = formData.get('primaryColor') as string
-  const accentColor = formData.get('accentColor') as string
-  const requestedHandicap = formData.get('handicapSystem') as string
+  const user = await requireAuth()
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
+    throw new Error('Forbidden')
+  }
+
+  const rawSlug = String(formData.get('slug') ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '-')
+  const parsed = updateTournamentSchema.parse({
+    name: String(formData.get('name') ?? ''),
+    slug: rawSlug,
+    primaryColor: String(formData.get('primaryColor') ?? ''),
+    accentColor: String(formData.get('accentColor') ?? ''),
+    handicapSystem: String(formData.get('handicapSystem') ?? ''),
+    powerupsEnabled: formData.get('powerupsEnabled') === 'on',
+    powerupsPerPlayer: parseIntOr(formData.get('powerupsPerPlayer'), 3),
+    maxAttacksPerPlayer: parseIntOr(formData.get('maxAttacksPerPlayer'), 1),
+    distributionMode: String(formData.get('distributionMode') ?? 'DRAFT'),
+    startDate: formData.get('startDate') ? String(formData.get('startDate')) : undefined,
+    endDate: formData.get('endDate') ? String(formData.get('endDate')) : undefined,
+  })
 
   // Re-fetch current state server-side for guards
   const currentTournament = await prisma.tournament.findUnique({ where: { id: tournamentId } })
@@ -26,7 +63,7 @@ export async function updateTournament(
   const serverHasScores = serverScoreCount > 0
 
   // Guard: don't allow handicap system change once scores exist
-  const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : requestedHandicap
+  const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : parsed.handicapSystem
 
   // If powerups are locked (draft started or cards dealt), preserve existing values
   const currentDraft = await prisma.draft.findUnique({ where: { tournamentId } })
@@ -35,20 +72,23 @@ export async function updateTournament(
   })
   const isLocked = !!(currentDraft?.status === 'ACTIVE' || currentDraft?.status === 'COMPLETED' || currentDealtCount > 0)
 
-  const powerupsEnabled = isLocked ? currentTournament!.powerupsEnabled : formData.get('powerupsEnabled') === 'on'
-  const powerupsPerPlayer = isLocked ? currentTournament!.powerupsPerPlayer : (parseInt(formData.get('powerupsPerPlayer') as string) || 3)
-  const maxAttacksPerPlayer = isLocked ? currentTournament!.maxAttacksPerPlayer : (parseInt(formData.get('maxAttacksPerPlayer') as string) || 1)
-  const distributionMode = isLocked ? currentTournament!.distributionMode : (formData.get('distributionMode') as string || 'DRAFT')
-  const startDate = formData.get('startDate') as string
-  const endDate = formData.get('endDate') as string
-  const logoFile = formData.get('logo') as File
-  const headerFile = formData.get('headerImage') as File
+  const powerupsEnabled = isLocked ? currentTournament!.powerupsEnabled : parsed.powerupsEnabled
+  const powerupsPerPlayer = isLocked ? currentTournament!.powerupsPerPlayer : parsed.powerupsPerPlayer
+  const maxAttacksPerPlayer = isLocked ? currentTournament!.maxAttacksPerPlayer : parsed.maxAttacksPerPlayer
+  const distributionMode = isLocked ? currentTournament!.distributionMode : parsed.distributionMode
+  const logoFile = formData.get('logo') as File | null
+  const headerFile = formData.get('headerImage') as File | null
 
   let logoUrl = currentLogo
   let headerImageUrl = currentHeaderImage
 
-  if (logoFile?.size > 0) {
-    const ext = logoFile.name.split('.').pop()
+  const { supabaseAdmin } = await import('@/lib/supabase')
+
+  if (logoFile && logoFile.size > 0) {
+    const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
+      throw new Error(`Logo must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)
+    }
     const path = `${tournamentId}.${ext}`
     const buffer = Buffer.from(await logoFile.arrayBuffer())
 
@@ -62,8 +102,11 @@ export async function updateTournament(
     }
   }
 
-  if (headerFile?.size > 0) {
-    const ext = headerFile.name.split('.').pop()
+  if (headerFile && headerFile.size > 0) {
+    const ext = headerFile.name.split('.').pop()?.toLowerCase() ?? ''
+    if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
+      throw new Error(`Header image must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)
+    }
     const path = `${tournamentId}.${ext}`
     const buffer = Buffer.from(await headerFile.arrayBuffer())
 
@@ -80,26 +123,26 @@ export async function updateTournament(
   await prisma.tournament.update({
     where: { id: tournamentId },
     data: {
-      name,
-      slug: newSlug,
-      primaryColor,
-      accentColor,
-      handicapSystem: handicapSystem as 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA',
+      name: parsed.name,
+      slug: parsed.slug,
+      primaryColor: parsed.primaryColor,
+      accentColor: parsed.accentColor,
+      handicapSystem,
       powerupsEnabled,
       powerupsPerPlayer,
       maxAttacksPerPlayer,
-      distributionMode: distributionMode as 'DRAFT' | 'RANDOM',
-      startDate: startDate ? new Date(startDate) : null,
-      endDate: endDate ? new Date(endDate) : null,
+      distributionMode,
+      startDate: parsed.startDate ? new Date(parsed.startDate) : null,
+      endDate: parsed.endDate ? new Date(parsed.endDate) : null,
       logo: logoUrl,
       headerImage: headerImageUrl,
     },
   })
 
-  revalidatePath(`/${newSlug}`, 'layout')
-  revalidatePath(`/${newSlug}/admin/setup`)
+  revalidatePath(`/${parsed.slug}`, 'layout')
+  revalidatePath(`/${parsed.slug}/admin/setup`)
 
-  if (newSlug !== currentSlug) {
-    redirect(`/${newSlug}/admin/setup`)
+  if (parsed.slug !== currentSlug) {
+    redirect(`/${parsed.slug}/admin/setup`)
   }
 }

@@ -24,7 +24,10 @@ export async function GET(
     },
   })
   if (!tournament) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(tournament)
+  // Never leak joinCode on a public endpoint — it's used as an invite secret.
+  const { joinCode: _joinCode, ...safe } = tournament
+  void _joinCode
+  return NextResponse.json(safe)
 }
 
 export async function PATCH(
