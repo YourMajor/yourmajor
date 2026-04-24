@@ -8,7 +8,7 @@ import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
-import { sendSMS } from '@/lib/sms'
+import { sendInvitations, sendInviteEmails as sendInviteEmailsImpl } from '@/lib/invite-sender'
 import { containsProfanity } from '@/lib/content-moderation'
 
 function friendlyPrismaError(err: unknown): string {
@@ -415,23 +415,11 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
         where: { tournamentId: tournament.id },
         select: { email: true, token: true, phone: true },
       })
-
-      // Send emails for email-based invitations
-      const emailInvitations = invitations.filter((inv) => inv.email)
-      if (emailInvitations.length > 0) {
-        await sendInviteEmails(tournament.name, slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
-      }
-
-      // Send SMS for phone-based invitations
-      const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-      for (const inv of invitations) {
-        if (inv.phone) {
-          await sendSMS(
-            inv.phone,
-            `You're invited to ${tournament.name}! Join here: ${domain}/${slug}/register?token=${inv.token}`,
-          ).catch(() => {})
-        }
-      }
+      await sendInvitations({
+        tournamentName: tournament.name,
+        slug,
+        invitations,
+      }).catch(() => {})
     }
   } catch (err) {
     console.error('[createTournamentFromWizard] post-create error (tournament was created):', err)
@@ -440,48 +428,15 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
   return { slug }
 }
 
+// Re-export the email-only path so existing imports of `sendInviteEmails` from
+// '@/app/(main)/tournaments/new/actions' continue to work. Implementation lives
+// in '@/lib/invite-sender' and now also handles SMS.
 export async function sendInviteEmails(
   tournamentName: string,
   slug: string,
-  invitations: Array<{ email: string; token: string }>
-) {
-  const resendKey = process.env.RESEND_API_KEY
-  if (!resendKey) return
-
-  const { Resend } = await import('resend')
-  const resend = new Resend(resendKey)
-  const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-
-  await Promise.all(
-    invitations.map(({ email, token }) =>
-      resend.emails.send({
-        from: process.env.EMAIL_FROM ?? 'noreply@yourdomain.com',
-        to: email,
-        subject: `You're invited to ${tournamentName}`,
-        html: `<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="margin:0;padding:0;background-color:#f4f4f4;">
-  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f4f4f4;">
-    <tr><td align="center" style="padding:40px 20px;">
-      <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;max-width:600px;">
-        <tr><td style="padding:40px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#333333;">
-          <p style="margin:0 0 20px;">You have been invited to join <strong>${tournamentName}</strong>.</p>
-          <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
-            <tr><td align="center" style="background:#006747;border-radius:4px;">
-              <a href="${domain}/${slug}/register?token=${token}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;text-decoration:none;">Accept Invitation</a>
-            </td></tr>
-          </table>
-          <p style="margin:0;font-size:14px;color:#666666;">Or copy this link: <a href="${domain}/${slug}/register?token=${token}" style="color:#006747;word-break:break-all;">${domain}/${slug}/register?token=${token}</a></p>
-        </td></tr>
-      </table>
-    </td></tr>
-  </table>
-</body>
-</html>`,
-      })
-    )
-  )
+  invitations: Array<{ email: string; token: string }>,
+): Promise<void> {
+  await sendInviteEmailsImpl(tournamentName, slug, invitations)
 }
 
 export async function sendLateInvites(
@@ -540,32 +495,22 @@ export async function sendLateInvites(
     })),
   })
 
-  // Send email invites
+  // Fan out email + SMS via shared helper
   const newEmails = newEntries.filter((e) => e.type === 'email').map((e) => e.value)
-  if (newEmails.length > 0) {
-    const emailInvitations = await prisma.invitation.findMany({
-      where: { tournamentId, email: { in: newEmails } },
-      select: { email: true, token: true },
-    })
-    await sendInviteEmails(tournament.name, tournament.slug, emailInvitations as Array<{ email: string; token: string }>).catch(() => {})
-  }
-
-  // Send SMS invites
   const newPhones = newEntries.filter((e) => e.type === 'phone').map((e) => e.value)
-  if (newPhones.length > 0) {
-    const phoneInvitations = await prisma.invitation.findMany({
-      where: { tournamentId, phone: { in: newPhones } },
-      select: { phone: true, token: true },
+  const orFilters = []
+  if (newEmails.length > 0) orFilters.push({ email: { in: newEmails } })
+  if (newPhones.length > 0) orFilters.push({ phone: { in: newPhones } })
+  if (orFilters.length > 0) {
+    const newInvitations = await prisma.invitation.findMany({
+      where: { tournamentId, OR: orFilters },
+      select: { email: true, phone: true, token: true },
     })
-    const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-    for (const inv of phoneInvitations) {
-      if (inv.phone) {
-        await sendSMS(
-          inv.phone,
-          `You're invited to ${tournament.name}! Join here: ${domain}/${tournament.slug}/register?token=${inv.token}`,
-        ).catch(() => {})
-      }
-    }
+    await sendInvitations({
+      tournamentName: tournament.name,
+      slug: tournament.slug,
+      invitations: newInvitations,
+    }).catch(() => {})
   }
 }
 
