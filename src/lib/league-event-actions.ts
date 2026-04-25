@@ -195,3 +195,96 @@ export async function scheduleLeagueEvent(
   revalidatePath('/', 'layout')
   return { slug: newEvent.slug }
 }
+
+/**
+ * Delete a league chain event. Admin-only.
+ *
+ * Guards:
+ *  - Refuses to delete the root tournament (the league itself). Use the
+ *    tournament Danger Zone for that.
+ *  - Refuses to delete events that already have submitted scores — admins
+ *    must clear those first to avoid silent data loss.
+ *
+ * Behaviour:
+ *  - Re-links any direct children (parentTournamentId === eventId) to point
+ *    at the deleted event's parent, so the chain stays intact:
+ *      root → A → B → C   (delete B)   →   root → A → C
+ *  - Cascade-deletes the event row's TournamentPlayer / TournamentGroup /
+ *    Round records via Prisma's onDelete relationships already in the schema.
+ */
+export async function deleteLeagueEvent(
+  eventId: string,
+): Promise<{ ok: true; redirectSlug: string } | { ok: false; error: string }> {
+  const user = await getUser()
+  if (!user) redirect('/auth/login')
+
+  const event = await prisma.tournament.findUnique({
+    where: { id: eventId },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      parentTournamentId: true,
+      isLeague: true,
+    },
+  })
+  if (!event) return { ok: false, error: 'Event not found.' }
+
+  // Admin check — must be admin of THIS event (or super-admin).
+  if (user.role !== 'ADMIN') {
+    const membership = await prisma.tournamentPlayer.findUnique({
+      where: { tournamentId_userId: { tournamentId: eventId, userId: user.id } },
+      select: { isAdmin: true },
+    })
+    if (!membership?.isAdmin) {
+      return { ok: false, error: 'Only league admins can delete events.' }
+    }
+  }
+
+  // Block root deletion — that's the whole league.
+  if (event.isLeague && !event.parentTournamentId) {
+    return {
+      ok: false,
+      error: 'Cannot delete the league root. Use the tournament Danger Zone instead.',
+    }
+  }
+
+  // Block when scores exist.
+  const scoreCount = await prisma.score.count({
+    where: { round: { tournamentId: eventId } },
+  })
+  if (scoreCount > 0) {
+    return {
+      ok: false,
+      error: `Cannot delete — ${scoreCount} score${scoreCount === 1 ? '' : 's'} already submitted. Clear scores first.`,
+    }
+  }
+
+  // Find the parent we'll re-anchor children to.
+  const newParentId = event.parentTournamentId
+
+  // Find a slug to redirect to after delete: prefer parent, else first remaining
+  // sibling at the root, else the root itself.
+  let redirectSlug: string | null = null
+  if (newParentId) {
+    const parent = await prisma.tournament.findUnique({
+      where: { id: newParentId },
+      select: { slug: true },
+    })
+    redirectSlug = parent?.slug ?? null
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // Re-link direct children to point at the deleted event's parent.
+    await tx.tournament.updateMany({
+      where: { parentTournamentId: eventId },
+      data: { parentTournamentId: newParentId },
+    })
+    // Delete the event itself. Cascade onDelete handles rounds, players,
+    // groups, scores (via round cascade), invitations, etc.
+    await tx.tournament.delete({ where: { id: eventId } })
+  })
+
+  revalidatePath('/', 'layout')
+  return { ok: true, redirectSlug: redirectSlug ?? '' }
+}

@@ -1,7 +1,12 @@
 'use client'
 
+import { useState, useTransition } from 'react'
 import Link from 'next/link'
-import { Calendar, MapPin, Users, ListChecks, Activity, ArrowRight } from 'lucide-react'
+import { useRouter } from 'next/navigation'
+import { Calendar, MapPin, Users, ListChecks, Activity, ArrowRight, Pencil, Trash2 } from 'lucide-react'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { deleteLeagueEvent } from '@/lib/league-event-actions'
 
 export interface LeagueEventRow {
   id: string
@@ -35,11 +40,55 @@ function formatDate(iso: string | null): string {
   })
 }
 
+// Editable when there are no scores yet — i.e. the event hasn't started or has
+// been live without anyone submitting. Server enforces too. Completed events
+// with scores are not deletable; we still allow Edit (admin can fix metadata).
+function canDelete(e: LeagueEventRow): boolean {
+  return e.scoreCount === 0
+}
+
 interface Props {
   events: LeagueEventRow[]
 }
 
 export function LeagueEventsTable({ events }: Props) {
+  const router = useRouter()
+  const [pendingDelete, setPendingDelete] = useState<LeagueEventRow | null>(null)
+  const [confirmText, setConfirmText] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [isPending, startTransition] = useTransition()
+
+  function openDelete(event: LeagueEventRow) {
+    setPendingDelete(event)
+    setConfirmText('')
+    setError(null)
+  }
+
+  function cancelDelete() {
+    setPendingDelete(null)
+    setConfirmText('')
+    setError(null)
+  }
+
+  function handleDelete() {
+    if (!pendingDelete) return
+    setError(null)
+    startTransition(async () => {
+      const result = await deleteLeagueEvent(pendingDelete.id)
+      if (!result.ok) {
+        setError(result.error)
+        return
+      }
+      // If we deleted the event admin was viewing, fall back to parent / root.
+      if (pendingDelete.isCurrent && result.redirectSlug) {
+        router.push(`/${result.redirectSlug}/admin/season`)
+      } else {
+        router.refresh()
+      }
+      cancelDelete()
+    })
+  }
+
   if (events.length === 0) {
     return (
       <div className="rounded-xl border border-dashed border-border p-8 text-center">
@@ -87,12 +136,13 @@ export function LeagueEventsTable({ events }: Props) {
               <th className="text-right px-4 py-3">Players</th>
               <th className="text-right px-4 py-3">Groups</th>
               <th className="text-right px-4 py-3">Scores</th>
-              <th className="px-4 py-3"></th>
+              <th className="text-right px-4 py-3 w-32">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border">
             {events.map((event, idx) => {
               const badge = STATUS_BADGE[event.status]
+              const deletable = canDelete(event)
               return (
                 <tr
                   key={event.id}
@@ -102,7 +152,12 @@ export function LeagueEventsTable({ events }: Props) {
                   <td className="px-4 py-3 text-foreground tabular-nums whitespace-nowrap">{formatDate(event.date)}</td>
                   <td className="px-4 py-3 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-medium truncate">{event.name}</span>
+                      <Link
+                        href={`/${event.slug}/admin/setup`}
+                        className="font-medium truncate hover:underline hover:text-[var(--color-primary)]"
+                      >
+                        {event.name}
+                      </Link>
                       {event.isCurrent && (
                         <span className="text-[10px] uppercase tracking-wider text-[var(--color-primary)] shrink-0">Current</span>
                       )}
@@ -131,13 +186,32 @@ export function LeagueEventsTable({ events }: Props) {
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/${event.slug}/admin`}
-                      className="inline-flex items-center gap-1 text-xs font-medium text-[var(--color-primary)] hover:underline"
-                    >
-                      Open <ArrowRight className="w-3 h-3" />
-                    </Link>
+                  <td className="px-4 py-3">
+                    <div className="flex items-center justify-end gap-1">
+                      <Link
+                        href={`/${event.slug}/admin/setup`}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Edit event"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Link>
+                      <Link
+                        href={`/${event.slug}/admin`}
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
+                        title="Open admin overview"
+                      >
+                        Open <ArrowRight className="w-3 h-3" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => openDelete(event)}
+                        disabled={!deletable}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-destructive hover:bg-destructive/10 transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                        title={deletable ? 'Delete event' : `Cannot delete — ${event.scoreCount} scores submitted`}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -150,6 +224,7 @@ export function LeagueEventsTable({ events }: Props) {
       <ul className="md:hidden space-y-2">
         {events.map((event, idx) => {
           const badge = STATUS_BADGE[event.status]
+          const deletable = canDelete(event)
           return (
             <li
               key={event.id}
@@ -160,7 +235,7 @@ export function LeagueEventsTable({ events }: Props) {
               }`}
             >
               <div className="flex items-start justify-between gap-3 mb-2">
-                <div className="min-w-0 flex-1">
+                <Link href={`/${event.slug}/admin/setup`} className="min-w-0 flex-1">
                   <div className="flex items-center gap-2">
                     <span className="text-xs text-muted-foreground tabular-nums">#{idx + 1}</span>
                     <span className="text-sm font-medium truncate">{event.name}</span>
@@ -175,7 +250,7 @@ export function LeagueEventsTable({ events }: Props) {
                       {event.courseName}
                     </p>
                   )}
-                </div>
+                </Link>
                 <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
                   {badge.label}
                 </span>
@@ -190,17 +265,93 @@ export function LeagueEventsTable({ events }: Props) {
                 <span className="inline-flex items-center gap-1">
                   <Activity className="w-3 h-3" /> {event.scoreCount > 0 ? `${event.scoreCompletionPct}% scored` : 'no scores'}
                 </span>
+              </div>
+              <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border">
+                <Link
+                  href={`/${event.slug}/admin/setup`}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
+                >
+                  <Pencil className="w-3 h-3" /> Edit
+                </Link>
                 <Link
                   href={`/${event.slug}/admin`}
-                  className="inline-flex items-center gap-0.5 font-medium text-[var(--color-primary)]"
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-[var(--color-primary)]"
                 >
                   Open <ArrowRight className="w-3 h-3" />
                 </Link>
+                <button
+                  type="button"
+                  onClick={() => openDelete(event)}
+                  disabled={!deletable}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-destructive disabled:text-muted-foreground/50"
+                >
+                  <Trash2 className="w-3 h-3" />
+                  Delete
+                </button>
               </div>
             </li>
           )
         })}
       </ul>
+
+      {/* Delete confirmation dialog */}
+      <Dialog
+        open={pendingDelete !== null}
+        onOpenChange={(open) => {
+          if (!open) cancelDelete()
+        }}
+      >
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Delete event?</DialogTitle>
+          </DialogHeader>
+          {pendingDelete && (
+            <div className="space-y-4">
+              <div className="rounded-lg border border-border p-3 space-y-1">
+                <p className="text-sm font-semibold text-foreground">{pendingDelete.name}</p>
+                <p className="text-xs text-muted-foreground">{formatDate(pendingDelete.date)}</p>
+                {pendingDelete.courseName && (
+                  <p className="text-xs text-muted-foreground">{pendingDelete.courseName}</p>
+                )}
+              </div>
+              <p className="text-sm text-foreground">
+                This permanently removes the event, its rounds, group assignments, and registered
+                players. {pendingDelete.scoreCount === 0 && pendingDelete.participantCount > 0 && (
+                  <span>{pendingDelete.participantCount} registered player{pendingDelete.participantCount === 1 ? "'s registration" : "s' registrations"} will be cleared.</span>
+                )}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Subsequent events in the season will be re-linked so the schedule stays intact.
+              </p>
+              <div className="space-y-1.5">
+                <label className="text-xs font-medium text-foreground">
+                  Type <span className="font-mono bg-muted px-1.5 py-0.5 rounded">delete</span> to confirm:
+                </label>
+                <input
+                  type="text"
+                  value={confirmText}
+                  onChange={(e) => setConfirmText(e.target.value)}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  autoFocus
+                />
+              </div>
+              {error && <p className="text-sm text-destructive">{error}</p>}
+            </div>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={cancelDelete} disabled={isPending}>
+              Cancel
+            </Button>
+            <Button
+              variant="destructive"
+              onClick={handleDelete}
+              disabled={isPending || confirmText.trim().toLowerCase() !== 'delete'}
+            >
+              {isPending ? 'Deleting…' : 'Delete event'}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
