@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidatePath } from 'next/cache'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 
@@ -94,7 +95,7 @@ export async function DELETE(
   // themselves (parentTournamentId = null).
   const target = await prisma.tournament.findUnique({
     where: { id },
-    select: { parentTournamentId: true },
+    select: { parentTournamentId: true, slug: true },
   })
   if (!target) return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
 
@@ -113,5 +114,13 @@ export async function DELETE(
     console.error('[DELETE /api/tournaments/:id]', e)
     return NextResponse.json({ error: message }, { status: 500 })
   }
+
+  // Bust caches for any page that lists tournaments — without this the dashboard
+  // server-renders a stale list and the deleted tournament keeps appearing.
+  revalidatePath('/dashboard')
+  revalidatePath('/tournaments')
+  revalidatePath(`/${target.slug}`, 'layout')
+  revalidatePath('/', 'layout')
+
   return NextResponse.json({ ok: true })
 }
