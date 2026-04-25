@@ -1,5 +1,7 @@
 'use client'
 
+import { useState } from 'react'
+import { Info, ChevronDown } from 'lucide-react'
 import { FORMATS } from '@/lib/formats/registry'
 import type { FormatId, FormatDef } from '@/lib/formats/types'
 
@@ -33,12 +35,46 @@ interface Props {
 
 export function StepFormat({ value, onChange, isFree = false }: Props) {
   const visible = FORMATS.filter((f) => !HIDDEN.includes(f.id))
+  const [showAll, setShowAll] = useState(false)
 
   return (
     <div className="space-y-5">
-      <p className="text-sm text-muted-foreground">
-        Choose your format — controls how scoring works. Defaults to Stroke Play.
-      </p>
+      <div className="space-y-2">
+        <p className="text-sm text-muted-foreground">
+          Choose your format — controls how scoring works. Defaults to Stroke Play.
+        </p>
+        <button
+          type="button"
+          onClick={() => setShowAll((v) => !v)}
+          aria-expanded={showAll}
+          className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline"
+        >
+          <Info className="w-3.5 h-3.5" />
+          About these formats
+          <ChevronDown className={`w-3.5 h-3.5 transition-transform duration-200 ${showAll ? 'rotate-180' : ''}`} />
+        </button>
+        {showAll && (
+          <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-3">
+            {GROUP_ORDER.map((g) => {
+              const formats = visible.filter((f) => groupFor(f) === g.key)
+              if (formats.length === 0) return null
+              return (
+                <div key={g.key}>
+                  <p className="text-[11px] font-semibold uppercase tracking-wide text-muted-foreground">{g.label}</p>
+                  <ul className="mt-1 space-y-1.5">
+                    {formats.map((f) => (
+                      <li key={f.id} className="text-xs leading-snug">
+                        <span className="font-medium text-foreground">{f.label}</span>
+                        <span className="text-muted-foreground"> — {f.description}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </div>
 
       {GROUP_ORDER.map((g) => {
         const formats = visible.filter((f) => groupFor(f) === g.key)
