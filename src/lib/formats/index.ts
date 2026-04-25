@@ -12,6 +12,13 @@ import { lowGrossLowNetStrategy } from './combined'
 
 export const STRATEGIES: Record<FormatId, FormatStrategy> = {
   STROKE_PLAY: strokePlayStrategy,
+  // STROKE_PLAY_NET / CALLAWAY / PEORIA all run stroke-play scoring; the
+  // handicap calculation differs and is handled inside strokePlayStrategy
+  // by reading ctx.handicapSystem (which is locked by the format's
+  // impliedHandicap when the user picks one of these cards).
+  STROKE_PLAY_NET: strokePlayStrategy,
+  CALLAWAY: strokePlayStrategy,
+  PEORIA: strokePlayStrategy,
   STABLEFORD: stablefordStrategy,
   MODIFIED_STABLEFORD: modifiedStablefordStrategy,
   BEST_BALL: bestBallStrategy,

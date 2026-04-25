@@ -15,6 +15,7 @@ export type FormatKind = 'individual' | 'team' | 'match'
 
 export type FormatId =
   | 'STROKE_PLAY'
+  | 'STROKE_PLAY_NET'
   | 'STABLEFORD'
   | 'MODIFIED_STABLEFORD'
   | 'BEST_BALL'
@@ -28,9 +29,13 @@ export type FormatId =
   | 'SKINS_GROSS'
   | 'SKINS_NET'
   | 'QUOTA'
+  | 'CALLAWAY'
+  | 'PEORIA'
   | 'CHAPMAN'
   | 'PINEHURST'
   | 'LOW_GROSS_LOW_NET'
+
+export type HandicapSystemId = 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'
 
 export interface FormatDef {
   id: FormatId
@@ -41,6 +46,13 @@ export interface FormatDef {
   defaultTeamSize: number | null
   scoringMode: FormatScoringMode
   supportsNet: boolean
+  /**
+   * If set, the wizard locks `handicapSystem` to this value when this format is chosen
+   * and the standalone Handicap step is suppressed. The casual-feel goal: format IS the
+   * single scoring decision; obscure handicap methods (WHS / Callaway / Peoria) appear
+   * as their own format cards rather than a separate step.
+   */
+  impliedHandicap?: HandicapSystemId
   // Free-form per-format config schema validated at the call site (Zod lives in registry.ts).
 }
 

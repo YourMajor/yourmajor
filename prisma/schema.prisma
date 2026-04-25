@@ -84,6 +84,7 @@ enum TournamentType {
 
 enum TournamentFormat {
   STROKE_PLAY
+  STROKE_PLAY_NET
   STABLEFORD
   MODIFIED_STABLEFORD
   BEST_BALL
@@ -97,6 +98,8 @@ enum TournamentFormat {
   SKINS_GROSS
   SKINS_NET
   QUOTA
+  CALLAWAY
+  PEORIA
   CHAPMAN
   PINEHURST
   LOW_GROSS_LOW_NET

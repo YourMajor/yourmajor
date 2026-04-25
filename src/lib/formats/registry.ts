@@ -6,23 +6,36 @@ import type { FormatDef, FormatId } from './types'
 export const FORMATS: FormatDef[] = [
   {
     id: 'STROKE_PLAY',
-    label: 'Stroke Play',
-    description: 'Classic format. Lowest total strokes wins (gross or net).',
+    label: 'Stroke Play (Gross)',
+    description: 'Classic format. Lowest total strokes wins. No handicap allowance.',
+    kind: 'individual',
+    requiresTeams: false,
+    defaultTeamSize: null,
+    scoringMode: 'STROKE',
+    supportsNet: false,
+    impliedHandicap: 'NONE',
+  },
+  {
+    id: 'STROKE_PLAY_NET',
+    label: 'Stroke Play (Net)',
+    description: 'Stroke play with WHS handicap allowance — net score wins. Best for mixed-ability groups.',
     kind: 'individual',
     requiresTeams: false,
     defaultTeamSize: null,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'STABLEFORD',
     label: 'Stableford',
-    description: 'Earn points per hole based on score relative to par. Highest total wins.',
+    description: 'Earn points per hole based on score relative to par. Highest total wins. Handicap-aware.',
     kind: 'individual',
     requiresTeams: false,
     defaultTeamSize: null,
     scoringMode: 'STABLEFORD',
     supportsNet: true,
+    impliedHandicap: 'STABLEFORD',
   },
   {
     id: 'MODIFIED_STABLEFORD',
@@ -33,6 +46,29 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'STABLEFORD',
     supportsNet: true,
+    impliedHandicap: 'STABLEFORD',
+  },
+  {
+    id: 'CALLAWAY',
+    label: 'Callaway',
+    description: 'For one-time outings — handicap is computed from each player’s worst holes within their own round. No prior handicap needed.',
+    kind: 'individual',
+    requiresTeams: false,
+    defaultTeamSize: null,
+    scoringMode: 'STROKE',
+    supportsNet: true,
+    impliedHandicap: 'CALLAWAY',
+  },
+  {
+    id: 'PEORIA',
+    label: 'Peoria',
+    description: 'Six holes are secretly selected before the round; handicap is calculated from those holes only. Anti-sandbagging.',
+    kind: 'individual',
+    requiresTeams: false,
+    defaultTeamSize: null,
+    scoringMode: 'STROKE',
+    supportsNet: true,
+    impliedHandicap: 'PEORIA',
   },
   {
     id: 'BEST_BALL_2',
@@ -43,6 +79,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 2,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'BEST_BALL_4',
@@ -53,6 +90,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 4,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'BEST_BALL',
@@ -63,6 +101,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 2,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'SCRAMBLE',
@@ -72,7 +111,8 @@ export const FORMATS: FormatDef[] = [
     requiresTeams: true,
     defaultTeamSize: 4,
     scoringMode: 'STROKE',
-    supportsNet: true,
+    supportsNet: false,
+    impliedHandicap: 'NONE',
   },
   {
     id: 'SHAMBLE',
@@ -83,6 +123,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 4,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'CHAPMAN',
@@ -93,6 +134,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 2,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'PINEHURST',
@@ -103,6 +145,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: 2,
     scoringMode: 'STROKE',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'MATCH_PLAY',
@@ -112,7 +155,8 @@ export const FORMATS: FormatDef[] = [
     requiresTeams: false,
     defaultTeamSize: null,
     scoringMode: 'MATCH',
-    supportsNet: true,
+    supportsNet: false,
+    impliedHandicap: 'NONE',
   },
   {
     id: 'RYDER_CUP',
@@ -122,7 +166,8 @@ export const FORMATS: FormatDef[] = [
     requiresTeams: true,
     defaultTeamSize: 12,
     scoringMode: 'MATCH',
-    supportsNet: true,
+    supportsNet: false,
+    impliedHandicap: 'NONE',
   },
   {
     id: 'SKINS',
@@ -133,6 +178,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'SKINS',
     supportsNet: false,
+    impliedHandicap: 'NONE',
   },
   {
     id: 'SKINS_GROSS',
@@ -143,6 +189,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'SKINS',
     supportsNet: false,
+    impliedHandicap: 'NONE',
   },
   {
     id: 'SKINS_NET',
@@ -153,6 +200,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'SKINS',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'QUOTA',
@@ -163,6 +211,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'QUOTA',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
   {
     id: 'LOW_GROSS_LOW_NET',
@@ -173,6 +222,7 @@ export const FORMATS: FormatDef[] = [
     defaultTeamSize: null,
     scoringMode: 'COMBINED',
     supportsNet: true,
+    impliedHandicap: 'WHS',
   },
 ]
 

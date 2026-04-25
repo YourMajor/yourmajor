@@ -144,6 +144,7 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
                   isLeague: next,
                   startDate: next ? '' : value.startDate,
                   endDate: next ? '' : value.endDate,
+                  numRounds: next ? 1 : value.numRounds,
                 })
               }}
               className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
@@ -197,26 +198,35 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
             </div>
           )}
 
-          <div className="space-y-2">
-            <Label htmlFor="numRounds">Number of Rounds</Label>
-            {isFree ? (
-              <div>
-                <Input id="numRounds" value="1 Round" disabled className="bg-muted" />
-                <p className="text-xs text-muted-foreground mt-1">Multi-round tournaments require Pro or Tour</p>
-              </div>
-            ) : (
-              <select
-                id="numRounds"
-                value={value.numRounds}
-                onChange={(e) => set('numRounds', parseInt(e.target.value))}
-                className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-              >
-                {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                  <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>
-                ))}
-              </select>
-            )}
-          </div>
+          {value.isLeague ? (
+            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+              <p className="text-sm font-medium text-foreground">League schedule</p>
+              <p className="text-xs text-muted-foreground mt-1">
+                You&apos;ll be able to create your league schedule once setup is complete.
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              <Label htmlFor="numRounds">Number of Rounds</Label>
+              {isFree ? (
+                <div>
+                  <Input id="numRounds" value="1 Round" disabled className="bg-muted" />
+                  <p className="text-xs text-muted-foreground mt-1">Multi-round tournaments require Pro or Tour</p>
+                </div>
+              ) : (
+                <select
+                  id="numRounds"
+                  value={value.numRounds}
+                  onChange={(e) => set('numRounds', parseInt(e.target.value))}
+                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                >
+                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
+                    <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
         </CardContent>
       </Card>
 
