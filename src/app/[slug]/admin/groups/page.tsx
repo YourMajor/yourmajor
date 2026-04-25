@@ -13,6 +13,8 @@ export default async function AdminGroupsPage({
     select: {
       id: true,
       name: true,
+      isLeague: true,
+      parentTournamentId: true,
       players: {
         where: { isParticipant: true },
         include: {
@@ -68,6 +70,7 @@ export default async function AdminGroupsPage({
         tournamentId={tournament.id}
         tournamentName={tournament.name}
         slug={slug}
+        isLeague={tournament.isLeague || !!tournament.parentTournamentId}
         initialPlayers={players}
         initialGroups={groups}
       />

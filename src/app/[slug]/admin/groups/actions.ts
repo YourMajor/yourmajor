@@ -5,6 +5,8 @@ import { getUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { sendEmail } from '@/lib/email'
 import { sendSMS } from '@/lib/sms'
+import { autoAssign, type AssignMode, type AssignablePlayer } from '@/lib/group-assignment'
+import { getRecentPartners } from '@/lib/league-events'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -77,6 +79,88 @@ export async function movePlayerToGroup(
     create: { groupId: targetGroupId, tournamentPlayerId, position: nextPosition },
     update: { groupId: targetGroupId, position: nextPosition },
   })
+}
+
+// ── Auto-assign ──────────────────────────────────────────────────────────────
+
+/**
+ * Wipes existing groups for the tournament and re-creates them by auto-assigning
+ * all participants according to the chosen mode. When `avoidLastEventPartners`
+ * is true and the tournament is part of a league chain, the algorithm tries to
+ * minimise pairings that already happened in the prior event and reports any
+ * remaining conflicts.
+ */
+export async function autoAssignGroups(
+  tournamentId: string,
+  mode: AssignMode,
+  groupSize: number = 4,
+  avoidLastEventPartners: boolean = false,
+): Promise<{ ok: true; groupCount: number; conflicts: number } | { ok: false; error: string }> {
+  await requireTournamentAdmin(tournamentId)
+
+  if (groupSize < 2 || groupSize > 6) {
+    return { ok: false, error: 'Group size must be between 2 and 6.' }
+  }
+
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { id: true, slug: true, isLeague: true, parentTournamentId: true },
+  })
+  if (!tournament) return { ok: false, error: 'Tournament not found.' }
+
+  const participants = await prisma.tournamentPlayer.findMany({
+    where: { tournamentId, isParticipant: true },
+    select: {
+      id: true,
+      userId: true,
+      handicap: true,
+      user: { select: { name: true, email: true } },
+    },
+  })
+
+  if (participants.length === 0) {
+    return { ok: false, error: 'No participants to assign.' }
+  }
+
+  const players: AssignablePlayer[] = participants.map((p) => ({
+    id: p.id,
+    userId: p.userId,
+    name: p.user.name ?? p.user.email,
+    handicap: p.handicap,
+  }))
+
+  const isLeagueChild = tournament.isLeague || !!tournament.parentTournamentId
+  const recentPartners =
+    avoidLastEventPartners && isLeagueChild ? await getRecentPartners(tournamentId) : {}
+
+  const { groups: assignedGroups, conflicts } = autoAssign(players, mode, groupSize, {
+    avoidLastEventPartners: avoidLastEventPartners && isLeagueChild,
+    recentPartners,
+  })
+
+  // Wipe existing groups for this tournament and recreate. Cascade deletes
+  // TournamentGroupMember rows automatically.
+  await prisma.$transaction(async (tx) => {
+    await tx.tournamentGroup.deleteMany({ where: { tournamentId } })
+    for (let i = 0; i < assignedGroups.length; i++) {
+      const groupPlayers = assignedGroups[i]
+      const created = await tx.tournamentGroup.create({
+        data: { tournamentId, name: `Group ${i + 1}` },
+      })
+      for (let pos = 0; pos < groupPlayers.length; pos++) {
+        await tx.tournamentGroupMember.create({
+          data: {
+            groupId: created.id,
+            tournamentPlayerId: groupPlayers[pos].id,
+            position: pos,
+          },
+        })
+      }
+    }
+  })
+
+  revalidatePath(`/${tournament.slug}/admin/groups`)
+  return { ok: true, groupCount: assignedGroups.length, conflicts }
 }
 
 // ── Player Management ────────────────────────────────────────────────────────

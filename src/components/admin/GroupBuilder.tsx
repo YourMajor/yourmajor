@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check } from 'lucide-react'
+import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import {
   createGroup,
@@ -21,6 +21,14 @@ import {
   notifyAffectedPlayers,
   notifyAllPlayers,
 } from '@/app/[slug]/admin/groups/actions'
+import { GroupAutoAssignDialog } from './GroupAutoAssignDialog'
+
+// Color tier for the handicap badge — lower = greener.
+function handicapTier(h: number): { bg: string; text: string } {
+  if (h < 5) return { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-300' }
+  if (h < 15) return { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300' }
+  return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300' }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,19 +61,21 @@ interface Props {
   tournamentId: string
   tournamentName: string
   slug: string
+  isLeague: boolean
   initialPlayers: Player[]
   initialGroups: Group[]
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayers, initialGroups }: Props) {
+export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [players, setPlayers] = useState<Player[]>(initialPlayers)
   const [groups, setGroups] = useState<Group[]>(initialGroups)
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false)
   const [addEmail, setAddEmail] = useState('')
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
@@ -420,18 +430,24 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
         </div>
       </div>
 
-      {/* Player count + Add player */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Player count + actions */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{players.length}</span> player{players.length !== 1 ? 's' : ''} registered
           {unassigned.length > 0 && (
             <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassigned.length} unassigned</span></span>
           )}
         </p>
-        <Button variant="outline" size="sm" onClick={() => { setAddDialogOpen(true); setAddError(''); setAddSuccess(''); setAddEmail('') }}>
-          <UserPlus className="w-4 h-4 mr-1.5" />
-          Add Player
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAutoAssignOpen(true)} disabled={players.length === 0}>
+            <Wand2 className="w-4 h-4 mr-1.5" />
+            Generate Groups
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setAddDialogOpen(true); setAddError(''); setAddSuccess(''); setAddEmail('') }}>
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Add Player
+          </Button>
+        </div>
       </div>
 
       {/* Instructions */}
@@ -454,26 +470,31 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
             <p className="text-xs text-muted-foreground py-2">All players are assigned to groups.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {unassigned.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePlayerTap(p.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all ${
-                    selectedPlayerIds.has(p.id)
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted'
-                  }`}
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">({p.handicap})</span>
+              {unassigned.map((p) => {
+                const tier = handicapTier(p.handicap)
+                return (
                   <button
-                    onClick={(e) => { e.stopPropagation(); setRemoveConfirmId(p.id) }}
-                    className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    key={p.id}
+                    onClick={() => handlePlayerTap(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all ${
+                      selectedPlayerIds.has(p.id)
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
+                        : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted'
+                    }`}
                   >
-                    <X className="w-3 h-3" />
+                    <span className="font-medium">{p.name}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                      {p.handicap}
+                    </span>
+                    <button
+                      onClick={(e) => { e.stopPropagation(); setRemoveConfirmId(p.id) }}
+                      className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
                   </button>
-                </button>
-              ))}
+                )
+              })}
             </div>
           )}
         </CardContent>
@@ -564,6 +585,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((m) => {
                     const p = players.find((pl) => pl.id === m.tournamentPlayerId)
+                    const tier = p ? handicapTier(p.handicap) : null
                     return (
                       <button
                         key={m.tournamentPlayerId}
@@ -575,7 +597,11 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
                         }`}
                       >
                         <span className="font-medium">{m.name}</span>
-                        {p && <span className="text-xs text-muted-foreground">({p.handicap})</span>}
+                        {p && tier && (
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                            {p.handicap}
+                          </span>
+                        )}
                         <button
                           onClick={(e) => { e.stopPropagation(); handleRemoveFromGroup(m.tournamentPlayerId) }}
                           className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
@@ -705,6 +731,25 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
           )}
         </div>
       )}
+
+      {/* Auto-assign Dialog */}
+      <GroupAutoAssignDialog
+        open={autoAssignOpen}
+        onOpenChange={setAutoAssignOpen}
+        tournamentId={tournamentId}
+        isLeague={isLeague}
+        participantCount={players.length}
+        onAssigned={({ groupCount, conflicts }) => {
+          setMessage({
+            type: 'success',
+            text:
+              conflicts > 0
+                ? `Generated ${groupCount} groups — ${conflicts} repeat pairing${conflicts === 1 ? '' : 's'} couldn't be avoided.`
+                : `Generated ${groupCount} groups.`,
+          })
+          router.refresh()
+        }}
+      />
 
       {/* Add Player Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
