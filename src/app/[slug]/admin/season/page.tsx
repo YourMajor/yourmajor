@@ -87,7 +87,7 @@ export default async function AdminSeasonPage({
   ])
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+    <main className="space-y-8">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Season Management</p>
         <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">{tournament.name}</h1>

@@ -10,6 +10,9 @@ import { ColorDonutForm } from '@/components/ui/color-donut-form'
 import { DeleteTournamentButton } from './DeleteTournamentButton'
 import { ResetDraftButton } from './ResetDraftButton'
 import { updateTournament } from './actions'
+import { FormatSettings } from './FormatSettings'
+import { PowerupConfigGroup } from './PowerupConfigGroup'
+import type { FormatId } from '@/lib/formats/types'
 export default async function TournamentSetup({
   params,
 }: {
@@ -39,7 +42,7 @@ export default async function TournamentSetup({
   const fmt = (d: Date | null) => (d ? new Date(d).toISOString().split('T')[0] : '')
 
   return (
-    <main className="max-w-2xl mx-auto px-4 py-6 sm:p-6 space-y-6">
+    <main className="max-w-4xl space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
@@ -66,20 +69,28 @@ export default async function TournamentSetup({
                 Tournament URL: yourdomain.com/<strong>{tournament.slug}</strong>
               </p>
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
-              </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} />
-              </div>
-            </div>
-            {(isActive || isCompleted) && (
+            {tournament.isLeague ? (
               <p className="text-xs text-muted-foreground">
-                Changing dates on a live or completed tournament may affect auto-status transitions. The tournament will not revert to Registration automatically.
+                League events use individual round dates. The season end date is configured in Season Management.
               </p>
+            ) : (
+              <>
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="startDate">Start Date</Label>
+                    <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="endDate">End Date</Label>
+                    <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} />
+                  </div>
+                </div>
+                {(isActive || isCompleted) && (
+                  <p className="text-xs text-muted-foreground">
+                    Changing dates on a live or completed tournament may affect auto-status transitions. The tournament will not revert to Registration automatically.
+                  </p>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -160,30 +171,16 @@ export default async function TournamentSetup({
           </CardContent>
         </Card>
 
-        {/* ── Handicap System ── */}
+        {/* ── Format & Scoring ── */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">Handicap System</CardTitle>
+            <CardTitle className="text-base">Format &amp; Scoring</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-2">
-            {hasScores && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Scores have been submitted. Changing the handicap system would alter how the leaderboard is calculated.
-              </div>
-            )}
-            <Label htmlFor="handicapSystem">System</Label>
-            <select
-              id="handicapSystem"
-              name="handicapSystem"
-              defaultValue={tournament.handicapSystem}
-              disabled={hasScores}
-              className="native-select flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              <option value="WHS">World Handicap System (WHS)</option>
-              <option value="STABLEFORD">Stableford</option>
-              <option value="CALLAWAY">Callaway</option>
-              <option value="PEORIA">Peoria</option>
-            </select>
+          <CardContent>
+            <FormatSettings
+              defaultFormat={tournament.tournamentFormat as FormatId}
+              hasScores={hasScores}
+            />
           </CardContent>
         </Card>
 
@@ -192,62 +189,14 @@ export default async function TournamentSetup({
           <CardHeader>
             <CardTitle className="text-base">Powerup System</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {powerupsLocked && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
-                Powerups have already been drafted or dealt. These settings are locked to prevent data inconsistencies.
-              </div>
-            )}
-            <div className="flex items-center justify-between">
-              <Label htmlFor="powerupsEnabled">Enable Powerups</Label>
-              <input
-                id="powerupsEnabled"
-                name="powerupsEnabled"
-                type="checkbox"
-                defaultChecked={tournament.powerupsEnabled}
-                disabled={powerupsLocked}
-                className="h-4 w-4 disabled:opacity-50"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="powerupsPerPlayer">Powerups Per Player</Label>
-              <Input
-                id="powerupsPerPlayer"
-                name="powerupsPerPlayer"
-                type="number"
-                min={1}
-                max={10}
-                defaultValue={tournament.powerupsPerPlayer}
-                disabled={powerupsLocked}
-                className="w-full sm:w-24"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="maxAttacksPerPlayer">Max Attack Cards Per Player</Label>
-              <Input
-                id="maxAttacksPerPlayer"
-                name="maxAttacksPerPlayer"
-                type="number"
-                min={0}
-                max={10}
-                defaultValue={tournament.maxAttacksPerPlayer}
-                disabled={powerupsLocked}
-                className="w-full sm:w-24"
-              />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="distributionMode">Distribution Method</Label>
-              <select
-                id="distributionMode"
-                name="distributionMode"
-                defaultValue={tournament.distributionMode}
-                disabled={powerupsLocked}
-                className="native-select flex h-11 md:h-9 w-full rounded-lg border border-input bg-transparent px-3 py-2 text-base md:text-sm shadow-sm outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                <option value="DRAFT">Draft</option>
-                <option value="RANDOM">Random Deal</option>
-              </select>
-            </div>
+          <CardContent>
+            <PowerupConfigGroup
+              defaultEnabled={tournament.powerupsEnabled}
+              defaultPerPlayer={tournament.powerupsPerPlayer}
+              defaultMaxAttacks={tournament.maxAttacksPerPlayer}
+              defaultDistMode={tournament.distributionMode}
+              locked={powerupsLocked}
+            />
           </CardContent>
         </Card>
 

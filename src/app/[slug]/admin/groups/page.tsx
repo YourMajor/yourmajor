@@ -63,7 +63,7 @@ export default async function AdminGroupsPage({
   }))
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
+    <main>
       <GroupBuilder
         tournamentId={tournament.id}
         tournamentName={tournament.name}

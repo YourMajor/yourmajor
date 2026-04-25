@@ -51,7 +51,7 @@ export default async function AdminDashboard({
 
   const actions = [
     { href: `/${slug}/admin/invites`, icon: Mail, label: 'Invite Players', desc: 'Send invitations by email or phone', show: tournament.tournamentType === 'INVITE' },
-    { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Courses, dates, handicap system', show: true },
+    { href: `/${slug}/admin/setup`, icon: Settings, label: 'Tournament Settings', desc: 'Format, branding, powerups', show: true },
     { href: `/${slug}/admin/scores`, icon: PenLine, label: 'Manage Scores', desc: 'Edit or enter player scores', show: true },
     { href: `/${slug}/admin/groups`, icon: Users, label: 'Manage Groups', desc: 'Build foursomes & assign tee times', show: tournament.tournamentType !== 'PUBLIC' },
     { href: `/${slug}/admin/draft`, icon: Target, label: 'Draft Order & Start', desc: 'Set order, run the draft', show: tournament.powerupsEnabled },
@@ -61,7 +61,7 @@ export default async function AdminDashboard({
   ].filter((a) => a.show)
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <main className="space-y-8">
       {/* Header */}
       <div className="rounded-xl overflow-hidden border border-border">
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--color-primary)' }}>
