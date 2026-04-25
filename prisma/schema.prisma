@@ -157,19 +157,21 @@ model User {
   phone            String?
   smsNotifications Boolean @default(false)
 
-  accounts          Account[]
-  sessions          Session[]
-  profile           PlayerProfile?
-  tournamentPlayers TournamentPlayer[]
-  invitations       Invitation[]
-  standaloneRounds  StandaloneRound[]
-  messages          TournamentMessage[]
-  photos            TournamentPhoto[]
-  chatBans          ChatBan[]
-  purchases         Purchase[]
-  stripeCustomerId  String?              @unique
-  rosterMemberships LeagueRosterMember[]
-  seasonRSVPs       SeasonRSVP[]
+  accounts               Account[]
+  sessions               Session[]
+  profile                PlayerProfile?
+  tournamentPlayers      TournamentPlayer[]
+  invitations            Invitation[]
+  standaloneRounds       StandaloneRound[]
+  messages               TournamentMessage[]
+  photos                 TournamentPhoto[]
+  chatBans               ChatBan[]
+  purchases              Purchase[]
+  stripeCustomerId       String?                      @unique
+  rosterMemberships      LeagueRosterMember[]
+  seasonRSVPs            SeasonRSVP[]
+  sentAnnouncements      LeagueAnnouncement[]         @relation("LeagueAnnouncementsSentBy")
+  announcementDeliveries LeagueAnnouncementDelivery[]
 }
 
 model Account {
@@ -268,19 +270,20 @@ model Tournament {
   seasonAttendanceBonus Json?
   seasonAdjustments     SeasonAdjustment[]   @relation("SeasonAdjustmentsForRoot")
 
-  rounds             TournamentRound[]
-  players            TournamentPlayer[]
-  groups             TournamentGroup[]
-  invitations        Invitation[]
-  tournamentPowerups TournamentPowerup[]
-  draft              Draft?
-  messages           TournamentMessage[]
-  photos             TournamentPhoto[]
-  chatBans           ChatBan[]
-  purchase           Purchase?
-  leagueRoster       LeagueRoster?
-  seasonSchedule     SeasonScheduleEvent[]
-  teams              TournamentTeam[]
+  rounds              TournamentRound[]
+  players             TournamentPlayer[]
+  groups              TournamentGroup[]
+  invitations         Invitation[]
+  tournamentPowerups  TournamentPowerup[]
+  draft               Draft?
+  messages            TournamentMessage[]
+  photos              TournamentPhoto[]
+  chatBans            ChatBan[]
+  purchase            Purchase?
+  leagueRoster        LeagueRoster?
+  seasonSchedule      SeasonScheduleEvent[]
+  teams               TournamentTeam[]
+  leagueAnnouncements LeagueAnnouncement[]  @relation("LeagueAnnouncementsForRoot")
 }
 
 model SeasonAdjustment {
@@ -761,5 +764,41 @@ model Purchase {
   user       User        @relation(fields: [userId], references: [id], onDelete: Cascade)
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
 
+  @@index([userId])
+}
+
+// ─── League Communications ────────────────────────────────────────────────────
+
+model LeagueAnnouncement {
+  id               String    @id @default(cuid())
+  rootTournamentId String
+  subject          String
+  body             String
+  channels         String[] // ["EMAIL"], ["SMS"], or both
+  audienceFilter   Json // { type: 'ALL_ACTIVE' | 'ALL_ROSTER' | 'CUSTOM', userIds?: string[] }
+  sentAt           DateTime?
+  sentByUserId     String
+  createdAt        DateTime  @default(now())
+
+  rootTournament Tournament                   @relation("LeagueAnnouncementsForRoot", fields: [rootTournamentId], references: [id], onDelete: Cascade)
+  sentBy         User                         @relation("LeagueAnnouncementsSentBy", fields: [sentByUserId], references: [id])
+  deliveries     LeagueAnnouncementDelivery[]
+
+  @@index([rootTournamentId])
+}
+
+model LeagueAnnouncementDelivery {
+  id             String    @id @default(cuid())
+  announcementId String
+  userId         String
+  channel        String // "EMAIL" | "SMS"
+  status         String // "PENDING" | "SENT" | "FAILED" | "SKIPPED"
+  failureReason  String?
+  deliveredAt    DateTime?
+
+  announcement LeagueAnnouncement @relation(fields: [announcementId], references: [id], onDelete: Cascade)
+  user         User               @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([announcementId])
   @@index([userId])
 }

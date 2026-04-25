@@ -11,6 +11,7 @@ import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
 import { RosterImportDialog } from '@/components/season/RosterImportDialog'
 import { GenerateScheduleDialog } from '@/components/season/GenerateScheduleDialog'
+import { CommunicationsPanel, type AnnouncementHistoryItem } from '@/components/season/CommunicationsPanel'
 import type { AttendanceRow, SeasonEvent, SeasonAward } from '@/lib/season-standings'
 import type { Tiebreaker } from '@/lib/season-tiebreakers'
 
@@ -64,6 +65,7 @@ interface SeasonAdminDashboardProps {
   schedule: ScheduleEvent[]
   leagueInfo: LeagueInfo | null
   slug: string
+  announcements?: AnnouncementHistoryItem[]
 }
 
 function getInitials(name: string): string {
@@ -80,6 +82,7 @@ export function SeasonAdminDashboard({
   schedule,
   leagueInfo,
   slug,
+  announcements = [],
 }: SeasonAdminDashboardProps) {
   return (
     <Tabs defaultValue={leagueInfo ? 'events' : 'roster'}>
@@ -89,6 +92,7 @@ export function SeasonAdminDashboard({
         <TabsTrigger value="attendance">Attendance</TabsTrigger>
         <TabsTrigger value="standings">Standings</TabsTrigger>
         <TabsTrigger value="awards">Awards</TabsTrigger>
+        {leagueInfo && <TabsTrigger value="comms">Communications</TabsTrigger>}
       </TabsList>
 
       {leagueInfo && (
@@ -124,6 +128,18 @@ export function SeasonAdminDashboard({
       <TabsContent value="awards">
         <AwardsPanel awards={awards} />
       </TabsContent>
+
+      {leagueInfo && (
+        <TabsContent value="comms">
+          <CommunicationsPanel
+            tournamentId={tournamentId}
+            slug={slug}
+            rosterCount={roster?.members.length ?? 0}
+            rosterActiveCount={roster?.members.filter((m) => m.status === 'ACTIVE').length ?? 0}
+            history={announcements}
+          />
+        </TabsContent>
+      )}
     </Tabs>
   )
 }
