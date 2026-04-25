@@ -10,6 +10,7 @@ import { addSeasonAdjustment, deleteSeasonAdjustment, type AdjustmentRow } from 
 import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
 import { RosterImportDialog } from '@/components/season/RosterImportDialog'
+import { GenerateScheduleDialog } from '@/components/season/GenerateScheduleDialog'
 import type { AttendanceRow, SeasonEvent, SeasonAward } from '@/lib/season-standings'
 import type { Tiebreaker } from '@/lib/season-tiebreakers'
 
@@ -517,6 +518,7 @@ function ScheduleEventsPanel({
   const [selectedCourse, setSelectedCourse] = useState<{ id: string; name: string; par: number; teeOptions: { id: string; name: string; color: string | null }[] } | null>(null)
   const [createdSlug, setCreatedSlug] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [scheduleOpen, setScheduleOpen] = useState(false)
 
   const leagueEnded = leagueEndDate ? new Date(leagueEndDate) < new Date() : false
 
@@ -547,6 +549,25 @@ function ScheduleEventsPanel({
 
   return (
     <div className="mt-4 space-y-6">
+      <GenerateScheduleDialog
+        tournamentId={tournamentId}
+        open={scheduleOpen}
+        onOpenChange={setScheduleOpen}
+        defaultStartDate={leagueEndDate ?? undefined}
+      />
+
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setScheduleOpen(true)}
+          disabled={leagueEnded}
+          className="inline-flex items-center gap-1 text-xs font-medium px-3 py-1.5 rounded-md border border-border hover:bg-muted/40 transition-colors disabled:opacity-50"
+        >
+          <Calendar className="w-3.5 h-3.5" />
+          Generate Season Schedule
+        </button>
+      </div>
+
       {/* Schedule new event card */}
       <div className="rounded-xl border border-border overflow-hidden">
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--color-primary)' }}>
