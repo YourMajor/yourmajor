@@ -11,7 +11,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog'
 import { generateSeasonSchedule } from '@/lib/season-schedule-actions'
-import { computeScheduleDates, DAYS_OF_WEEK, type DayOfWeek } from '@/lib/season-schedule'
+import { computeScheduleDates, DAYS_OF_WEEK, type DayOfWeek, type ScheduleFrequency } from '@/lib/season-schedule'
 
 interface Props {
   tournamentId: string
@@ -25,6 +25,8 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
   const [startDate, setStartDate] = useState(defaultStartDate ?? today)
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeek>(2) // Tuesday default
   const [weeks, setWeeks] = useState<number>(12)
+  const [frequency, setFrequency] = useState<ScheduleFrequency>('WEEKLY')
+  const [intervalWeeks, setIntervalWeeks] = useState<number>(3)
   const [skipText, setSkipText] = useState('')
   const [error, setError] = useState('')
   const [done, setDone] = useState<{ generated: number; slugs: string[] } | null>(null)
@@ -36,8 +38,8 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
   )
 
   const previewDates = useMemo(
-    () => computeScheduleDates(startDate, dayOfWeek, weeks, skipDates),
-    [startDate, dayOfWeek, weeks, skipDates],
+    () => computeScheduleDates(startDate, dayOfWeek, weeks, skipDates, { frequency, intervalWeeks }),
+    [startDate, dayOfWeek, weeks, skipDates, frequency, intervalWeeks],
   )
 
   function reset() {
@@ -62,6 +64,8 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
           dayOfWeek,
           weeks,
           skipDates,
+          frequency,
+          intervalWeeks,
         })
         setDone({ generated: result.generated, slugs: result.slugs })
       } catch (e) {
@@ -108,7 +112,7 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
                 </select>
               </label>
               <label className="space-y-1 text-xs">
-                <span className="font-semibold text-foreground">Number of weeks</span>
+                <span className="font-semibold text-foreground">Number of events</span>
                 <input
                   type="number"
                   min={1}
@@ -119,6 +123,32 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
                 />
               </label>
               <label className="space-y-1 text-xs">
+                <span className="font-semibold text-foreground">Frequency</span>
+                <select
+                  value={frequency}
+                  onChange={(e) => setFrequency(e.target.value as ScheduleFrequency)}
+                  className="block w-full px-3 py-2 rounded-lg border border-border text-sm bg-background"
+                >
+                  <option value="WEEKLY">Weekly</option>
+                  <option value="BIWEEKLY">Every 2 weeks</option>
+                  <option value="MONTHLY">Monthly (same nth weekday)</option>
+                  <option value="CUSTOM">Custom interval</option>
+                </select>
+              </label>
+              {frequency === 'CUSTOM' && (
+                <label className="space-y-1 text-xs">
+                  <span className="font-semibold text-foreground">Interval (weeks)</span>
+                  <input
+                    type="number"
+                    min={1}
+                    max={26}
+                    value={intervalWeeks}
+                    onChange={(e) => setIntervalWeeks(Math.max(1, Math.min(26, Number(e.target.value) || 1)))}
+                    className="block w-full px-3 py-2 rounded-lg border border-border text-sm bg-background"
+                  />
+                </label>
+              )}
+              <label className="space-y-1 text-xs col-span-2">
                 <span className="font-semibold text-foreground">Skip dates</span>
                 <input
                   type="text"
@@ -127,6 +157,7 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
                   placeholder="2026-07-04, 2026-09-07"
                   className="block w-full px-3 py-2 rounded-lg border border-border text-sm bg-background"
                 />
+                <span className="text-[10px] text-muted-foreground">Comma- or space-separated YYYY-MM-DD dates to drop.</span>
               </label>
             </div>
 

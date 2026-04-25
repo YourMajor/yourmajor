@@ -42,6 +42,66 @@ describe('computeScheduleDates', () => {
   })
 })
 
+describe('computeScheduleDates with frequency option', () => {
+  it('defaults to WEEKLY when no options passed (backwards compat)', () => {
+    const dates = computeScheduleDates('2026-04-27', 2, 3)
+    expect(dates).toEqual(['2026-04-28', '2026-05-05', '2026-05-12'])
+  })
+
+  it('BIWEEKLY produces dates 14 days apart', () => {
+    const dates = computeScheduleDates('2026-04-27', 2, 3, [], { frequency: 'BIWEEKLY' })
+    expect(dates).toEqual(['2026-04-28', '2026-05-12', '2026-05-26'])
+  })
+
+  it('CUSTOM with intervalWeeks=3 produces dates 21 days apart', () => {
+    const dates = computeScheduleDates('2026-04-27', 2, 3, [], {
+      frequency: 'CUSTOM',
+      intervalWeeks: 3,
+    })
+    expect(dates).toEqual(['2026-04-28', '2026-05-19', '2026-06-09'])
+  })
+
+  it('CUSTOM with intervalWeeks=1 is equivalent to WEEKLY', () => {
+    const weekly = computeScheduleDates('2026-04-27', 2, 4)
+    const custom = computeScheduleDates('2026-04-27', 2, 4, [], {
+      frequency: 'CUSTOM',
+      intervalWeeks: 1,
+    })
+    expect(custom).toEqual(weekly)
+  })
+
+  it('MONTHLY produces the same nth weekday each month', () => {
+    // 2026-04-28 is the 4th Tuesday of April (week of: 7, 14, 21, 28).
+    // Monthly should return 4th Tuesday of April, May, June.
+    const dates = computeScheduleDates('2026-04-28', 2, 3, [], { frequency: 'MONTHLY' })
+    expect(dates).toEqual(['2026-04-28', '2026-05-26', '2026-06-23'])
+  })
+
+  it('MONTHLY snaps the first event forward to dayOfWeek if start is not on it', () => {
+    // 2026-04-15 is a Wednesday. Asking for Saturday → first occurrence 2026-04-18 (3rd Saturday).
+    // Then May 3rd Saturday = 2026-05-16, June = 2026-06-20.
+    const dates = computeScheduleDates('2026-04-15', 6, 3, [], { frequency: 'MONTHLY' })
+    expect(dates[0]).toBe('2026-04-18')
+    expect(dates[1]).toBe('2026-05-16')
+    expect(dates[2]).toBe('2026-06-20')
+  })
+
+  it('MONTHLY falls back to last weekday when the nth does not exist that month', () => {
+    // 2026-01-31 is a Saturday and the 5th Saturday of January.
+    // February 2026 has 28 days and only 4 Saturdays — 5th would be March, so we should fall back to Feb 28.
+    const dates = computeScheduleDates('2026-01-31', 6, 2, [], { frequency: 'MONTHLY' })
+    expect(dates[0]).toBe('2026-01-31')
+    expect(dates[1]).toBe('2026-02-28')
+  })
+
+  it('MONTHLY honours skipDates', () => {
+    const dates = computeScheduleDates('2026-04-28', 2, 3, ['2026-05-26'], {
+      frequency: 'MONTHLY',
+    })
+    expect(dates).toEqual(['2026-04-28', '2026-06-23', '2026-07-28'])
+  })
+})
+
 describe('DAYS_OF_WEEK constant', () => {
   it('exports a 7-element label array', () => {
     expect(DAYS_OF_WEEK).toHaveLength(7)
