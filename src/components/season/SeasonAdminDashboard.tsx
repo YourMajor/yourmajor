@@ -12,6 +12,7 @@ import { CourseSearchCombobox } from '@/components/wizard/CourseSearchCombobox'
 import { RosterImportDialog } from '@/components/season/RosterImportDialog'
 import { GenerateScheduleDialog } from '@/components/season/GenerateScheduleDialog'
 import { CommunicationsPanel, type AnnouncementHistoryItem } from '@/components/season/CommunicationsPanel'
+import { LeagueEventsTable, type LeagueEventRow } from '@/components/season/LeagueEventsTable'
 import type { AttendanceRow, SeasonEvent, SeasonAward } from '@/lib/season-standings'
 import type { Tiebreaker } from '@/lib/season-tiebreakers'
 
@@ -66,6 +67,7 @@ interface SeasonAdminDashboardProps {
   leagueInfo: LeagueInfo | null
   slug: string
   announcements?: AnnouncementHistoryItem[]
+  leagueEvents?: LeagueEventRow[]
 }
 
 function getInitials(name: string): string {
@@ -83,6 +85,7 @@ export function SeasonAdminDashboard({
   leagueInfo,
   slug,
   announcements = [],
+  leagueEvents = [],
 }: SeasonAdminDashboardProps) {
   return (
     <Tabs defaultValue={leagueInfo ? 'events' : 'roster'}>
@@ -104,6 +107,7 @@ export function SeasonAdminDashboard({
             slug={slug}
             rosterCount={roster?.members.filter((m) => m.status === 'ACTIVE').length ?? 0}
             leagueEndDate={seasonConfig.leagueEndDate}
+            leagueEvents={leagueEvents}
           />
         </TabsContent>
       )}
@@ -519,6 +523,7 @@ function ScheduleEventsPanel({
   schedule,
   rosterCount,
   leagueEndDate,
+  leagueEvents,
 }: {
   tournamentId: string
   leagueInfo: LeagueInfo
@@ -526,6 +531,7 @@ function ScheduleEventsPanel({
   slug: string
   rosterCount: number
   leagueEndDate: string | null
+  leagueEvents: LeagueEventRow[]
 }) {
   const [isPending, startTransition] = useTransition()
   const [date, setDate] = useState('')
@@ -572,7 +578,7 @@ function ScheduleEventsPanel({
         defaultStartDate={leagueEndDate ?? undefined}
       />
 
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end">
         <button
           type="button"
           onClick={() => setScheduleOpen(true)}
@@ -583,6 +589,9 @@ function ScheduleEventsPanel({
           Generate Season Schedule
         </button>
       </div>
+
+      {/* Full schedule table — playable league chain events */}
+      <LeagueEventsTable events={leagueEvents} />
 
       {/* Schedule new event card */}
       <div className="rounded-xl border border-border overflow-hidden">

@@ -90,6 +90,92 @@ export async function getLeagueEvents(tournamentId: string): Promise<LeagueEvent
     })
 }
 
+export interface LeagueEventAdminSummary extends LeagueEventSummary {
+  courseName: string | null
+  roundCount: number
+  participantCount: number
+  groupCount: number
+  scoreCount: number
+  /** scoreCount / (roundCount × 18 × participantCount), rounded; 0 when no participants. */
+  scoreCompletionPct: number
+  /** True when at least one TournamentGroup exists for the event. */
+  hasGroups: boolean
+}
+
+/**
+ * Like getLeagueEvents but enriches each row with metrics admins care about
+ * on the season events table: course, participants, groups, score progress.
+ * Single batched query — no N+1.
+ */
+export async function getLeagueEventsForAdmin(
+  tournamentId: string,
+): Promise<LeagueEventAdminSummary[]> {
+  const summaries = await getLeagueEvents(tournamentId)
+  if (summaries.length === 0) return []
+
+  const ids = summaries.map((e) => e.id)
+  const enriched = await prisma.tournament.findMany({
+    where: { id: { in: ids } },
+    select: {
+      id: true,
+      rounds: {
+        orderBy: { roundNumber: 'asc' },
+        select: { course: { select: { name: true } } },
+      },
+      _count: {
+        select: {
+          rounds: true,
+          groups: true,
+          players: { where: { isParticipant: true } },
+        },
+      },
+    },
+  })
+
+  const scoreRows = await prisma.score.groupBy({
+    by: ['roundId'],
+    where: { round: { tournamentId: { in: ids } } },
+    _count: { _all: true },
+  })
+
+  // Map roundId → tournamentId for the score grouping above.
+  const roundLookup = await prisma.tournamentRound.findMany({
+    where: { tournamentId: { in: ids } },
+    select: { id: true, tournamentId: true },
+  })
+  const roundToTournament = new Map(roundLookup.map((r) => [r.id, r.tournamentId]))
+
+  const scoreCountByTournament = new Map<string, number>()
+  for (const row of scoreRows) {
+    const tid = roundToTournament.get(row.roundId)
+    if (!tid) continue
+    scoreCountByTournament.set(tid, (scoreCountByTournament.get(tid) ?? 0) + row._count._all)
+  }
+
+  const enrichedById = new Map(enriched.map((e) => [e.id, e]))
+
+  return summaries.map((s) => {
+    const e = enrichedById.get(s.id)
+    const roundCount = e?._count.rounds ?? 0
+    const participantCount = e?._count.players ?? 0
+    const groupCount = e?._count.groups ?? 0
+    const scoreCount = scoreCountByTournament.get(s.id) ?? 0
+    const expected = roundCount * 18 * participantCount
+    const scoreCompletionPct = expected > 0 ? Math.min(100, Math.round((scoreCount / expected) * 100)) : 0
+
+    return {
+      ...s,
+      courseName: e?.rounds[0]?.course?.name ?? null,
+      roundCount,
+      participantCount,
+      groupCount,
+      scoreCount,
+      scoreCompletionPct,
+      hasGroups: groupCount > 0,
+    }
+  })
+}
+
 /**
  * Returns the immediately previous event before the given tournament in its
  * league chain (sorted by date). Null if there is no prior event.

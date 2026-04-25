@@ -5,6 +5,7 @@ import { getOrCreateRoster } from '@/lib/roster-actions'
 import { listSeasonAdjustments } from '@/lib/season-standings-actions'
 import { getSeasonAttendance, getSeasonAwards, DEFAULT_TIEBREAKERS, parseTiebreakers } from '@/lib/season-standings'
 import { listAnnouncements } from '@/lib/league-announcements'
+import { getLeagueEventsForAdmin } from '@/lib/league-events'
 import { SeasonAdminDashboard } from '@/components/season/SeasonAdminDashboard'
 
 export default async function AdminSeasonPage({
@@ -71,7 +72,7 @@ export default async function AdminSeasonPage({
     },
   })
 
-  const [roster, attendance, schedule, adjustments, awards, announcements] = await Promise.all([
+  const [roster, attendance, schedule, adjustments, awards, announcements, leagueEvents] = await Promise.all([
     getOrCreateRoster(tournament.id),
     getSeasonAttendance(tournament.id),
     prisma.seasonScheduleEvent.findMany({
@@ -86,6 +87,7 @@ export default async function AdminSeasonPage({
     listSeasonAdjustments(tournament.id),
     getSeasonAwards(tournament.id).catch(() => []),
     listAnnouncements(tournament.id).catch(() => []),
+    getLeagueEventsForAdmin(tournament.id).catch(() => []),
   ])
 
   return (
@@ -156,6 +158,21 @@ export default async function AdminSeasonPage({
           sentByName: a.sentByName,
           deliveryCount: a.deliveryCount,
           successCount: a.successCount,
+        }))}
+        leagueEvents={leagueEvents.map((e) => ({
+          id: e.id,
+          slug: e.slug,
+          name: e.name,
+          date: e.date?.toISOString() ?? null,
+          status: e.status,
+          courseName: e.courseName,
+          roundCount: e.roundCount,
+          participantCount: e.participantCount,
+          groupCount: e.groupCount,
+          scoreCount: e.scoreCount,
+          scoreCompletionPct: e.scoreCompletionPct,
+          hasGroups: e.hasGroups,
+          isCurrent: e.id === tournament.id,
         }))}
       />
     </main>
