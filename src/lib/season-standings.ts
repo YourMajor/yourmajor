@@ -2,36 +2,26 @@ import { prisma } from '@/lib/prisma'
 import { getLeaderboard } from '@/lib/scoring'
 import type { PlayerStanding } from '@/lib/scoring-utils'
 import type { SeasonScoringMethod } from '@/generated/prisma/client'
+import {
+  parseTiebreakers,
+  compareWithTiebreakers,
+  type Tiebreaker as TiebreakerImpl,
+  type EventResult as EventResultImpl,
+  type SeasonPlayerSummary as SeasonPlayerSummaryImpl,
+} from '@/lib/season-tiebreakers'
+
+// Re-export for backwards compatibility with existing callers that imported types from here.
+export type Tiebreaker = TiebreakerImpl
+export type EventResult = EventResultImpl
+export type SeasonPlayerSummary = SeasonPlayerSummaryImpl
+export {
+  DEFAULT_TIEBREAKERS,
+  parseTiebreakers,
+  compareTiebreaker,
+  compareWithTiebreakers,
+} from '@/lib/season-tiebreakers'
 
 // ─── Types ───────────────────────────────────────────────────────────────────
-
-export interface SeasonPlayerSummary {
-  userId: string
-  playerName: string
-  avatarUrl: string | null
-  eventsPlayed: number
-  totalEvents: number
-  /** Primary sort value — meaning depends on scoring method */
-  value: number
-  /** Per-event results for drill-down */
-  eventResults: EventResult[]
-  /** Rank change vs previous event: positive = moved up, negative = moved down, 0 = unchanged, null = new */
-  trend: number | null
-  rank: number
-}
-
-export interface EventResult {
-  tournamentId: string
-  tournamentSlug: string
-  tournamentName: string
-  date: string | null
-  rank: number
-  grossVsPar: number | null
-  netVsPar: number | null
-  points: number | null
-  grossTotal: number | null
-  netTotal: number | null
-}
 
 export interface SeasonStandingsResult {
   standings: SeasonPlayerSummary[]
@@ -109,7 +99,17 @@ async function getRootTournament(tournamentId: string) {
   for (let i = 0; i < 100; i++) {
     const t = await prisma.tournament.findUnique({
       where: { id: currentId },
-      select: { id: true, parentTournamentId: true, seasonScoringMethod: true, seasonBestOf: true, seasonPointsTable: true, name: true },
+      select: {
+        id: true,
+        parentTournamentId: true,
+        seasonScoringMethod: true,
+        seasonBestOf: true,
+        seasonPointsTable: true,
+        seasonDropLowest: true,
+        seasonTiebreakers: true,
+        seasonAttendanceBonus: true,
+        name: true,
+      },
     })
     if (!t) break
     if (!t.parentTournamentId) return t
@@ -117,6 +117,9 @@ async function getRootTournament(tournamentId: string) {
   }
   return null
 }
+
+// ─── Tiebreakers ─────────────────────────────────────────────────────────────
+// Pure helpers live in '@/lib/season-tiebreakers' and are re-exported above.
 
 // ─── Default points table ────────────────────────────────────────────────────
 
@@ -141,7 +144,21 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
 
   const scoringMethod: SeasonScoringMethod = root?.seasonScoringMethod ?? 'POINTS'
   const bestOf = root?.seasonBestOf ?? null
+  const dropLowest = root?.seasonDropLowest ?? null
+  const tiebreakers = parseTiebreakers(root?.seasonTiebreakers)
   const pointsTable: Record<number, number> = (root?.seasonPointsTable as Record<number, number>) ?? DEFAULT_POINTS_TABLE
+
+  // Manual point/stroke adjustments applied per user
+  const adjustmentRows = root
+    ? await prisma.seasonAdjustment.findMany({
+        where: { rootTournamentId: root.id },
+        select: { userId: true, delta: true },
+      })
+    : []
+  const adjustmentByUser = new Map<string, number>()
+  for (const row of adjustmentRows) {
+    adjustmentByUser.set(row.userId, (adjustmentByUser.get(row.userId) ?? 0) + row.delta)
+  }
 
   // Build per-player, per-event results
   const playerMap = new Map<string, {
@@ -206,6 +223,10 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
     switch (scoringMethod) {
       case 'POINTS': {
         let results = player.eventResults.map((r) => getPointsForRank(r.rank, pointsTable))
+        // Drop the lowest N (worst) results before keep-best-N.
+        if (dropLowest && dropLowest > 0 && results.length > dropLowest) {
+          results = results.sort((a, b) => b - a).slice(0, results.length - dropLowest)
+        }
         if (bestOf && results.length > bestOf) {
           results = results.sort((a, b) => b - a).slice(0, bestOf)
         }
@@ -213,9 +234,13 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
         break
       }
       case 'STROKE_AVG': {
-        const netScores = player.eventResults
+        let netScores = player.eventResults
           .map((r) => r.netVsPar ?? r.grossVsPar)
           .filter((v): v is number => v !== null)
+        if (dropLowest && dropLowest > 0 && netScores.length > dropLowest) {
+          // Lower-is-better: drop the highest (worst) N values.
+          netScores = netScores.sort((a, b) => a - b).slice(0, netScores.length - dropLowest)
+        }
         value = netScores.length > 0
           ? netScores.reduce((sum, v) => sum + v, 0) / netScores.length
           : 0
@@ -235,6 +260,9 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
       }
       case 'STABLEFORD_CUMULATIVE': {
         let results = player.eventResults.map((r) => r.points ?? 0)
+        if (dropLowest && dropLowest > 0 && results.length > dropLowest) {
+          results = results.sort((a, b) => b - a).slice(0, results.length - dropLowest)
+        }
         if (bestOf && results.length > bestOf) {
           results = results.sort((a, b) => b - a).slice(0, bestOf)
         }
@@ -244,6 +272,11 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
       default:
         value = 0
     }
+
+    // Apply manual season adjustments (always additive; affects POINTS-style methods directly,
+    // and stroke methods as a stroke delta).
+    const adjustment = adjustmentByUser.get(player.userId) ?? 0
+    if (adjustment !== 0) value += adjustment
 
     seasonPlayers.push({
       userId: player.userId,
@@ -258,15 +291,24 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
     })
   }
 
-  // Sort: POINTS and STABLEFORD_CUMULATIVE are higher-is-better; stroke methods are lower-is-better
+  // Sort: POINTS and STABLEFORD_CUMULATIVE are higher-is-better; stroke methods are lower-is-better.
+  // Apply tiebreaker ladder when primary values are equal.
   const higherIsBetter = scoringMethod === 'POINTS' || scoringMethod === 'STABLEFORD_CUMULATIVE'
-  seasonPlayers.sort((a, b) => higherIsBetter ? b.value - a.value : a.value - b.value)
+  seasonPlayers.sort((a, b) => {
+    const primary = higherIsBetter ? b.value - a.value : a.value - b.value
+    return compareWithTiebreakers(a, b, primary, tiebreakers)
+  })
 
-  // Assign ranks (handle ties)
+  // Assign ranks. Ties are only "true ties" when all tiebreakers also returned 0 —
+  // the comparator above will have placed truly-tied players adjacently with cmp=0.
   let rank = 1
   for (let i = 0; i < seasonPlayers.length; i++) {
-    if (i > 0 && seasonPlayers[i].value !== seasonPlayers[i - 1].value) {
-      rank = i + 1
+    if (i > 0) {
+      const prev = seasonPlayers[i - 1]
+      const cur = seasonPlayers[i]
+      const primary = higherIsBetter ? prev.value - cur.value : cur.value - prev.value
+      const cmp = compareWithTiebreakers(cur, prev, primary, tiebreakers)
+      if (cmp !== 0) rank = i + 1
     }
     seasonPlayers[i].rank = rank
   }
@@ -602,6 +644,69 @@ export async function getSeasonAwards(tournamentId: string): Promise<SeasonAward
   if (seasonData.standings.length === 0) return []
 
   const awards: SeasonAward[] = []
+
+  // Best Round — lowest single-round gross score across the whole season.
+  // One query for every score in the chain; sum by (player × round) and find the min.
+  const eventIds = seasonData.events
+    .filter((e) => e.status === 'COMPLETED' || e.status === 'ACTIVE')
+    .map((e) => e.tournamentId)
+  if (eventIds.length > 0) {
+    const scores = await prisma.score.findMany({
+      where: { round: { tournamentId: { in: eventIds } } },
+      select: {
+        strokes: true,
+        roundId: true,
+        tournamentPlayerId: true,
+        round: { select: { roundNumber: true, tournamentId: true } },
+        tournamentPlayer: {
+          select: {
+            userId: true,
+            user: { select: { name: true, email: true, profile: { select: { avatar: true } }, image: true } },
+          },
+        },
+      },
+    })
+
+    const roundTotals = new Map<string, {
+      total: number
+      playerName: string
+      playerAvatar: string | null
+      tournamentId: string
+      roundNumber: number
+    }>()
+    for (const s of scores) {
+      const key = `${s.tournamentPlayerId}:${s.roundId}`
+      const existing = roundTotals.get(key)
+      const player = s.tournamentPlayer
+      if (existing) {
+        existing.total += s.strokes
+      } else {
+        roundTotals.set(key, {
+          total: s.strokes,
+          playerName: player.user.name ?? player.user.email.split('@')[0],
+          playerAvatar: player.user.profile?.avatar ?? player.user.image ?? null,
+          tournamentId: s.round.tournamentId,
+          roundNumber: s.round.roundNumber,
+        })
+      }
+    }
+
+    if (roundTotals.size > 0) {
+      const lowest = Math.min(...Array.from(roundTotals.values()).map((r) => r.total))
+      const winners = Array.from(roundTotals.values()).filter((r) => r.total === lowest)
+      if (winners.length > 0) {
+        const event = seasonData.events.find((e) => e.tournamentId === winners[0].tournamentId)
+        const tied = winners.length > 1 ? ` (+${winners.length - 1} tied)` : ''
+        awards.push({
+          title: 'Best Round',
+          description: `${event?.name ?? 'Season'} · Round ${winners[0].roundNumber}${tied}`,
+          playerName: winners[0].playerName,
+          playerAvatar: winners[0].playerAvatar,
+          value: String(lowest),
+        })
+      }
+    }
+  }
 
   // Iron Man — most events played (only if 100% attendance)
   const maxEvents = seasonData.standings[0]?.totalEvents ?? 0

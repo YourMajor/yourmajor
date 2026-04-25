@@ -13,6 +13,8 @@ export default async function AdminGroupsPage({
     select: {
       id: true,
       name: true,
+      isLeague: true,
+      parentTournamentId: true,
       players: {
         where: { isParticipant: true },
         include: {
@@ -63,11 +65,12 @@ export default async function AdminGroupsPage({
   }))
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8">
+    <main>
       <GroupBuilder
         tournamentId={tournament.id}
         tournamentName={tournament.name}
         slug={slug}
+        isLeague={tournament.isLeague || !!tournament.parentTournamentId}
         initialPlayers={players}
         initialGroups={groups}
       />

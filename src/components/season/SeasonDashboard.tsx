@@ -9,6 +9,7 @@ import { Badge } from '@/components/ui/badge'
 import type { SeasonPlayerSummary, SeasonEvent, SeasonAward } from '@/lib/season-standings'
 import type { EventRecap } from '@/lib/season-recap'
 import type { SeasonScoringMethod } from '@/generated/prisma/client'
+import { LeagueScheduleView, type ScheduleEvent } from './LeagueScheduleView'
 
 interface SeasonDashboardProps {
   standings: SeasonPlayerSummary[]
@@ -18,6 +19,9 @@ interface SeasonDashboardProps {
   awards: SeasonAward[]
   recap: EventRecap | null
   slug: string
+  scheduleEvents?: ScheduleEvent[]
+  isAuthenticated?: boolean
+  onRoster?: boolean
 }
 
 function formatValue(value: number, method: SeasonScoringMethod): string {
@@ -55,8 +59,20 @@ function TrendIndicator({ trend }: { trend: number | null }) {
   return <span className="text-muted-foreground"><Minus className="w-3 h-3" /></span>
 }
 
-export function SeasonDashboard({ standings, events, scoringMethod, seasonName, awards, recap, slug }: SeasonDashboardProps) {
+export function SeasonDashboard({
+  standings,
+  events,
+  scoringMethod,
+  seasonName,
+  awards,
+  recap,
+  slug,
+  scheduleEvents = [],
+  isAuthenticated = false,
+  onRoster = false,
+}: SeasonDashboardProps) {
   const completedEvents = events.filter((e) => e.status === 'COMPLETED' || e.status === 'ACTIVE')
+  const showSchedule = scheduleEvents.length > 0
 
   return (
     <div className="space-y-6">
@@ -80,6 +96,7 @@ export function SeasonDashboard({ standings, events, scoringMethod, seasonName, 
         <TabsList variant="line">
           <TabsTrigger value="standings">Standings</TabsTrigger>
           <TabsTrigger value="events">Events</TabsTrigger>
+          {showSchedule && <TabsTrigger value="schedule">My Schedule</TabsTrigger>}
           {awards.length > 0 && <TabsTrigger value="awards">Awards</TabsTrigger>}
         </TabsList>
 
@@ -90,6 +107,18 @@ export function SeasonDashboard({ standings, events, scoringMethod, seasonName, 
         <TabsContent value="events">
           <EventsList events={events} />
         </TabsContent>
+
+        {showSchedule && (
+          <TabsContent value="schedule">
+            <div className="mt-4">
+              <LeagueScheduleView
+                events={scheduleEvents}
+                isAuthenticated={isAuthenticated}
+                onRoster={onRoster}
+              />
+            </div>
+          </TabsContent>
+        )}
 
         {awards.length > 0 && (
           <TabsContent value="awards">

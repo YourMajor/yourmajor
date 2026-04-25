@@ -6,8 +6,33 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { requireAuth, isTournamentAdmin } from '@/lib/auth'
 import { containsProfanity, ProfanityError } from '@/lib/content-moderation'
+import { getFormat } from '@/lib/formats/registry'
+import type { FormatId } from '@/lib/formats/types'
 
 const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+
+const FORMAT_IDS: [FormatId, ...FormatId[]] = [
+  'STROKE_PLAY',
+  'STROKE_PLAY_NET',
+  'STABLEFORD',
+  'MODIFIED_STABLEFORD',
+  'BEST_BALL',
+  'BEST_BALL_2',
+  'BEST_BALL_4',
+  'SCRAMBLE',
+  'SHAMBLE',
+  'MATCH_PLAY',
+  'RYDER_CUP',
+  'SKINS',
+  'SKINS_GROSS',
+  'SKINS_NET',
+  'QUOTA',
+  'CALLAWAY',
+  'PEORIA',
+  'CHAPMAN',
+  'PINEHURST',
+  'LOW_GROSS_LOW_NET',
+]
 
 const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/, 'Expected a #RRGGBB color')
 const updateTournamentSchema = z.object({
@@ -16,7 +41,7 @@ const updateTournamentSchema = z.object({
   slug: z.string().trim().min(1).max(80),
   primaryColor: hexColor,
   accentColor: hexColor,
-  handicapSystem: z.enum(['NONE', 'WHS', 'STABLEFORD', 'CALLAWAY', 'PEORIA']),
+  tournamentFormat: z.enum(FORMAT_IDS),
   powerupsEnabled: z.boolean(),
   powerupsPerPlayer: z.number().int().min(0).max(20),
   maxAttacksPerPlayer: z.number().int().min(0).max(10),
@@ -50,7 +75,7 @@ export async function updateTournament(
     slug: rawSlug,
     primaryColor: String(formData.get('primaryColor') ?? ''),
     accentColor: String(formData.get('accentColor') ?? ''),
-    handicapSystem: String(formData.get('handicapSystem') ?? ''),
+    tournamentFormat: String(formData.get('tournamentFormat') ?? ''),
     powerupsEnabled: formData.get('powerupsEnabled') === 'on',
     powerupsPerPlayer: parseIntOr(formData.get('powerupsPerPlayer'), 3),
     maxAttacksPerPlayer: parseIntOr(formData.get('maxAttacksPerPlayer'), 1),
@@ -73,8 +98,13 @@ export async function updateTournament(
   })
   const serverHasScores = serverScoreCount > 0
 
-  // Guard: don't allow handicap system change once scores exist
-  const handicapSystem = serverHasScores ? currentTournament!.handicapSystem : parsed.handicapSystem
+  // Format is the user-facing decision; handicap is derived from format's impliedHandicap.
+  // Guard: don't allow format/handicap change once scores exist.
+  const tournamentFormat = serverHasScores ? currentTournament!.tournamentFormat : parsed.tournamentFormat
+  const formatDef = getFormat(tournamentFormat)
+  const handicapSystem = serverHasScores
+    ? currentTournament!.handicapSystem
+    : (formatDef.impliedHandicap ?? 'NONE')
 
   // If powerups are locked (draft started or cards dealt), preserve existing values
   const currentDraft = await prisma.draft.findUnique({ where: { tournamentId } })
@@ -131,6 +161,19 @@ export async function updateTournament(
     }
   }
 
+  // League tournaments don't have a single start/end date — preserve whatever is on record.
+  const isLeague = currentTournament?.isLeague === true
+  const startDate = isLeague
+    ? currentTournament?.startDate ?? null
+    : parsed.startDate
+      ? new Date(parsed.startDate)
+      : null
+  const endDate = isLeague
+    ? currentTournament?.endDate ?? null
+    : parsed.endDate
+      ? new Date(parsed.endDate)
+      : null
+
   await prisma.tournament.update({
     where: { id: tournamentId },
     data: {
@@ -139,13 +182,14 @@ export async function updateTournament(
       slug: parsed.slug,
       primaryColor: parsed.primaryColor,
       accentColor: parsed.accentColor,
+      tournamentFormat,
       handicapSystem,
       powerupsEnabled,
       powerupsPerPlayer,
       maxAttacksPerPlayer,
       distributionMode,
-      startDate: parsed.startDate ? new Date(parsed.startDate) : null,
-      endDate: parsed.endDate ? new Date(parsed.endDate) : null,
+      startDate,
+      endDate,
       logo: logoUrl,
       headerImage: headerImageUrl,
     },

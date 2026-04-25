@@ -2,12 +2,26 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import {
+  DndContext,
+  DragOverlay,
+  PointerSensor,
+  TouchSensor,
+  KeyboardSensor,
+  useDraggable,
+  useDroppable,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+  type DragStartEvent,
+} from '@dnd-kit/core'
+import { CSS } from '@dnd-kit/utilities'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check } from 'lucide-react'
+import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check, Wand2 } from 'lucide-react'
 import Link from 'next/link'
 import {
   createGroup,
@@ -21,6 +35,70 @@ import {
   notifyAffectedPlayers,
   notifyAllPlayers,
 } from '@/app/[slug]/admin/groups/actions'
+import { GroupAutoAssignDialog } from './GroupAutoAssignDialog'
+
+// Special droppable id for the unassigned pool. Group ids are passed verbatim.
+const UNASSIGNED_DROPPABLE_ID = '__unassigned__'
+
+// Wraps a player pill so it can be dragged. Passes through children + className/onClick.
+function DraggablePill({
+  id,
+  children,
+  className,
+  onClick,
+}: {
+  id: string
+  children: React.ReactNode
+  className?: string
+  onClick?: () => void
+}) {
+  const { attributes, listeners, setNodeRef, transform, isDragging } = useDraggable({ id })
+  const style: React.CSSProperties = {
+    transform: transform ? CSS.Translate.toString(transform) : undefined,
+    cursor: isDragging ? 'grabbing' : 'grab',
+    touchAction: 'manipulation',
+  }
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      {...attributes}
+      {...listeners}
+      onClick={onClick}
+      className={`${className ?? ''} ${isDragging ? 'opacity-30' : ''}`.trim()}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Wraps a group card or the unassigned card so it can receive drops.
+function DroppableArea({
+  id,
+  children,
+  highlight = true,
+}: {
+  id: string
+  children: React.ReactNode
+  highlight?: boolean
+}) {
+  const { setNodeRef, isOver } = useDroppable({ id })
+  return (
+    <div
+      ref={setNodeRef}
+      className={highlight && isOver ? 'ring-2 ring-[var(--color-primary)] rounded-xl transition-all' : ''}
+    >
+      {children}
+    </div>
+  )
+}
+
+// Color tier for the handicap badge — lower = greener.
+function handicapTier(h: number): { bg: string; text: string } {
+  if (h < 5) return { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-300' }
+  if (h < 15) return { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300' }
+  return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300' }
+}
 
 // ── Types ────────────────────────────────────────────────────────────────────
 
@@ -53,19 +131,21 @@ interface Props {
   tournamentId: string
   tournamentName: string
   slug: string
+  isLeague: boolean
   initialPlayers: Player[]
   initialGroups: Group[]
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayers, initialGroups }: Props) {
+export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [players, setPlayers] = useState<Player[]>(initialPlayers)
   const [groups, setGroups] = useState<Group[]>(initialGroups)
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
+  const [autoAssignOpen, setAutoAssignOpen] = useState(false)
   const [addEmail, setAddEmail] = useState('')
   const [addError, setAddError] = useState('')
   const [addSuccess, setAddSuccess] = useState('')
@@ -73,8 +153,20 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
   const [editingGroupId, setEditingGroupId] = useState<string | null>(null)
   const [editingGroupName, setEditingGroupName] = useState('')
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [activeDragId, setActiveDragId] = useState<string | null>(null)
+
+  // Sensors: PointerSensor with `distance: 8` ensures plain clicks (under 8px
+  // movement) still fire the underlying onClick handlers — drag only kicks in
+  // once the user has actually moved. TouchSensor uses a 200ms long-press to
+  // avoid hijacking page scroll on mobile.
+  const sensors = useSensors(
+    useSensor(PointerSensor, { activationConstraint: { distance: 8 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } }),
+    useSensor(KeyboardSensor),
+  )
 
   const unassigned = players.filter((p) => !p.groupId).sort((a, b) => a.name.localeCompare(b.name))
+  const draggedPlayer = activeDragId ? players.find((p) => p.id === activeDragId) ?? null : null
 
   // ── Tap-to-select interaction (multi-select) ────────────────────────────
 
@@ -174,6 +266,69 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
     startTransition(async () => {
       try {
         await Promise.all(idsToMove.map((id) => movePlayerToGroup(tournamentId, id, groupId)))
+      } catch {
+        router.refresh()
+      }
+    })
+  }
+
+  // ── Drag-and-drop ────────────────────────────────────────────────────────
+
+  function handleDragStart(e: DragStartEvent) {
+    setActiveDragId(String(e.active.id))
+  }
+
+  function handleDragEnd(e: DragEndEvent) {
+    setActiveDragId(null)
+    const activeId = String(e.active.id)
+    const overId = e.over ? String(e.over.id) : null
+    if (!overId) return
+
+    const player = players.find((p) => p.id === activeId)
+    if (!player) return
+
+    const targetGroupId = overId === UNASSIGNED_DROPPABLE_ID ? null : overId
+    if (player.groupId === targetGroupId) return
+
+    // Cap at 4 per group (server enforces too).
+    if (targetGroupId) {
+      const target = groups.find((g) => g.id === targetGroupId)
+      if (target && target.members.length >= 4) return
+    }
+
+    // Optimistic update mirrored from handleGroupTap's single-player path.
+    setPlayers((prev) =>
+      prev.map((p) => (p.id === activeId ? { ...p, groupId: targetGroupId } : p)),
+    )
+    setGroups((prev) => {
+      let updated = prev.map((g) => ({
+        ...g,
+        members: g.members.filter((m) => m.tournamentPlayerId !== activeId),
+      }))
+      if (targetGroupId) {
+        updated = updated.map((g) => {
+          if (g.id !== targetGroupId) return g
+          const filtered = g.members.filter((m) => m.tournamentPlayerId !== activeId)
+          return {
+            ...g,
+            members: [
+              ...filtered,
+              {
+                tournamentPlayerId: player.id,
+                name: player.name,
+                position: filtered.length,
+                notifiedAt: null,
+              },
+            ],
+          }
+        })
+      }
+      return updated
+    })
+
+    startTransition(async () => {
+      try {
+        await movePlayerToGroup(tournamentId, activeId, targetGroupId)
       } catch {
         router.refresh()
       }
@@ -405,6 +560,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
   // ── Render ───────────────────────────────────────────────────────────────
 
   return (
+    <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="space-y-6">
       {/* Header */}
       <div className="flex items-center gap-3">
@@ -420,24 +576,31 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
         </div>
       </div>
 
-      {/* Player count + Add player */}
-      <div className="flex items-center justify-between gap-4">
+      {/* Player count + actions */}
+      <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{players.length}</span> player{players.length !== 1 ? 's' : ''} registered
           {unassigned.length > 0 && (
             <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassigned.length} unassigned</span></span>
           )}
         </p>
-        <Button variant="outline" size="sm" onClick={() => { setAddDialogOpen(true); setAddError(''); setAddSuccess(''); setAddEmail('') }}>
-          <UserPlus className="w-4 h-4 mr-1.5" />
-          Add Player
-        </Button>
+        <div className="flex items-center gap-2">
+          <Button variant="outline" size="sm" onClick={() => setAutoAssignOpen(true)} disabled={players.length === 0}>
+            <Wand2 className="w-4 h-4 mr-1.5" />
+            Generate Groups
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => { setAddDialogOpen(true); setAddError(''); setAddSuccess(''); setAddEmail('') }}>
+            <UserPlus className="w-4 h-4 mr-1.5" />
+            Add Player
+          </Button>
+        </div>
       </div>
 
       {/* Instructions */}
-      <p className="text-xs text-muted-foreground">Select players below, then tap a group to assign them. Max 4 per group.</p>
+      <p className="text-xs text-muted-foreground">Drag players onto a group, or tap to select then tap a group. Max 4 per group.</p>
 
       {/* Unassigned pool */}
+      <DroppableArea id={UNASSIGNED_DROPPABLE_ID}>
       <Card>
         <CardHeader
           className={`pb-3 transition-colors rounded-t-xl ${selectedPlayerIds.size > 0 && ![...selectedPlayerIds].every((id) => unassigned.find((p) => p.id === id)) ? 'cursor-pointer hover:bg-[var(--color-primary)]/5 ring-2 ring-[var(--color-primary)]/30' : ''}`}
@@ -454,30 +617,38 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
             <p className="text-xs text-muted-foreground py-2">All players are assigned to groups.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
-              {unassigned.map((p) => (
-                <button
-                  key={p.id}
-                  onClick={() => handlePlayerTap(p.id)}
-                  className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all ${
-                    selectedPlayerIds.has(p.id)
-                      ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
-                      : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted'
-                  }`}
-                >
-                  <span className="font-medium">{p.name}</span>
-                  <span className="text-xs text-muted-foreground">({p.handicap})</span>
-                  <button
-                    onClick={(e) => { e.stopPropagation(); setRemoveConfirmId(p.id) }}
-                    className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+              {unassigned.map((p) => {
+                const tier = handicapTier(p.handicap)
+                return (
+                  <DraggablePill
+                    key={p.id}
+                    id={p.id}
+                    onClick={() => handlePlayerTap(p.id)}
+                    className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all select-none ${
+                      selectedPlayerIds.has(p.id)
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
+                        : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted'
+                    }`}
                   >
-                    <X className="w-3 h-3" />
-                  </button>
-                </button>
-              ))}
+                    <span className="font-medium">{p.name}</span>
+                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                      {p.handicap}
+                    </span>
+                    <button
+                      onPointerDown={(e) => e.stopPropagation()}
+                      onClick={(e) => { e.stopPropagation(); setRemoveConfirmId(p.id) }}
+                      className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                    >
+                      <X className="w-3 h-3" />
+                    </button>
+                  </DraggablePill>
+                )
+              })}
             </div>
           )}
         </CardContent>
       </Card>
+      </DroppableArea>
 
       {selectedPlayerIds.size > 0 && (
         <p className="text-xs text-center text-[var(--color-primary)] font-medium animate-pulse">
@@ -490,8 +661,8 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
       {/* Groups */}
       <div className="space-y-4">
         {groups.map((group) => (
+          <DroppableArea key={group.id} id={group.id}>
           <Card
-            key={group.id}
             className={`group transition-all ${selectedPlayerIds.size > 0 && group.members.length < 4 && ![...selectedPlayerIds].every((id) => group.members.find((m) => m.tournamentPlayerId === id)) ? 'ring-2 ring-[var(--color-primary)]/30 cursor-pointer hover:ring-[var(--color-primary)]' : ''}`}
             onClick={() => {
               if (selectedPlayerIds.size > 0 && group.members.length < 4) {
@@ -564,25 +735,32 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
                     .sort((a, b) => a.name.localeCompare(b.name))
                     .map((m) => {
                     const p = players.find((pl) => pl.id === m.tournamentPlayerId)
+                    const tier = p ? handicapTier(p.handicap) : null
                     return (
-                      <button
+                      <DraggablePill
                         key={m.tournamentPlayerId}
-                        onClick={(e) => { e.stopPropagation(); handlePlayerTap(m.tournamentPlayerId) }}
-                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all ${
+                        id={m.tournamentPlayerId}
+                        onClick={() => handlePlayerTap(m.tournamentPlayerId)}
+                        className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all select-none ${
                           selectedPlayerIds.has(m.tournamentPlayerId)
                             ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
                             : 'border-border hover:border-[var(--color-primary)]/40'
                         }`}
                       >
                         <span className="font-medium">{m.name}</span>
-                        {p && <span className="text-xs text-muted-foreground">({p.handicap})</span>}
+                        {p && tier && (
+                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                            {p.handicap}
+                          </span>
+                        )}
                         <button
+                          onPointerDown={(e) => e.stopPropagation()}
                           onClick={(e) => { e.stopPropagation(); handleRemoveFromGroup(m.tournamentPlayerId) }}
                           className="ml-0.5 p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
                         >
                           <X className="w-3 h-3" />
                         </button>
-                      </button>
+                      </DraggablePill>
                     )
                   })}
                 </div>
@@ -663,6 +841,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
               </div>
             </CardContent>
           </Card>
+          </DroppableArea>
         ))}
       </div>
 
@@ -705,6 +884,25 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
           )}
         </div>
       )}
+
+      {/* Auto-assign Dialog */}
+      <GroupAutoAssignDialog
+        open={autoAssignOpen}
+        onOpenChange={setAutoAssignOpen}
+        tournamentId={tournamentId}
+        isLeague={isLeague}
+        participantCount={players.length}
+        onAssigned={({ groupCount, conflicts }) => {
+          setMessage({
+            type: 'success',
+            text:
+              conflicts > 0
+                ? `Generated ${groupCount} groups — ${conflicts} repeat pairing${conflicts === 1 ? '' : 's'} couldn't be avoided.`
+                : `Generated ${groupCount} groups.`,
+          })
+          router.refresh()
+        }}
+      />
 
       {/* Add Player Dialog */}
       <Dialog open={addDialogOpen} onOpenChange={setAddDialogOpen}>
@@ -754,5 +952,21 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, initialPlayer
         </DialogContent>
       </Dialog>
     </div>
+    <DragOverlay>
+      {draggedPlayer ? (
+        <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border-2 border-[var(--color-primary)] bg-background shadow-lg cursor-grabbing">
+          <span className="font-medium">{draggedPlayer.name}</span>
+          {(() => {
+            const tier = handicapTier(draggedPlayer.handicap)
+            return (
+              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                {draggedPlayer.handicap}
+              </span>
+            )
+          })()}
+        </div>
+      ) : null}
+    </DragOverlay>
+    </DndContext>
   )
 }

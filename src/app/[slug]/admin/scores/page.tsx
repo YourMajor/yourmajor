@@ -1,6 +1,8 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { AdminScorecardEditor } from '@/components/admin/AdminScorecardEditor'
+import { LeagueScoreSelector } from '@/components/admin/LeagueScoreSelector'
+import { getLeagueEvents } from '@/lib/league-events'
 
 export default async function AdminScoresPage({
   params,
@@ -35,6 +37,9 @@ export default async function AdminScoresPage({
 
   if (!tournament) return null
 
+  const isLeagueChain = tournament.isLeague || !!tournament.parentTournamentId
+  const leagueEvents = isLeagueChain ? await getLeagueEvents(tournament.id) : []
+
   const rounds = tournament.rounds.map((r) => ({
     id: r.id,
     roundNumber: r.roundNumber,
@@ -57,7 +62,7 @@ export default async function AdminScoresPage({
   })
 
   return (
-    <main className="max-w-full px-2 sm:px-4 lg:px-6 py-6 space-y-6">
+    <main className="space-y-6">
       <div>
         <p className="text-sm text-muted-foreground">
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
@@ -65,6 +70,18 @@ export default async function AdminScoresPage({
         </p>
         <h1 className="text-2xl font-bold font-heading">{tournament.name} — Scores</h1>
       </div>
+      {leagueEvents.length > 0 && (
+        <LeagueScoreSelector
+          events={leagueEvents.map((e) => ({
+            id: e.id,
+            slug: e.slug,
+            name: e.name,
+            date: e.date?.toISOString() ?? null,
+            status: e.status,
+            isCurrent: e.id === tournament.id,
+          }))}
+        />
+      )}
       <AdminScorecardEditor rounds={rounds} players={players} />
     </main>
   )
