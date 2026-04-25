@@ -137,3 +137,133 @@ export function callawayDeduction(
 }
 
 export { CALLAWAY_TABLE }
+
+// ─── Format Helpers ──────────────────────────────────────────────────────────
+// Pure helpers consumed by per-format scoring strategies.
+// CLIENT-SAFE — no prisma/pg.
+
+export interface StablefordPointsTable {
+  eagle: number
+  birdie: number
+  par: number
+  bogey: number
+  doubleOrWorse: number
+}
+
+export const STABLEFORD_DEFAULT: StablefordPointsTable = {
+  eagle: 4,
+  birdie: 3,
+  par: 2,
+  bogey: 1,
+  doubleOrWorse: 0,
+}
+
+export const MODIFIED_STABLEFORD_DEFAULT: StablefordPointsTable = {
+  eagle: 5,
+  birdie: 2,
+  par: 0,
+  bogey: -1,
+  doubleOrWorse: -3,
+}
+
+/**
+ * Stableford points for a single hole.
+ *  diff = strokes - (par + handicapStrokesOnHole)
+ */
+export function stablefordPoints(
+  diff: number,
+  table: StablefordPointsTable = STABLEFORD_DEFAULT,
+): number {
+  if (diff <= -2) return table.eagle
+  if (diff === -1) return table.birdie
+  if (diff === 0) return table.par
+  if (diff === 1) return table.bogey
+  return table.doubleOrWorse
+}
+
+/**
+ * Quota target for a player.
+ * Conventional formula: 36 - course handicap (capped at 0).
+ */
+export function quotaTarget(handicap: number): number {
+  return Math.max(0, Math.round(36 - handicap))
+}
+
+/**
+ * Quota points earned on a single hole. Conventional table:
+ *   eagle 8, birdie 4, par 2, bogey 1, double-or-worse 0
+ */
+export function quotaPointsFor(
+  diff: number,
+  table: StablefordPointsTable = { eagle: 8, birdie: 4, par: 2, bogey: 1, doubleOrWorse: 0 },
+): number {
+  return stablefordPoints(diff, table)
+}
+
+/**
+ * Skins per hole: a skin is awarded only if one player has the strictly-lowest score on a hole.
+ * Ties carry over to the next hole when carryOver=true.
+ *
+ * Returns a map of tournamentPlayerId → number of skins won.
+ */
+export function skinsPerHole(
+  holeScores: Array<Array<{ tournamentPlayerId: string; strokes: number | null }>>,
+  carryOver = true,
+): Record<string, number> {
+  const wins: Record<string, number> = {}
+  let carry = 0
+
+  for (const hole of holeScores) {
+    const playable = hole.filter((s) => s.strokes !== null) as Array<{ tournamentPlayerId: string; strokes: number }>
+    if (playable.length === 0) continue
+    const lowest = Math.min(...playable.map((s) => s.strokes))
+    const lowestPlayers = playable.filter((s) => s.strokes === lowest)
+    if (lowestPlayers.length === 1) {
+      const id = lowestPlayers[0].tournamentPlayerId
+      wins[id] = (wins[id] ?? 0) + 1 + carry
+      carry = 0
+    } else if (carryOver) {
+      carry += 1
+    } else {
+      carry = 0
+    }
+  }
+  return wins
+}
+
+/**
+ * Best ball: per hole, take the lowest player score in the team.
+ * Returns the team's hole-by-hole effective score (or null if no player has scored that hole).
+ */
+export function bestBallSelect(
+  teamHoleScores: Array<Array<number | null>>,
+): Array<number | null> {
+  return teamHoleScores.map((hole) => {
+    const valid = hole.filter((s): s is number => s !== null)
+    return valid.length === 0 ? null : Math.min(...valid)
+  })
+}
+
+/**
+ * Match play status: returns the leader's "X up" / "AS" status after a sequence of hole-diffs.
+ * holeWinners: 1 if A wins the hole, -1 if B wins, 0 if halved.
+ * Returns { up: number; through: number; closed: boolean } — closed = match dormie/closed
+ * because A's lead exceeds remaining holes.
+ */
+export function matchPlayStatus(
+  holeWinners: number[],
+  totalHoles = 18,
+): { up: number; through: number; closed: boolean } {
+  let lead = 0
+  let through = 0
+  for (const r of holeWinners) {
+    lead += r
+    through += 1
+    const remaining = totalHoles - through
+    if (Math.abs(lead) > remaining) {
+      return { up: lead, through, closed: true }
+    }
+  }
+  return { up: lead, through, closed: false }
+}
+

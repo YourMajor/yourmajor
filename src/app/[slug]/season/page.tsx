@@ -1,10 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
+import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { getSeasonStandings, getSeasonAwards } from '@/lib/season-standings'
 import { getLatestEventRecap } from '@/lib/season-recap'
+import { getLeagueEvents, getLeagueRootId } from '@/lib/league-events'
 import { SeasonDashboard } from '@/components/season/SeasonDashboard'
+import type { ScheduleEvent } from '@/components/season/LeagueScheduleView'
 
 export default async function SeasonPage({
   params,
@@ -46,11 +49,70 @@ export default async function SeasonPage({
     }
   }
 
-  const [seasonData, awards, recap] = await Promise.all([
+  const [seasonData, awards, recap, user] = await Promise.all([
     getSeasonStandings(tournament.id),
     getSeasonAwards(tournament.id),
     getLatestEventRecap(tournament.id),
+    getUser(),
   ])
+
+  // Build the per-event schedule view if this is a league chain.
+  let scheduleEvents: ScheduleEvent[] = []
+  let onRoster = false
+  if (tournament.isLeague || tournament.parentTournamentId) {
+    const leagueEvents = await getLeagueEvents(tournament.id)
+    if (leagueEvents.length > 0) {
+      // Pull current user's TournamentPlayer + score counts for each event in one query.
+      let myPlayers: Array<{
+        tournamentId: string
+        id: string
+        isParticipant: boolean
+        _count: { scores: number }
+      }> = []
+      if (user) {
+        myPlayers = await prisma.tournamentPlayer.findMany({
+          where: {
+            userId: user.id,
+            tournamentId: { in: leagueEvents.map((e) => e.id) },
+          },
+          select: {
+            id: true,
+            tournamentId: true,
+            isParticipant: true,
+            _count: { select: { scores: true } },
+          },
+        })
+
+        // Roster lookup — does the user belong to the league roster?
+        const rootId = await getLeagueRootId(tournament.id)
+        if (rootId) {
+          const rosterMember = await prisma.leagueRosterMember.findFirst({
+            where: {
+              userId: user.id,
+              roster: { rootTournamentId: rootId },
+              status: 'ACTIVE',
+            },
+            select: { id: true },
+          })
+          onRoster = !!rosterMember
+        }
+      }
+
+      const playerByEvent = new Map(myPlayers.map((p) => [p.tournamentId, p]))
+      scheduleEvents = leagueEvents.map((e) => {
+        const player = playerByEvent.get(e.id)
+        return {
+          id: e.id,
+          slug: e.slug,
+          name: e.name,
+          date: e.date?.toISOString() ?? null,
+          status: e.status,
+          myParticipation: player ? player.isParticipant : null,
+          hasScores: (player?._count.scores ?? 0) > 0,
+        }
+      })
+    }
+  }
 
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
@@ -62,6 +124,9 @@ export default async function SeasonPage({
         awards={awards}
         recap={recap}
         slug={slug}
+        scheduleEvents={scheduleEvents}
+        isAuthenticated={!!user}
+        onRoster={onRoster}
       />
     </main>
   )

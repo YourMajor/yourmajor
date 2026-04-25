@@ -2,7 +2,10 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { getOrCreateRoster } from '@/lib/roster-actions'
-import { getSeasonAttendance } from '@/lib/season-standings'
+import { listSeasonAdjustments } from '@/lib/season-standings-actions'
+import { getSeasonAttendance, getSeasonAwards, DEFAULT_TIEBREAKERS, parseTiebreakers } from '@/lib/season-standings'
+import { listAnnouncements } from '@/lib/league-announcements'
+import { getLeagueEventsForAdmin } from '@/lib/league-events'
 import { SeasonAdminDashboard } from '@/components/season/SeasonAdminDashboard'
 
 export default async function AdminSeasonPage({
@@ -38,6 +41,8 @@ export default async function AdminSeasonPage({
       seasonScoringMethod: true,
       seasonBestOf: true,
       seasonPointsTable: true,
+      seasonDropLowest: true,
+      seasonTiebreakers: true,
       leagueEndDate: true,
     },
   })
@@ -67,7 +72,7 @@ export default async function AdminSeasonPage({
     },
   })
 
-  const [roster, attendance, schedule] = await Promise.all([
+  const [roster, attendance, schedule, adjustments, awards, announcements, leagueEvents] = await Promise.all([
     getOrCreateRoster(tournament.id),
     getSeasonAttendance(tournament.id),
     prisma.seasonScheduleEvent.findMany({
@@ -79,10 +84,14 @@ export default async function AdminSeasonPage({
         },
       },
     }),
+    listSeasonAdjustments(tournament.id),
+    getSeasonAwards(tournament.id).catch(() => []),
+    listAnnouncements(tournament.id).catch(() => []),
+    getLeagueEventsForAdmin(tournament.id).catch(() => []),
   ])
 
   return (
-    <main className="max-w-5xl mx-auto px-4 py-8 space-y-8">
+    <main className="space-y-8">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Season Management</p>
         <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">{tournament.name}</h1>
@@ -113,7 +122,13 @@ export default async function AdminSeasonPage({
           bestOf: rootTournament?.seasonBestOf ?? null,
           pointsTable: (rootTournament?.seasonPointsTable as Record<number, number>) ?? null,
           leagueEndDate: rootTournament?.leagueEndDate?.toISOString().split('T')[0] ?? null,
+          dropLowest: rootTournament?.seasonDropLowest ?? null,
+          tiebreakers: rootTournament?.seasonTiebreakers
+            ? parseTiebreakers(rootTournament.seasonTiebreakers)
+            : DEFAULT_TIEBREAKERS,
         }}
+        adjustments={adjustments}
+        awards={awards}
         schedule={schedule.map((s) => ({
           id: s.id,
           title: s.title,
@@ -133,6 +148,32 @@ export default async function AdminSeasonPage({
           leagueName: tournament.name,
         } : null}
         slug={slug}
+        announcements={announcements.map((a) => ({
+          id: a.id,
+          subject: a.subject,
+          bodyPreview: a.bodyPreview,
+          channels: a.channels,
+          sentAt: a.sentAt?.toISOString() ?? null,
+          createdAt: a.createdAt.toISOString(),
+          sentByName: a.sentByName,
+          deliveryCount: a.deliveryCount,
+          successCount: a.successCount,
+        }))}
+        leagueEvents={leagueEvents.map((e) => ({
+          id: e.id,
+          slug: e.slug,
+          name: e.name,
+          date: e.date?.toISOString() ?? null,
+          status: e.status,
+          courseName: e.courseName,
+          roundCount: e.roundCount,
+          participantCount: e.participantCount,
+          groupCount: e.groupCount,
+          scoreCount: e.scoreCount,
+          scoreCompletionPct: e.scoreCompletionPct,
+          hasGroups: e.hasGroups,
+          isCurrent: e.id === tournament.id,
+        }))}
       />
     </main>
   )

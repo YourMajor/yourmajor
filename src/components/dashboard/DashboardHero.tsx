@@ -104,7 +104,7 @@ export function DashboardHero({
         </div>
 
         {/* Actions — subtle horizontal strip */}
-        <div className="mt-10 sm:mt-14 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="mt-10 sm:mt-14 flex flex-row items-center justify-center gap-3">
           <FindTournament triggerClassName="inline-flex items-center justify-center gap-1.5 rounded-full border border-black/10 bg-white/80 backdrop-blur-sm px-5 py-2.5 text-sm font-medium text-foreground/90 hover:bg-white transition-all shadow-sm hover:shadow-md" />
           <Link
             href="/tournaments/new"

@@ -5,9 +5,8 @@ import { getUser } from '@/lib/auth'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 
-import { PlusCircle, Trophy, Clock, MapPin, Repeat } from 'lucide-react'
+import { Trophy, Clock, MapPin, Repeat } from 'lucide-react'
 import NearbyTournaments from '@/components/NearbyTournaments'
-import { FindTournament } from '@/components/FindTournament'
 import { DashboardInfoCard } from '@/components/DashboardInfoCard'
 import { TournamentCard } from '@/components/TournamentCard'
 import { DashboardHero } from '@/components/dashboard/DashboardHero'
@@ -302,17 +301,6 @@ export default async function DashboardPage() {
               <p className="text-sm text-muted-foreground mt-1 max-w-xs">
                 Create a tournament, join with a code from a friend, or find an open event near you.
               </p>
-              <div className="flex flex-col items-center gap-3 mt-5 w-full max-w-xs">
-                <Link
-                  href="/tournaments/new"
-                  className={buttonVariants({ size: 'lg' }) + ' w-full justify-center text-base'}
-                  style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-                >
-                  <PlusCircle className="w-5 h-5 mr-2" />
-                  Create Tournament
-                </Link>
-                <FindTournament />
-              </div>
             </CardContent>
           </Card>
         )}

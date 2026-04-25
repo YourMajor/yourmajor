@@ -35,7 +35,7 @@ export default async function InvitesPage({
   const pending = tournament.invitations.filter((i) => !i.acceptedAt)
 
   return (
-    <main className="max-w-3xl mx-auto px-4 py-8 space-y-8">
+    <main className="max-w-3xl space-y-8">
       <div>
         <h1 className="text-2xl font-heading font-bold">Invite Players</h1>
         <p className="text-sm text-muted-foreground mt-1">
