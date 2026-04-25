@@ -86,10 +86,32 @@ export async function DELETE(
     if (!membership?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // The Tournament self-relation (parentTournamentId → TournamentRenewal) has
+  // no onDelete cascade in the schema, so deleting a tournament that has any
+  // descendants in the league chain would fail on the FK constraint. Re-link
+  // any direct children to this tournament's own parent first — same chain
+  // behaviour as deleteLeagueEvent. Children of a deleted root become roots
+  // themselves (parentTournamentId = null).
+  const target = await prisma.tournament.findUnique({
+    where: { id },
+    select: { parentTournamentId: true },
+  })
+  if (!target) return NextResponse.json({ error: 'Tournament not found' }, { status: 404 })
+
   try {
-    await prisma.tournament.delete({ where: { id } })
-  } catch {
-    return NextResponse.json({ error: 'Failed to delete tournament' }, { status: 500 })
+    await prisma.$transaction(async (tx) => {
+      await tx.tournament.updateMany({
+        where: { parentTournamentId: id },
+        data: { parentTournamentId: target.parentTournamentId },
+      })
+      await tx.tournament.delete({ where: { id } })
+    })
+  } catch (e) {
+    // Surface the actual error so admins can see what failed (FK constraint,
+    // etc.) instead of a generic 500.
+    const message = e instanceof Error ? e.message : 'Failed to delete tournament'
+    console.error('[DELETE /api/tournaments/:id]', e)
+    return NextResponse.json({ error: message }, { status: 500 })
   }
   return NextResponse.json({ ok: true })
 }
