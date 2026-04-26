@@ -172,6 +172,8 @@ model User {
   seasonRSVPs            SeasonRSVP[]
   sentAnnouncements      LeagueAnnouncement[]         @relation("LeagueAnnouncementsSentBy")
   announcementDeliveries LeagueAnnouncementDelivery[]
+  ownedAdminSeats        AccountAdmin[]               @relation("AccountAdminOwner")
+  delegatedAdminFor      AccountAdmin[]               @relation("AccountAdminUser")
 }
 
 model Account {
@@ -251,6 +253,20 @@ model Tournament {
   endDate              DateTime?
   registrationDeadline DateTime?
   createdAt            DateTime         @default(now())
+
+  // ── Sponsor placements (Club & Tour tiers) ──
+  // For league roots (isLeague=true), this is the league sponsor that applies
+  // to all child tournaments by default. For child tournaments, set these to
+  // override the league-level sponsor. Resolution: tournament wins if set,
+  // else fall back to root tournament's values, else show nothing.
+  sponsorName    String?
+  sponsorLogoUrl String?
+  sponsorLink    String?
+
+  // ── Custom subdomain (Tour tier, league roots only) ──
+  // Only meaningful when isLeague=true. Resolves <subdomain>.yourmajor.app
+  // to this league via middleware.
+  subdomain String? @unique
 
   // ── Renewal chain ──
   parentTournamentId String?
@@ -744,6 +760,27 @@ model SeasonRSVP {
   user  User                @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([eventId, userId])
+}
+
+// ─── Account-Level Admin Seats (Club: 2 seats, Tour: 5 seats) ─────────────────
+// Co-admins inherit admin rights on every tournament/league owned by `owner`.
+// The owner counts as 1 of the tier's seat budget; AccountAdmin rows are the
+// additional invited admins (so 2 seats = owner + 1 row, 5 seats = owner + 4 rows).
+
+model AccountAdmin {
+  id           String   @id @default(cuid())
+  ownerUserId  String
+  adminUserId  String
+  invitedEmail String?
+  acceptedAt   DateTime?
+  createdAt    DateTime @default(now())
+
+  owner User @relation("AccountAdminOwner", fields: [ownerUserId], references: [id], onDelete: Cascade)
+  admin User @relation("AccountAdminUser", fields: [adminUserId], references: [id], onDelete: Cascade)
+
+  @@unique([ownerUserId, adminUserId])
+  @@index([ownerUserId])
+  @@index([adminUserId])
 }
 
 // ─── Billing ──────────────────────────────────────────────────────────────────
