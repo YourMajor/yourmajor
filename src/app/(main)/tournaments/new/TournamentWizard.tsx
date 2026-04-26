@@ -288,7 +288,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 'type':
         return <StepTournamentType value={tournamentType} onChange={setTournamentType} />
       case 'basics':
-        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} userTier={userTier} tournamentType={tournamentType.tournamentType} />
+        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} userTier={userTier} tournamentType={tournamentType.tournamentType} parentRoundCount={renewalDefaults?.rounds.length} />
       case 'rounds':
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} isOpenRegistration={isPublic} />
       case 'format':

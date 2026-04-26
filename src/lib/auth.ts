@@ -49,6 +49,12 @@ export async function isTournamentAdmin(userId: string, tournamentId: string): P
   // Account-level co-admin: a user is an admin on this tournament if they are
   // an AccountAdmin of any user who has a direct TournamentPlayer.isAdmin row.
   // Co-admins inherit admin rights on every tournament owned by the account holder.
+  //
+  // We don't filter on AccountAdmin.acceptedAt — the current invite flow in
+  // src/app/(main)/team/actions.ts sets acceptedAt: new Date() on insert (the
+  // owner is authenticated when adding, so trust is implicit). The field
+  // remains as an audit timestamp; if a deferred-acceptance flow is ever
+  // wired up, re-introduce the `acceptedAt: { not: null }` filter here.
   const ownerAdmins = await prisma.tournamentPlayer.findMany({
     where: { tournamentId, isAdmin: true },
     select: { userId: true },
@@ -59,7 +65,6 @@ export async function isTournamentAdmin(userId: string, tournamentId: string): P
     where: {
       adminUserId: userId,
       ownerUserId: { in: ownerAdmins.map((a) => a.userId) },
-      acceptedAt: { not: null },
     },
     select: { id: true },
   })

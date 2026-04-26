@@ -184,9 +184,19 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
     return { error: 'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,999/year).' }
   }
 
-  // Free tier: cap rounds
-  if (data.numRounds > tierLimits.maxRounds) {
-    return { error: `Your plan supports up to ${tierLimits.maxRounds} round(s). Upgrade for multi-round tournaments.` }
+  // Cap rounds against tier — but grandfather renewals: a user whose existing
+  // tournament has more rounds than their current tier now allows (e.g. PRO
+  // dropped from 4 to 2 rounds in 2026-04-26 ship) can still renew at the
+  // parent's round count without upgrading.
+  let allowedRounds = tierLimits.maxRounds
+  if (data.parentTournamentId) {
+    const parentRoundCount = await prisma.tournamentRound.count({
+      where: { tournamentId: data.parentTournamentId },
+    })
+    if (parentRoundCount > allowedRounds) allowedRounds = parentRoundCount
+  }
+  if (data.numRounds > allowedRounds) {
+    return { error: `Your plan supports up to ${allowedRounds} round(s). Upgrade for more.` }
   }
 
   const needsPro =

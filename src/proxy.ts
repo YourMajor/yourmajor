@@ -5,7 +5,39 @@ import { extractLeagueSubdomain } from '@/lib/subdomain'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
 
-const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'yourmajor.app'
+const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'yourmajor.club'
+
+// Module-level cache of subdomain → resolved-slug (or null for "no league
+// here / wrong tier"). The middleware runs on every request that matches the
+// `config.matcher` pattern, so an uncached Prisma lookup per request would be
+// a hot path on any subdomain-routed traffic. 5-min TTL is short enough that
+// admins changing a subdomain or downgrading tier see it propagate quickly,
+// and long enough to absorb sustained traffic spikes.
+//
+// Negative results (no league, or tier doesn't grant customSubdomain) are
+// cached too so a misconfigured / hostile subdomain can't hammer the DB.
+type CachedResolution = { slug: string | null; expiresAt: number }
+const SUBDOMAIN_CACHE_TTL_MS = 5 * 60 * 1000
+const subdomainCache = new Map<string, CachedResolution>()
+
+async function resolveSubdomainSlug(subdomain: string): Promise<string | null> {
+  const cached = subdomainCache.get(subdomain)
+  if (cached && cached.expiresAt > Date.now()) return cached.slug
+
+  const league = await prisma.tournament.findUnique({
+    where: { subdomain },
+    select: { id: true, slug: true, isLeague: true },
+  })
+  let slug: string | null = null
+  if (league?.isLeague) {
+    const tier = await getTournamentTier(league.id)
+    if (TIER_LIMITS[tier].customSubdomain) {
+      slug = league.slug
+    }
+  }
+  subdomainCache.set(subdomain, { slug, expiresAt: Date.now() + SUBDOMAIN_CACHE_TTL_MS })
+  return slug
+}
 
 export async function proxy(request: NextRequest) {
   // 1. Decide whether the host's subdomain should rewrite to a canonical
@@ -15,16 +47,10 @@ export async function proxy(request: NextRequest) {
 
   let rewriteUrl: URL | null = null
   if (subdomain) {
-    const league = await prisma.tournament.findUnique({
-      where: { subdomain },
-      select: { id: true, slug: true, isLeague: true },
-    })
-    if (league?.isLeague) {
-      const tier = await getTournamentTier(league.id)
-      if (TIER_LIMITS[tier].customSubdomain) {
-        rewriteUrl = request.nextUrl.clone()
-        rewriteUrl.pathname = `/${league.slug}${rewriteUrl.pathname === '/' ? '' : rewriteUrl.pathname}`
-      }
+    const slug = await resolveSubdomainSlug(subdomain)
+    if (slug) {
+      rewriteUrl = request.nextUrl.clone()
+      rewriteUrl.pathname = `/${slug}${rewriteUrl.pathname === '/' ? '' : rewriteUrl.pathname}`
     }
   }
 
