@@ -36,11 +36,15 @@ interface Props {
   isFree?: boolean
   userTier?: 'FREE' | 'PRO' | 'CLUB' | 'LEAGUE'
   tournamentType?: 'PUBLIC' | 'OPEN' | 'INVITE'
+  // Round count of the parent tournament when this is a renewal — lets a
+  // user keep their existing N rounds even if their current tier's
+  // maxRounds is now lower (e.g. PRO went 4→2 in the 2026-04-26 ship).
+  parentRoundCount?: number
 }
 
 const MAX_LOGO_MB = 10
 
-export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FREE', tournamentType }: Props) {
+export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FREE', tournamentType, parentRoundCount }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const headerFileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -195,7 +199,7 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
                     onChange={(e) => set('numRounds', parseInt(e.target.value))}
                     className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
                   >
-                    {Array.from({ length: Math.min(TIER_LIMITS[userTier].maxRounds, 7) }, (_, i) => i + 1).map((n) => (
+                    {Array.from({ length: Math.min(Math.max(TIER_LIMITS[userTier].maxRounds, parentRoundCount ?? 0), 7) }, (_, i) => i + 1).map((n) => (
                       <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>
                     ))}
                   </select>
