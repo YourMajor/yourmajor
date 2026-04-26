@@ -7,6 +7,7 @@ import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { getUserTier, consumeProCredit } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { getLeagueRootId } from '@/lib/league-events'
 
 /**
  * Find the latest (most recent) tournament in a chain.
@@ -75,10 +76,15 @@ export async function scheduleLeagueEvent(
   })
   if (!template) throw new Error('Tournament not found.')
 
-  // Generate slug
+  // Generate slug — base off the league root, not the previous event, so
+  // month-day suffixes don't accumulate (test-apr-25 → test-apr-may-2 → ...).
   const eventDate = new Date(data.date)
   const monthDay = eventDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' }).toLowerCase().replace(/\s+/g, '-')
-  const baseSlug = template.slug.replace(/-wk\d+$/, '').replace(/-\d+$/, '')
+  const rootId = await getLeagueRootId(tournamentId)
+  const rootSlug = rootId
+    ? (await prisma.tournament.findUnique({ where: { id: rootId }, select: { slug: true } }))?.slug
+    : null
+  const baseSlug = (rootSlug ?? template.slug).replace(/-wk\d+$/, '')
   let slug = `${baseSlug}-${monthDay}`
   const existing = await prisma.tournament.findUnique({ where: { slug } })
   if (existing) {

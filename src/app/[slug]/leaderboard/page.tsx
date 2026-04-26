@@ -5,6 +5,7 @@ import { getUser } from '@/lib/auth'
 import { getLeaderboard } from '@/lib/scoring'
 import { maybeAutoAdvanceStatus } from '@/lib/tournament-status'
 import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
+import { SponsorStrip } from '@/components/hub/SponsorStrip'
 import { TournamentStats } from '@/components/leaderboard/TournamentStats'
 import { RegistrationBanner } from '@/components/RegistrationBanner'
 
@@ -218,6 +219,8 @@ export default async function LeaderboardPage({
           </div>
         </div>
       )}
+
+      <SponsorStrip tournamentId={tournament.id} />
 
       <LiveLeaderboard
         initialData={initialStandings}

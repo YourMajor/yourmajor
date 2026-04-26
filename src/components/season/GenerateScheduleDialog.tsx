@@ -1,6 +1,7 @@
 'use client'
 
 import { useMemo, useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { CalendarRange } from 'lucide-react'
 import {
   Dialog,
@@ -21,6 +22,7 @@ interface Props {
 }
 
 export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defaultStartDate }: Props) {
+  const router = useRouter()
   const today = new Date().toISOString().slice(0, 10)
   const [startDate, setStartDate] = useState(defaultStartDate ?? today)
   const [dayOfWeek, setDayOfWeek] = useState<DayOfWeek>(2) // Tuesday default
@@ -68,6 +70,8 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
           intervalWeeks,
         })
         setDone({ generated: result.generated, slugs: result.slugs })
+        // Re-fetch the season page so the new events appear in the schedule table.
+        router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Failed to generate schedule.')
       }

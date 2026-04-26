@@ -27,14 +27,12 @@ interface Props {
   numRounds: number
   value: RoundState[]
   onChange: (v: RoundState[]) => void
-  startDate?: string
-  endDate?: string
   isOpenRegistration?: boolean
 }
 
 const HOLES = Array.from({ length: 18 }, (_, i) => i + 1)
 
-export function StepRounds({ numRounds, value, onChange, startDate, endDate, isOpenRegistration = false }: Props) {
+export function StepRounds({ numRounds, value, onChange, isOpenRegistration = false }: Props) {
   const [openRound, setOpenRound] = useState(0)
 
   function updateRound(index: number, updates: Partial<RoundState>) {
@@ -79,18 +77,10 @@ export function StepRounds({ numRounds, value, onChange, startDate, endDate, isO
                 <Input
                   type="date"
                   value={round.date}
-                  min={startDate || undefined}
-                  max={endDate || undefined}
                   onChange={(e) => updateRound(i, { date: e.target.value })}
                 />
                 {isOpenRegistration && !round.date && (
                   <p className="text-xs text-muted-foreground">Open tournaments don&apos;t need specific round dates. Players can submit scores anytime before the tournament end date.</p>
-                )}
-                {round.date && startDate && round.date < startDate && (
-                  <p className="text-xs text-destructive">Round date cannot be before the tournament start date.</p>
-                )}
-                {round.date && endDate && round.date > endDate && (
-                  <p className="text-xs text-destructive">Round date cannot be after the tournament end date.</p>
                 )}
               </div>
 

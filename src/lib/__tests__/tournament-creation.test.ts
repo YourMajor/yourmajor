@@ -327,9 +327,9 @@ describe('Tier Constraint Validation', () => {
     expect(TIER_LIMITS.FREE.maxTournamentsPerMonth).toBe(Infinity)
   })
 
-  it('PRO tier allows powerups and 4 rounds', () => {
+  it('PRO tier allows powerups and 2 rounds', () => {
     expect(TIER_LIMITS.PRO.powerups).toBe(true)
-    expect(TIER_LIMITS.PRO.maxRounds).toBe(4)
+    expect(TIER_LIMITS.PRO.maxRounds).toBe(2)
   })
 
   it('PRO tier has unlimited tournaments per month', () => {

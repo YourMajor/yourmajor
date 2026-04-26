@@ -19,8 +19,10 @@ export interface LeagueEventSummary {
  */
 export async function getLeagueRootId(tournamentId: string): Promise<string | null> {
   let currentId: string = tournamentId
-  // 8 hops is plenty — bound the walk to avoid runaway queries on bad data.
-  for (let i = 0; i < 8; i++) {
+  // The chain is parent-linked: each tournament has at most one parent, so the
+  // walk to the root is O(chain length). Cap at 100 so a 50+ event season still
+  // resolves; 8 was too tight and silently returned null on long chains.
+  for (let i = 0; i < 100; i++) {
     const row: { id: string; parentTournamentId: string | null; isLeague: boolean } | null =
       await prisma.tournament.findUnique({
         where: { id: currentId },
@@ -52,7 +54,7 @@ export async function getLeagueEvents(tournamentId: string): Promise<LeagueEvent
     name: string
     status: 'REGISTRATION' | 'ACTIVE' | 'COMPLETED'
     parentTournamentId: string | null
-    rounds: { date: Date | null }[]
+    startDate: Date | null
   }> = []
 
   let frontier = [rootId]
@@ -65,7 +67,7 @@ export async function getLeagueEvents(tournamentId: string): Promise<LeagueEvent
         name: true,
         status: true,
         parentTournamentId: true,
-        rounds: { orderBy: { roundNumber: 'asc' }, take: 1, select: { date: true } },
+        startDate: true,
       },
     })
     const newOnes = layer.filter((t) => !collected.find((c) => c.id === t.id))
@@ -79,7 +81,7 @@ export async function getLeagueEvents(tournamentId: string): Promise<LeagueEvent
       id: t.id,
       slug: t.slug,
       name: t.name,
-      date: t.rounds[0]?.date ?? null,
+      date: t.startDate ?? null,
       status: t.status,
       isRoot: t.id === rootId,
     }))

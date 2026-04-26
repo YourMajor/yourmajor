@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useTransition } from 'react'
+import { useRouter } from 'next/navigation'
 import { Users, Calendar, Settings, Check, X, UserMinus, UserPlus, Trophy, Plus, Trash2, Upload } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -533,6 +534,7 @@ function ScheduleEventsPanel({
   leagueEndDate: string | null
   leagueEvents: LeagueEventRow[]
 }) {
+  const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [date, setDate] = useState('')
   const [notes, setNotes] = useState('')
@@ -563,6 +565,7 @@ function ScheduleEventsPanel({
         setNotes('')
         setUseDifferentCourse(false)
         setSelectedCourse(null)
+        router.refresh()
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Something went wrong.')
       }

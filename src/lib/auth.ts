@@ -39,9 +39,29 @@ export async function requireAdmin(): Promise<User> {
 export async function isTournamentAdmin(userId: string, tournamentId: string): Promise<boolean> {
   const user = await prisma.user.findUnique({ where: { id: userId }, select: { role: true } })
   if (user?.role === 'ADMIN') return true
+
   const membership = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId } },
     select: { isAdmin: true },
   })
-  return membership?.isAdmin ?? false
+  if (membership?.isAdmin) return true
+
+  // Account-level co-admin: a user is an admin on this tournament if they are
+  // an AccountAdmin of any user who has a direct TournamentPlayer.isAdmin row.
+  // Co-admins inherit admin rights on every tournament owned by the account holder.
+  const ownerAdmins = await prisma.tournamentPlayer.findMany({
+    where: { tournamentId, isAdmin: true },
+    select: { userId: true },
+  })
+  if (ownerAdmins.length === 0) return false
+
+  const coAdminLink = await prisma.accountAdmin.findFirst({
+    where: {
+      adminUserId: userId,
+      ownerUserId: { in: ownerAdmins.map((a) => a.userId) },
+      acceptedAt: { not: null },
+    },
+    select: { id: true },
+  })
+  return !!coAdminLink
 }

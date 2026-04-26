@@ -48,6 +48,7 @@ const updateTournamentSchema = z.object({
   distributionMode: z.enum(['DRAFT', 'RANDOM']),
   startDate: z.string().optional(),
   endDate: z.string().optional(),
+  leagueEndDate: z.string().optional(),
 })
 
 function parseIntOr(value: FormDataEntryValue | null, fallback: number): number {
@@ -82,6 +83,7 @@ export async function updateTournament(
     distributionMode: String(formData.get('distributionMode') ?? 'DRAFT'),
     startDate: formData.get('startDate') ? String(formData.get('startDate')) : undefined,
     endDate: formData.get('endDate') ? String(formData.get('endDate')) : undefined,
+    leagueEndDate: formData.get('leagueEndDate') ? String(formData.get('leagueEndDate')) : undefined,
   })
 
   // Re-fetch current state server-side for guards
@@ -161,18 +163,28 @@ export async function updateTournament(
     }
   }
 
-  // League tournaments don't have a single start/end date — preserve whatever is on record.
+  // League root: only the season's end date is editable here (individual events
+  //   manage their own dates). League event: single-day, startDate==endDate and
+  //   round date follows. Standalone: both startDate and endDate.
   const isLeague = currentTournament?.isLeague === true
-  const startDate = isLeague
-    ? currentTournament?.startDate ?? null
-    : parsed.startDate
-      ? new Date(parsed.startDate)
-      : null
-  const endDate = isLeague
-    ? currentTournament?.endDate ?? null
-    : parsed.endDate
-      ? new Date(parsed.endDate)
-      : null
+  const isLeagueRoot = isLeague && !currentTournament?.parentTournamentId
+  const isLeagueEvent = isLeague && !!currentTournament?.parentTournamentId
+
+  const dateFields: {
+    startDate?: Date | null
+    endDate?: Date | null
+    leagueEndDate?: Date | null
+  } = {}
+  if (isLeagueRoot) {
+    dateFields.leagueEndDate = parsed.leagueEndDate ? new Date(parsed.leagueEndDate) : null
+  } else if (isLeagueEvent) {
+    const eventDate = parsed.startDate ? new Date(parsed.startDate) : null
+    dateFields.startDate = eventDate
+    dateFields.endDate = eventDate
+  } else {
+    dateFields.startDate = parsed.startDate ? new Date(parsed.startDate) : null
+    dateFields.endDate = parsed.endDate ? new Date(parsed.endDate) : null
+  }
 
   await prisma.tournament.update({
     where: { id: tournamentId },
@@ -188,15 +200,25 @@ export async function updateTournament(
       powerupsPerPlayer,
       maxAttacksPerPlayer,
       distributionMode,
-      startDate,
-      endDate,
+      ...dateFields,
       logo: logoUrl,
       headerImage: headerImageUrl,
     },
   })
 
+  // Keep round dates in sync with the league event date so player-facing UIs
+  // that read TournamentRound.date stay correct.
+  if (isLeagueEvent && dateFields.startDate) {
+    await prisma.tournamentRound.updateMany({
+      where: { tournamentId },
+      data: { date: dateFields.startDate },
+    })
+  }
+
   revalidatePath(`/${parsed.slug}`, 'layout')
   revalidatePath(`/${parsed.slug}/admin/setup`)
+  // Season schedule table on the parent league reads from this event — refresh it too.
+  if (isLeague) revalidatePath('/', 'layout')
 
   if (parsed.slug !== currentSlug) {
     redirect(`/${parsed.slug}/admin/setup`)

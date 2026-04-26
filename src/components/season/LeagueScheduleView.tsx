@@ -107,17 +107,18 @@ export function LeagueScheduleView({ events, isAuthenticated, onRoster }: Props)
             const canUnregister = participation !== false && !event.hasScores
 
             return (
-              <div
+              <Link
                 key={event.id}
-                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-border px-5 py-4 transition-all hover:border-[var(--color-primary)]/40"
+                href={`/${event.slug}/leaderboard`}
+                className="flex flex-col sm:flex-row sm:items-center gap-3 rounded-xl border border-border px-5 py-4 transition-all hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5"
               >
-                <Link href={`/${event.slug}`} className="flex-1 min-w-0">
+                <div className="flex-1 min-w-0">
                   <p className="text-sm font-semibold text-foreground truncate">{event.name}</p>
                   <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
                     <Calendar className="w-3 h-3" />
                     {formatDate(event.date)}
                   </p>
-                </Link>
+                </div>
                 <div className="flex items-center gap-2 shrink-0">
                   <Badge variant={badge.variant}>{badge.label}</Badge>
                   {isAuthenticated && event.status !== 'COMPLETED' && (
@@ -131,7 +132,7 @@ export function LeagueScheduleView({ events, isAuthenticated, onRoster }: Props)
                     />
                   )}
                 </div>
-              </div>
+              </Link>
             )
           })}
         </section>
@@ -145,7 +146,7 @@ export function LeagueScheduleView({ events, isAuthenticated, onRoster }: Props)
           {completed.map((event) => (
             <Link
               key={event.id}
-              href={`/${event.slug}`}
+              href={`/${event.slug}/leaderboard`}
               className="flex items-center justify-between gap-4 rounded-xl border border-border px-5 py-3 transition-all hover:border-[var(--color-primary)]/40 hover:bg-[var(--color-primary)]/5"
             >
               <div className="min-w-0 flex-1">
@@ -184,12 +185,19 @@ function ParticipationToggle({
   //  - participation === false → "Skipping" (opted out)
   //  - participation === null  → not on roster, no record yet ("Register")
 
+  // Stop propagation so clicking the toggle doesn't navigate the row's parent <Link>.
+  const wrap = (handler: () => void) => (e: React.MouseEvent) => {
+    e.preventDefault()
+    e.stopPropagation()
+    handler()
+  }
+
   if (participation === true) {
     return (
       <Button
         variant="outline"
         size="sm"
-        onClick={onSkip}
+        onClick={wrap(onSkip)}
         disabled={isLoading || !canUnregister}
         title={!canUnregister ? "You've already entered scores for this event" : 'Skip this event'}
       >
@@ -204,7 +212,7 @@ function ParticipationToggle({
       <Button
         variant="outline"
         size="sm"
-        onClick={onGoing}
+        onClick={wrap(onGoing)}
         disabled={isLoading}
       >
         <X className="w-3.5 h-3.5 mr-1 text-muted-foreground" />
@@ -218,7 +226,7 @@ function ParticipationToggle({
     <Button
       variant="default"
       size="sm"
-      onClick={onGoing}
+      onClick={wrap(onGoing)}
       disabled={isLoading}
     >
       {isLoading ? 'Registering…' : onRoster ? "Mark me in" : 'Register'}

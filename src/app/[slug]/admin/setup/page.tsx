@@ -12,6 +12,10 @@ import { ResetDraftButton } from './ResetDraftButton'
 import { updateTournament } from './actions'
 import { FormatSettings } from './FormatSettings'
 import { PowerupConfigGroup } from './PowerupConfigGroup'
+import { SubdomainCard } from './SubdomainCard'
+import { SponsorCard } from './SponsorCard'
+import { getTournamentTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import type { FormatId } from '@/lib/formats/types'
 export default async function TournamentSetup({
   params,
@@ -21,6 +25,22 @@ export default async function TournamentSetup({
   const { slug } = await params
   const tournament = await prisma.tournament.findUnique({ where: { slug } })
   if (!tournament) return null
+
+  const tier = await getTournamentTier(tournament.id)
+  const tierLimits = TIER_LIMITS[tier]
+  const isLeagueRoot = tournament.isLeague && !tournament.parentTournamentId
+  const isLeagueChild = !!tournament.parentTournamentId
+  const showSubdomainCard = isLeagueRoot && tierLimits.customSubdomain
+  const showSponsorCard = tierLimits.sponsorPlacements
+
+  let rootSponsorName: string | null = null
+  if (isLeagueChild && tournament.parentTournamentId) {
+    const root = await prisma.tournament.findUnique({
+      where: { id: tournament.parentTournamentId },
+      select: { sponsorName: true },
+    })
+    rootSponsorName = root?.sponsorName ?? null
+  }
 
   // Check if powerups have already been distributed (draft started or cards dealt)
   const draft = await prisma.draft.findUnique({ where: { tournamentId: tournament.id } })
@@ -69,10 +89,22 @@ export default async function TournamentSetup({
                 Tournament URL: yourdomain.com/<strong>{tournament.slug}</strong>
               </p>
             </div>
-            {tournament.isLeague ? (
-              <p className="text-xs text-muted-foreground">
-                League events use individual round dates. The season end date is configured in Season Management.
-              </p>
+            {tournament.isLeague && !tournament.parentTournamentId ? (
+              <div className="space-y-2">
+                <Label htmlFor="leagueEndDate">League End Date</Label>
+                <Input id="leagueEndDate" name="leagueEndDate" type="date" defaultValue={fmt(tournament.leagueEndDate)} />
+                <p className="text-xs text-muted-foreground">
+                  When the league season closes. Individual events keep their own dates.
+                </p>
+              </div>
+            ) : tournament.isLeague ? (
+              <div className="space-y-2">
+                <Label htmlFor="startDate">Event Date</Label>
+                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
+                <p className="text-xs text-muted-foreground">
+                  League events run on a single day. Saving updates the round date too.
+                </p>
+              </div>
             ) : (
               <>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -202,6 +234,25 @@ export default async function TournamentSetup({
 
         <Button type="submit" className="w-full">Save Changes</Button>
       </form>
+
+      {showSubdomainCard && (
+        <SubdomainCard
+          tournamentId={tournament.id}
+          initialSubdomain={tournament.subdomain}
+        />
+      )}
+
+      {showSponsorCard && (
+        <SponsorCard
+          tournamentId={tournament.id}
+          initialName={tournament.sponsorName}
+          initialLogoUrl={tournament.sponsorLogoUrl}
+          initialLink={tournament.sponsorLink}
+          isLeagueRoot={isLeagueRoot}
+          isLeagueChild={isLeagueChild}
+          rootSponsorName={rootSponsorName}
+        />
+      )}
 
       {/* ── Danger Zone ── */}
       <Card className="border-destructive/30">

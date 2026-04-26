@@ -181,7 +181,7 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
 
   // Free tier: block powerups
   if (!tierLimits.powerups && data.powerupsEnabled) {
-    return { error: 'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,499/year).' }
+    return { error: 'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,999/year).' }
   }
 
   // Free tier: cap rounds
@@ -425,6 +425,11 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
   } catch (err) {
     console.error('[createTournamentFromWizard] post-create error (tournament was created):', err)
   }
+
+  // Bust caches so the new tournament shows up on dashboard + listing pages
+  // without waiting for the next auto-revalidate.
+  revalidatePath('/dashboard')
+  revalidatePath('/tournaments')
 
   return { slug }
 }

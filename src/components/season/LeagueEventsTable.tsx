@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, MapPin, Users, ListChecks, Activity, ArrowRight, Pencil, Trash2 } from 'lucide-react'
+import { Calendar, MapPin, Users, ListChecks, Activity, ArrowRight, Pencil, PenLine, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { deleteLeagueEvent } from '@/lib/league-event-actions'
@@ -196,6 +196,20 @@ export function LeagueEventsTable({ events }: Props) {
                         <Pencil className="w-3.5 h-3.5" />
                       </Link>
                       <Link
+                        href={`/${event.slug}/admin/groups`}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Manage groups"
+                      >
+                        <Users className="w-3.5 h-3.5" />
+                      </Link>
+                      <Link
+                        href={`/${event.slug}/admin/scores`}
+                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
+                        title="Manage scores"
+                      >
+                        <PenLine className="w-3.5 h-3.5" />
+                      </Link>
+                      <Link
                         href={`/${event.slug}/admin`}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
                         title="Open admin overview"
@@ -266,12 +280,24 @@ export function LeagueEventsTable({ events }: Props) {
                   <Activity className="w-3 h-3" /> {event.scoreCount > 0 ? `${event.scoreCompletionPct}% scored` : 'no scores'}
                 </span>
               </div>
-              <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border">
+              <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border flex-wrap">
                 <Link
                   href={`/${event.slug}/admin/setup`}
                   className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
                 >
                   <Pencil className="w-3 h-3" /> Edit
+                </Link>
+                <Link
+                  href={`/${event.slug}/admin/groups`}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
+                >
+                  <Users className="w-3 h-3" /> Groups
+                </Link>
+                <Link
+                  href={`/${event.slug}/admin/scores`}
+                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
+                >
+                  <PenLine className="w-3 h-3" /> Scores
                 </Link>
                 <Link
                   href={`/${event.slug}/admin`}

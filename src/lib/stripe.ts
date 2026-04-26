@@ -127,7 +127,7 @@ export async function createClubCheckoutSession(opts: {
 }
 
 /**
- * Create a Stripe Checkout session for a Tour annual pass ($1,499, one-time).
+ * Create a Stripe Checkout session for a Tour annual pass ($1,999, one-time).
  */
 export async function createLeagueCheckoutSession(opts: {
   userId: string
@@ -143,10 +143,11 @@ export async function createLeagueCheckoutSession(opts: {
       {
         price_data: {
           currency: 'usd',
-          unit_amount: 149900,
+          unit_amount: 199900,
           product_data: {
             name: 'YourMajor Tour — Annual Pass',
-            description: 'Unlimited tournaments and all features for 365 days.',
+            description:
+              'Unlimited tournaments, 144 players per event, 5 admin seats, custom subdomain, sponsor placements, and season-over-season analytics for 365 days.',
           },
         },
         quantity: 1,

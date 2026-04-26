@@ -170,15 +170,25 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     if (basicInfo.isLeague) return ''
     for (const r of rounds.slice(0, basicInfo.numRounds)) {
       if (!r.courseId) return `Please select a course for Round ${r.roundNumber}.`
-      // Only enforce date constraints for non-public tournaments
-      if (!isPublic) {
-        if (r.date && basicInfo.startDate && r.date < basicInfo.startDate)
-          return `Round ${r.roundNumber} date cannot be before the tournament start date.`
-        if (r.date && basicInfo.endDate && r.date > basicInfo.endDate)
-          return `Round ${r.roundNumber} date cannot be after the tournament end date.`
-      }
     }
     return ''
+  }
+
+  // Derive tournament startDate/endDate from round dates: start = first round
+  // (00:00 of that day), end = day after the last round (00:00) so the final
+  // day still counts as "active". Returns YYYY-MM-DD strings the server parses
+  // with new Date(). When no rounds carry a date, both are blank.
+  function deriveTournamentDates(): { startDate: string; endDate: string } {
+    const dates = rounds
+      .slice(0, basicInfo.numRounds)
+      .map((r) => r.date)
+      .filter((d): d is string => !!d)
+      .sort()
+    if (dates.length === 0) return { startDate: '', endDate: '' }
+    const last = new Date(dates[dates.length - 1] + 'T00:00:00Z')
+    last.setUTCDate(last.getUTCDate() + 1)
+    const dayAfter = last.toISOString().slice(0, 10)
+    return { startDate: dates[0], endDate: dayAfter }
   }
 
   function handleNext() {
@@ -204,11 +214,14 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     startTransition(async () => {
       try {
         const activeRounds = basicInfo.isLeague ? [] : rounds.slice(0, basicInfo.numRounds)
+        const derived = basicInfo.isLeague
+          ? { startDate: basicInfo.startDate, endDate: basicInfo.endDate }
+          : deriveTournamentDates()
         const result = await createTournamentFromWizard({
           name: basicInfo.name,
           description: basicInfo.description,
-          startDate: basicInfo.startDate,
-          endDate: basicInfo.endDate,
+          startDate: derived.startDate,
+          endDate: derived.endDate,
           numRounds: basicInfo.isLeague ? 0 : basicInfo.numRounds,
           logoBase64: basicInfo.logoBase64,
           logoMime: basicInfo.logoMime,
@@ -275,9 +288,9 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 'type':
         return <StepTournamentType value={tournamentType} onChange={setTournamentType} />
       case 'basics':
-        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} tournamentType={tournamentType.tournamentType} />
+        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} userTier={userTier} tournamentType={tournamentType.tournamentType} />
       case 'rounds':
-        return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} startDate={basicInfo.startDate || undefined} endDate={basicInfo.endDate || undefined} isOpenRegistration={isPublic} />
+        return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} isOpenRegistration={isPublic} />
       case 'format':
         return <StepFormat value={tournamentFormat} onChange={setTournamentFormat} isFree={isFree} />
       case 'powerups':
