@@ -7,18 +7,20 @@ import { containsProfanity } from '@/lib/content-moderation'
 import { randomUUID } from 'crypto'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
-const ALLOWED_TYPES = [
-  'image/jpeg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/heic',
-  'image/heif',
-  'image/bmp',
-  'image/tiff',
-  'image/svg+xml',
-  'image/avif',
-]
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+  'image/heic': 'heic',
+  'image/heif': 'heif',
+  'image/bmp': 'bmp',
+  'image/tiff': 'tiff',
+  'image/avif': 'avif',
+}
+// Note: image/svg+xml deliberately excluded — SVGs can embed <script> and
+// would execute as XSS when served from a public bucket.
+const ALLOWED_TYPES = Object.keys(MIME_TO_EXT)
 
 export async function GET(
   _req: NextRequest,
@@ -53,7 +55,8 @@ export async function POST(
 
   // Verify tournament tier allows gallery
   const tier = await getTournamentTier(id)
-  if (!TIER_LIMITS[tier].gallery) {
+  const maxPhotos = TIER_LIMITS[tier].maxPhotos
+  if (maxPhotos <= 0) {
     return NextResponse.json({ error: 'Photo gallery requires a paid plan' }, { status: 403 })
   }
 
@@ -62,6 +65,15 @@ export async function POST(
     where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
   })
   if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
+
+  // Enforce per-tier photo count cap
+  const existingPhotoCount = await prisma.tournamentPhoto.count({ where: { tournamentId: id } })
+  if (existingPhotoCount >= maxPhotos) {
+    return NextResponse.json(
+      { error: `Photo limit reached (${maxPhotos} photos for ${tier}). Upgrade for more storage.` },
+      { status: 403 },
+    )
+  }
 
   const form = await req.formData()
   const file = form.get('file') as File | null
@@ -90,17 +102,22 @@ export async function POST(
     )
   }
 
-  // Validate file type — accept the file if the MIME type is in the list,
-  // or if it starts with "image/" (covers edge cases like camera-specific types)
-  if (!ALLOWED_TYPES.includes(file.type) && !file.type.startsWith('image/')) {
+  // Validate file type strictly against the allowlist — no startsWith() escape
+  // hatch, since that would let through image/svg+xml and arbitrary image/*
+  // subtypes we don't have an extension mapping for.
+  if (!ALLOWED_TYPES.includes(file.type)) {
     return NextResponse.json(
-      { error: 'Unsupported file type — please upload a JPEG, PNG, GIF, WebP, or HEIC image' },
+      { error: 'Unsupported file type — please upload a JPEG, PNG, GIF, WebP, HEIC, BMP, TIFF, or AVIF image' },
       { status: 400 }
     )
   }
 
   const { supabaseAdmin } = await import('@/lib/supabase')
-  const ext = file.name.split('.').pop()?.toLowerCase() ?? 'jpg'
+  // Derive the storage extension from the validated MIME type, not the
+  // user-supplied filename — otherwise an attacker can upload an image with
+  // contentType=image/jpeg but filename=evil.html and end up with an .html
+  // path served from the public bucket.
+  const ext = MIME_TO_EXT[file.type] ?? 'bin'
   const path = `${id}/${randomUUID()}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
