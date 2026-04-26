@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { AdminSidebar } from '@/components/admin/AdminSidebar'
 
@@ -27,16 +27,7 @@ export default async function AdminLayout({
 
   if (!tournament) redirect(`/${slug}`)
 
-  // Super-admins (global Role.ADMIN) can access any tournament
-  // Otherwise check per-tournament isAdmin flag
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-      select: { isAdmin: true },
-    })
-
-    if (!membership?.isAdmin) redirect(`/${slug}`)
-  }
+  if (!(await isTournamentAdmin(user.id, tournament.id))) redirect(`/${slug}`)
 
   return (
     <div className="lg:grid lg:grid-cols-[16rem_1fr] lg:min-h-screen">

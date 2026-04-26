@@ -182,7 +182,7 @@ export default function PricingPage() {
                 <span className="text-muted-foreground">/year</span>
               </div>
               <div className="min-h-[1.25rem] mt-1">
-                <span className="text-xs text-muted-foreground">*~$125/month over 12 months</span>
+                <span className="text-xs text-muted-foreground">*~$167/month over 12 months</span>
               </div>
             </div>
           </CardHeader>
@@ -271,11 +271,11 @@ export default function PricingPage() {
           />
           <FaqItem
             q="What is the Club subscription?"
-            a="The Club is a $99/month subscription that gives you up to 4 tournaments per month with all Pro features. Cancel anytime from your billing page — no long-term commitment."
+            a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page — no long-term commitment."
           />
           <FaqItem
             q="What does the Tour annual pass include?"
-            a="The $1,499 Tour pass unlocks everything for 365 days from purchase — unlimited tournaments, season standings, recurring rosters, and all Pro features. No per-tournament fees."
+            a="The $1,999 Tour pass unlocks everything for 365 days from purchase — up to 144 players per event, unlimited tournaments, all Club features (sponsor placements, season standings, season-over-season tracking, recurring rosters), 5 admin seats across your account, a custom subdomain (yourcrew.yourmajor.app), and priority email support. No per-tournament fees."
           />
           <FaqItem
             q="What payment methods do you accept?"

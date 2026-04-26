@@ -36,7 +36,7 @@ export async function setEventParticipation(
 
   const existing = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId: event.id, userId: user.id } },
-    select: { id: true, isAdmin: true },
+    select: { id: true },
   })
 
   // Don't allow unregistering once scores exist.
@@ -46,9 +46,6 @@ export async function setEventParticipation(
     })
     if (scoreCount > 0) {
       return { ok: false, error: 'You already have scores submitted for this event.' }
-    }
-    if (existing.isAdmin) {
-      return { ok: false, error: 'Admins stay registered. Toggle a different participant flag instead.' }
     }
   }
 

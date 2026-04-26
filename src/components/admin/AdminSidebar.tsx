@@ -34,12 +34,12 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
 
   const links: NavLink[] = [
     { href: base, label: 'Overview', icon: LayoutDashboard, show: true },
+    { href: `${base}/season`, label: 'Season', icon: Trophy, show: isLeague },
     { href: `${base}/invites`, label: 'Invite Players', icon: Mail, show: tournamentType === 'INVITE' },
     { href: `${base}/setup`, label: 'Settings', icon: Settings, show: true },
-    { href: `${base}/scores`, label: 'Manage Scores', icon: PenLine, show: true },
-    { href: `${base}/groups`, label: 'Manage Groups', icon: Users, show: tournamentType !== 'PUBLIC' },
+    { href: `${base}/scores`, label: 'Manage Scores', icon: PenLine, show: !isLeague },
+    { href: `${base}/groups`, label: 'Manage Groups', icon: Users, show: !isLeague && tournamentType !== 'PUBLIC' },
     { href: `${base}/draft`, label: 'Draft & Powerups', icon: Target, show: powerupsEnabled },
-    { href: `${base}/season`, label: 'Season', icon: Trophy, show: isLeague },
     { href: `${base}/chat`, label: 'Chat Moderation', icon: ShieldAlert, show: true },
   ].filter((l) => l.show)
 

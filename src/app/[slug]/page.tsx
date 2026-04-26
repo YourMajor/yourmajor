@@ -10,6 +10,7 @@ import { TournamentStats } from '@/components/leaderboard/TournamentStats'
 import { TournamentHeaderBlock } from '@/components/leaderboard/TournamentHeaderBlock'
 import { RegistrationBanner } from '@/components/RegistrationBanner'
 import { UpgradeSuccessBanner } from '@/components/UpgradeSuccessBanner'
+import { SponsorStrip } from '@/components/hub/SponsorStrip'
 
 export default async function TournamentPage({
   params,
@@ -214,6 +215,8 @@ export default async function TournamentPage({
         endDate={tournament.endDate}
         status={effectiveStatus}
       />
+
+      <SponsorStrip tournamentId={tournament.id} />
 
       <LiveLeaderboard
         initialData={initialStandings}

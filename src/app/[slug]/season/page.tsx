@@ -1,12 +1,15 @@
 export const dynamic = 'force-dynamic'
 
+import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { getSeasonStandings, getSeasonAwards } from '@/lib/season-standings'
 import { getLatestEventRecap } from '@/lib/season-recap'
 import { getLeagueEvents, getLeagueRootId } from '@/lib/league-events'
+import { TIER_LIMITS } from '@/lib/tiers'
 import { SeasonDashboard } from '@/components/season/SeasonDashboard'
+import { SponsorStrip } from '@/components/hub/SponsorStrip'
 import type { ScheduleEvent } from '@/components/season/LeagueScheduleView'
 
 export default async function SeasonPage({
@@ -114,8 +117,21 @@ export default async function SeasonPage({
     }
   }
 
+  const showHistoryLink = TIER_LIMITS[tier].seasonOverSeasonTracking
+
   return (
     <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <SponsorStrip tournamentId={tournament.id} />
+      {showHistoryLink && (
+        <div className="mb-4 flex justify-end">
+          <Link
+            href={`/${slug}/season/history`}
+            className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline"
+          >
+            Season History →
+          </Link>
+        </div>
+      )}
       <SeasonDashboard
         standings={seasonData.standings}
         events={seasonData.events}
