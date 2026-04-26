@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ColorDonutPicker } from '@/components/ui/color-donut-picker'
+import { TIER_LIMITS } from '@/lib/tiers'
 
 export type BasicInfoState = {
   name: string
@@ -33,12 +34,13 @@ interface Props {
   value: BasicInfoState
   onChange: (v: BasicInfoState) => void
   isFree?: boolean
+  userTier?: 'FREE' | 'PRO' | 'CLUB' | 'LEAGUE'
   tournamentType?: 'PUBLIC' | 'OPEN' | 'INVITE'
 }
 
 const MAX_LOGO_MB = 10
 
-export function StepBasicInfo({ value, onChange, isFree = false, tournamentType }: Props) {
+export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FREE', tournamentType }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const headerFileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
@@ -170,62 +172,52 @@ export function StepBasicInfo({ value, onChange, isFree = false, tournamentType 
                 <p className="text-xs text-muted-foreground">When the league season ends. A champion will be crowned and the league moves to history.</p>
               </div>
               <p className="text-xs text-muted-foreground">Event dates are set per-event. Each event in the season will have its own date.</p>
+              <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
+                <p className="text-sm font-medium text-foreground">League schedule</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  You&apos;ll be able to create your league schedule once setup is complete.
+                </p>
+              </div>
             </>
           ) : (
-            <div className="grid grid-cols-2 gap-4">
+            <>
               <div className="space-y-2">
-                <Label htmlFor="startDate">Start Date</Label>
-                <Input id="startDate" type="date" value={value.startDate} onChange={(e) => set('startDate', e.target.value)} />
+                <Label htmlFor="numRounds">Number of Rounds</Label>
+                {isFree ? (
+                  <div>
+                    <Input id="numRounds" value="1 Round" disabled className="bg-muted" />
+                    <p className="text-xs text-muted-foreground mt-1">Multi-round tournaments require Pro or Tour</p>
+                  </div>
+                ) : (
+                  <select
+                    id="numRounds"
+                    value={value.numRounds}
+                    onChange={(e) => set('numRounds', parseInt(e.target.value))}
+                    className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
+                  >
+                    {Array.from({ length: Math.min(TIER_LIMITS[userTier].maxRounds, 7) }, (_, i) => i + 1).map((n) => (
+                      <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>
+                    ))}
+                  </select>
+                )}
+                <p className="text-xs text-muted-foreground">
+                  You&apos;ll set the date for each round on the next step. Tournament start and end are derived from those dates.
+                </p>
               </div>
-              <div className="space-y-2">
-                <Label htmlFor="endDate">End Date</Label>
-                <Input id="endDate" type="date" value={value.endDate} onChange={(e) => set('endDate', e.target.value)} />
-              </div>
-            </div>
-          )}
 
-          {tournamentType === 'INVITE' && !value.isLeague && (
-            <div className="space-y-2">
-              <Label htmlFor="registrationDeadline">Registration Deadline</Label>
-              <Input
-                id="registrationDeadline"
-                type="date"
-                value={value.registrationDeadline}
-                onChange={(e) => set('registrationDeadline', e.target.value)}
-                max={value.startDate || undefined}
-              />
-              <p className="text-xs text-muted-foreground">Last day players can register. Leave blank for no deadline.</p>
-            </div>
-          )}
-
-          {value.isLeague ? (
-            <div className="rounded-lg border border-border bg-muted/40 px-4 py-3">
-              <p className="text-sm font-medium text-foreground">League schedule</p>
-              <p className="text-xs text-muted-foreground mt-1">
-                You&apos;ll be able to create your league schedule once setup is complete.
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              <Label htmlFor="numRounds">Number of Rounds</Label>
-              {isFree ? (
-                <div>
-                  <Input id="numRounds" value="1 Round" disabled className="bg-muted" />
-                  <p className="text-xs text-muted-foreground mt-1">Multi-round tournaments require Pro or Tour</p>
+              {tournamentType === 'INVITE' && (
+                <div className="space-y-2">
+                  <Label htmlFor="registrationDeadline">Registration Deadline</Label>
+                  <Input
+                    id="registrationDeadline"
+                    type="date"
+                    value={value.registrationDeadline}
+                    onChange={(e) => set('registrationDeadline', e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">Last day players can register. Leave blank for no deadline.</p>
                 </div>
-              ) : (
-                <select
-                  id="numRounds"
-                  value={value.numRounds}
-                  onChange={(e) => set('numRounds', parseInt(e.target.value))}
-                  className="flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm"
-                >
-                  {[1, 2, 3, 4, 5, 6, 7].map((n) => (
-                    <option key={n} value={n}>{n} Round{n > 1 ? 's' : ''}</option>
-                  ))}
-                </select>
               )}
-            </div>
+            </>
           )}
         </CardContent>
       </Card>

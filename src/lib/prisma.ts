@@ -12,6 +12,12 @@ function createPrismaClient() {
   const adapter = new PrismaPg({
     connectionString: url.toString(),
     ssl: { rejectUnauthorized: false },
+    // Dev with the Supabase Session pooler (port 5432) caps at ~15 connections
+    // per project; without these, an exhausted pool surfaces as "Operation has
+    // timed out" minutes later and crashes the static-paths dev worker.
+    max: 10,
+    connectionTimeoutMillis: 10_000,
+    idleTimeoutMillis: 30_000,
   })
   return new PrismaClient({ adapter })
 }

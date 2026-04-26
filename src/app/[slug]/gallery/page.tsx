@@ -19,7 +19,8 @@ export default async function GalleryPage({
   if (!tournament) return null
 
   const tier = await getTournamentTier(tournament.id)
-  if (!TIER_LIMITS[tier].gallery) {
+  const maxPhotos = TIER_LIMITS[tier].maxPhotos
+  if (maxPhotos <= 0) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-8 text-center">
         <h1 className="text-2xl font-heading font-bold mb-4">Gallery</h1>
