@@ -1,5 +1,6 @@
 'use client'
 
+import { useEffect, useState } from 'react'
 import { Switch } from '@/components/ui/switch'
 import { Label } from '@/components/ui/label'
 import { Input } from '@/components/ui/input'
@@ -18,6 +19,44 @@ export type PowerupsState = {
 interface Props {
   value: PowerupsState
   onChange: (v: PowerupsState) => void
+}
+
+// Mobile keyboards clear-then-replace digits, which means the input briefly
+// holds the empty string. A controlled number input that snaps the state back
+// to a default on every empty value fights the user — they can't get past the
+// reset to type a fresh number. This component buffers the displayed string
+// locally and only clamps to the parent state on blur.
+function ClampedNumberInput({
+  id, min, max, value, onCommit, className,
+}: {
+  id: string
+  min: number
+  max: number
+  value: number
+  onCommit: (n: number) => void
+  className?: string
+}) {
+  const [draft, setDraft] = useState(String(value))
+  useEffect(() => { setDraft(String(value)) }, [value])
+
+  return (
+    <Input
+      id={id}
+      type="number"
+      inputMode="numeric"
+      min={min}
+      max={max}
+      value={draft}
+      onChange={(e) => setDraft(e.target.value)}
+      onBlur={() => {
+        const n = parseInt(draft, 10)
+        const clamped = isNaN(n) ? min : Math.min(max, Math.max(min, n))
+        setDraft(String(clamped))
+        if (clamped !== value) onCommit(clamped)
+      }}
+      className={className}
+    />
+  )
 }
 
 export function StepPowerups({ value, onChange }: Props) {
@@ -53,36 +92,24 @@ export function StepPowerups({ value, onChange }: Props) {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="powerupsPerPlayer">Powerups Per Player</Label>
-                <Input
+                <ClampedNumberInput
                   id="powerupsPerPlayer"
-                  type="number"
                   min={1}
                   max={10}
-                  value={String(value.powerupsPerPlayer)}
-                  onChange={(e) => {
-                    const raw = e.target.value
-                    if (raw === '') { set('powerupsPerPlayer', 1); return }
-                    const n = parseInt(raw, 10)
-                    if (!isNaN(n)) set('powerupsPerPlayer', Math.min(10, Math.max(1, n)))
-                  }}
+                  value={value.powerupsPerPlayer}
+                  onCommit={(n) => set('powerupsPerPlayer', n)}
                   className="w-24"
                 />
               </div>
 
               <div className="space-y-2">
                 <Label htmlFor="maxAttacksPerPlayer">Max Attack Cards Per Player</Label>
-                <Input
+                <ClampedNumberInput
                   id="maxAttacksPerPlayer"
-                  type="number"
                   min={0}
                   max={10}
-                  value={String(value.maxAttacksPerPlayer)}
-                  onChange={(e) => {
-                    const raw = e.target.value
-                    if (raw === '') { set('maxAttacksPerPlayer', 0); return }
-                    const n = parseInt(raw, 10)
-                    if (!isNaN(n)) set('maxAttacksPerPlayer', Math.min(10, Math.max(0, n)))
-                  }}
+                  value={value.maxAttacksPerPlayer}
+                  onCommit={(n) => set('maxAttacksPerPlayer', n)}
                   className="w-24"
                 />
                 <p className="text-xs text-muted-foreground">Limits how many attack cards each player can hold. Set to 0 for boosts only.</p>
