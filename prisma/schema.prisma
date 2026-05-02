@@ -300,6 +300,7 @@ model Tournament {
   seasonSchedule      SeasonScheduleEvent[]
   teams               TournamentTeam[]
   leagueAnnouncements LeagueAnnouncement[]  @relation("LeagueAnnouncementsForRoot")
+  groupVacancies      GroupVacancy[]
 }
 
 model SeasonAdjustment {
@@ -499,6 +500,7 @@ model TournamentGroup {
 
   tournament Tournament              @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   members    TournamentGroupMember[]
+  vacancies  GroupVacancy[]
 
   @@index([tournamentId])
 }
@@ -512,6 +514,27 @@ model TournamentGroupMember {
 
   group            TournamentGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+}
+
+// Recorded when a player with an assigned tee-time slot unregisters from a
+// tournament. Surfaced to admins as a banner + sidebar badge until dismissed.
+// Snapshots group/player details so the row stays informative even if the
+// underlying group is later renamed or deleted.
+model GroupVacancy {
+  id             String    @id @default(cuid())
+  tournamentId   String
+  groupId        String?
+  groupName      String
+  teeTime        DateTime?
+  startingHole   Int?
+  playerName     String
+  unregisteredAt DateTime  @default(now())
+  dismissedAt    DateTime?
+
+  tournament Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  group      TournamentGroup? @relation(fields: [groupId], references: [id], onDelete: SetNull)
+
+  @@index([tournamentId, dismissedAt])
 }
 
 // ─── Scoring ──────────────────────────────────────────────────────────────────

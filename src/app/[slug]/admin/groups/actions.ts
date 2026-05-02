@@ -671,3 +671,43 @@ async function writeTeeTimeAuditRow(args: {
     deliveries: args.deliveries,
   })
 }
+
+// ── Vacancy alerts ──────────────────────────────────────────────────────────
+//
+// Triggered when an admin clears a single vacancy banner row. The vacancy stays
+// in the table for audit; only `dismissedAt` is set.
+
+export async function dismissVacancy(vacancyId: string, slug: string) {
+  const user = await getUser()
+  if (!user) throw new Error('Unauthorized')
+
+  const vacancy = await prisma.groupVacancy.findUnique({
+    where: { id: vacancyId },
+    select: { tournamentId: true, dismissedAt: true },
+  })
+  if (!vacancy) throw new Error('Vacancy not found')
+
+  await requireTournamentAdmin(vacancy.tournamentId)
+
+  if (vacancy.dismissedAt) return
+
+  await prisma.groupVacancy.update({
+    where: { id: vacancyId },
+    data: { dismissedAt: new Date() },
+  })
+
+  revalidatePath(`/${slug}/admin/groups`)
+  revalidatePath(`/${slug}/admin`)
+}
+
+export async function dismissAllVacancies(tournamentId: string, slug: string) {
+  await requireTournamentAdmin(tournamentId)
+
+  await prisma.groupVacancy.updateMany({
+    where: { tournamentId, dismissedAt: null },
+    data: { dismissedAt: new Date() },
+  })
+
+  revalidatePath(`/${slug}/admin/groups`)
+  revalidatePath(`/${slug}/admin`)
+}

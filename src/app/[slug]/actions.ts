@@ -25,6 +25,31 @@ export async function leaveTournament(slug: string) {
   })
   if (!membership) throw new Error('You are not registered for this tournament')
 
+  // If the player was in a group, snapshot it as a vacancy alert before deleting
+  // the membership so admins can see the drop in the Manage Groups view.
+  const groupMembership = await prisma.tournamentGroupMember.findUnique({
+    where: { tournamentPlayerId: membership.id },
+    include: {
+      group: { select: { id: true, name: true, teeTime: true, startingHole: true } },
+    },
+  })
+  if (groupMembership) {
+    const userRecord = await prisma.user.findUnique({
+      where: { id: user.id },
+      select: { name: true, email: true },
+    })
+    await prisma.groupVacancy.create({
+      data: {
+        tournamentId: tournament.id,
+        groupId: groupMembership.group.id,
+        groupName: groupMembership.group.name,
+        teeTime: groupMembership.group.teeTime,
+        startingHole: groupMembership.group.startingHole,
+        playerName: userRecord?.name ?? userRecord?.email ?? 'Unknown player',
+      },
+    })
+  }
+
   // Remove from any group first
   await prisma.tournamentGroupMember.deleteMany({
     where: { tournamentPlayerId: membership.id },

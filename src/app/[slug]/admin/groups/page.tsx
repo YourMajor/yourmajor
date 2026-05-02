@@ -64,6 +64,20 @@ export default async function AdminGroupsPage({
     })),
   }))
 
+  const openVacancies = await prisma.groupVacancy.findMany({
+    where: { tournamentId: tournament.id, dismissedAt: null },
+    orderBy: { unregisteredAt: 'desc' },
+  })
+
+  const vacancies = openVacancies.map((v) => ({
+    id: v.id,
+    groupName: v.groupName,
+    teeTime: v.teeTime?.toISOString() ?? null,
+    startingHole: v.startingHole,
+    playerName: v.playerName,
+    unregisteredAt: v.unregisteredAt.toISOString(),
+  }))
+
   return (
     <main>
       <GroupBuilder
@@ -73,6 +87,7 @@ export default async function AdminGroupsPage({
         isLeague={tournament.isLeague || !!tournament.parentTournamentId}
         initialPlayers={players}
         initialGroups={groups}
+        initialVacancies={vacancies}
       />
     </main>
   )

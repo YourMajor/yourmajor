@@ -21,7 +21,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check, Wand2 } from 'lucide-react'
+import { Plus, X, UserPlus, Users, Clock, Flag, Send, ArrowLeft, Pencil, Check, Wand2, AlertTriangle } from 'lucide-react'
 import Link from 'next/link'
 import {
   createGroup,
@@ -34,6 +34,8 @@ import {
   updateGroupStartingHole,
   notifyAffectedPlayers,
   notifyAllPlayers,
+  dismissVacancy,
+  dismissAllVacancies,
 } from '@/app/[slug]/admin/groups/actions'
 import { GroupAutoAssignDialog } from './GroupAutoAssignDialog'
 
@@ -127,6 +129,15 @@ type Group = {
   members: GroupMember[]
 }
 
+type Vacancy = {
+  id: string
+  groupName: string
+  teeTime: string | null
+  startingHole: number | null
+  playerName: string
+  unregisteredAt: string
+}
+
 interface Props {
   tournamentId: string
   tournamentName: string
@@ -134,15 +145,17 @@ interface Props {
   isLeague: boolean
   initialPlayers: Player[]
   initialGroups: Group[]
+  initialVacancies?: Vacancy[]
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups }: Props) {
+export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups, initialVacancies = [] }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [players, setPlayers] = useState<Player[]>(initialPlayers)
   const [groups, setGroups] = useState<Group[]>(initialGroups)
+  const [vacancies, setVacancies] = useState<Vacancy[]>(initialVacancies)
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<Set<string>>(new Set())
   const [addDialogOpen, setAddDialogOpen] = useState(false)
   const [autoAssignOpen, setAutoAssignOpen] = useState(false)
@@ -488,6 +501,33 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
     return count
   }
 
+  function handleDismissVacancy(vacancyId: string) {
+    setVacancies((prev) => prev.filter((v) => v.id !== vacancyId))
+    startTransition(async () => {
+      try {
+        await dismissVacancy(vacancyId, slug)
+        router.refresh()
+      } catch {
+        // Roll back optimistic update on failure
+        const original = initialVacancies.find((v) => v.id === vacancyId)
+        if (original) setVacancies((prev) => [original, ...prev])
+      }
+    })
+  }
+
+  function handleDismissAllVacancies() {
+    const snapshot = vacancies
+    setVacancies([])
+    startTransition(async () => {
+      try {
+        await dismissAllVacancies(tournamentId, slug)
+        router.refresh()
+      } catch {
+        setVacancies(snapshot)
+      }
+    })
+  }
+
   function handleNotifyAffected() {
     setMessage(null)
     startTransition(async () => {
@@ -562,6 +602,56 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
   return (
     <DndContext sensors={sensors} onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
     <div className="space-y-6">
+      {/* Vacancy alerts — players with assigned tee times who unregistered */}
+      {vacancies.length > 0 && (
+        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-amber-200 dark:border-amber-800/60">
+            <div className="flex items-center gap-2 min-w-0">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
+              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+                {vacancies.length} player{vacancies.length === 1 ? '' : 's'} dropped from an assigned group
+              </p>
+            </div>
+            {vacancies.length > 1 && (
+              <button
+                type="button"
+                onClick={handleDismissAllVacancies}
+                disabled={isPending}
+                className="text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors shrink-0"
+              >
+                Dismiss all
+              </button>
+            )}
+          </div>
+          <ul className="divide-y divide-amber-200 dark:divide-amber-800/60">
+            {vacancies.map((v) => {
+              const teeTimeStr = v.teeTime
+                ? new Date(v.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+                : null
+              const meta = [teeTimeStr, v.startingHole ? `Hole ${v.startingHole}` : null].filter(Boolean).join(' · ')
+              return (
+                <li key={v.id} className="px-4 py-2.5 flex items-center justify-between gap-4">
+                  <p className="text-sm text-amber-900 dark:text-amber-100 min-w-0">
+                    <span className="font-semibold">{v.playerName}</span>
+                    <span className="text-amber-700 dark:text-amber-300"> unregistered from </span>
+                    <span className="font-semibold">{v.groupName}</span>
+                    {meta && <span className="text-amber-700 dark:text-amber-300"> ({meta})</span>}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={() => handleDismissVacancy(v.id)}
+                    disabled={isPending}
+                    className="text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors shrink-0"
+                  >
+                    Dismiss
+                  </button>
+                </li>
+              )
+            })}
+          </ul>
+        </div>
+      )}
+
       {/* Header */}
       <div className="flex items-center gap-3">
         <Link

@@ -17,9 +17,12 @@ interface Props {
   canRegister: boolean
   inviteToken?: string | null
   registrationClosed?: boolean
+  // Hides the registered tile once the player has started entering scores so
+  // the leaderboard isn't cluttered mid-round.
+  currentPlayerHolesPlayed?: number
 }
 
-export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, startDate, canRegister, inviteToken, registrationClosed }: Props) {
+export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, startDate, canRegister, inviteToken, registrationClosed, currentPlayerHolesPlayed = 0 }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
@@ -46,12 +49,16 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
   // Tournament over — nothing to show
   if (status === 'COMPLETED') return null
 
+  // Once the player has entered live scoring, hide the registered tile so the
+  // leaderboard is the focus. The banner reappears if they unregister.
+  if (isParticipant && currentPlayerHolesPlayed > 0) return null
+
   // Not registered — show register CTA if registration is open
   if (!isParticipant) {
     if (!registrationOpen || !canRegister) return null
 
     return (
-      <div className="mb-6 p-4 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 flex items-center justify-between gap-4">
+      <div className="p-4 rounded-xl border border-[var(--color-primary)]/30 bg-[var(--color-primary)]/5 flex items-center justify-between gap-4">
         <div>
           <p className="text-sm font-semibold text-foreground">Join this tournament</p>
           <p className="text-xs text-muted-foreground mt-0.5">
@@ -82,7 +89,7 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
   // Registered — show status, scoring message, and unregister option
   return (
     <>
-      <div className="mb-6 rounded-xl border border-border overflow-hidden">
+      <div className="rounded-xl border border-border overflow-hidden">
         <div className="px-5 py-3 flex items-center justify-between gap-4">
           <div className="space-y-0.5 min-w-0">
             <p className="text-sm font-medium text-foreground">You are registered.</p>

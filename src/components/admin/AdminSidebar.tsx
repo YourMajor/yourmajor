@@ -19,6 +19,7 @@ interface NavLink {
   label: string
   icon: React.ComponentType<{ className?: string }>
   show: boolean
+  badge?: number
 }
 
 interface Props {
@@ -27,9 +28,10 @@ interface Props {
   tournamentType: 'OPEN' | 'INVITE' | 'PUBLIC'
   isLeague: boolean
   powerupsEnabled: boolean
+  vacancyCount?: number
 }
 
-export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, powerupsEnabled }: Props) {
+export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, powerupsEnabled, vacancyCount = 0 }: Props) {
   const pathname = usePathname()
   const base = `/${slug}/admin`
 
@@ -40,7 +42,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
     { href: `${base}/invites`, label: 'Invite Players', icon: Mail, show: tournamentType === 'INVITE' },
     { href: `${base}/setup`, label: 'Settings', icon: Settings, show: true },
     { href: `${base}/scores`, label: 'Manage Scores', icon: PenLine, show: !isLeague },
-    { href: `${base}/groups`, label: 'Manage Groups', icon: Users, show: !isLeague && tournamentType !== 'PUBLIC' },
+    { href: `${base}/groups`, label: 'Manage Groups', icon: Users, show: !isLeague && tournamentType !== 'PUBLIC', badge: vacancyCount },
     { href: `${base}/draft`, label: 'Draft & Powerups', icon: Target, show: powerupsEnabled },
     { href: `${base}/chat`, label: 'Chat Moderation', icon: ShieldAlert, show: true },
   ].filter((l) => l.show)
@@ -76,6 +78,14 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                   >
                     <Icon className="w-3.5 h-3.5" />
                     {link.label}
+                    {link.badge ? (
+                      <span
+                        aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"
+                      >
+                        {link.badge}
+                      </span>
+                    ) : null}
                   </Link>
                 </li>
               )
@@ -115,6 +125,14 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                 >
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="truncate">{link.label}</span>
+                  {link.badge ? (
+                    <span
+                      aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
+                      className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"
+                    >
+                      {link.badge}
+                    </span>
+                  ) : null}
                 </Link>
               </li>
             )

@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { usePathname } from 'next/navigation'
 import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3 } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
@@ -103,6 +104,12 @@ export function TournamentNavBar({
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [hoveredChampionIdx, setHoveredChampionIdx] = useState<number | null>(null)
 
+  // Admin pages use a wider content container (1600px) than the public hub
+  // (max-w-7xl). Match the header's max-width to whichever layout we're in so
+  // the Menu / Profile buttons don't look stranded next to a wider page.
+  const pathname = usePathname()
+  const isAdminRoute = pathname?.startsWith(`/${slug}/admin`) ?? false
+
   const light = isLightColor(primaryColor)
   const menuText = light ? 'text-gray-900' : 'text-white'
   const menuTextMuted = light ? 'text-gray-600' : 'text-white/60'
@@ -163,7 +170,7 @@ export function TournamentNavBar({
               }}
             />
           )}
-          <div className="relative max-w-7xl mx-auto px-4 py-4 sm:py-5 flex items-center">
+          <div className={`relative mx-auto px-4 py-4 sm:py-5 flex items-center ${isAdminRoute ? 'lg:max-w-[1600px]' : 'max-w-7xl'}`}>
             {/* LEFT */}
             <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
               <button

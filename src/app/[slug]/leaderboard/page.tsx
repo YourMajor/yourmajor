@@ -8,6 +8,7 @@ import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
 import { SponsorStrip } from '@/components/hub/SponsorStrip'
 import { TournamentStats } from '@/components/leaderboard/TournamentStats'
 import { RegistrationBanner } from '@/components/RegistrationBanner'
+import { TeeTimeTile } from '@/components/hub/TeeTimeTile'
 
 export default async function LeaderboardPage({
   params,
@@ -184,42 +185,32 @@ export default async function LeaderboardPage({
         </div>
       )}
 
-      <RegistrationBanner
-        slug={slug}
-        isParticipant={membership?.isParticipant ?? false}
-        isLoggedIn={!!user}
-        status={effectiveStatus}
-        startDate={tournament.startDate?.toISOString() ?? null}
-        canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
-        inviteToken={inviteToken}
-        registrationClosed={tournament.registrationClosed}
-      />
-
-      {myGroup && (
-        <div className="mb-6 rounded-xl border border-border overflow-hidden">
-          <div className="px-5 py-3 bg-[var(--color-primary)]/5 border-b border-border">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">Your Tee Time</p>
-          </div>
-          <div className="px-5 py-4 space-y-2">
-            <div className="flex items-center justify-between gap-4">
-              <p className="text-sm font-semibold text-foreground">{myGroup.name}</p>
-              {myGroup.teeTime && (
-                <p className="text-sm font-bold text-foreground">
-                  {new Date(myGroup.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
-                </p>
-              )}
+      {(() => {
+        const isRegisteredPreScoring =
+          !!membership?.isParticipant && currentPlayerHolesPlayed === 0 && effectiveStatus !== 'COMPLETED'
+        const banner = (
+          <RegistrationBanner
+            slug={slug}
+            isParticipant={membership?.isParticipant ?? false}
+            isLoggedIn={!!user}
+            status={effectiveStatus}
+            startDate={tournament.startDate?.toISOString() ?? null}
+            canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
+            inviteToken={inviteToken}
+            registrationClosed={tournament.registrationClosed}
+            currentPlayerHolesPlayed={currentPlayerHolesPlayed}
+          />
+        )
+        if (isRegisteredPreScoring && myGroup) {
+          return (
+            <div className="mb-6 grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {banner}
+              <TeeTimeTile myGroup={myGroup} />
             </div>
-            {myGroup.startingHole && (
-              <p className="text-xs text-muted-foreground">Starting on Hole {myGroup.startingHole}</p>
-            )}
-            <div className="flex flex-wrap gap-1.5 pt-1">
-              {myGroup.memberNames.map((name, i) => (
-                <span key={i} className="text-xs px-2.5 py-1 rounded-full border border-border bg-muted/50">{name}</span>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+          )
+        }
+        return <div className="mb-6">{banner}</div>
+      })()}
 
       <SponsorStrip tournamentId={tournament.id} />
 
