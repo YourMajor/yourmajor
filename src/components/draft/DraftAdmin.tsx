@@ -101,9 +101,12 @@ export function DraftAdmin({
   maxAttacksPerPlayer,
   currentTurn,
 }: DraftAdminProps) {
-  const [order, setOrder] = useState<string[]>(
-    draft?.draftOrder?.length ? draft.draftOrder : players.map((p) => p.id),
-  )
+  const [order, setOrder] = useState<string[]>(() => {
+    const playerIds = players.map((p) => p.id)
+    const saved = (draft?.draftOrder ?? []).filter((id) => playerIds.includes(id))
+    const missing = playerIds.filter((id) => !saved.includes(id))
+    return [...saved, ...missing]
+  })
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showDealAnimation, setShowDealAnimation] = useState(false)
@@ -146,6 +149,16 @@ export function DraftAdmin({
     setLoading('start')
     setError(null)
     try {
+      const orderRes = await fetch(`/api/tournaments/${tournamentId}/draft/order`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order }),
+      })
+      if (!orderRes.ok) {
+        let message = 'Failed to save draft order.'
+        try { const data = await orderRes.json(); if (data.error) message = data.error } catch {}
+        throw new Error(message)
+      }
       const res = await fetch(`/api/tournaments/${tournamentId}/draft/start`, {
         method: 'POST',
       })
