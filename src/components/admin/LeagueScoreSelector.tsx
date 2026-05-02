@@ -91,7 +91,6 @@ export function LeagueScoreSelector({ events }: Props) {
                 <div className="min-w-0 flex-1">
                   <p className="text-sm font-medium truncate">
                     {formatDate(ev.date)}
-                    {ev.isCurrent && <span className="ml-2 text-[10px] uppercase tracking-wider text-[var(--color-primary)]">Current</span>}
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{ev.name}</p>
                 </div>

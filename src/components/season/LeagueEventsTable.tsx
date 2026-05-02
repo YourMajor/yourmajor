@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { Calendar, MapPin, Users, ListChecks, Activity, ArrowRight, Pencil, PenLine, Trash2 } from 'lucide-react'
+import { AlertTriangle, Calendar, MapPin, Users, ListChecks, Activity, ArrowRight, ClipboardEdit, Trash2 } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { deleteLeagueEvent } from '@/lib/league-event-actions'
@@ -146,7 +146,7 @@ export function LeagueEventsTable({ events }: Props) {
               return (
                 <tr
                   key={event.id}
-                  className={`transition-colors ${event.isCurrent ? 'bg-[var(--color-primary)]/5' : 'hover:bg-muted/30'}`}
+                  className={`transition-colors ${event.status === 'ACTIVE' ? 'bg-[var(--color-primary)]/5' : 'hover:bg-muted/30'}`}
                 >
                   <td className="px-4 py-3 text-muted-foreground tabular-nums">{idx + 1}</td>
                   <td className="px-4 py-3 text-foreground tabular-nums whitespace-nowrap">{formatDate(event.date)}</td>
@@ -158,21 +158,50 @@ export function LeagueEventsTable({ events }: Props) {
                       >
                         {event.name}
                       </Link>
-                      {event.isCurrent && (
-                        <span className="text-[10px] uppercase tracking-wider text-[var(--color-primary)] shrink-0">Current</span>
-                      )}
                     </div>
                   </td>
-                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[14rem]">{event.courseName ?? '—'}</td>
+                  <td className="px-4 py-3 text-muted-foreground truncate max-w-[14rem]">
+                    {event.courseName ? (
+                      event.courseName
+                    ) : event.status === 'COMPLETED' ? (
+                      <span>—</span>
+                    ) : (
+                      <Link
+                        href={`/${event.slug}/admin/setup#rounds`}
+                        className="text-xs italic text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Set course
+                      </Link>
+                    )}
+                  </td>
                   <td className="px-4 py-3 whitespace-nowrap">
                     <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}
                     </span>
                   </td>
-                  <td className="px-4 py-3 text-right tabular-nums">{event.participantCount}</td>
+                  <td className="px-4 py-3 text-right tabular-nums">
+                    {event.participantCount === 0 && event.status !== 'REGISTRATION' ? (
+                      <Link
+                        href={`/${event.slug}/admin/setup`}
+                        className="inline-flex items-center justify-end gap-1 text-amber-600 dark:text-amber-400 hover:underline"
+                        title="No players registered for an active event"
+                      >
+                        <AlertTriangle className="w-3 h-3" /> 0
+                      </Link>
+                    ) : (
+                      event.participantCount
+                    )}
+                  </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {event.groupCount > 0 ? (
                       <span className="text-foreground">{event.groupCount}</span>
+                    ) : event.participantCount > 0 && event.status !== 'COMPLETED' ? (
+                      <Link
+                        href={`/${event.slug}/admin/groups`}
+                        className="text-xs italic text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Set up
+                      </Link>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
@@ -182,19 +211,19 @@ export function LeagueEventsTable({ events }: Props) {
                       <span className={event.scoreCompletionPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-foreground'}>
                         {event.scoreCompletionPct}%
                       </span>
+                    ) : event.status === 'ACTIVE' ? (
+                      <Link
+                        href={`/${event.slug}/admin/scores`}
+                        className="text-xs italic text-muted-foreground hover:text-foreground hover:underline"
+                      >
+                        Start
+                      </Link>
                     ) : (
                       <span className="text-muted-foreground">—</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
                     <div className="flex items-center justify-end gap-1">
-                      <Link
-                        href={`/${event.slug}/admin/setup`}
-                        className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
-                        title="Edit event"
-                      >
-                        <Pencil className="w-3.5 h-3.5" />
-                      </Link>
                       <Link
                         href={`/${event.slug}/admin/groups`}
                         className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
@@ -207,12 +236,12 @@ export function LeagueEventsTable({ events }: Props) {
                         className="inline-flex items-center justify-center w-7 h-7 rounded-md text-muted-foreground hover:text-foreground hover:bg-muted transition-colors"
                         title="Manage scores"
                       >
-                        <PenLine className="w-3.5 h-3.5" />
+                        <ClipboardEdit className="w-3.5 h-3.5" />
                       </Link>
                       <Link
-                        href={`/${event.slug}/admin`}
+                        href={`/${event.slug}`}
                         className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
-                        title="Open admin overview"
+                        title="Open event leaderboard"
                       >
                         Open <ArrowRight className="w-3 h-3" />
                       </Link>
@@ -243,7 +272,7 @@ export function LeagueEventsTable({ events }: Props) {
             <li
               key={event.id}
               className={`rounded-xl border p-3 ${
-                event.isCurrent
+                event.status === 'ACTIVE'
                   ? 'border-[var(--color-primary)]/40 bg-[var(--color-primary)]/5'
                   : 'border-border'
               }`}
@@ -270,23 +299,52 @@ export function LeagueEventsTable({ events }: Props) {
                 </span>
               </div>
               <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-                <span className="inline-flex items-center gap-1">
-                  <Users className="w-3 h-3" /> {event.participantCount}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <ListChecks className="w-3 h-3" /> {event.groupCount > 0 ? `${event.groupCount} groups` : 'no groups'}
-                </span>
-                <span className="inline-flex items-center gap-1">
-                  <Activity className="w-3 h-3" /> {event.scoreCount > 0 ? `${event.scoreCompletionPct}% scored` : 'no scores'}
-                </span>
+                {event.participantCount === 0 && event.status !== 'REGISTRATION' ? (
+                  <Link
+                    href={`/${event.slug}/admin/setup`}
+                    className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline"
+                  >
+                    <AlertTriangle className="w-3 h-3" /> 0 players
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Users className="w-3 h-3" /> {event.participantCount}
+                  </span>
+                )}
+                {event.groupCount > 0 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <ListChecks className="w-3 h-3" /> {event.groupCount} groups
+                  </span>
+                ) : event.participantCount > 0 && event.status !== 'COMPLETED' ? (
+                  <Link
+                    href={`/${event.slug}/admin/groups`}
+                    className="inline-flex items-center gap-1 italic hover:text-foreground hover:underline"
+                  >
+                    <ListChecks className="w-3 h-3" /> set up groups
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <ListChecks className="w-3 h-3" /> no groups
+                  </span>
+                )}
+                {event.scoreCount > 0 ? (
+                  <span className="inline-flex items-center gap-1">
+                    <Activity className="w-3 h-3" /> {event.scoreCompletionPct}% scored
+                  </span>
+                ) : event.status === 'ACTIVE' ? (
+                  <Link
+                    href={`/${event.slug}/admin/scores`}
+                    className="inline-flex items-center gap-1 italic hover:text-foreground hover:underline"
+                  >
+                    <Activity className="w-3 h-3" /> start scoring
+                  </Link>
+                ) : (
+                  <span className="inline-flex items-center gap-1">
+                    <Activity className="w-3 h-3" /> no scores
+                  </span>
+                )}
               </div>
               <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border flex-wrap">
-                <Link
-                  href={`/${event.slug}/admin/setup`}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
-                >
-                  <Pencil className="w-3 h-3" /> Edit
-                </Link>
                 <Link
                   href={`/${event.slug}/admin/groups`}
                   className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
@@ -297,10 +355,10 @@ export function LeagueEventsTable({ events }: Props) {
                   href={`/${event.slug}/admin/scores`}
                   className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
                 >
-                  <PenLine className="w-3 h-3" /> Scores
+                  <ClipboardEdit className="w-3 h-3" /> Scores
                 </Link>
                 <Link
-                  href={`/${event.slug}/admin`}
+                  href={`/${event.slug}`}
                   className="inline-flex items-center gap-0.5 text-xs font-medium text-[var(--color-primary)]"
                 >
                   Open <ArrowRight className="w-3 h-3" />

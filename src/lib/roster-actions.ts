@@ -20,6 +20,20 @@ async function getRootTournamentId(tournamentId: string): Promise<string> {
   return currentId
 }
 
+async function revalidateRosterScope(tournamentId: string, rootId: string) {
+  // Revalidate the entered slug (where the action originated) plus the league
+  // root's slug so the season dashboard reflects the change. Avoids the
+  // site-wide bust of `revalidatePath('/', 'layout')`.
+  const [self, root] = await Promise.all([
+    prisma.tournament.findUnique({ where: { id: tournamentId }, select: { slug: true } }),
+    rootId === tournamentId
+      ? Promise.resolve(null)
+      : prisma.tournament.findUnique({ where: { id: rootId }, select: { slug: true } }),
+  ])
+  if (self?.slug) revalidatePath(`/${self.slug}`, 'layout')
+  if (root?.slug && root.slug !== self?.slug) revalidatePath(`/${root.slug}`, 'layout')
+}
+
 async function requireAdmin(tournamentId: string) {
   const user = await getUser()
   if (!user) redirect('/auth/login')
@@ -139,7 +153,7 @@ export async function addRosterMember(tournamentId: string, email: string) {
     update: { status: 'ACTIVE' },
   })
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, rootId)
 }
 
 export async function updateRosterMemberStatus(
@@ -154,7 +168,7 @@ export async function updateRosterMemberStatus(
     data: { status },
   })
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, await getRootTournamentId(tournamentId))
 }
 
 export async function removeRosterMember(tournamentId: string, memberId: string) {
@@ -162,7 +176,7 @@ export async function removeRosterMember(tournamentId: string, memberId: string)
 
   await prisma.leagueRosterMember.delete({ where: { id: memberId } })
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, await getRootTournamentId(tournamentId))
 }
 
 export async function toggleAutoAddNew(tournamentId: string, autoAddNew: boolean) {
@@ -174,7 +188,7 @@ export async function toggleAutoAddNew(tournamentId: string, autoAddNew: boolean
     data: { autoAddNew },
   })
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, rootId)
 }
 
 export async function updateSeasonConfig(
@@ -209,7 +223,7 @@ export async function updateSeasonConfig(
     },
   })
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, rootId)
 }
 
 // ─── CSV roster import ───────────────────────────────────────────────────────
@@ -427,6 +441,6 @@ export async function importRosterCsv(
     }
   }
 
-  revalidatePath('/', 'layout')
+  await revalidateRosterScope(tournamentId, rootId)
   return result
 }

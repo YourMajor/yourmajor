@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useCallback, useMemo } from 'react'
+import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
 import { ChevronDown, Crown, Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
@@ -60,6 +60,7 @@ interface Props {
   initialData: PlayerStanding[]
   tournamentId: string
   roundNumbers: number[]
+  roundIds: string[]
   slug: string
   status: string
   scoringCta?: ScoringCta
@@ -69,7 +70,7 @@ interface Props {
   handicapSystem?: string
 }
 
-export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug, status, scoringCta, defendingChampionPlayerId, startDate, isRegistered, handicapSystem }: Props) {
+export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, roundIds, slug, status, scoringCta, defendingChampionPlayerId, startDate, isRegistered, handicapSystem }: Props) {
   const [standings, setStandings] = useState<PlayerStanding[]>(initialData)
   const [loading, setLoading] = useState(false)
   const [scoreType, setScoreType] = useState<'gross' | 'net'>('gross')
@@ -90,27 +91,36 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, slug,
     }
   }, [tournamentId])
 
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const roundIdSet = useMemo(() => new Set(roundIds), [roundIds])
+
   useEffect(() => {
     const supabase = createClient()
+    const scheduleRefresh = () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      debounceRef.current = setTimeout(() => { refresh() }, 400)
+    }
     const channel = supabase
       .channel(`leaderboard-${tournamentId}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'Score' }, refresh)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'Score' },
+        (payload) => {
+          const row = (payload.new ?? payload.old) as { roundId?: string } | null
+          if (row?.roundId && !roundIdSet.has(row.roundId)) return
+          scheduleRefresh()
+        },
+      )
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
-  }, [tournamentId, refresh])
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current)
+      supabase.removeChannel(channel)
+    }
+  }, [tournamentId, refresh, roundIdSet])
 
-  useEffect(() => {
-    if (status !== 'ACTIVE') return
-    let id: ReturnType<typeof setInterval> | null = null
-    const start = () => { if (!id) id = setInterval(refresh, 15000) }
-    const stop = () => { if (id) { clearInterval(id); id = null } }
-    const onVisibility = () => { if (document.hidden) stop(); else start() }
-
-    if (!document.hidden) start()
-    document.addEventListener('visibilitychange', onVisibility)
-    return () => { stop(); document.removeEventListener('visibilitychange', onVisibility) }
-  }, [status, refresh])
-
+  // Sort + tied-rank computation depends only on the full standings + score
+  // mode. Keeping it in its own memo means typing in the search box doesn't
+  // re-run a full O(N) sort over every player on each keystroke.
   const sorted = useMemo(() => [...standings].sort((a, b) => {
     if (isStableford) {
       if (a.points === null && b.points === null) return 0

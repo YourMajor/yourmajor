@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { type PlayerStanding } from '@/lib/scoring-utils'
 
 /** Monotone-x cubic bezier spline through points */
@@ -71,93 +71,101 @@ interface Props {
 export function ComparativeScoreChart({ standings, roundNumber }: Props) {
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null)
 
-  // Determine which round to show
-  const allRounds = new Set<number>()
-  for (const p of standings) {
-    for (const h of p.holes) {
-      if (h.roundNumber) allRounds.add(h.roundNumber)
-    }
-  }
-  const targetRound = roundNumber ?? (allRounds.size > 0 ? Math.max(...allRounds) : 1)
-
-  // Build per-player cumulative score-to-par data
-  type PlayerLine = {
-    id: string
-    name: string
-    shortName: string
-    finalScore: number
-    // cumulative[i] = cumulative score vs par after hole i+1
-    cumulative: Array<{ hole: number; value: number }>
-  }
-
-  const lines: PlayerLine[] = []
-
-  for (const player of standings) {
-    const roundHoles = player.holes
-      .filter((h) => (h.roundNumber ?? 1) === targetRound && h.strokes !== null && h.diff !== null)
-      .sort((a, b) => a.holeNumber - b.holeNumber)
-
-    if (roundHoles.length === 0) continue
-
-    let cumulative = 0
-    const points: Array<{ hole: number; value: number }> = []
-    for (const h of roundHoles) {
-      cumulative += h.diff!
-      points.push({ hole: h.holeNumber, value: cumulative })
+  // Pre-compute all the chart geometry once per `standings` change. Hovering
+  // a legend entry only flips `hoveredPlayer`, so without this memo the
+  // O(N×holes) cumulative + smoothPath work would re-run on every mouseover.
+  const chart = useMemo(() => {
+    type PlayerLine = {
+      id: string
+      name: string
+      shortName: string
+      finalScore: number
+      cumulative: Array<{ hole: number; value: number }>
     }
 
-    lines.push({
-      id: player.tournamentPlayerId,
-      name: player.playerName,
-      shortName: getShortName(player.playerName),
-      finalScore: cumulative,
-      cumulative: points,
-    })
-  }
-
-  if (lines.length < 2) return null
-
-  // Sort by final score ascending (best first) — leader at top
-  lines.sort((a, b) => a.finalScore - b.finalScore)
-
-  // Determine all hole numbers present across all players
-  const holeNumbers = [...new Set(lines.flatMap((l) => l.cumulative.map((c) => c.hole)))].sort(
-    (a, b) => a - b,
-  )
-  if (holeNumbers.length < 2) return null
-
-  // Chart dimensions
-  const w = 640
-  const h = 300
-  const pad = { top: 24, right: 16, bottom: 36, left: 40 }
-  const chartW = w - pad.left - pad.right
-  const chartH = h - pad.top - pad.bottom
-
-  // Y range: find min/max cumulative across all players
-  let minY = 0
-  let maxY = 0
-  for (const line of lines) {
-    for (const pt of line.cumulative) {
-      if (pt.value < minY) minY = pt.value
-      if (pt.value > maxY) maxY = pt.value
+    const allRounds = new Set<number>()
+    for (const p of standings) {
+      for (const h of p.holes) {
+        if (h.roundNumber) allRounds.add(h.roundNumber)
+      }
     }
-  }
-  // Add some padding, ensure at least -1 to +1 range
-  minY = Math.min(minY - 1, -1)
-  maxY = Math.max(maxY + 1, 1)
-  const yRange = maxY - minY
+    const targetRound = roundNumber ?? (allRounds.size > 0 ? Math.max(...allRounds) : 1)
 
-  const xScale = (hole: number) => {
-    const idx = holeNumbers.indexOf(hole)
-    return pad.left + (idx / (holeNumbers.length - 1)) * chartW
-  }
-  const yScale = (val: number) => pad.top + ((maxY - val) / yRange) * chartH
+    const lines: PlayerLine[] = []
+    for (const player of standings) {
+      const roundHoles = player.holes
+        .filter((h) => (h.roundNumber ?? 1) === targetRound && h.strokes !== null && h.diff !== null)
+        .sort((a, b) => a.holeNumber - b.holeNumber)
 
-  // Grid lines at integer values
-  const gridLines: number[] = []
-  for (let v = Math.ceil(minY); v <= Math.floor(maxY); v++) {
-    gridLines.push(v)
-  }
+      if (roundHoles.length === 0) continue
+
+      let cumulative = 0
+      const points: Array<{ hole: number; value: number }> = []
+      for (const h of roundHoles) {
+        cumulative += h.diff!
+        points.push({ hole: h.holeNumber, value: cumulative })
+      }
+
+      lines.push({
+        id: player.tournamentPlayerId,
+        name: player.playerName,
+        shortName: getShortName(player.playerName),
+        finalScore: cumulative,
+        cumulative: points,
+      })
+    }
+
+    if (lines.length < 2) return null
+
+    lines.sort((a, b) => a.finalScore - b.finalScore)
+
+    const holeNumbers = [...new Set(lines.flatMap((l) => l.cumulative.map((c) => c.hole)))].sort(
+      (a, b) => a - b,
+    )
+    if (holeNumbers.length < 2) return null
+
+    const w = 640
+    const h = 300
+    const pad = { top: 24, right: 16, bottom: 36, left: 40 }
+    const chartW = w - pad.left - pad.right
+    const chartH = h - pad.top - pad.bottom
+
+    let minY = 0
+    let maxY = 0
+    for (const line of lines) {
+      for (const pt of line.cumulative) {
+        if (pt.value < minY) minY = pt.value
+        if (pt.value > maxY) maxY = pt.value
+      }
+    }
+    minY = Math.min(minY - 1, -1)
+    maxY = Math.max(maxY + 1, 1)
+    const yRange = maxY - minY
+
+    const xScale = (hole: number) => {
+      const idx = holeNumbers.indexOf(hole)
+      return pad.left + (idx / (holeNumbers.length - 1)) * chartW
+    }
+    const yScale = (val: number) => pad.top + ((maxY - val) / yRange) * chartH
+
+    const gridLines: number[] = []
+    for (let v = Math.ceil(minY); v <= Math.floor(maxY); v++) {
+      gridLines.push(v)
+    }
+
+    // Pre-compute each player's SVG path + scaled points so hover only
+    // changes opacity, not geometry.
+    const linePaths = new Map<string, { pts: Array<{ x: number; y: number }>; path: string }>()
+    for (const line of lines) {
+      const pts = line.cumulative.map((c) => ({ x: xScale(c.hole), y: yScale(c.value) }))
+      linePaths.set(line.id, { pts, path: smoothPath(pts) })
+    }
+
+    return { lines, holeNumbers, w, h, pad, yRange, xScale, yScale, gridLines, linePaths }
+  }, [standings, roundNumber])
+
+  if (!chart) return null
+  const { lines, holeNumbers, w, h, pad, yRange, xScale, yScale, gridLines, linePaths } = chart
 
   return (
     <div className="mt-6 space-y-3 pt-5 border-t border-border">
@@ -223,11 +231,9 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
             const isLeader = idx === 0
             const opacity = isAnyHovered ? (isHovered ? 1 : 0.15) : isLeader ? 1 : 0.5
 
-            const pts = line.cumulative.map((c) => ({
-              x: xScale(c.hole),
-              y: yScale(c.value),
-            }))
-            const path = smoothPath(pts)
+            const cached = linePaths.get(line.id)!
+            const pts = cached.pts
+            const path = cached.path
 
             return (
               <g key={line.id} style={{ opacity, transition: 'opacity 0.2s' }}>

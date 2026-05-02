@@ -51,6 +51,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   const [isPending, startTransition] = useTransition()
   const [step, setStep] = useState(0)
   const [error, setError] = useState('')
+  const [imageUploading, setImageUploading] = useState(false)
 
   const [tournamentType, setTournamentType] = useState<TournamentTypeState>({
     tournamentType: renewalDefaults ? inferTypeFromDefaults(renewalDefaults) : 'OPEN',
@@ -68,13 +69,9 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     registrationDeadline: '',
     numRounds: renewalDefaults?.rounds.length ?? 1,
     logoPreview: null,
-    logoBase64: null,
-    logoMime: null,
-    logoExt: null,
+    logoUrl: null,
     headerPreview: null,
-    headerBase64: null,
-    headerMime: null,
-    headerExt: null,
+    headerImageUrl: null,
     primaryColor: renewalDefaults?.primaryColor ?? '#006747',
     accentColor: renewalDefaults?.accentColor ?? '#C9A84C',
   })
@@ -192,6 +189,10 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   }
 
   function handleNext() {
+    if (imageUploading) {
+      setError('Please wait for image upload to finish.')
+      return
+    }
     const err = validateStep()
     if (err) { setError(err); return }
     setError('')
@@ -199,6 +200,10 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
   }
 
   function handleSubmit() {
+    if (imageUploading) {
+      setError('Please wait for image upload to finish.')
+      return
+    }
     const err = validateAll()
     if (err) { setError(err); return }
     setError('')
@@ -223,12 +228,8 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           startDate: derived.startDate,
           endDate: derived.endDate,
           numRounds: basicInfo.isLeague ? 0 : basicInfo.numRounds,
-          logoBase64: basicInfo.logoBase64,
-          logoMime: basicInfo.logoMime,
-          logoExt: basicInfo.logoExt,
-          headerBase64: basicInfo.headerBase64,
-          headerMime: basicInfo.headerMime,
-          headerExt: basicInfo.headerExt,
+          logoUrl: basicInfo.logoUrl,
+          headerImageUrl: basicInfo.headerImageUrl,
           primaryColor: basicInfo.primaryColor,
           accentColor: basicInfo.accentColor,
           rounds: activeRounds.map((r) => ({
@@ -288,7 +289,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
       case 'type':
         return <StepTournamentType value={tournamentType} onChange={setTournamentType} />
       case 'basics':
-        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} userTier={userTier} tournamentType={tournamentType.tournamentType} parentRoundCount={renewalDefaults?.rounds.length} />
+        return <StepBasicInfo value={basicInfo} onChange={handleBasicInfoChange} isFree={isFree} userTier={userTier} tournamentType={tournamentType.tournamentType} parentRoundCount={renewalDefaults?.rounds.length} onUploadingChange={setImageUploading} />
       case 'rounds':
         return <StepRounds numRounds={basicInfo.numRounds} value={rounds} onChange={setRounds} isOpenRegistration={isPublic} />
       case 'format':
@@ -397,11 +398,11 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
           <Button
             type="button"
             onClick={handleSubmit}
-            disabled={isPending}
+            disabled={isPending || imageUploading}
             style={{ backgroundColor: 'var(--color-primary)' }}
             className="text-white min-w-32"
           >
-            {isPending ? 'Creating...' : renewalDefaults ? 'Renew Tournament' : 'Create Tournament'}
+            {isPending ? 'Creating...' : imageUploading ? 'Uploading…' : renewalDefaults ? 'Renew Tournament' : 'Create Tournament'}
           </Button>
         ) : (
           <Button

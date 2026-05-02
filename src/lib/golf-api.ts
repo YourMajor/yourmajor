@@ -86,7 +86,12 @@ export async function searchCourses(query: string): Promise<GolfCourseApiCourse[
  */
 export async function getCourseById(id: number): Promise<GolfCourseApiCourse> {
   const url = `${BASE_URL}/v1/courses/${id}`
-  const res = await fetch(url, { headers: getHeaders(), cache: 'no-store' })
+  // Course tee/hole data is effectively immutable; cache for 24h to avoid
+  // re-hitting GolfCourseAPI on every wizard submission (300 req/day free tier).
+  const res = await fetch(url, {
+    headers: getHeaders(),
+    next: { revalidate: 86400, tags: [GOLF_COURSE_CACHE_TAG] },
+  })
   if (!res.ok) {
     const text = await res.text()
     throw new Error(`GolfCourseAPI /v1/courses/${id} error ${res.status}: ${text}`)

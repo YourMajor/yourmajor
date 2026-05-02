@@ -64,7 +64,14 @@ export async function generateSeasonSchedule(
     slugs.push(result.slug)
   }
 
-  revalidatePath('/', 'layout')
+  // Each scheduleLeagueEvent call already revalidated its own slug + the
+  // league root. We just need to make sure the originating tournament's
+  // pages reflect the new chain length.
+  const origin = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { slug: true },
+  })
+  if (origin?.slug) revalidatePath(`/${origin.slug}`, 'layout')
 
   return {
     generated: slugs.length,

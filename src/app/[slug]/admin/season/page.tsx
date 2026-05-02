@@ -4,7 +4,6 @@ import { prisma } from '@/lib/prisma'
 import { getOrCreateRoster } from '@/lib/roster-actions'
 import { listSeasonAdjustments } from '@/lib/season-standings-actions'
 import { getSeasonAttendance, getSeasonAwards, DEFAULT_TIEBREAKERS, parseTiebreakers } from '@/lib/season-standings'
-import { listAnnouncements } from '@/lib/league-announcements'
 import { getLeagueEventsForAdmin } from '@/lib/league-events'
 import { SeasonAdminDashboard } from '@/components/season/SeasonAdminDashboard'
 
@@ -72,7 +71,7 @@ export default async function AdminSeasonPage({
     },
   })
 
-  const [roster, attendance, schedule, adjustments, awards, announcements, leagueEvents] = await Promise.all([
+  const [roster, attendance, schedule, adjustments, awards, leagueEvents] = await Promise.all([
     getOrCreateRoster(tournament.id),
     getSeasonAttendance(tournament.id),
     prisma.seasonScheduleEvent.findMany({
@@ -86,7 +85,6 @@ export default async function AdminSeasonPage({
     }),
     listSeasonAdjustments(tournament.id),
     getSeasonAwards(tournament.id).catch(() => []),
-    listAnnouncements(tournament.id).catch(() => []),
     getLeagueEventsForAdmin(tournament.id).catch(() => []),
   ])
 
@@ -148,17 +146,6 @@ export default async function AdminSeasonPage({
           leagueName: tournament.name,
         } : null}
         slug={slug}
-        announcements={announcements.map((a) => ({
-          id: a.id,
-          subject: a.subject,
-          bodyPreview: a.bodyPreview,
-          channels: a.channels,
-          sentAt: a.sentAt?.toISOString() ?? null,
-          createdAt: a.createdAt.toISOString(),
-          sentByName: a.sentByName,
-          deliveryCount: a.deliveryCount,
-          successCount: a.successCount,
-        }))}
         leagueEvents={leagueEvents.map((e) => ({
           id: e.id,
           slug: e.slug,

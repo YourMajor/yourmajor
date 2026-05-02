@@ -127,21 +127,34 @@ export async function updateTournament(
 
   const { supabaseAdmin } = await import('@/lib/supabase')
 
+  // Use a content-hashed filename so each unique upload gets a fresh URL and
+  // identical reuploads share an immutable cache entry. Avoids `?v=Date.now()`
+  // cache busters that force a re-download on every page load.
+  const hashBuffer = async (buf: Buffer): Promise<string> => {
+    const { createHash } = await import('crypto')
+    return createHash('sha256').update(buf).digest('hex').slice(0, 12)
+  }
+
   if (logoFile && logoFile.size > 0) {
     const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
       throw new Error(`Logo must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)
     }
-    const path = `${tournamentId}.${ext}`
     const buffer = Buffer.from(await logoFile.arrayBuffer())
+    const hash = await hashBuffer(buffer)
+    const path = `${tournamentId}-${hash}.${ext}`
 
     const { error } = await supabaseAdmin.storage
       .from('logos')
-      .upload(path, buffer, { contentType: logoFile.type, upsert: true })
+      .upload(path, buffer, {
+        contentType: logoFile.type,
+        upsert: true,
+        cacheControl: '31536000',
+      })
 
     if (!error) {
       const { data } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
-      logoUrl = `${data.publicUrl}?v=${Date.now()}`
+      logoUrl = data.publicUrl
     }
   }
 
@@ -150,16 +163,21 @@ export async function updateTournament(
     if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
       throw new Error(`Header image must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)
     }
-    const path = `${tournamentId}.${ext}`
     const buffer = Buffer.from(await headerFile.arrayBuffer())
+    const hash = await hashBuffer(buffer)
+    const path = `${tournamentId}-${hash}.${ext}`
 
     const { error } = await supabaseAdmin.storage
       .from('headers')
-      .upload(path, buffer, { contentType: headerFile.type, upsert: true })
+      .upload(path, buffer, {
+        contentType: headerFile.type,
+        upsert: true,
+        cacheControl: '31536000',
+      })
 
     if (!error) {
       const { data } = supabaseAdmin.storage.from('headers').getPublicUrl(path)
-      headerImageUrl = `${data.publicUrl}?v=${Date.now()}`
+      headerImageUrl = data.publicUrl
     }
   }
 
@@ -217,8 +235,15 @@ export async function updateTournament(
 
   revalidatePath(`/${parsed.slug}`, 'layout')
   revalidatePath(`/${parsed.slug}/admin/setup`)
-  // Season schedule table on the parent league reads from this event — refresh it too.
-  if (isLeague) revalidatePath('/', 'layout')
+  // Season schedule table on the parent league reads from this event — refresh
+  // the parent's slug rather than the entire site cache.
+  if (isLeagueEvent && currentTournament?.parentTournamentId) {
+    const parent = await prisma.tournament.findUnique({
+      where: { id: currentTournament.parentTournamentId },
+      select: { slug: true },
+    })
+    if (parent?.slug) revalidatePath(`/${parent.slug}`, 'layout')
+  }
 
   if (parsed.slug !== currentSlug) {
     redirect(`/${parsed.slug}/admin/setup`)

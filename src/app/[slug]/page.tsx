@@ -64,6 +64,7 @@ export default async function TournamentPage({
 
   const initialStandings = await getLeaderboard(tournament.id)
   const roundNumbers = tournament.rounds.map((r) => r.roundNumber)
+  const roundIds = tournament.rounds.map((r) => r.id)
 
   // Fetch attack stats for superlatives (if powerups enabled)
   let attackStats: { playerName: string; count: number }[] = []
@@ -222,6 +223,7 @@ export default async function TournamentPage({
         initialData={initialStandings}
         tournamentId={tournament.id}
         roundNumbers={roundNumbers}
+        roundIds={roundIds}
         slug={slug}
         status={effectiveStatus}
         handicapSystem={tournament.handicapSystem}

@@ -14,6 +14,7 @@ import { FormatSettings } from './FormatSettings'
 import { PowerupConfigGroup } from './PowerupConfigGroup'
 import { SubdomainCard } from './SubdomainCard'
 import { SponsorCard } from './SponsorCard'
+import { EventRoundsEditor, type EventRound } from './EventRoundsEditor'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
 import type { FormatId } from '@/lib/formats/types'
@@ -57,6 +58,31 @@ export default async function TournamentSetup({
   const isActive = tournament.status === 'ACTIVE'
   const isCompleted = tournament.status === 'COMPLETED'
 
+  // Per-event rounds (only meaningful for league child events; the wizard
+  // attaches courses for standalone tournaments at creation time and they
+  // don't surface a "Set course" CTA).
+  const showRoundsEditor = isLeagueChild
+  const rounds: EventRound[] = showRoundsEditor
+    ? (
+        await prisma.tournamentRound.findMany({
+          where: { tournamentId: tournament.id },
+          orderBy: { roundNumber: 'asc' },
+          include: { course: { include: { teeOptions: true } } },
+        })
+      ).map((r) => ({
+        id: r.id,
+        roundNumber: r.roundNumber,
+        course: r.course
+          ? {
+              id: r.course.id,
+              name: r.course.name,
+              par: r.course.par,
+              teeOptions: r.course.teeOptions.map((t) => ({ id: t.id, name: t.name, color: t.color })),
+            }
+          : null,
+      }))
+    : []
+
   const updateTournamentAction = updateTournament.bind(null, tournament.id, slug, tournament.logo, tournament.headerImage)
 
   const fmt = (d: Date | null) => (d ? new Date(d).toISOString().split('T')[0] : '')
@@ -70,6 +96,17 @@ export default async function TournamentSetup({
         </p>
         <h1 className="text-2xl font-heading font-bold">Tournament Setup</h1>
       </div>
+
+      {showRoundsEditor && (
+        <Card id="rounds" className="scroll-mt-20">
+          <CardHeader>
+            <CardTitle className="text-base">Rounds &amp; Course</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <EventRoundsEditor rounds={rounds} scoresLocked={hasScores} />
+          </CardContent>
+        </Card>
+      )}
 
       <form action={updateTournamentAction} className="space-y-6">
         {/* ── Basic Info ── */}

@@ -146,23 +146,28 @@ export async function scheduleLeagueEvent(
     },
   })
 
-  // Auto-register all active roster members
+  // Auto-register all active roster members. Resolves handicaps in one
+  // batched query and inserts the new tournamentPlayer rows via a single
+  // createMany — was N+N round-trips for an N-member roster.
   try {
     const { getOrCreateRoster } = await import('@/lib/roster-actions')
     const roster = await getOrCreateRoster(tournamentId)
     if (roster) {
       const activeMembers = roster.members.filter((m) => m.status === 'ACTIVE' && m.userId !== user.id)
-      for (const member of activeMembers) {
-        const profile = await prisma.playerProfile.findUnique({
-          where: { userId: member.userId },
-          select: { handicap: true },
+      if (activeMembers.length > 0) {
+        const memberUserIds = activeMembers.map((m) => m.userId)
+        const profiles = await prisma.playerProfile.findMany({
+          where: { userId: { in: memberUserIds } },
+          select: { userId: true, handicap: true },
         })
-        await prisma.tournamentPlayer.create({
-          data: {
+        const handicapByUserId = new Map(profiles.map((p) => [p.userId, p.handicap]))
+        await prisma.tournamentPlayer.createMany({
+          data: activeMembers.map((m) => ({
             tournamentId: newEvent.id,
-            userId: member.userId,
-            handicap: profile?.handicap ?? 0,
-          },
+            userId: m.userId,
+            handicap: handicapByUserId.get(m.userId) ?? 0,
+          })),
+          skipDuplicates: true,
         }).catch(() => {})
       }
     }
@@ -198,7 +203,8 @@ export async function scheduleLeagueEvent(
     })
   }
 
-  revalidatePath('/', 'layout')
+  if (rootSlug) revalidatePath(`/${rootSlug}`, 'layout')
+  revalidatePath(`/${newEvent.slug}`, 'layout')
   return { slug: newEvent.slug }
 }
 
@@ -291,6 +297,9 @@ export async function deleteLeagueEvent(
     await tx.tournament.delete({ where: { id: eventId } })
   })
 
-  revalidatePath('/', 'layout')
+  revalidatePath(`/${event.slug}`, 'layout')
+  if (redirectSlug && redirectSlug !== event.slug) {
+    revalidatePath(`/${redirectSlug}`, 'layout')
+  }
   return { ok: true, redirectSlug: redirectSlug ?? '' }
 }

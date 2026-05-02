@@ -807,21 +807,43 @@ model Purchase {
 // ─── League Communications ────────────────────────────────────────────────────
 
 model LeagueAnnouncement {
-  id               String    @id @default(cuid())
+  id               String             @id @default(cuid())
   rootTournamentId String
   subject          String
   body             String
   channels         String[] // ["EMAIL"], ["SMS"], or both
   audienceFilter   Json // { type: 'ALL_ACTIVE' | 'ALL_ROSTER' | 'CUSTOM', userIds?: string[] }
+  // Lifecycle
+  status           AnnouncementStatus @default(SENT)
+  // When NULL the announcement was sent immediately. When set, the cron processor
+  // picks it up after this time and dispatches.
+  scheduledFor     DateTime?
+  // What produced this row. BLAST = admin-composed announcement; TEE_TIME =
+  // system-generated audit record from a tee-time notification batch.
+  kind             AnnouncementKind   @default(BLAST)
   sentAt           DateTime?
   sentByUserId     String
-  createdAt        DateTime  @default(now())
+  createdAt        DateTime           @default(now())
 
   rootTournament Tournament                   @relation("LeagueAnnouncementsForRoot", fields: [rootTournamentId], references: [id], onDelete: Cascade)
   sentBy         User                         @relation("LeagueAnnouncementsSentBy", fields: [sentByUserId], references: [id])
   deliveries     LeagueAnnouncementDelivery[]
 
   @@index([rootTournamentId])
+  @@index([status, scheduledFor])
+}
+
+enum AnnouncementStatus {
+  PENDING
+  SENT
+  CANCELED
+  FAILED
+}
+
+enum AnnouncementKind {
+  BLAST
+  TEE_TIME
+  GROUP_CHANGE
 }
 
 model LeagueAnnouncementDelivery {

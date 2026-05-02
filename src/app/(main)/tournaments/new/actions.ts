@@ -1,7 +1,8 @@
 'use server'
 
-import { revalidatePath } from 'next/cache'
+import { revalidatePath, updateTag } from 'next/cache'
 import { redirect } from 'next/navigation'
+import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma, type User } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
@@ -49,12 +50,11 @@ export type WizardPayload = {
   startDate: string
   endDate: string
   numRounds: number
-  logoBase64: string | null   // data URL from client FileReader
-  logoMime: string | null
-  logoExt: string | null
-  headerBase64: string | null
-  headerMime: string | null
-  headerExt: string | null
+  // Public Supabase Storage URLs — uploaded directly from the browser before
+  // submit. Server Actions are capped at 4.5 MB by Vercel's edge, so we never
+  // round-trip image bytes through this action.
+  logoUrl: string | null
+  headerImageUrl: string | null
   primaryColor: string
   accentColor: string
   rounds: RoundConfig[]
@@ -86,14 +86,21 @@ export type WizardPayload = {
 
 async function generateSlug(name: string): Promise<string> {
   const base = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-  const existing = await prisma.tournament.findMany({
-    where: { slug: { startsWith: base } },
-    select: { slug: true },
-  })
-  if (!existing.some((t) => t.slug === base)) return base
-  let i = 2
-  while (existing.some((t) => t.slug === `${base}-${i}`)) i++
-  return `${base}-${i}`
+  // Probe at most 50 candidates with a single `slug IN (...)` query rather
+  // than fetching every slug starting with `base` and scanning client-side.
+  const candidates = [base, ...Array.from({ length: 49 }, (_, i) => `${base}-${i + 2}`)]
+  const taken = new Set(
+    (
+      await prisma.tournament.findMany({
+        where: { slug: { in: candidates } },
+        select: { slug: true },
+      })
+    ).map((t) => t.slug),
+  )
+  const free = candidates.find((c) => !taken.has(c))
+  if (free) return free
+  // Fall back to a timestamped suffix if 50 collisions seen (extremely unlikely).
+  return `${base}-${Date.now().toString(36).slice(-4)}`
 }
 
 function isNextRedirectError(err: unknown): boolean {
@@ -166,12 +173,8 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
   if (!tierLimits.customBranding) {
     data.primaryColor = '#006747'
     data.accentColor = '#C9A84C'
-    data.logoBase64 = null
-    data.logoMime = null
-    data.logoExt = null
-    data.headerBase64 = null
-    data.headerMime = null
-    data.headerExt = null
+    data.logoUrl = null
+    data.headerImageUrl = null
   }
 
   // Free tier: force gross-only scoring
@@ -214,36 +217,10 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
 
   const slug = await generateSlug(data.name)
 
-  // Upload logo if provided — lazy import to avoid module-level crash
-  const { supabaseAdmin } = await import('@/lib/supabase')
-  let logoUrl: string | null = null
-  if (data.logoBase64 && data.logoMime && data.logoExt) {
-    const base64Data = data.logoBase64.replace(/^data:[^;]+;base64,/, '')
-    const buffer = Buffer.from(base64Data, 'base64')
-    const path = `${slug}.${data.logoExt}`
-    const { error } = await supabaseAdmin.storage
-      .from('logos')
-      .upload(path, buffer, { contentType: data.logoMime, upsert: true })
-    if (!error) {
-      const { data: urlData } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
-      logoUrl = urlData.publicUrl
-    }
-  }
-
-  // Upload header image if provided
-  let headerImageUrl: string | null = null
-  if (data.headerBase64 && data.headerMime && data.headerExt) {
-    const base64Data = data.headerBase64.replace(/^data:[^;]+;base64,/, '')
-    const buffer = Buffer.from(base64Data, 'base64')
-    const path = `headers/${slug}.${data.headerExt}`
-    const { error } = await supabaseAdmin.storage
-      .from('logos')
-      .upload(path, buffer, { contentType: data.headerMime, upsert: true })
-    if (!error) {
-      const { data: urlData } = supabaseAdmin.storage.from('logos').getPublicUrl(path)
-      headerImageUrl = urlData.publicUrl
-    }
-  }
+  // Logo and header images were uploaded directly to Supabase from the
+  // browser; we just persist the public URLs.
+  const logoUrl = data.logoUrl
+  const headerImageUrl = data.headerImageUrl
 
   // Generate a shareable join code for non-invite tournaments
   const joinCode = data.tournamentType !== 'INVITE' ? await generateJoinCode() : null
@@ -419,18 +396,26 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
       }
     }
 
-    // Send invite emails + SMS outside transaction
+    // Queue invite emails + SMS *after* the response — they don't gate the
+    // wizard finishing. A 50-invite send takes seconds; we shouldn't make the
+    // user watch the spinner for that.
     const allInvites = data.inviteList ?? data.inviteEmails.map((e) => ({ type: 'email' as const, value: e }))
     if (!data.isOpenRegistration && allInvites.length > 0) {
       const invitations = await prisma.invitation.findMany({
         where: { tournamentId: tournament.id },
         select: { email: true, token: true, phone: true },
       })
-      await sendInvitations({
-        tournamentName: tournament.name,
-        slug,
-        invitations,
-      }).catch(() => {})
+      after(async () => {
+        try {
+          await sendInvitations({
+            tournamentName: tournament.name,
+            slug,
+            invitations,
+          })
+        } catch (err) {
+          console.error('[createTournamentFromWizard] post-response invite delivery failed:', err)
+        }
+      })
     }
   } catch (err) {
     console.error('[createTournamentFromWizard] post-create error (tournament was created):', err)
@@ -571,5 +556,22 @@ export async function setTournamentStatus(tournamentId: string, newStatus: strin
     }
   }
 
-  revalidatePath('/', 'layout')
+  const t = await prisma.tournament.findUnique({
+    where: { id: tournamentId },
+    select: { slug: true, parentTournamentId: true },
+  })
+  if (t?.slug) revalidatePath(`/${t.slug}`, 'layout')
+  // The cached COMPLETED leaderboard for this tournament is now stale —
+  // either it just moved INTO completed, or it left and shouldn't be cached.
+  // updateTag (Next.js 16) is the Server Action primitive for "read your own
+  // writes" — revalidateTag requires a cacheLife profile and is for use cache.
+  updateTag(`leaderboard-${tournamentId}`)
+  // When a league event completes the season standings move — bust the parent.
+  if (newStatus === 'COMPLETED' && t?.parentTournamentId) {
+    const parent = await prisma.tournament.findUnique({
+      where: { id: t.parentTournamentId },
+      select: { slug: true },
+    })
+    if (parent?.slug) revalidatePath(`/${parent.slug}`, 'layout')
+  }
 }

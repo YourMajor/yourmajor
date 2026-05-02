@@ -8,11 +8,14 @@ import { getLeagueRootId } from '@/lib/league-events'
 
 export type AnnouncementChannel = 'EMAIL' | 'SMS'
 export type DeliveryStatus = 'PENDING' | 'SENT' | 'FAILED' | 'SKIPPED'
+export type AnnouncementStatus = 'PENDING' | 'SENT' | 'CANCELED' | 'FAILED'
+export type AnnouncementKind = 'BLAST' | 'TEE_TIME' | 'GROUP_CHANGE'
 
 export type AudienceFilter =
   | { type: 'ALL_ACTIVE' }    // active LeagueRosterMembers
   | { type: 'ALL_ROSTER' }    // every LeagueRosterMember (active + inactive)
   | { type: 'CUSTOM'; userIds: string[] }
+  | { type: 'TEE_TIME'; tournamentId: string; scope: 'AFFECTED' | 'ALL' }
 
 export interface SendAnnouncementInput {
   tournamentId: string                 // any id in the league chain — we resolve to the root
@@ -33,6 +36,9 @@ export interface AnnouncementSummary {
   sentByName: string | null
   deliveryCount: number
   successCount: number
+  status: AnnouncementStatus
+  scheduledFor: Date | null
+  kind: AnnouncementKind
 }
 
 const SMS_BATCH = 50
@@ -70,6 +76,10 @@ export async function resolveAudience(
     },
   })
   if (!roster) return []
+
+  // TEE_TIME audience filters describe an audit-only payload; the tee-time
+  // notifier picks recipients itself and never asks resolveAudience to expand it.
+  if (filter.type === 'TEE_TIME') return []
 
   let members = roster.members
   if (filter.type === 'ALL_ACTIVE') {
@@ -111,18 +121,107 @@ export async function sendAnnouncement(
       channels: input.channels,
       audienceFilter: input.audienceFilter as unknown as object,
       sentByUserId: input.sentByUserId,
+      status: 'SENT',
     },
   })
 
-  // Pre-create one delivery row per (user × channel).
+  const { deliveryCount, successCount } = await dispatchToAudience({
+    announcementId: announcement.id,
+    audience,
+    channels: input.channels,
+    subject: input.subject,
+    body: input.body,
+  })
+
+  await prisma.leagueAnnouncement.update({
+    where: { id: announcement.id },
+    data: { sentAt: new Date() },
+  })
+
+  return { ok: true, id: announcement.id, deliveryCount, successCount }
+}
+
+/**
+ * Dispatch an already-persisted PENDING announcement (the scheduled-send path).
+ * The cron processor calls this for each row whose `scheduledFor` has elapsed.
+ * On success the row's `status` flips to SENT; on a hard failure to FAILED.
+ */
+export async function dispatchPendingAnnouncement(
+  announcementId: string,
+): Promise<{ ok: true; deliveryCount: number; successCount: number } | { ok: false; error: string }> {
+  const row = await prisma.leagueAnnouncement.findUnique({
+    where: { id: announcementId },
+    select: {
+      id: true,
+      status: true,
+      subject: true,
+      body: true,
+      channels: true,
+      audienceFilter: true,
+      rootTournamentId: true,
+    },
+  })
+  if (!row) return { ok: false, error: 'Announcement not found.' }
+  if (row.status !== 'PENDING') return { ok: false, error: `Cannot dispatch — status is ${row.status}.` }
+
+  try {
+    const audience = await resolveAudience(
+      row.rootTournamentId,
+      row.audienceFilter as unknown as AudienceFilter,
+    )
+    if (audience.length === 0) {
+      // Nothing to send to — flip to SENT so we don't keep retrying. Empty roster
+      // at scheduled time is the admin's responsibility, not a system fault.
+      await prisma.leagueAnnouncement.update({
+        where: { id: row.id },
+        data: { status: 'SENT', sentAt: new Date() },
+      })
+      return { ok: true, deliveryCount: 0, successCount: 0 }
+    }
+
+    const { deliveryCount, successCount } = await dispatchToAudience({
+      announcementId: row.id,
+      audience,
+      channels: row.channels as AnnouncementChannel[],
+      subject: row.subject,
+      body: row.body,
+    })
+
+    await prisma.leagueAnnouncement.update({
+      where: { id: row.id },
+      data: { status: 'SENT', sentAt: new Date() },
+    })
+
+    return { ok: true, deliveryCount, successCount }
+  } catch (e) {
+    await prisma.leagueAnnouncement.update({
+      where: { id: row.id },
+      data: { status: 'FAILED' },
+    })
+    return { ok: false, error: e instanceof Error ? e.message : String(e) }
+  }
+}
+
+/**
+ * Pre-create per-recipient delivery rows, then dispatch in batches so external
+ * rate-limit failures don't take everything down. Returns counts.
+ */
+async function dispatchToAudience(args: {
+  announcementId: string
+  audience: AudienceUser[]
+  channels: AnnouncementChannel[]
+  subject: string
+  body: string
+}): Promise<{ deliveryCount: number; successCount: number }> {
+  const { announcementId, audience, channels, subject, body } = args
+
   const deliveries: { userId: string; channel: AnnouncementChannel }[] = []
   for (const user of audience) {
-    for (const channel of input.channels) {
-      // Skip SMS for users who haven't opted in or have no phone.
+    for (const channel of channels) {
       if (channel === 'SMS' && (!user.phone || !user.smsNotifications)) {
         await prisma.leagueAnnouncementDelivery.create({
           data: {
-            announcementId: announcement.id,
+            announcementId,
             userId: user.id,
             channel,
             status: 'SKIPPED' satisfies DeliveryStatus,
@@ -131,11 +230,10 @@ export async function sendAnnouncement(
         })
         continue
       }
-      // Skip EMAIL when no address (shouldn't happen but be defensive).
       if (channel === 'EMAIL' && !user.email) {
         await prisma.leagueAnnouncementDelivery.create({
           data: {
-            announcementId: announcement.id,
+            announcementId,
             userId: user.id,
             channel,
             status: 'SKIPPED' satisfies DeliveryStatus,
@@ -147,7 +245,7 @@ export async function sendAnnouncement(
       deliveries.push({ userId: user.id, channel })
       await prisma.leagueAnnouncementDelivery.create({
         data: {
-          announcementId: announcement.id,
+          announcementId,
           userId: user.id,
           channel,
           status: 'PENDING' satisfies DeliveryStatus,
@@ -156,7 +254,6 @@ export async function sendAnnouncement(
     }
   }
 
-  // Dispatch in batches so external rate limits don't take everything down.
   let successCount = 0
   const userById = new Map(audience.map((u) => [u.id, u]))
 
@@ -166,9 +263,9 @@ export async function sendAnnouncement(
       batch.map(async (d) => {
         const user = userById.get(d.userId)!
         if (d.channel === 'EMAIL') {
-          await sendEmail(user.email, input.subject.trim(), htmlBody(input.body, input.subject))
+          await sendEmail(user.email, subject.trim(), htmlBody(body, subject))
         } else {
-          await sendSMS(user.phone!, `${input.subject.trim()}\n\n${input.body.trim()}`)
+          await sendSMS(user.phone!, `${subject.trim()}\n\n${body.trim()}`)
         }
         return d
       }),
@@ -183,7 +280,7 @@ export async function sendAnnouncement(
       if (status === 'SENT') successCount++
 
       await prisma.leagueAnnouncementDelivery.updateMany({
-        where: { announcementId: announcement.id, userId: user.id, channel: d.channel },
+        where: { announcementId, userId: user.id, channel: d.channel },
         data: {
           status,
           failureReason: failureReason ?? undefined,
@@ -193,17 +290,59 @@ export async function sendAnnouncement(
     }
   }
 
-  await prisma.leagueAnnouncement.update({
-    where: { id: announcement.id },
-    data: { sentAt: new Date() },
+  return { deliveryCount: deliveries.length, successCount }
+}
+
+/**
+ * Write an audit-only LeagueAnnouncement row (kind = TEE_TIME / GROUP_CHANGE)
+ * + per-recipient delivery rows reflecting an out-of-band send the caller
+ * already performed. The deliveries record what the caller just did, so this
+ * does NOT dispatch any email/SMS itself.
+ */
+export async function logOutboundCommunication(args: {
+  rootTournamentId: string
+  kind: AnnouncementKind
+  subject: string
+  body: string
+  channels: AnnouncementChannel[]
+  audienceFilter: AudienceFilter
+  sentByUserId: string
+  deliveries: {
+    userId: string
+    channel: AnnouncementChannel
+    status: DeliveryStatus
+    failureReason?: string | null
+  }[]
+}): Promise<{ id: string }> {
+  const announcement = await prisma.leagueAnnouncement.create({
+    data: {
+      rootTournamentId: args.rootTournamentId,
+      subject: args.subject,
+      body: args.body,
+      channels: args.channels,
+      audienceFilter: args.audienceFilter as unknown as object,
+      sentByUserId: args.sentByUserId,
+      status: 'SENT',
+      sentAt: new Date(),
+      kind: args.kind,
+    },
+    select: { id: true },
   })
 
-  return {
-    ok: true,
-    id: announcement.id,
-    deliveryCount: deliveries.length,
-    successCount,
+  if (args.deliveries.length > 0) {
+    await prisma.leagueAnnouncementDelivery.createMany({
+      data: args.deliveries.map((d) => ({
+        announcementId: announcement.id,
+        userId: d.userId,
+        channel: d.channel,
+        status: d.status,
+        failureReason: d.failureReason ?? null,
+        deliveredAt: d.status === 'SENT' ? new Date() : null,
+      })),
+    })
   }
+
+  return { id: announcement.id }
 }
 
 /**
@@ -216,7 +355,7 @@ export async function listAnnouncements(tournamentId: string): Promise<Announcem
   const rows = await prisma.leagueAnnouncement.findMany({
     where: { rootTournamentId: rootId },
     orderBy: { createdAt: 'desc' },
-    take: 25,
+    take: 50,
     select: {
       id: true,
       subject: true,
@@ -224,6 +363,9 @@ export async function listAnnouncements(tournamentId: string): Promise<Announcem
       channels: true,
       sentAt: true,
       createdAt: true,
+      status: true,
+      scheduledFor: true,
+      kind: true,
       sentBy: { select: { name: true } },
       deliveries: { select: { status: true } },
     },
@@ -239,6 +381,9 @@ export async function listAnnouncements(tournamentId: string): Promise<Announcem
     sentByName: r.sentBy?.name ?? null,
     deliveryCount: r.deliveries.length,
     successCount: r.deliveries.filter((d) => d.status === 'SENT').length,
+    status: r.status as AnnouncementStatus,
+    scheduledFor: r.scheduledFor,
+    kind: r.kind as AnnouncementKind,
   }))
 }
 

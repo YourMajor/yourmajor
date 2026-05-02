@@ -74,9 +74,17 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
     }
   }, [tournamentId])
 
-  // Subscribe to real-time draft pick events and draft status changes
+  // Subscribe to real-time draft pick events and draft status changes.
+  // DraftPick INSERTs can arrive in quick succession during a snake draft;
+  // we coalesce them into a single state refetch so a 6-pick burst doesn't
+  // trigger 6 round-trips.
   useEffect(() => {
     const supabase = createClient()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const scheduleRefetch = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => { fetchState() }, 300)
+    }
     const channel = supabase
       .channel(`draft-${state.draft.id}`)
       .on(
@@ -87,9 +95,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
           table: 'DraftPick',
           filter: `draftId=eq.${state.draft.id}`,
         },
-        () => {
-          fetchState()
-        },
+        scheduleRefetch,
       )
       .on(
         'postgres_changes',
@@ -109,6 +115,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
       .subscribe()
 
     return () => {
+      if (timer) clearTimeout(timer)
       supabase.removeChannel(channel)
     }
   }, [state.draft.id, fetchState])

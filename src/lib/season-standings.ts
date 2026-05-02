@@ -1,5 +1,5 @@
 import { prisma } from '@/lib/prisma'
-import { getLeaderboard } from '@/lib/scoring'
+import { getCachedLeaderboard } from '@/lib/scoring'
 import type { PlayerStanding } from '@/lib/scoring-utils'
 import type { SeasonScoringMethod } from '@/generated/prisma/client'
 import {
@@ -168,18 +168,25 @@ export async function getSeasonStandings(tournamentId: string): Promise<SeasonSt
     eventResults: EventResult[]
   }>()
 
-  for (const event of scorableEvents) {
-    const standings = await getLeaderboard(event.id)
-    if (standings.length === 0) continue
+  // Fan out leaderboard fetches in parallel; for a 20-event season this
+  // collapses ~20 sequential round-trips into one round-trip-equivalent.
+  const standingsByEvent = await Promise.all(
+    scorableEvents.map(async (event) => ({ event, standings: await getCachedLeaderboard(event.id, event.status) })),
+  )
 
-    // Batch: resolve all tournamentPlayer.userId in one query instead of
-    // one findUnique per standing (was O(events × players)).
-    const tpIds = standings.map((s) => s.tournamentPlayerId)
-    const tps = await prisma.tournamentPlayer.findMany({
-      where: { id: { in: tpIds } },
-      select: { id: true, userId: true },
-    })
-    const tpUserId = new Map(tps.map((t) => [t.id, t.userId]))
+  // Resolve every tournamentPlayer.userId across the season in a single query
+  // instead of once per event.
+  const allTpIds = standingsByEvent.flatMap(({ standings }) => standings.map((s) => s.tournamentPlayerId))
+  const allTps = allTpIds.length > 0
+    ? await prisma.tournamentPlayer.findMany({
+        where: { id: { in: allTpIds } },
+        select: { id: true, userId: true },
+      })
+    : []
+  const tpUserId = new Map(allTps.map((t) => [t.id, t.userId]))
+
+  for (const { event, standings } of standingsByEvent) {
+    if (standings.length === 0) continue
 
     for (const s of standings) {
       const userId = tpUserId.get(s.tournamentPlayerId)
@@ -471,18 +478,40 @@ export async function getPlayerSeasonStats(
   let mostBirdiesEventName = ''
   let mostBirdiesDate: string | null = null
 
-  for (const event of scorableEvents) {
-    const standings = await getLeaderboard(event.id)
-    if (standings.length === 0) continue
+  // Fan out the per-event leaderboard fetches in parallel — for a 20-event
+  // season, this collapses ~20 sequential round-trips into one batch.
+  const standingsByEvent = await Promise.all(
+    scorableEvents.map(async (event) => ({ event, standings: await getCachedLeaderboard(event.id, event.status) })),
+  )
 
-    // Batch-resolve every standing's userId in one query so we can do both
-    // "find this player's standing" and head-to-head lookups without N+1.
-    const tpIds = standings.map((s) => s.tournamentPlayerId)
-    const tps = await prisma.tournamentPlayer.findMany({
-      where: { id: { in: tpIds } },
-      select: { id: true, userId: true },
-    })
-    const tpUserId = new Map(tps.map((t) => [t.id, t.userId]))
+  // Resolve every standing's userId across the season in a single query
+  // (was O(events) round-trips inside the loop).
+  const allTpIds = standingsByEvent.flatMap(({ standings }) => standings.map((s) => s.tournamentPlayerId))
+  const allTps = allTpIds.length > 0
+    ? await prisma.tournamentPlayer.findMany({
+        where: { id: { in: allTpIds } },
+        select: { id: true, userId: true },
+      })
+    : []
+  const tpUserId = new Map(allTps.map((t) => [t.id, t.userId]))
+
+  // Pre-fetch all of this player's scores across the chain in one query —
+  // beats one findMany per event for fairway/gir/putt aggregates.
+  const playerTpIds = allTps.filter((t) => t.userId === userId).map((t) => t.id)
+  const allPlayerScores = playerTpIds.length > 0
+    ? await prisma.score.findMany({
+        where: { tournamentPlayerId: { in: playerTpIds } },
+        select: { fairwayHit: true, gir: true, putts: true, strokes: true, tournamentPlayerId: true },
+      })
+    : []
+  for (const score of allPlayerScores) {
+    if (score.fairwayHit !== null) { fairwayAttempts++; if (score.fairwayHit) fairwayHits++ }
+    if (score.gir !== null) { girAttempts++; if (score.gir) girHits++ }
+    if (score.putts !== null) { puttsCount++; totalPutts += score.putts }
+  }
+
+  for (const { event, standings } of standingsByEvent) {
+    if (standings.length === 0) continue
 
     // Find this player's standing
     let playerStanding: PlayerStanding | null = null
@@ -513,18 +542,6 @@ export async function getPlayerSeasonStats(
       else if (hole.diff === 0) totalPars++
       else if (hole.diff === 1) totalBogeys++
       else if (hole.diff >= 2) totalDoubles++
-    }
-
-    // Detailed stats from scores
-    const scores = await prisma.score.findMany({
-      where: { tournamentPlayerId: playerTpId },
-      select: { fairwayHit: true, gir: true, putts: true, strokes: true, round: { select: { roundNumber: true } } },
-    })
-
-    for (const score of scores) {
-      if (score.fairwayHit !== null) { fairwayAttempts++; if (score.fairwayHit) fairwayHits++ }
-      if (score.gir !== null) { girAttempts++; if (score.gir) girHits++ }
-      if (score.putts !== null) { puttsCount++; totalPutts += score.putts }
     }
 
     // Best round (by round total)
@@ -793,24 +810,37 @@ export async function getSeasonAttendance(tournamentId: string): Promise<{
   const playerMap = new Map<string, { name: string; avatar: string | null }>()
   const participation = new Map<string, Set<string>>() // userId -> set of tournamentIds
 
-  for (const event of scorableEvents) {
-    const players = await prisma.tournamentPlayer.findMany({
-      where: { tournamentId: event.id, isParticipant: true },
-      include: { user: { include: { profile: { select: { avatar: true } } } } },
-    })
+  // One batched query across the whole chain instead of one per event.
+  const eventIds = scorableEvents.map((e) => e.id)
+  const players = eventIds.length > 0
+    ? await prisma.tournamentPlayer.findMany({
+        where: { tournamentId: { in: eventIds }, isParticipant: true },
+        select: {
+          userId: true,
+          tournamentId: true,
+          user: {
+            select: {
+              name: true,
+              email: true,
+              image: true,
+              profile: { select: { avatar: true } },
+            },
+          },
+        },
+      })
+    : []
 
-    for (const p of players) {
-      if (!playerMap.has(p.userId)) {
-        playerMap.set(p.userId, {
-          name: p.user.name ?? p.user.email.split('@')[0],
-          avatar: p.user.profile?.avatar ?? p.user.image ?? null,
-        })
-      }
-      if (!participation.has(p.userId)) {
-        participation.set(p.userId, new Set())
-      }
-      participation.get(p.userId)!.add(event.id)
+  for (const p of players) {
+    if (!playerMap.has(p.userId)) {
+      playerMap.set(p.userId, {
+        name: p.user.name ?? p.user.email.split('@')[0],
+        avatar: p.user.profile?.avatar ?? p.user.image ?? null,
+      })
     }
+    if (!participation.has(p.userId)) {
+      participation.set(p.userId, new Set())
+    }
+    participation.get(p.userId)!.add(p.tournamentId)
   }
 
   const rows: AttendanceRow[] = Array.from(playerMap.entries()).map(([userId, info]) => {

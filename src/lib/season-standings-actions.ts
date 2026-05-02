@@ -115,7 +115,11 @@ export async function addSeasonAdjustment(
     },
   })
 
-  revalidatePath('/', 'layout')
+  const root = await prisma.tournament.findUnique({
+    where: { id: rootId },
+    select: { slug: true },
+  })
+  if (root?.slug) revalidatePath(`/${root.slug}`, 'layout')
 }
 
 export async function deleteSeasonAdjustment(tournamentId: string, adjustmentId: string) {
@@ -131,5 +135,9 @@ export async function deleteSeasonAdjustment(tournamentId: string, adjustmentId:
 
   await prisma.seasonAdjustment.delete({ where: { id: adjustmentId } })
 
-  revalidatePath('/', 'layout')
+  const root = await prisma.tournament.findUnique({
+    where: { id: rootId },
+    select: { slug: true },
+  })
+  if (root?.slug) revalidatePath(`/${root.slug}`, 'layout')
 }

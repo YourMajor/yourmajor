@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ColorDonutPicker } from '@/components/ui/color-donut-picker'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { createClient } from '@/utils/supabase/client'
 
 export type BasicInfoState = {
   name: string
@@ -18,14 +19,13 @@ export type BasicInfoState = {
   endDate: string
   registrationDeadline: string
   numRounds: number
+  // Image fields are uploaded directly to Supabase Storage from the browser —
+  // Server Actions can't accept >4.5 MB payloads (Vercel edge limit), so we
+  // never round-trip image bytes through the action.
   logoPreview: string | null
-  logoBase64: string | null
-  logoMime: string | null
-  logoExt: string | null
+  logoUrl: string | null
   headerPreview: string | null
-  headerBase64: string | null
-  headerMime: string | null
-  headerExt: string | null
+  headerImageUrl: string | null
   primaryColor: string
   accentColor: string
 }
@@ -40,24 +40,40 @@ interface Props {
   // user keep their existing N rounds even if their current tier's
   // maxRounds is now lower (e.g. PRO went 4→2 in the 2026-04-26 ship).
   parentRoundCount?: number
+  // Surfaces upload-in-progress to the wizard so submit can be gated.
+  onUploadingChange?: (uploading: boolean) => void
 }
 
 const MAX_LOGO_MB = 10
+const MAX_HEADER_MB = 10
 
-export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FREE', tournamentType, parentRoundCount }: Props) {
+export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FREE', tournamentType, parentRoundCount, onUploadingChange }: Props) {
   const fileRef = useRef<HTMLInputElement>(null)
   const headerFileRef = useRef<HTMLInputElement>(null)
   const [logoError, setLogoError] = useState<string | null>(null)
   const [headerError, setHeaderError] = useState<string | null>(null)
+  const [logoUploading, setLogoUploading] = useState(false)
+  const [headerUploading, setHeaderUploading] = useState(false)
 
   function set<K extends keyof BasicInfoState>(key: K, val: BasicInfoState[K]) {
     onChange({ ...value, [key]: val })
   }
 
-  function handleLogo(file: File | null) {
+  function setUploading(kind: 'logo' | 'header', v: boolean) {
+    if (kind === 'logo') setLogoUploading(v)
+    else setHeaderUploading(v)
+    // Tell the wizard whether *any* upload is still pending. Use the
+    // post-update state values to compute, since the React setters above
+    // are async with respect to this call.
+    const logoBusy = kind === 'logo' ? v : logoUploading
+    const headerBusy = kind === 'header' ? v : headerUploading
+    onUploadingChange?.(logoBusy || headerBusy)
+  }
+
+  async function handleLogo(file: File | null) {
     setLogoError(null)
     if (!file) {
-      onChange({ ...value, logoPreview: null, logoBase64: null, logoMime: null, logoExt: null })
+      onChange({ ...value, logoPreview: null, logoUrl: null })
       return
     }
     if (file.size > MAX_LOGO_MB * 1024 * 1024) {
@@ -65,33 +81,70 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
       if (fileRef.current) fileRef.current.value = ''
       return
     }
-    const ext = file.name.split('.').pop() ?? 'png'
-    const mime = file.type
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      onChange({ ...value, logoPreview: e.target?.result as string, logoBase64: e.target?.result as string, logoMime: mime, logoExt: ext })
+
+    // Show the local preview immediately while the upload runs in the
+    // background — the user gets visual feedback without waiting for the
+    // network.
+    const localPreview = URL.createObjectURL(file)
+    onChange({ ...value, logoPreview: localPreview, logoUrl: null })
+
+    setUploading('logo', true)
+    try {
+      const ext = (file.name.split('.').pop() || 'png').toLowerCase()
+      const path = `${crypto.randomUUID()}.${ext}`
+      const supabase = createClient()
+      const { error } = await supabase.storage.from('logos').upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      })
+      if (error) throw error
+      const { data } = supabase.storage.from('logos').getPublicUrl(path)
+      onChange({ ...value, logoPreview: data.publicUrl, logoUrl: data.publicUrl })
+    } catch (e) {
+      setLogoError(e instanceof Error ? e.message : 'Upload failed. Please try again.')
+      if (fileRef.current) fileRef.current.value = ''
+      onChange({ ...value, logoPreview: null, logoUrl: null })
+    } finally {
+      URL.revokeObjectURL(localPreview)
+      setUploading('logo', false)
     }
-    reader.readAsDataURL(file)
   }
 
-  function handleHeaderImage(file: File | null) {
+  async function handleHeaderImage(file: File | null) {
     setHeaderError(null)
     if (!file) {
-      onChange({ ...value, headerPreview: null, headerBase64: null, headerMime: null, headerExt: null })
+      onChange({ ...value, headerPreview: null, headerImageUrl: null })
       return
     }
-    if (file.size > 10 * 1024 * 1024) {
-      setHeaderError('Header image must be under 10 MB.')
+    if (file.size > MAX_HEADER_MB * 1024 * 1024) {
+      setHeaderError(`Header image must be under ${MAX_HEADER_MB} MB.`)
       if (headerFileRef.current) headerFileRef.current.value = ''
       return
     }
-    const ext = file.name.split('.').pop() ?? 'jpg'
-    const mime = file.type
-    const reader = new FileReader()
-    reader.onload = (e) => {
-      onChange({ ...value, headerPreview: e.target?.result as string, headerBase64: e.target?.result as string, headerMime: mime, headerExt: ext })
+
+    const localPreview = URL.createObjectURL(file)
+    onChange({ ...value, headerPreview: localPreview, headerImageUrl: null })
+
+    setUploading('header', true)
+    try {
+      const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+      const path = `headers/${crypto.randomUUID()}.${ext}`
+      const supabase = createClient()
+      const { error } = await supabase.storage.from('logos').upload(path, file, {
+        contentType: file.type,
+        upsert: false,
+      })
+      if (error) throw error
+      const { data } = supabase.storage.from('logos').getPublicUrl(path)
+      onChange({ ...value, headerPreview: data.publicUrl, headerImageUrl: data.publicUrl })
+    } catch (e) {
+      setHeaderError(e instanceof Error ? e.message : 'Upload failed. Please try again.')
+      if (headerFileRef.current) headerFileRef.current.value = ''
+      onChange({ ...value, headerPreview: null, headerImageUrl: null })
+    } finally {
+      URL.revokeObjectURL(localPreview)
+      setUploading('header', false)
     }
-    reader.readAsDataURL(file)
   }
 
   return (
@@ -241,34 +294,40 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
               <div className="space-y-2">
                 <Label>Logo <span className="text-muted-foreground font-normal">(optional)</span></Label>
                 {value.logoPreview && (
-                  <Image src={value.logoPreview} alt="Logo preview" width={48} height={48} className="h-12 object-contain mb-1" />
+                  <Image src={value.logoPreview} alt="Logo preview" width={48} height={48} unoptimized className="h-12 object-contain mb-1" />
                 )}
                 <Input
                   ref={fileRef}
                   type="file"
                   accept="image/*"
+                  disabled={logoUploading}
                   onChange={(e) => handleLogo(e.target.files?.[0] ?? null)}
                 />
                 {logoError
                   ? <p className="text-xs text-destructive">{logoError}</p>
-                  : <p className="text-xs text-muted-foreground">PNG, JPG, or SVG · Max {MAX_LOGO_MB} MB</p>
+                  : logoUploading
+                    ? <p className="text-xs text-muted-foreground">Uploading…</p>
+                    : <p className="text-xs text-muted-foreground">PNG, JPG, or SVG · Max {MAX_LOGO_MB} MB</p>
                 }
               </div>
 
               <div className="space-y-2">
                 <Label>Header Image <span className="text-muted-foreground font-normal">(optional — displays edge-to-edge)</span></Label>
                 {value.headerPreview && (
-                  <Image src={value.headerPreview} alt="Header preview" width={800} height={96} className="w-full h-24 object-cover rounded-md mb-1" />
+                  <Image src={value.headerPreview} alt="Header preview" width={800} height={96} unoptimized className="w-full h-24 object-cover rounded-md mb-1" />
                 )}
                 <Input
                   ref={headerFileRef}
                   type="file"
                   accept="image/*"
+                  disabled={headerUploading}
                   onChange={(e) => handleHeaderImage(e.target.files?.[0] ?? null)}
                 />
                 {headerError
                   ? <p className="text-xs text-destructive">{headerError}</p>
-                  : <p className="text-xs text-muted-foreground">Wide landscape image recommended · Max 10 MB</p>
+                  : headerUploading
+                    ? <p className="text-xs text-muted-foreground">Uploading…</p>
+                    : <p className="text-xs text-muted-foreground">Wide landscape image recommended · Max {MAX_HEADER_MB} MB</p>
                 }
               </div>
 

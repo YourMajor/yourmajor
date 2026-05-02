@@ -97,23 +97,34 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     return () => clearTimeout(timer)
   }, [isBanned, banExpiresAt])
 
-  // Supabase real-time subscription (INSERT + UPDATE for soft-delete)
+  // Supabase real-time subscription (INSERT + UPDATE for soft-delete).
+  // Bursts of events (e.g. a flurry of system messages or a moderator
+  // soft-deleting many at once) are coalesced into a single refetch so we
+  // don't pull the full message history repeatedly per WebSocket event.
   useEffect(() => {
     const supabase = createClient()
+    let timer: ReturnType<typeof setTimeout> | null = null
+    const scheduleRefetch = () => {
+      if (timer) clearTimeout(timer)
+      timer = setTimeout(() => { fetchMessages() }, 300)
+    }
     const channel = supabase
       .channel(`${channelPrefix}-${tournamentId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        () => fetchMessages(),
+        scheduleRefetch,
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        () => fetchMessages(),
+        scheduleRefetch,
       )
       .subscribe()
-    return () => { supabase.removeChannel(channel) }
+    return () => {
+      if (timer) clearTimeout(timer)
+      supabase.removeChannel(channel)
+    }
   }, [tournamentId, channelPrefix, fetchMessages])
 
   const sendMessage = useCallback(async (content?: string) => {

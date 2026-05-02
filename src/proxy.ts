@@ -72,6 +72,9 @@ export async function proxy(request: NextRequest) {
 
 export const config = {
   matcher: [
-    '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
+    // Skip Supabase auth refresh for static assets, fonts, the manifest, and
+    // server-to-server endpoints (cron, Stripe webhooks) that authenticate
+    // themselves and don't need a refreshed session cookie.
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/cron|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf|eot|ico)$).*)',
   ],
 }

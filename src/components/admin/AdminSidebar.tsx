@@ -11,6 +11,7 @@ import {
   ShieldAlert,
   Trophy,
   Mail,
+  Send,
 } from 'lucide-react'
 
 interface NavLink {
@@ -35,6 +36,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
   const links: NavLink[] = [
     { href: base, label: 'Overview', icon: LayoutDashboard, show: true },
     { href: `${base}/season`, label: 'Season', icon: Trophy, show: isLeague },
+    { href: `${base}/communications`, label: 'Communications', icon: Send, show: isLeague },
     { href: `${base}/invites`, label: 'Invite Players', icon: Mail, show: tournamentType === 'INVITE' },
     { href: `${base}/setup`, label: 'Settings', icon: Settings, show: true },
     { href: `${base}/scores`, label: 'Manage Scores', icon: PenLine, show: !isLeague },

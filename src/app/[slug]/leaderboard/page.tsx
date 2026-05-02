@@ -51,6 +51,7 @@ export default async function LeaderboardPage({
 
   const initialStandings = await getLeaderboard(tournament.id)
   const roundNumbers = tournament.rounds.map((r) => r.roundNumber)
+  const roundIds = tournament.rounds.map((r) => r.id)
 
   // Player progress for scoring CTA
   const holesPerRound = tournament.rounds[0]?.course?.holes?.length ?? 18
@@ -226,6 +227,7 @@ export default async function LeaderboardPage({
         initialData={initialStandings}
         tournamentId={tournament.id}
         roundNumbers={roundNumbers}
+        roundIds={roundIds}
         slug={slug}
         status={effectiveStatus}
         handicapSystem={tournament.handicapSystem}

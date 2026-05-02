@@ -288,7 +288,7 @@ export function TournamentNavBar({
                     const vsParLabel = c.grossVsPar === null ? '' : c.grossVsPar === 0 ? 'E' : c.grossVsPar > 0 ? `+${c.grossVsPar}` : `${c.grossVsPar}`
                     return (
                       <Link
-                        key={i}
+                        key={c.slug}
                         href={`/${c.slug}`}
                         onClick={() => setMenuOpen(false)}
                         onMouseEnter={() => { setHoveredChampionIdx(i); setHoveredIndex(null) }}

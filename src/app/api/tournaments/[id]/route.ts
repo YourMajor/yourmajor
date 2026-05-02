@@ -141,7 +141,6 @@ export async function DELETE(
   revalidatePath('/dashboard')
   revalidatePath('/tournaments')
   revalidatePath(`/${target.slug}`, 'layout')
-  revalidatePath('/', 'layout')
 
   return NextResponse.json({ ok: true })
 }

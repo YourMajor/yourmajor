@@ -18,6 +18,14 @@ async function getRootTournamentId(tournamentId: string): Promise<string> {
   return currentId
 }
 
+async function revalidateRoot(rootId: string) {
+  const root = await prisma.tournament.findUnique({
+    where: { id: rootId },
+    select: { slug: true },
+  })
+  if (root?.slug) revalidatePath(`/${root.slug}`, 'layout')
+}
+
 export async function createScheduleEvent(
   tournamentId: string,
   data: { title: string; date: string; courseId?: string; notes?: string }
@@ -37,15 +45,19 @@ export async function createScheduleEvent(
     },
   })
 
-  revalidatePath('/', 'layout')
+  await revalidateRoot(rootId)
 }
 
 export async function deleteScheduleEvent(eventId: string) {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
+  const event = await prisma.seasonScheduleEvent.findUnique({
+    where: { id: eventId },
+    select: { tournamentId: true },
+  })
   await prisma.seasonScheduleEvent.delete({ where: { id: eventId } })
-  revalidatePath('/', 'layout')
+  if (event) await revalidateRoot(event.tournamentId)
 }
 
 export async function submitRSVP(
@@ -61,5 +73,9 @@ export async function submitRSVP(
     update: { status },
   })
 
-  revalidatePath('/', 'layout')
+  const event = await prisma.seasonScheduleEvent.findUnique({
+    where: { id: eventId },
+    select: { tournamentId: true },
+  })
+  if (event) await revalidateRoot(event.tournamentId)
 }

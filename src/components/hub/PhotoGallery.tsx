@@ -110,15 +110,19 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
     setFilterLoading(true)
     try {
       if (filter === 'all' && tournamentFilters) {
-        // Fetch from all tournaments
-        const allPhotos: Photo[] = []
-        for (const tf of tournamentFilters) {
-          const res = await fetch(`/api/tournaments/${tf.id}/photos`)
-          if (res.ok) {
-            const data = await res.json()
-            allPhotos.push(...data)
-          }
-        }
+        // Fetch from all tournaments in parallel — was sequential, so a 5-year
+        // archive blocked for 5x the slowest server round-trip.
+        const results = await Promise.all(
+          tournamentFilters.map(async (tf) => {
+            try {
+              const res = await fetch(`/api/tournaments/${tf.id}/photos`)
+              return res.ok ? ((await res.json()) as Photo[]) : []
+            } catch {
+              return []
+            }
+          }),
+        )
+        const allPhotos = results.flat()
         allPhotos.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
         setPhotos(allPhotos)
       } else {
@@ -272,7 +276,14 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
           )}
 
           {realPhotos.map((photo) => (
-            <div key={photo.id} className="group relative rounded-md overflow-hidden border border-border bg-muted/30">
+            <div
+              key={photo.id}
+              // `content-visibility: auto` lets the browser skip layout/paint
+              // for off-screen tiles. The intrinsic-size hint avoids scroll
+              // jumps as cells flicker in/out of the viewport.
+              style={{ contentVisibility: 'auto', containIntrinsicSize: '180px 180px' }}
+              className="group relative rounded-md overflow-hidden border border-border bg-muted/30"
+            >
               {isAdmin && (
                 <button
                   type="button"

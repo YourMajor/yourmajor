@@ -3,12 +3,168 @@
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { sendSMS } from '@/lib/sms'
 import { autoAssign, type AssignMode, type AssignablePlayer } from '@/lib/group-assignment'
-import { getRecentPartners } from '@/lib/league-events'
+import { getRecentPartners, getLeagueRootId } from '@/lib/league-events'
+import {
+  logOutboundCommunication,
+  type AnnouncementChannel,
+  type DeliveryStatus,
+} from '@/lib/league-announcements'
+
+// Per-recipient outcome captured while a tee-time notify batch dispatches.
+// Used to seed the LeagueAnnouncement audit row at the end.
+interface TeeTimeDelivery {
+  userId: string
+  channel: AnnouncementChannel
+  status: DeliveryStatus
+  failureReason?: string | null
+}
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
+
+interface TeeTimeDispatch {
+  tournamentPlayerId: string
+  userId: string
+  email: string | null
+  phone: string | null
+  smsNotifications: boolean
+  groupName: string
+  teeTimeStr: string | null
+  startingHole: number | null
+  memberNames: string[]
+  payload: {
+    groupName: string
+    teeTime: string | null
+    startingHole: number | null
+    groupMembers: string[]
+  }
+  tournamentName: string
+}
+
+interface GroupForNotify {
+  name: string
+  teeTime: Date | null
+  startingHole: number | null
+  members: Array<{
+    tournamentPlayer: {
+      user: { name: string | null; email: string }
+    }
+  }>
+}
+
+interface MemberForNotify {
+  tournamentPlayer: {
+    id: string
+    user: {
+      id: string
+      name: string | null
+      email: string
+      phone: string | null
+      smsNotifications: boolean
+    }
+  }
+}
+
+function buildTeeTimeDispatch(
+  group: GroupForNotify,
+  member: MemberForNotify,
+  tournamentName: string,
+): TeeTimeDispatch {
+  const teeTimeStr = group.teeTime
+    ? new Date(group.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
+    : null
+  const memberNames = group.members.map((m) => m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email)
+  const player = member.tournamentPlayer
+  return {
+    tournamentPlayerId: player.id,
+    userId: player.user.id,
+    email: player.user.email ?? null,
+    phone: player.user.phone,
+    smsNotifications: player.user.smsNotifications,
+    groupName: group.name,
+    teeTimeStr,
+    startingHole: group.startingHole,
+    memberNames,
+    payload: {
+      groupName: group.name,
+      teeTime: teeTimeStr,
+      startingHole: group.startingHole,
+      groupMembers: memberNames,
+    },
+    tournamentName,
+  }
+}
+
+async function dispatchTeeTimeMessages(
+  dispatches: TeeTimeDispatch[],
+  slug: string,
+): Promise<TeeTimeDelivery[]> {
+  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
+  const deliveries: TeeTimeDelivery[] = []
+
+  // Send each player's email + SMS in parallel — they're independent, so a
+  // slow Resend call to one address shouldn't gate the next.
+  await Promise.all(
+    dispatches.map(async (d) => {
+      if (d.email) {
+        const membersHtml = d.memberNames.map((n) => `<li>${n}</li>`).join('')
+        try {
+          await sendEmail(
+            d.email,
+            `Your tee time for ${d.tournamentName}`,
+            `<h2>${d.tournamentName}</h2>
+            <p>Your group: <strong>${d.groupName}</strong></p>
+            ${d.teeTimeStr ? `<p>Tee time: <strong>${d.teeTimeStr}</strong></p>` : ''}
+            ${d.startingHole ? `<p>Starting hole: <strong>#${d.startingHole}</strong></p>` : ''}
+            <p>Playing with:</p>
+            <ul>${membersHtml}</ul>
+            <p><a href="${domain}/${slug}">View Tournament</a></p>`,
+          )
+          deliveries.push({ userId: d.userId, channel: 'EMAIL', status: 'SENT' })
+        } catch (e) {
+          deliveries.push({
+            userId: d.userId,
+            channel: 'EMAIL',
+            status: 'FAILED',
+            failureReason: e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200),
+          })
+        }
+      } else {
+        deliveries.push({
+          userId: d.userId,
+          channel: 'EMAIL',
+          status: 'SKIPPED',
+          failureReason: 'no email on file',
+        })
+      }
+
+      if (d.smsNotifications && d.phone) {
+        const smsBody = [
+          `${d.tournamentName} — Group: ${d.groupName}`,
+          d.teeTimeStr ? `Tee time: ${d.teeTimeStr}` : null,
+          d.startingHole ? `Starting hole: #${d.startingHole}` : null,
+          `Playing with: ${d.memberNames.join(', ')}`,
+        ].filter(Boolean).join('\n')
+        try {
+          await sendSMS(d.phone, smsBody)
+          deliveries.push({ userId: d.userId, channel: 'SMS', status: 'SENT' })
+        } catch (e) {
+          deliveries.push({
+            userId: d.userId,
+            channel: 'SMS',
+            status: 'FAILED',
+            failureReason: e instanceof Error ? e.message.slice(0, 200) : String(e).slice(0, 200),
+          })
+        }
+      }
+    }),
+  )
+
+  return deliveries
+}
 
 async function requireTournamentAdmin(tournamentId: string) {
   const user = await getUser()
@@ -138,26 +294,28 @@ export async function autoAssignGroups(
     recentPartners,
   })
 
-  // Wipe existing groups for this tournament and recreate. Cascade deletes
-  // TournamentGroupMember rows automatically.
-  await prisma.$transaction(async (tx) => {
-    await tx.tournamentGroup.deleteMany({ where: { tournamentId } })
-    for (let i = 0; i < assignedGroups.length; i++) {
-      const groupPlayers = assignedGroups[i]
-      const created = await tx.tournamentGroup.create({
-        data: { tournamentId, name: `Group ${i + 1}` },
-      })
-      for (let pos = 0; pos < groupPlayers.length; pos++) {
-        await tx.tournamentGroupMember.create({
-          data: {
-            groupId: created.id,
-            tournamentPlayerId: groupPlayers[pos].id,
-            position: pos,
-          },
-        })
-      }
-    }
-  })
+  // Wipe and recreate groups in a single transaction. Pre-generating the
+  // group IDs lets us emit `createMany` for both groups and members instead
+  // of N+M sequential round-trips (was 1 + 20 + 80 = 101 queries for a
+  // 20-group / 80-player assignment; now 3 statements).
+  const groupRows = assignedGroups.map((_, i) => ({
+    id: crypto.randomUUID(),
+    tournamentId,
+    name: `Group ${i + 1}`,
+  }))
+  const memberRows = assignedGroups.flatMap((groupPlayers, gi) =>
+    groupPlayers.map((p, pos) => ({
+      groupId: groupRows[gi].id,
+      tournamentPlayerId: p.id,
+      position: pos,
+    })),
+  )
+
+  await prisma.$transaction([
+    prisma.tournamentGroup.deleteMany({ where: { tournamentId } }),
+    prisma.tournamentGroup.createMany({ data: groupRows }),
+    prisma.tournamentGroupMember.createMany({ data: memberRows }),
+  ])
 
   revalidatePath(`/${tournament.slug}/admin/groups`)
   return { ok: true, groupCount: assignedGroups.length, conflicts }
@@ -284,7 +442,7 @@ export async function notifyAffectedPlayers(
   tournamentId: string,
   slug: string,
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
-  await requireTournamentAdmin(tournamentId)
+  const adminUser = await requireTournamentAdmin(tournamentId)
 
   const [tournament, groups] = await Promise.all([
     prisma.tournament.findUnique({
@@ -297,7 +455,7 @@ export async function notifyAffectedPlayers(
         members: {
           include: {
             tournamentPlayer: {
-              include: { user: { select: { name: true, email: true, phone: true, smsNotifications: true } } },
+              include: { user: { select: { id: true, name: true, email: true, phone: true, smsNotifications: true } } },
             },
           },
           orderBy: { position: 'asc' },
@@ -326,75 +484,59 @@ export async function notifyAffectedPlayers(
     return { ok: true, count: 0 }
   }
 
-  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
   const now = new Date()
 
-  for (const { group, member } of affectedMembers) {
-    const player = member.tournamentPlayer
-    const teeTimeStr = group.teeTime
-      ? new Date(group.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      : null
-    const memberNames = group.members.map((m) => m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email)
-    const payload = {
-      groupName: group.name,
-      teeTime: teeTimeStr,
-      startingHole: group.startingHole,
-      groupMembers: memberNames,
-    }
-
-    await prisma.notification.create({
-      data: {
-        tournamentPlayerId: player.id,
-        type: 'TEE_TIME_ASSIGNED',
-        payload,
-      },
-    })
-
-    if (player.user.email) {
-      const membersHtml = memberNames.map((n) => `<li>${n}</li>`).join('')
-      await sendEmail(
-        player.user.email,
-        `Your tee time for ${tournament?.name ?? 'the tournament'}`,
-        `<h2>${tournament?.name ?? 'Tournament'}</h2>
-        <p>Your group: <strong>${group.name}</strong></p>
-        ${teeTimeStr ? `<p>Tee time: <strong>${teeTimeStr}</strong></p>` : ''}
-        ${group.startingHole ? `<p>Starting hole: <strong>#${group.startingHole}</strong></p>` : ''}
-        <p>Playing with:</p>
-        <ul>${membersHtml}</ul>
-        <p><a href="${domain}/${slug}">View Tournament</a></p>`,
-      )
-    }
-
-    if (player.user.smsNotifications && player.user.phone) {
-      const smsBody = [
-        `${tournament?.name ?? 'Tournament'} — Group: ${group.name}`,
-        teeTimeStr ? `Tee time: ${teeTimeStr}` : null,
-        group.startingHole ? `Starting hole: #${group.startingHole}` : null,
-        `Playing with: ${memberNames.join(', ')}`,
-      ].filter(Boolean).join('\n')
-      await sendSMS(player.user.phone, smsBody)
-    }
-
-    // Mark member as notified
-    await prisma.tournamentGroupMember.update({
-      where: { id: member.id },
-      data: { notifiedAt: now },
-    })
-  }
-
-  // Update group snapshot fields for all groups that had affected members
+  // Build the dispatch list eagerly so we can detach sends from the response.
+  const dispatches = affectedMembers.map(({ group, member }) =>
+    buildTeeTimeDispatch(group, member, tournament?.name ?? 'Tournament'),
+  )
+  const memberIds = affectedMembers.map((a) => a.member.id)
   const affectedGroupIds = new Set(affectedMembers.map((a) => a.group.id))
-  for (const group of groups) {
-    if (affectedGroupIds.has(group.id)) {
-      await prisma.tournamentGroup.update({
+  const affectedGroups = groups.filter((g) => affectedGroupIds.has(g.id))
+
+  // Persist the structured Notification + tracking writes synchronously so
+  // the client-side admin UI shows the new "notified" state immediately.
+  await prisma.$transaction([
+    prisma.notification.createMany({
+      data: dispatches.map((d) => ({
+        tournamentPlayerId: d.tournamentPlayerId,
+        type: 'TEE_TIME_ASSIGNED',
+        payload: d.payload,
+      })),
+    }),
+    prisma.tournamentGroupMember.updateMany({
+      where: { id: { in: memberIds } },
+      data: { notifiedAt: now },
+    }),
+  ])
+
+  // Group snapshot fields differ per group, so we run them in parallel
+  // outside the transaction (small N, independent rows).
+  await Promise.all(
+    affectedGroups.map((group) =>
+      prisma.tournamentGroup.update({
         where: { id: group.id },
         data: {
           lastNotifiedTeeTime: group.teeTime,
           lastNotifiedStartHole: group.startingHole,
         },
-      })
-    }
-  }
+      }),
+    ),
+  )
+
+  // Outbound email/SMS + the audit row run after the response so the admin
+  // doesn't watch a spinner while N players' messages dispatch in series.
+  after(async () => {
+    const deliveries = await dispatchTeeTimeMessages(dispatches, slug)
+    await writeTeeTimeAuditRow({
+      tournamentId,
+      tournamentName: tournament?.name ?? 'Tournament',
+      scope: 'AFFECTED',
+      deliveries,
+      sentByUserId: adminUser.id,
+      affectedCount: affectedMembers.length,
+    }).catch((err) => console.error('[notifyAffectedPlayers] audit write failed:', err))
+  })
 
   revalidatePath(`/${slug}/admin/groups`)
   return { ok: true, count: affectedMembers.length }
@@ -407,7 +549,7 @@ export async function notifyAllPlayers(
   tournamentId: string,
   slug: string,
 ): Promise<{ ok: boolean; count?: number; error?: string }> {
-  await requireTournamentAdmin(tournamentId)
+  const adminUser = await requireTournamentAdmin(tournamentId)
 
   const [participants, groups] = await Promise.all([
     prisma.tournamentPlayer.findMany({
@@ -420,7 +562,7 @@ export async function notifyAllPlayers(
         members: {
           include: {
             tournamentPlayer: {
-              include: { user: { select: { name: true, email: true, phone: true, smsNotifications: true } } },
+              include: { user: { select: { id: true, name: true, email: true, phone: true, smsNotifications: true } } },
             },
           },
           orderBy: { position: 'asc' },
@@ -442,75 +584,90 @@ export async function notifyAllPlayers(
     select: { name: true },
   })
 
-  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
+  const tournamentName = tournament?.name ?? 'Tournament'
   const now = new Date()
-  let notified = 0
-
+  const dispatches: TeeTimeDispatch[] = []
+  const memberIds: string[] = []
   for (const group of groups) {
-    const teeTimeStr = group.teeTime
-      ? new Date(group.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
-      : null
-    const memberNames = group.members.map((m) => m.tournamentPlayer.user.name ?? m.tournamentPlayer.user.email)
-
     for (const member of group.members) {
-      const player = member.tournamentPlayer
-      const payload = {
-        groupName: group.name,
-        teeTime: teeTimeStr,
-        startingHole: group.startingHole,
-        groupMembers: memberNames,
-      }
-
-      await prisma.notification.create({
-        data: {
-          tournamentPlayerId: player.id,
-          type: 'TEE_TIME_ASSIGNED',
-          payload,
-        },
-      })
-
-      if (player.user.email) {
-        const membersHtml = memberNames.map((n) => `<li>${n}</li>`).join('')
-        await sendEmail(
-          player.user.email,
-          `Your tee time for ${tournament?.name ?? 'the tournament'}`,
-          `<h2>${tournament?.name ?? 'Tournament'}</h2>
-          <p>Your group: <strong>${group.name}</strong></p>
-          ${teeTimeStr ? `<p>Tee time: <strong>${teeTimeStr}</strong></p>` : ''}
-          ${group.startingHole ? `<p>Starting hole: <strong>#${group.startingHole}</strong></p>` : ''}
-          <p>Playing with:</p>
-          <ul>${membersHtml}</ul>
-          <p><a href="${domain}/${slug}">View Tournament</a></p>`,
-        )
-      }
-
-      if (player.user.smsNotifications && player.user.phone) {
-        const smsBody = [
-          `${tournament?.name ?? 'Tournament'} — Group: ${group.name}`,
-          teeTimeStr ? `Tee time: ${teeTimeStr}` : null,
-          group.startingHole ? `Starting hole: #${group.startingHole}` : null,
-          `Playing with: ${memberNames.join(', ')}`,
-        ].filter(Boolean).join('\n')
-        await sendSMS(player.user.phone, smsBody)
-      }
-
-      await prisma.tournamentGroupMember.update({
-        where: { id: member.id },
-        data: { notifiedAt: now },
-      })
-
-      notified++
+      dispatches.push(buildTeeTimeDispatch(group, member, tournamentName))
+      memberIds.push(member.id)
     }
-
-    await prisma.tournamentGroup.update({
-      where: { id: group.id },
-      data: {
-        lastNotifiedTeeTime: group.teeTime,
-        lastNotifiedStartHole: group.startingHole,
-      },
-    })
   }
 
+  await prisma.$transaction([
+    prisma.notification.createMany({
+      data: dispatches.map((d) => ({
+        tournamentPlayerId: d.tournamentPlayerId,
+        type: 'TEE_TIME_ASSIGNED',
+        payload: d.payload,
+      })),
+    }),
+    prisma.tournamentGroupMember.updateMany({
+      where: { id: { in: memberIds } },
+      data: { notifiedAt: now },
+    }),
+  ])
+
+  await Promise.all(
+    groups.map((group) =>
+      prisma.tournamentGroup.update({
+        where: { id: group.id },
+        data: {
+          lastNotifiedTeeTime: group.teeTime,
+          lastNotifiedStartHole: group.startingHole,
+        },
+      }),
+    ),
+  )
+
+  after(async () => {
+    const deliveries = await dispatchTeeTimeMessages(dispatches, slug)
+    await writeTeeTimeAuditRow({
+      tournamentId,
+      tournamentName,
+      scope: 'ALL',
+      deliveries,
+      sentByUserId: adminUser.id,
+      affectedCount: dispatches.length,
+    }).catch((err) => console.error('[notifyAllPlayers] audit write failed:', err))
+  })
+
   revalidatePath(`/${slug}/admin/groups`)
-  return { ok: true, count: notified }
+  return { ok: true, count: dispatches.length }
+}
+
+/**
+ * Persist a tee-time send batch to LeagueAnnouncement for the unified
+ * Communications audit trail. Skips silently for non-league tournaments —
+ * the audit list is league-scoped today.
+ */
+async function writeTeeTimeAuditRow(args: {
+  tournamentId: string
+  tournamentName: string
+  scope: 'AFFECTED' | 'ALL'
+  deliveries: TeeTimeDelivery[]
+  sentByUserId: string
+  affectedCount: number
+}) {
+  if (args.deliveries.length === 0) return
+  const rootId = await getLeagueRootId(args.tournamentId)
+  if (!rootId) return
+
+  // Channels actually exercised — drop EMAIL/SMS that were never attempted.
+  const channels: AnnouncementChannel[] = []
+  if (args.deliveries.some((d) => d.channel === 'EMAIL' && d.status !== 'SKIPPED')) channels.push('EMAIL')
+  if (args.deliveries.some((d) => d.channel === 'SMS')) channels.push('SMS')
+  if (channels.length === 0) return
+
+  await logOutboundCommunication({
+    rootTournamentId: rootId,
+    kind: 'TEE_TIME',
+    subject: `Tee times — ${args.tournamentName}`,
+    body: `Sent tee-time assignments to ${args.affectedCount} player${args.affectedCount === 1 ? '' : 's'} (${args.scope === 'AFFECTED' ? 'affected only' : 'all players'}).`,
+    channels,
+    audienceFilter: { type: 'TEE_TIME', tournamentId: args.tournamentId, scope: args.scope },
+    sentByUserId: args.sentByUserId,
+    deliveries: args.deliveries,
+  })
 }

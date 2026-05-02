@@ -1,5 +1,6 @@
 'use server'
 
+import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { sendInviteEmails } from '@/app/(main)/tournaments/new/actions'
@@ -40,17 +41,24 @@ export async function resendInvite(invitationId: string) {
 
   const { tournament } = invitation
 
-  if (invitation.email) {
-    await sendInviteEmails(tournament.name, tournament.slug, [
-      { email: invitation.email, token: invitation.token },
-    ])
-  }
-
-  if (invitation.phone) {
-    const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
-    await sendSMS(
-      invitation.phone,
-      `You're invited to ${tournament.name}! Join here: ${domain}/${tournament.slug}/register?token=${invitation.token}`,
-    )
-  }
+  // Don't block the response on outbound email/SMS — the user just wants
+  // confirmation that the resend was queued.
+  after(async () => {
+    try {
+      if (invitation.email) {
+        await sendInviteEmails(tournament.name, tournament.slug, [
+          { email: invitation.email, token: invitation.token },
+        ])
+      }
+      if (invitation.phone) {
+        const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+        await sendSMS(
+          invitation.phone,
+          `You're invited to ${tournament.name}! Join here: ${domain}/${tournament.slug}/register?token=${invitation.token}`,
+        )
+      }
+    } catch (err) {
+      console.error('[resendInvite] post-response delivery failed:', err)
+    }
+  })
 }

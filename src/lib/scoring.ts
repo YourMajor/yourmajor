@@ -1,3 +1,4 @@
+import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getStrategy } from '@/lib/formats'
 import type { ScoringContext } from '@/lib/formats/types'
@@ -23,17 +24,32 @@ export async function getLeaderboard(
   const [players, rounds, tournament, teams] = await Promise.all([
     prisma.tournamentPlayer.findMany({
       where: { tournamentId, isParticipant: true },
-      include: {
-        user: { include: { profile: { select: { handicap: true, avatar: true } } } },
+      select: {
+        id: true,
+        userId: true,
+        handicap: true,
+        // Only the user fields actually rendered: name + avatar paths.
+        // Skipping email/phone/role/smsNotifications and the rest of User
+        // shaves the per-row payload roughly in half.
+        user: {
+          select: {
+            name: true,
+            email: true,
+            image: true,
+            profile: { select: { handicap: true, avatar: true } },
+          },
+        },
         scores: {
           where: roundId ? { roundId } : undefined,
-          include: {
+          select: {
+            strokes: true,
             hole: { select: { number: true, par: true, handicap: true } },
             round: { select: { roundNumber: true, courseId: true } },
           },
         },
         playerPowerups: {
           where: { status: 'USED' },
+          select: { scoreModifier: true },
         },
         teamMembership: { select: { teamId: true } },
       },
@@ -112,4 +128,24 @@ export async function getLeaderboard(
 
   const strategy = getStrategy(effectiveFormat)
   return strategy.computeStandings(ctx)
+}
+
+/**
+ * Tag-cached leaderboard read for use in season aggregations where the same
+ * COMPLETED tournament's standings are needed across many requests. ACTIVE /
+ * REGISTRATION tournaments bypass the cache so live leaderboards stay fresh.
+ *
+ * Bust the cache for a tournament after admin edits or status change with
+ * `revalidateTag(\`leaderboard-${tournamentId}\`)`.
+ */
+export async function getCachedLeaderboard(
+  tournamentId: string,
+  status: string,
+) {
+  if (status !== 'COMPLETED') return getLeaderboard(tournamentId)
+  return unstable_cache(
+    async () => getLeaderboard(tournamentId),
+    [`leaderboard-${tournamentId}`],
+    { tags: [`leaderboard-${tournamentId}`, 'leaderboard'] },
+  )()
 }
