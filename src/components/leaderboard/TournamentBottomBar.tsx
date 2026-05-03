@@ -13,6 +13,8 @@ interface TournamentBottomBarProps {
   status: string
   hasSeason?: boolean
   onMenuOpen: () => void
+  primaryColor: string
+  accentColor: string
 }
 
 export function TournamentBottomBar({
@@ -22,6 +24,8 @@ export function TournamentBottomBar({
   status,
   hasSeason = false,
   onMenuOpen,
+  primaryColor,
+  accentColor,
 }: TournamentBottomBarProps) {
   const pathname = usePathname()
   const isActive = status === 'ACTIVE'
@@ -51,8 +55,8 @@ export function TournamentBottomBar({
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t"
       style={{
-        backgroundColor: 'var(--color-primary)',
-        borderColor: 'color-mix(in oklch, var(--color-primary), white 15%)',
+        backgroundColor: primaryColor,
+        borderColor: `color-mix(in oklch, ${primaryColor}, white 15%)`,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
@@ -96,7 +100,7 @@ export function TournamentBottomBar({
               {isCurrent && (
                 <span
                   className="absolute bottom-0 left-1/2 -translate-x-1/2 w-5 h-0.5 rounded-full"
-                  style={{ backgroundColor: 'var(--color-accent)' }}
+                  style={{ backgroundColor: accentColor }}
                 />
               )}
             </Link>

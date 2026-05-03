@@ -109,6 +109,8 @@ export function TournamentShell({
         status={status}
         hasSeason={hasSeason}
         onMenuOpen={() => setMenuOpen(true)}
+        primaryColor={primaryColor}
+        accentColor={accentColor}
       />
     </>
   )
