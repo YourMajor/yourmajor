@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Trophy, User, MoreHorizontal, X, LogOut, CreditCard, Tag, Sparkles } from 'lucide-react'
@@ -21,6 +22,9 @@ const MORE_LINKS: { href: string; label: string; icon: typeof LayoutDashboard }[
 export function BottomTabBar() {
   const pathname = usePathname()
   const [moreOpen, setMoreOpen] = useState(false)
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => { setMounted(true) }, [])
 
   const closeMore = useCallback(() => setMoreOpen(false), [])
 
@@ -32,7 +36,9 @@ export function BottomTabBar() {
     return () => document.removeEventListener('keydown', handler)
   }, [moreOpen, closeMore])
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <>
       {/* More sheet overlay */}
       {moreOpen && (
@@ -116,6 +122,7 @@ export function BottomTabBar() {
           })}
         </div>
       </nav>
-    </>
+    </>,
+    document.body,
   )
 }
