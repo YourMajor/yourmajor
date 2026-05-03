@@ -42,6 +42,16 @@ export function isVariablePowerup(effect: PowerupEffect): boolean {
   return effect.duration === -1 && effect.scoring.mode === 'variable'
 }
 
+/**
+ * Whether the powerup spans more than the activation hole — either an explicit
+ * fixed multi-hole duration (e.g. duration: 9) or the variable-mode sentinel (-1).
+ * Multi-hole powerups must be initialised with metadata so the evaluator can
+ * track them across hole submissions.
+ */
+export function isMultiHolePowerup(effect: PowerupEffect): boolean {
+  return effect.duration > 1 || effect.duration === -1
+}
+
 interface HoleInfo {
   par: number
   number: number

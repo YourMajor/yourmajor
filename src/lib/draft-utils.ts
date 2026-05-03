@@ -54,6 +54,20 @@ export function countPlayerAttacks(
   ).length
 }
 
+export type DurationFilter = 'ALL' | 'SINGLE' | 'MULTI'
+
+/**
+ * Test whether a powerup duration matches a filter selection.
+ * SINGLE  — strictly one hole (duration === 1)
+ * MULTI   — any other duration: fixed multi-hole (e.g. 9) or variable (-1)
+ * ALL     — passes everything
+ */
+export function matchesDurationFilter(duration: number, filter: DurationFilter): boolean {
+  if (filter === 'ALL') return true
+  if (filter === 'SINGLE') return duration === 1
+  return duration !== 1
+}
+
 /**
  * Check if a player can pick a given powerup.
  */

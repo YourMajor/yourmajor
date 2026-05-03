@@ -32,6 +32,8 @@ export function TournamentBottomBar({
   const canScore = isRegistered && isActive
   const [mounted, setMounted] = useState(false)
 
+  // Hydration-only flag: render nothing on SSR, real UI after mount on client.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMounted(true) }, [])
 
   const tabs = [

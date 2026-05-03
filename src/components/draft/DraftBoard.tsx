@@ -12,7 +12,7 @@ import { PowerupBrowseGrid } from './PowerupBrowseGrid'
 import { PowerupHandSheet } from './PowerupHandSheet'
 import { DraftBoardSheet } from './DraftBoardSheet'
 import { DraftPeekBar } from './DraftPeekBar'
-import { computeCurrentTurn } from '@/lib/draft-utils'
+import { computeCurrentTurn, matchesDurationFilter, type DurationFilter } from '@/lib/draft-utils'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import type { PowerupEffect } from '@/lib/powerup-engine'
@@ -79,6 +79,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<PowerupTypeFilter>('ALL')
+  const [durationFilter, setDurationFilter] = useState<DurationFilter>('ALL')
   const [draftReset, setDraftReset] = useState(false)
   const [falling, setFalling] = useState(false)
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
@@ -233,6 +234,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
     const q = search.trim().toLowerCase()
     const matches = allPowerupsWithStatus.filter(({ powerup }) => {
       if (typeFilter !== 'ALL' && powerup.type !== typeFilter) return false
+      if (!matchesDurationFilter(powerup.effect.duration, durationFilter)) return false
       if (q && !(powerup.name.toLowerCase().includes(q) || powerup.description.toLowerCase().includes(q))) return false
       return true
     })
@@ -244,7 +246,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
       return a.powerup.name.localeCompare(b.powerup.name)
     })
     return matches
-  }, [allPowerupsWithStatus, typeFilter, search, pickedPowerupIds])
+  }, [allPowerupsWithStatus, typeFilter, durationFilter, search, pickedPowerupIds])
 
   // Counts for the segmented control (across all available + picked)
   const counts = useMemo(() => {
@@ -257,7 +259,17 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
     return { ALL: boost + attack, BOOST: boost, ATTACK: attack }
   }, [allPowerupsWithStatus])
 
-  const hasFilters = search.trim().length > 0 || typeFilter !== 'ALL'
+  const durationCounts = useMemo(() => {
+    let single = 0
+    let multi = 0
+    for (const { powerup } of allPowerupsWithStatus) {
+      if (powerup.effect.duration === 1) single++
+      else multi++
+    }
+    return { ALL: single + multi, SINGLE: single, MULTI: multi }
+  }, [allPowerupsWithStatus])
+
+  const hasFilters = search.trim().length > 0 || typeFilter !== 'ALL' || durationFilter !== 'ALL'
 
   if (draftReset) {
     return (
@@ -312,7 +324,10 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
           onSearchChange={setSearch}
           typeFilter={typeFilter}
           onTypeFilterChange={setTypeFilter}
+          durationFilter={durationFilter}
+          onDurationFilterChange={setDurationFilter}
           counts={counts}
+          durationCounts={durationCounts}
         />
 
         <PowerupBrowseGrid

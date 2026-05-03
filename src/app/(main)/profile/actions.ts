@@ -7,6 +7,8 @@ import { getUser } from '@/lib/auth'
 import { createClient } from '@/utils/supabase/server'
 import { normalizePhone } from '@/lib/phone'
 
+type ActionResult = { ok: true } | { ok: false; error: string }
+
 const profileSchema = z.object({
   firstName: z.string().trim().min(1, 'First name is required').max(60),
   lastName: z.string().trim().max(60).optional().default(''),
@@ -83,5 +85,80 @@ export async function updateProfile(
     return { success: true }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
+  }
+}
+
+// ─── Web Push subscriptions ───────────────────────────────────────────────────
+
+const subscribePushSchema = z.object({
+  endpoint: z.string().url().max(2048),
+  p256dh: z.string().min(1).max(512),
+  auth: z.string().min(1).max(512),
+  userAgent: z.string().max(512).optional(),
+})
+
+export async function subscribePush(input: {
+  endpoint: string
+  p256dh: string
+  auth: string
+  userAgent?: string
+}): Promise<ActionResult> {
+  const user = await getUser()
+  if (!user) return { ok: false, error: 'Unauthorized' }
+
+  const parsed = subscribePushSchema.safeParse(input)
+  if (!parsed.success) {
+    return { ok: false, error: parsed.error.issues[0]?.message ?? 'Invalid subscription' }
+  }
+  const { endpoint, p256dh, auth, userAgent } = parsed.data
+
+  try {
+    await prisma.pushSubscription.upsert({
+      where: { endpoint },
+      create: { userId: user.id, endpoint, p256dh, auth, userAgent: userAgent ?? null },
+      update: { userId: user.id, p256dh, auth, userAgent: userAgent ?? null },
+    })
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Failed to save subscription.' }
+  }
+}
+
+export async function unsubscribePush(endpoint: string): Promise<ActionResult> {
+  const user = await getUser()
+  if (!user) return { ok: false, error: 'Unauthorized' }
+  if (!endpoint) return { ok: false, error: 'Missing endpoint' }
+  try {
+    await prisma.pushSubscription.deleteMany({ where: { endpoint, userId: user.id } })
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Failed to remove subscription.' }
+  }
+}
+
+const prefsSchema = z.object({
+  notifyChatMessages: z.boolean(),
+  notifyAdminAnnouncements: z.boolean(),
+})
+
+export async function updatePushPreferences(input: {
+  notifyChatMessages: boolean
+  notifyAdminAnnouncements: boolean
+}): Promise<ActionResult> {
+  const user = await getUser()
+  if (!user) return { ok: false, error: 'Unauthorized' }
+  const parsed = prefsSchema.safeParse(input)
+  if (!parsed.success) return { ok: false, error: 'Invalid preferences' }
+  try {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        notifyChatMessages: parsed.data.notifyChatMessages,
+        notifyAdminAnnouncements: parsed.data.notifyAdminAnnouncements,
+      },
+    })
+    return { ok: true }
+  } catch {
+    return { ok: false, error: 'Failed to update preferences.' }
   }
 }

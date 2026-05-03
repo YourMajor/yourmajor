@@ -17,6 +17,7 @@ import {
 } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 import { QuickAddPlayer } from './QuickAddPlayer'
+import { AnnouncementForm } from './AnnouncementForm'
 import { GoLiveButton } from '@/components/admin/GoLiveButton'
 import { RegistrationToggle } from './setup/RegistrationToggle'
 import { DraftPowerupsCard } from './DraftPowerupsCard'
@@ -243,6 +244,8 @@ export default async function AdminDashboard({
       )}
 
       {tournament.status === 'ACTIVE' && <QuickAddPlayer tournamentId={tournament.id} />}
+
+      {tournament.status === 'ACTIVE' && <AnnouncementForm tournamentId={tournament.id} />}
 
       {/* League summary (read-only metrics) */}
       {league ? (

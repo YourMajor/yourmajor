@@ -3,6 +3,12 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { checkRateLimit } from '@/lib/rate-limit'
 import { containsProfanity } from '@/lib/content-moderation'
+import { sendPushToUser } from '@/lib/push'
+
+// Process-local throttle: cap chat-driven pushes from one author in one
+// tournament to once per 60s. Resets on lambda lifecycle.
+const lastChatPushAt = new Map<string, number>()
+const CHAT_PUSH_THROTTLE_MS = 60_000
 
 export async function GET(
   _req: NextRequest,
@@ -107,5 +113,52 @@ export async function POST(
     include: { user: { select: { name: true, image: true } } },
   })
 
+  // Fire-and-forget push to opted-in participants (excludes author).
+  // Throttled per (tournament, author) to keep chat from spamming devices.
+  const throttleKey = `${id}:${user.id}`
+  const now = Date.now()
+  const last = lastChatPushAt.get(throttleKey) ?? 0
+  if (now - last >= CHAT_PUSH_THROTTLE_MS) {
+    lastChatPushAt.set(throttleKey, now)
+    void dispatchChatPush({
+      tournamentId: id,
+      authorUserId: user.id,
+      authorName: message.user.name ?? 'Someone',
+      content: message.content,
+    }).catch((err) => console.error('[push] chat dispatch failed', err))
+  }
+
   return NextResponse.json(message, { status: 201 })
+}
+
+async function dispatchChatPush(args: {
+  tournamentId: string
+  authorUserId: string
+  authorName: string
+  content: string
+}) {
+  const tournament = await prisma.tournament.findUnique({
+    where: { id: args.tournamentId },
+    select: { name: true, slug: true },
+  })
+  if (!tournament) return
+
+  const recipients = await prisma.tournamentPlayer.findMany({
+    where: {
+      tournamentId: args.tournamentId,
+      isParticipant: true,
+      userId: { not: args.authorUserId },
+      user: { notifyChatMessages: true },
+    },
+    select: { userId: true },
+  })
+  if (recipients.length === 0) return
+
+  const body = `${args.authorName}: ${args.content.slice(0, 80)}${args.content.length > 80 ? '…' : ''}`
+  const url = `/${tournament.slug}`
+  await Promise.allSettled(
+    recipients.map((r) =>
+      sendPushToUser(r.userId, { title: tournament.name, body, url }),
+    ),
+  )
 }

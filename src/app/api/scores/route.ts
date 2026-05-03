@@ -133,12 +133,13 @@ export async function POST(request: NextRequest) {
   // Evaluate active variable powerups after score save
   let powerupEvaluations: Array<{ playerPowerupId: string; slug: string; outcome: string; scoreModifier: number | null; message: string }> = []
   try {
-    const { evaluateActiveVariablePowerups, evaluateAsKothTarget } = await import('@/lib/variable-powerup-evaluator')
-    const [ownResults, targetResults] = await Promise.all([
+    const { evaluateActiveVariablePowerups, evaluateAsKothTarget, evaluateAsDoubleOrNothingTarget } = await import('@/lib/variable-powerup-evaluator')
+    const [ownResults, kothResults, donResults] = await Promise.all([
       evaluateActiveVariablePowerups(tournamentPlayerId, roundId),
       evaluateAsKothTarget(tournamentPlayerId, roundId),
+      evaluateAsDoubleOrNothingTarget(tournamentPlayerId, roundId),
     ])
-    powerupEvaluations = [...ownResults, ...targetResults]
+    powerupEvaluations = [...ownResults, ...kothResults, ...donResults]
   } catch (err) {
     console.error('[scores] Variable powerup evaluation failed:', err)
   }

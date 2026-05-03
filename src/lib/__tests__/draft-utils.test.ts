@@ -3,6 +3,7 @@ import {
   computeCurrentTurn,
   countPlayerAttacks,
   canPickPowerup,
+  matchesDurationFilter,
 } from '@/lib/draft-utils'
 
 // ─── computeCurrentTurn ─────────────────────────────────────────────────────
@@ -203,5 +204,29 @@ describe('canPickPowerup', () => {
   it('handles maxAttacksPerPlayer = 0 (no attacks allowed)', () => {
     const result = canPickPowerup([], 'alice', 'a1', 'ATTACK', 0)
     expect(result.allowed).toBe(false)
+  })
+})
+
+// ─── matchesDurationFilter ──────────────────────────────────────────────────
+
+describe('matchesDurationFilter', () => {
+  it('ALL passes every duration', () => {
+    expect(matchesDurationFilter(1, 'ALL')).toBe(true)
+    expect(matchesDurationFilter(9, 'ALL')).toBe(true)
+    expect(matchesDurationFilter(-1, 'ALL')).toBe(true)
+  })
+
+  it('SINGLE passes only duration === 1', () => {
+    expect(matchesDurationFilter(1, 'SINGLE')).toBe(true)
+    expect(matchesDurationFilter(9, 'SINGLE')).toBe(false)
+    expect(matchesDurationFilter(-1, 'SINGLE')).toBe(false)
+    expect(matchesDurationFilter(3, 'SINGLE')).toBe(false)
+  })
+
+  it('MULTI excludes duration === 1, includes fixed multi-hole and variable', () => {
+    expect(matchesDurationFilter(1, 'MULTI')).toBe(false)
+    expect(matchesDurationFilter(9, 'MULTI')).toBe(true)
+    expect(matchesDurationFilter(-1, 'MULTI')).toBe(true)
+    expect(matchesDurationFilter(3, 'MULTI')).toBe(true)
   })
 })

@@ -8,6 +8,7 @@ import { Separator } from '@/components/ui/separator'
 import { ProfileEditForm } from './ProfileEditForm'
 import { Trophy, Zap, Crown } from 'lucide-react'
 import { IdentityHero } from '@/components/profile/IdentityHero'
+import { PushNotificationManager } from '@/components/pwa/PushNotificationManager'
 
 export default async function ProfilePage({
   searchParams,
@@ -235,6 +236,15 @@ export default async function ProfilePage({
           )}
         </CardContent>
       </Card>
+
+      {/* Notifications */}
+      <PushNotificationManager
+        vapidPublicKey={process.env.NEXT_PUBLIC_VAPID_PUBLIC_KEY ?? null}
+        initialPrefs={{
+          notifyChatMessages: user.notifyChatMessages,
+          notifyAdminAnnouncements: user.notifyAdminAnnouncements,
+        }}
+      />
 
       {/* Overview Stats */}
       <Card>

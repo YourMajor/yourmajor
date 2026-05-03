@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Local Playwright python venv — vendored JS/TS in there isn't ours.
+    ".venv-playwright/**",
   ]),
   // Block @/lib/scoring (server-only Prisma queries) from client components.
   // Client UI must use @/lib/scoring-utils (pure, client-safe) instead — the

@@ -1,6 +1,7 @@
 'use client'
 
 import { Search, X } from 'lucide-react'
+import type { DurationFilter } from '@/lib/draft-utils'
 
 export type PowerupTypeFilter = 'ALL' | 'BOOST' | 'ATTACK'
 
@@ -9,8 +10,11 @@ interface PowerupFilterBarProps {
   onSearchChange: (value: string) => void
   typeFilter: PowerupTypeFilter
   onTypeFilterChange: (value: PowerupTypeFilter) => void
+  durationFilter: DurationFilter
+  onDurationFilterChange: (value: DurationFilter) => void
   /** Counts shown next to each chip; pass undefined to hide. */
   counts?: { ALL: number; BOOST: number; ATTACK: number }
+  durationCounts?: { ALL: number; SINGLE: number; MULTI: number }
 }
 
 const TYPES: { value: PowerupTypeFilter; label: string }[] = [
@@ -19,7 +23,13 @@ const TYPES: { value: PowerupTypeFilter; label: string }[] = [
   { value: 'ATTACK', label: 'Attack' },
 ]
 
-export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, counts }: PowerupFilterBarProps) {
+const DURATIONS: { value: DurationFilter; label: string }[] = [
+  { value: 'ALL', label: 'All' },
+  { value: 'SINGLE', label: '1H' },
+  { value: 'MULTI', label: 'Multi' },
+]
+
+export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, durationFilter, onDurationFilterChange, counts, durationCounts }: PowerupFilterBarProps) {
   return (
     <div className="sticky top-9 z-20 -mx-3 sm:-mx-4 px-3 sm:px-4 py-2 bg-background/95 backdrop-blur-sm border-b border-border space-y-2">
       {/* Search */}
@@ -65,6 +75,35 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
               }`}
             >
               <span>{t.label}</span>
+              {typeof count === 'number' && (
+                <span className={`ml-1.5 text-[10px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                  {count}
+                </span>
+              )}
+            </button>
+          )
+        })}
+      </div>
+
+      {/* Duration segmented control */}
+      <div role="tablist" aria-label="Filter by duration" className="flex gap-1.5 p-1 rounded-lg bg-muted">
+        {DURATIONS.map((d) => {
+          const active = durationFilter === d.value
+          const count = durationCounts?.[d.value]
+          return (
+            <button
+              key={d.value}
+              role="tab"
+              type="button"
+              aria-selected={active}
+              onClick={() => onDurationFilterChange(d.value)}
+              className={`flex-1 min-h-9 px-3 rounded-md text-xs sm:text-sm font-semibold transition-colors ${
+                active
+                  ? 'bg-card text-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <span>{d.label}</span>
               {typeof count === 'number' && (
                 <span className={`ml-1.5 text-[10px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                   {count}

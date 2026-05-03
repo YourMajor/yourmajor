@@ -18,6 +18,20 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: 'images.unsplash.com' },
     ],
   },
+  async headers() {
+    return [
+      // Service worker: must not be cached by browsers / CDNs, and must be served
+      // as JS with a tight CSP so it can never load third-party code.
+      {
+        source: '/sw.js',
+        headers: [
+          { key: 'Content-Type', value: 'application/javascript; charset=utf-8' },
+          { key: 'Cache-Control', value: 'no-cache, no-store, must-revalidate' },
+          { key: 'Content-Security-Policy', value: "default-src 'self'; script-src 'self'" },
+        ],
+      },
+    ]
+  },
 };
 
 export default nextConfig;

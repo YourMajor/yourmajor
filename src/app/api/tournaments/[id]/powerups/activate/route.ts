@@ -92,6 +92,56 @@ export async function POST(
         consecutiveWins: 0,
         status: 'in_progress',
       }
+    } else if (powerupSlug === 'the-streaker') {
+      structuredMetadata = {
+        declaredCount: metadata?.numberValue ?? 1,
+        activationHoleNumber: holeNumber,
+        girsHit: 0,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'no-three-putts') {
+      structuredMetadata = {
+        declaredCount: metadata?.numberValue ?? 2,
+        activationHoleNumber: holeNumber,
+        holesPlayed: 0,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'birdie-hunter') {
+      structuredMetadata = {
+        activationHoleNumber: holeNumber,
+        holesScored: 0,
+        bonusStrokes: 0,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'stayin-alive') {
+      structuredMetadata = {
+        activationHoleNumber: holeNumber,
+        holesScored: 0,
+        hadBogey: false,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'double-or-nothing') {
+      const targetIds = (targetPlayerId ? [targetPlayerId] : (metadata?.selectedPlayerIds as string[] | undefined)) ?? []
+      structuredMetadata = {
+        targetPlayerIds: targetIds,
+        activationHoleNumber: holeNumber,
+        holesScored: 0,
+        netDelta: 0,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'one-putt-wonder') {
+      structuredMetadata = {
+        activationHoleNumber: holeNumber,
+        holesScored: 0,
+        bonusStrokes: 0,
+        status: 'in_progress',
+      }
+    } else if (powerupSlug === 'foot-wedge') {
+      structuredMetadata = {
+        activationHoleNumber: holeNumber,
+        holesRemaining: 9,
+        status: 'in_progress',
+      }
     }
   }
 
@@ -150,6 +200,18 @@ export async function POST(
       activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} consecutive fairways`
     } else if (playerPowerup.powerup.slug === 'king-of-the-hill') {
       activationDetail = ' — the streak begins next hole'
+    } else if (playerPowerup.powerup.slug === 'the-streaker') {
+      activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} consecutive GIRs`
+    } else if (playerPowerup.powerup.slug === 'no-three-putts') {
+      activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} clean holes`
+    } else if (playerPowerup.powerup.slug === 'birdie-hunter') {
+      activationDetail = ' — birdies count double for the next 3 holes'
+    } else if (playerPowerup.powerup.slug === 'stayin-alive') {
+      activationDetail = ' — bogey-free next 3 holes for -3'
+    } else if (playerPowerup.powerup.slug === 'one-putt-wonder') {
+      activationDetail = ' — one-putts pay -1 each for the next 9 holes'
+    } else if (playerPowerup.powerup.slug === 'foot-wedge') {
+      activationDetail = ' — relocate every shot one club length for 9 holes'
     }
     await prisma.tournamentMessage.create({
       data: {
