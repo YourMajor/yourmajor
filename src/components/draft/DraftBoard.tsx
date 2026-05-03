@@ -1,11 +1,18 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { createClient } from '@/utils/supabase/client'
-import { PowerupCard, type PowerupCardData } from './PowerupCard'
+import { type PowerupCardData } from './PowerupCard'
 import { DraftPickList } from './DraftPickList'
 import { CardHand, CardBack } from './CardHand'
 import { FlippableCardOverlay } from './FlippableCardOverlay'
+import { TurnStrip } from './TurnStrip'
+import { PowerupFilterBar, type PowerupTypeFilter } from './PowerupFilterBar'
+import { PowerupBrowseGrid } from './PowerupBrowseGrid'
+import { PowerupHandSheet } from './PowerupHandSheet'
+import { DraftBoardSheet } from './DraftBoardSheet'
+import { DraftPeekBar } from './DraftPeekBar'
+import { computeCurrentTurn } from '@/lib/draft-utils'
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import type { PowerupEffect } from '@/lib/powerup-engine'
@@ -44,8 +51,25 @@ interface DraftState {
 
 interface DraftBoardProps {
   tournamentId: string
-  currentPlayerId: string // tournamentPlayerId of the logged-in user
+  currentPlayerId: string
   initialState: DraftState
+}
+
+function computePicksUntilMine(
+  draftOrder: string[],
+  format: 'LINEAR' | 'SNAKE',
+  totalPicks: number,
+  picksPerPlayer: number,
+  myId: string,
+): number | null {
+  const playerCount = draftOrder.length
+  if (playerCount === 0) return null
+  const totalNeeded = playerCount * picksPerPlayer
+  for (let i = totalPicks; i < totalNeeded; i++) {
+    const turn = computeCurrentTurn(draftOrder, format, i, picksPerPlayer)
+    if (turn?.tournamentPlayerId === myId) return i - totalPicks
+  }
+  return null
 }
 
 export function DraftBoard({ tournamentId, currentPlayerId, initialState }: DraftBoardProps) {
@@ -53,14 +77,44 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
   const [selectedPowerup, setSelectedPowerup] = useState<PowerupCardData | null>(null)
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<'ALL' | 'BOOST' | 'ATTACK'>('ALL')
+  const [search, setSearch] = useState('')
+  const [typeFilter, setTypeFilter] = useState<PowerupTypeFilter>('ALL')
   const [draftReset, setDraftReset] = useState(false)
   const [falling, setFalling] = useState(false)
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
+  const [handSheetOpen, setHandSheetOpen] = useState(false)
+  const [boardSheetOpen, setBoardSheetOpen] = useState(false)
 
   const isMyTurn = state.currentTurn?.tournamentPlayerId === currentPlayerId
   const myPicks = state.draft.picks.filter((p) => p.tournamentPlayer.id === currentPlayerId)
-  const pickedPowerupIds = new Set(state.draft.picks.map((p) => p.powerupId))
+  const pickedPowerupIds = useMemo(
+    () => new Set(state.draft.picks.map((p) => p.powerupId)),
+    [state.draft.picks],
+  )
+
+  const currentPlayer = state.currentTurn
+    ? state.players.find((p) => p.id === state.currentTurn!.tournamentPlayerId) ?? null
+    : null
+  const currentPlayerName = currentPlayer?.user.name ?? null
+  const currentPlayerImage = currentPlayer?.user.image ?? null
+
+  const picksUntilMine = useMemo(() => {
+    if (isMyTurn) return 0
+    return computePicksUntilMine(
+      state.draft.draftOrder,
+      state.draft.format,
+      state.draft.currentPick,
+      state.powerupsPerPlayer,
+      currentPlayerId,
+    )
+  }, [
+    isMyTurn,
+    state.draft.draftOrder,
+    state.draft.format,
+    state.draft.currentPick,
+    state.powerupsPerPlayer,
+    currentPlayerId,
+  ])
 
   const fetchState = useCallback(async () => {
     try {
@@ -143,11 +197,9 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
         throw new Error(message)
       }
 
-      // Trigger fall animation
       const pickedId = selectedPowerup.id
       setFalling(true)
       setPicking(false)
-      // The fall animation completes via onFallComplete callback
       setHighlightCardId(pickedId)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Something went wrong')
@@ -160,35 +212,52 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
     setSelectedPowerup(null)
     setError(null)
     await fetchState()
-    // Clear highlight after a brief glow
     setTimeout(() => setHighlightCardId(null), 1500)
   }, [fetchState])
 
-  const currentPlayerName = state.currentTurn
-    ? state.players.find((p) => p.id === state.currentTurn!.tournamentPlayerId)?.user.name ?? 'Player'
-    : null
+  // Build the unified powerup list (available + already-picked, with picked metadata)
+  const allPowerupsWithStatus = useMemo(() => {
+    const available = state.availablePowerups.map((p) => ({ powerup: p, pickedBy: null as Player['user'] | null }))
+    const picked = state.draft.picks.map((p) => ({
+      powerup: p.powerup,
+      pickedBy: p.tournamentPlayer.user,
+    }))
+    const map = new Map<string, { powerup: PowerupCardData; pickedBy: Player['user'] | null }>()
+    for (const a of available) map.set(a.powerup.id, a)
+    for (const p of picked) map.set(p.powerup.id, p)
+    return Array.from(map.values())
+  }, [state.availablePowerups, state.draft.picks])
 
-  const filteredPowerups = state.availablePowerups.filter((p) => {
-    if (filter === 'ALL') return true
-    return p.type === filter
-  })
+  // Apply filters + search + sort
+  const filteredAndSorted = useMemo(() => {
+    const q = search.trim().toLowerCase()
+    const matches = allPowerupsWithStatus.filter(({ powerup }) => {
+      if (typeFilter !== 'ALL' && powerup.type !== typeFilter) return false
+      if (q && !(powerup.name.toLowerCase().includes(q) || powerup.description.toLowerCase().includes(q))) return false
+      return true
+    })
+    matches.sort((a, b) => {
+      const aP = pickedPowerupIds.has(a.powerup.id) ? 1 : 0
+      const bP = pickedPowerupIds.has(b.powerup.id) ? 1 : 0
+      if (aP !== bP) return aP - bP
+      if (a.powerup.type !== b.powerup.type) return a.powerup.type === 'BOOST' ? -1 : 1
+      return a.powerup.name.localeCompare(b.powerup.name)
+    })
+    return matches
+  }, [allPowerupsWithStatus, typeFilter, search, pickedPowerupIds])
 
-  // Also include picked powerups for the full visual board
-  const allPowerups = [
-    ...filteredPowerups,
-    ...state.draft.picks
-      .filter((p) => filter === 'ALL' || p.powerup.type === filter)
-      .map((p) => p.powerup),
-  ]
-  // Deduplicate and sort: available first, then picked
-  const uniquePowerups = Array.from(new Map(allPowerups.map((p) => [p.id, p])).values())
-  const sortedPowerups = uniquePowerups.sort((a, b) => {
-    const aP = pickedPowerupIds.has(a.id) ? 1 : 0
-    const bP = pickedPowerupIds.has(b.id) ? 1 : 0
-    if (aP !== bP) return aP - bP
-    if (a.type !== b.type) return a.type === 'BOOST' ? -1 : 1
-    return a.name.localeCompare(b.name)
-  })
+  // Counts for the segmented control (across all available + picked)
+  const counts = useMemo(() => {
+    let boost = 0
+    let attack = 0
+    for (const { powerup } of allPowerupsWithStatus) {
+      if (powerup.type === 'BOOST') boost++
+      else if (powerup.type === 'ATTACK') attack++
+    }
+    return { ALL: boost + attack, BOOST: boost, ATTACK: attack }
+  }, [allPowerupsWithStatus])
+
+  const hasFilters = search.trim().length > 0 || typeFilter !== 'ALL'
 
   if (draftReset) {
     return (
@@ -210,7 +279,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
           <p className="text-sm text-muted-foreground mt-1">Your hand is ready to play.</p>
         </div>
 
-        {/* Playing card hand */}
+        {/* Playing card hand (desktop fan + mobile horizontal scroll fallback) */}
         <div>
           <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-center">Your Hand</h3>
           <CardHand cards={myPicks.map((p) => ({ powerupId: p.powerupId, powerup: p.powerup }))} />
@@ -226,89 +295,87 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
   }
 
   return (
-    <div className="space-y-4">
-      {/* Turn Banner */}
-      <div className={`rounded-lg p-3 text-center ${
-        isMyTurn
-          ? 'bg-emerald-50 border border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700/50'
-          : 'bg-muted/50 border border-border'
-      }`}>
-        {isMyTurn ? (
-          <div>
-            <p className="text-lg font-heading font-bold text-emerald-700 dark:text-emerald-300">Your Turn!</p>
-            <p className="text-xs text-emerald-600 dark:text-emerald-400">
-              Pick #{state.currentTurn!.pickNumber} &middot; Round {state.currentTurn!.roundNumber}
-            </p>
-          </div>
-        ) : state.currentTurn ? (
-          <div>
-            <p className="text-sm font-semibold text-muted-foreground">
-              Waiting for <span className="text-foreground font-bold">{currentPlayerName}</span>
-            </p>
-            <p className="text-xs text-muted-foreground">
-              Pick #{state.currentTurn.pickNumber} &middot; Round {state.currentTurn.roundNumber}
-            </p>
-          </div>
-        ) : (
-          <p className="text-sm text-muted-foreground">Waiting for draft to start...</p>
-        )}
-      </div>
+    <>
+      {/* Reserve space at the bottom so last cards aren't hidden behind the
+          mobile peek bar (~56px) + the global BottomTabBar (~64px) + safe-area */}
+      <div className="space-y-3 pb-[140px] lg:pb-0">
+        <TurnStrip
+          isMyTurn={isMyTurn}
+          currentPlayerName={currentPlayerName}
+          pickNumber={state.currentTurn?.pickNumber ?? null}
+          roundNumber={state.currentTurn?.roundNumber ?? null}
+          picksUntilMine={picksUntilMine}
+        />
 
-      {/* Filter tabs */}
-      <div className="flex gap-2">
-        {(['ALL', 'BOOST', 'ATTACK'] as const).map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`px-3 py-1.5 rounded-full text-xs font-semibold transition-colors ${
-              filter === f
-                ? 'bg-foreground/10 text-foreground border border-border'
-                : 'bg-muted/50 text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {f === 'ALL' ? 'All' : f === 'BOOST' ? 'Boosts' : 'Attacks'}
-          </button>
-        ))}
-      </div>
+        <PowerupFilterBar
+          search={search}
+          onSearchChange={setSearch}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          counts={counts}
+        />
 
-      {/* Powerup grid */}
-      <div className="max-h-[60vh] overflow-y-auto -mx-1 px-1 pt-1">
-        <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 gap-1 pb-1">
-          {sortedPowerups.map((powerup) => {
-            const pick = state.draft.picks.find((p) => p.powerupId === powerup.id)
-            return (
-              <PowerupCard
-                key={powerup.id}
-                powerup={powerup}
-                state={pick ? 'picked' : selectedPowerup?.id === powerup.id ? 'selected' : 'available'}
-                pickedBy={pick?.tournamentPlayer.user}
-                size="grid"
-                onClick={() => {
-                  if (!pick && isMyTurn) setSelectedPowerup(powerup)
-                }}
-                disabled={!isMyTurn || !!pick}
+        <PowerupBrowseGrid
+          powerups={filteredAndSorted.map((x) => x.powerup)}
+          picks={filteredAndSorted
+            .filter((x) => x.pickedBy !== null)
+            .map((x) => ({ powerupId: x.powerup.id, pickedBy: x.pickedBy! }))}
+          selectedId={selectedPowerup?.id ?? null}
+          isMyTurn={isMyTurn}
+          hasFilters={hasFilters}
+          onSelect={(p) => setSelectedPowerup(p)}
+          onClearFilters={() => { setSearch(''); setTypeFilter('ALL') }}
+        />
+
+        {/* Desktop-only: inline hand + draft board (mobile uses sheets via peek bar) */}
+        <div className="hidden lg:block space-y-6 pt-6">
+          {myPicks.length > 0 && (
+            <div>
+              <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2 text-center">
+                Your Hand ({myPicks.length})
+              </h3>
+              <CardHand
+                cards={myPicks.map((p) => ({ powerupId: p.powerupId, powerup: p.powerup }))}
+                highlightCardId={highlightCardId}
               />
-            )
-          })}
+            </div>
+          )}
+
+          <div>
+            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Draft Board</h3>
+            <DraftPickList picks={state.draft.picks} players={state.players} picksPerPlayer={state.powerupsPerPlayer} />
+          </div>
         </div>
       </div>
 
-      {/* My picks — card hand */}
-      {myPicks.length > 0 && (
-        <div>
-          <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2 text-center">
-            Your Hand ({myPicks.length})
-          </h3>
-          <CardHand cards={myPicks.map((p) => ({ powerupId: p.powerupId, powerup: p.powerup }))} highlightCardId={highlightCardId} />
-        </div>
-      )}
+      {/* Mobile peek bar */}
+      <DraftPeekBar
+        isMyTurn={isMyTurn}
+        currentPlayerName={currentPlayerName}
+        currentPlayerImage={currentPlayerImage}
+        picksUntilMine={picksUntilMine}
+        handCount={myPicks.length}
+        onOpenHand={() => setHandSheetOpen(true)}
+        onOpenBoard={() => setBoardSheetOpen(true)}
+      />
 
-      {/* Draft board */}
-      <div>
-        <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Draft Board</h3>
-        <DraftPickList picks={state.draft.picks} players={state.players} picksPerPlayer={state.powerupsPerPlayer} />
-      </div>
+      {/* Mobile sheets */}
+      <PowerupHandSheet
+        open={handSheetOpen}
+        onClose={() => setHandSheetOpen(false)}
+        cards={myPicks.map((p) => ({ powerupId: p.powerupId, powerup: p.powerup }))}
+      />
+      <DraftBoardSheet
+        open={boardSheetOpen}
+        onClose={() => setBoardSheetOpen(false)}
+        picks={state.draft.picks}
+        players={state.players}
+        draftOrder={state.draft.draftOrder}
+        format={state.draft.format}
+        picksPerPlayer={state.powerupsPerPlayer}
+        currentRound={state.currentTurn?.roundNumber ?? null}
+        currentPlayerId={state.currentTurn?.tournamentPlayerId ?? null}
+      />
 
       {/* Confirm pick flip overlay */}
       <FlippableCardOverlay
@@ -344,7 +411,7 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
                   <button
                     type="button"
                     onClick={handleConfirmPick}
-                    disabled={picking}
+                    disabled={picking || !isMyTurn}
                     className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors disabled:opacity-50"
                   >
                     {picking ? (
@@ -362,6 +429,6 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
           ) : null
         }
       />
-    </div>
+    </>
   )
 }

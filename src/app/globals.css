@@ -361,6 +361,35 @@
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
 
+/* ── Draft bottom sheet animations ───────────────────── */
+@keyframes sheetSlideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+@keyframes sheetSlideDown {
+  from { transform: translateY(0); }
+  to   { transform: translateY(100%); }
+}
+@keyframes backdropFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes turnPulse {
+  0%, 100% { transform: scale(1);   opacity: 1;   }
+  50%      { transform: scale(1.4); opacity: 0.6; }
+}
+.animate-sheet-up   { animation: sheetSlideUp   220ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.animate-sheet-down { animation: sheetSlideDown 200ms cubic-bezier(0.32, 0.72, 0, 1) both; }
+.animate-backdrop-in { animation: backdropFadeIn 180ms ease-out both; }
+.animate-turn-pulse  { animation: turnPulse 1.6s ease-in-out infinite; }
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-sheet-up,
+  .animate-sheet-down,
+  .animate-backdrop-in,
+  .animate-turn-pulse { animation: none !important; }
+}
+
 /* ── Dark landing page sections ─────────────────────── */
 .landing-section-dark {
   background-color: oklch(0.20 0.06 255);
