@@ -289,7 +289,7 @@ export function HoleScoring({
       </div>
 
       {/* ── Bottom Navigation + Status ────────────────────────────────── */}
-      <div className="pl-5 pr-20 pt-2 space-y-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+      <div className="px-5 pt-2 space-y-3 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
         {/* Error / Save status */}
         <div className="min-h-5 flex items-center justify-center">
           {finishError ? (
@@ -312,9 +312,9 @@ export function HoleScoring({
             type="button"
             onClick={onPrev}
             disabled={!hasPrev}
-            className="flex items-center gap-1 px-4 py-3 rounded-lg bg-white/20 text-white font-semibold text-sm disabled:opacity-30 active:scale-95 transition-all touch-manipulation"
+            className="flex items-center gap-1.5 px-5 py-4 rounded-xl bg-white/20 text-white font-semibold text-base disabled:opacity-30 active:scale-95 transition-all touch-manipulation"
           >
-            <ChevronLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
             Prev
           </button>
 
@@ -322,14 +322,14 @@ export function HoleScoring({
             type="button"
             onClick={isLastHole ? onFinishRound : onNext}
             disabled={!hasNext && !isLastHole}
-            className="flex-1 flex items-center justify-center gap-1 px-4 py-3 rounded-lg font-semibold text-sm active:scale-95 transition-all touch-manipulation"
+            className="flex-1 flex items-center justify-center gap-1.5 px-5 py-4 rounded-xl font-semibold text-base active:scale-95 transition-all touch-manipulation"
             style={{
               backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',
               color: 'var(--color-primary, oklch(0.40 0.11 160))',
             }}
           >
             {isLastHole ? 'Finish Round' : 'Next Hole'}
-            {!isLastHole && <ChevronRight className="w-4 h-4" />}
+            {!isLastHole && <ChevronRight className="w-5 h-5" />}
           </button>
         </div>
       </div>

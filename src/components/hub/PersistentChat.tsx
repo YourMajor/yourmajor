@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useRef, useState } from 'react'
+import { usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { MessageCircle, X, Send, ChevronDown } from 'lucide-react'
 import { useChat } from '@/hooks/useChat'
@@ -21,6 +22,8 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [hasAttack, setHasAttack] = useState(false)
   const lastSeenCount = useRef(0)
   const initializedRef = useRef(false)
+  const pathname = usePathname()
+  const isLiveScoring = pathname?.endsWith('/play') ?? false
 
   // Swipe-to-dismiss state
   const dragStartY = useRef<number | null>(null)
@@ -124,7 +127,9 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         className="fixed md:bottom-5 right-5 z-[80] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
         style={{
           backgroundColor: 'var(--color-primary, #006747)',
-          bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))',
+          bottom: isLiveScoring
+            ? 'calc(11rem + env(safe-area-inset-bottom, 0px))'
+            : 'calc(6rem + env(safe-area-inset-bottom, 0px))',
         }}
         aria-label={open ? 'Close chat' : 'Open chat'}
       >

@@ -395,7 +395,13 @@ export function LiveScoring({
     >
       {/* ── Hole Navigator + Back link (top) ─────────────────────────── */}
       <div className="shrink-0 bg-black/20 flex items-center pt-safe">
-        <div className="flex-1 overflow-hidden">
+        <div
+          className="flex-1 overflow-hidden"
+          style={{
+            maskImage: 'linear-gradient(to right, black 0%, black 75%, transparent 100%)',
+            WebkitMaskImage: 'linear-gradient(to right, black 0%, black 75%, transparent 100%)',
+          }}
+        >
           <HoleNavigator
             holes={state.sortedHoles}
             scores={state.scores}

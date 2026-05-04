@@ -152,7 +152,7 @@ export function TournamentNavBar({
   return (
     <>
       {/* ── Nav bar ── */}
-      <header className="tournament-header pt-safe sticky top-0 z-50">
+      <header className="tournament-header sticky top-0 z-50">
         <div className="relative overflow-hidden">
           {/* Banner image overlay — 30% opacity, faded to transparent at left and right edges */}
           {headerImage && (
@@ -170,7 +170,10 @@ export function TournamentNavBar({
               }}
             />
           )}
-          <div className={`relative mx-auto px-4 py-4 sm:py-5 flex items-center ${isAdminRoute ? 'lg:max-w-[1600px]' : 'max-w-7xl'}`}>
+          <div
+            className={`relative mx-auto px-4 pb-4 sm:pb-5 flex items-center ${isAdminRoute ? 'lg:max-w-[1600px]' : 'max-w-7xl'}`}
+            style={{ paddingTop: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
+          >
             {/* LEFT */}
             <div className="flex items-center gap-1 sm:gap-3 flex-1 min-w-0">
               <button
@@ -226,8 +229,11 @@ export function TournamentNavBar({
         <div className="h-full flex">
           {/* ── Left panel: primary color + navigation ── */}
           <div
-            className="w-full md:w-[38%] lg:w-[35%] h-full flex flex-col px-6 sm:px-10 lg:px-14 pt-6 pb-8 overflow-y-auto"
-            style={{ backgroundColor: primaryColor }}
+            className="w-full md:w-[38%] lg:w-[35%] h-full flex flex-col px-6 sm:px-10 lg:px-14 pb-8 overflow-y-auto"
+            style={{
+              backgroundColor: primaryColor,
+              paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px))',
+            }}
           >
             {/* Tournament badge */}
             <div className="mb-8 sm:mb-10">
