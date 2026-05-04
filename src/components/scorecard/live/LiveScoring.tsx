@@ -394,7 +394,7 @@ export function LiveScoring({
       }}
     >
       {/* ── Hole Navigator + Back link (top) ─────────────────────────── */}
-      <div className="shrink-0 bg-black/20 flex items-center">
+      <div className="shrink-0 bg-black/20 flex items-center pt-safe">
         <div className="flex-1 overflow-hidden">
           <HoleNavigator
             holes={state.sortedHoles}

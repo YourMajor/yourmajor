@@ -62,7 +62,7 @@ export function TournamentBottomBar({
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
       }}
     >
-      <div className="flex items-center justify-around h-16">
+      <div className="flex items-center justify-around h-14">
         {tabs.map((tab) => {
           const isMenu = tab.href === '#menu'
           const isCurrent = !isMenu && (

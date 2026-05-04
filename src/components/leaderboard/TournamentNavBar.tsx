@@ -152,7 +152,7 @@ export function TournamentNavBar({
   return (
     <>
       {/* ── Nav bar ── */}
-      <header className="tournament-header sticky top-0 z-50">
+      <header className="tournament-header pt-safe sticky top-0 z-50">
         <div className="relative overflow-hidden">
           {/* Banner image overlay — 30% opacity, faded to transparent at left and right edges */}
           {headerImage && (
@@ -216,7 +216,8 @@ export function TournamentNavBar({
         <button
           type="button"
           onClick={() => setMenuOpen(false)}
-          className={`absolute top-4 right-4 sm:top-6 sm:right-6 p-2 rounded-lg z-10 ${menuTextMuted} ${menuHover} transition-colors`}
+          className={`absolute right-4 sm:right-6 p-2 rounded-lg z-10 ${menuTextMuted} ${menuHover} transition-colors`}
+          style={{ top: 'calc(1rem + env(safe-area-inset-top, 0px))' }}
           aria-label="Close menu"
         >
           <X className="w-6 h-6" />

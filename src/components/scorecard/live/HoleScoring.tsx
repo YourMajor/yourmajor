@@ -289,7 +289,7 @@ export function HoleScoring({
       </div>
 
       {/* ── Bottom Navigation + Status ────────────────────────────────── */}
-      <div className="px-5 pt-2 space-y-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
+      <div className="pl-5 pr-20 pt-2 space-y-2 pb-[calc(1.25rem+env(safe-area-inset-bottom))]">
         {/* Error / Save status */}
         <div className="min-h-5 flex items-center justify-center">
           {finishError ? (

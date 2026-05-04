@@ -144,12 +144,12 @@ export function PushNotificationManager({ vapidPublicKey, initialPrefs }: Props)
 
   return (
     <Card>
-      <CardHeader className="pb-3">
+      <CardHeader className="pb-1">
         <CardTitle className="text-base font-heading flex items-center gap-2">
           <Bell className="w-4 h-4" /> Notifications
         </CardTitle>
       </CardHeader>
-      <CardContent className="space-y-3">
+      <CardContent className="space-y-4">
         {!supported && (
           <p className="text-xs text-muted-foreground">
             This browser does not support push notifications.
@@ -178,26 +178,24 @@ export function PushNotificationManager({ vapidPublicKey, initialPrefs }: Props)
 
         <Separator />
 
-        <div className="space-y-3">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Notify me about
-          </p>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Chat messages</span>
-            <Switch
-              checked={chatOn}
-              disabled={busy || !subscribed}
-              onCheckedChange={(v) => togglePref('chat', v)}
-            />
-          </div>
-          <div className="flex items-center justify-between">
-            <span className="text-sm">Admin announcements</span>
-            <Switch
-              checked={adminOn}
-              disabled={busy || !subscribed}
-              onCheckedChange={(v) => togglePref('admin', v)}
-            />
-          </div>
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Notify me about
+        </p>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">Chat messages</span>
+          <Switch
+            checked={chatOn}
+            disabled={busy || !subscribed}
+            onCheckedChange={(v) => togglePref('chat', v)}
+          />
+        </div>
+        <div className="flex items-center justify-between">
+          <span className="text-sm">Admin announcements</span>
+          <Switch
+            checked={adminOn}
+            disabled={busy || !subscribed}
+            onCheckedChange={(v) => togglePref('admin', v)}
+          />
         </div>
 
         {error && <p className="text-xs text-red-600">{error}</p>}

@@ -121,8 +121,11 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="fixed bottom-24 md:bottom-5 right-5 z-[80] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
-        style={{ backgroundColor: 'var(--color-primary, #006747)' }}
+        className="fixed md:bottom-5 right-5 z-[80] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
+        style={{
+          backgroundColor: 'var(--color-primary, #006747)',
+          bottom: 'calc(6rem + env(safe-area-inset-bottom, 0px))',
+        }}
         aria-label={open ? 'Close chat' : 'Open chat'}
       >
         {open ? <X className="w-6 h-6 text-white" /> : <MessageCircle className="w-6 h-6 text-white" />}
@@ -147,7 +150,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         >
           {/* Header */}
           <div
-            className="shrink-0 px-4 sm:px-5 py-3.5 sm:py-3 flex items-center justify-between touch-pan-y"
+            className="shrink-0 px-4 sm:px-5 py-3.5 sm:py-3 pt-[calc(0.875rem+env(safe-area-inset-top,0px))] sm:pt-3 flex items-center justify-between touch-pan-y"
             style={{ backgroundColor: 'var(--color-primary, #006747)' }}
             onTouchStart={onHeaderTouchStart}
             onTouchMove={onHeaderTouchMove}

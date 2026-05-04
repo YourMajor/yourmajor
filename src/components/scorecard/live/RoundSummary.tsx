@@ -92,44 +92,38 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
 
   function renderNineTable(nineHoles: HoleData[], label: string, stats: ReturnType<typeof nineStats>) {
     return (
-      <table className="w-full border-collapse text-sm">
+      <table className="w-full border-collapse text-sm table-fixed">
         <thead>
           <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-            <th className="py-2.5 px-2 text-left text-[11px] font-bold text-white uppercase tracking-widest w-14">
+            <th className="py-2.5 px-1.5 text-left text-[11px] font-bold text-white uppercase tracking-widest w-12">
               Hole
             </th>
             {nineHoles.map((h) => (
-              <th key={h.id} className="py-2.5 px-0.5 text-center text-xs font-extrabold text-white w-8">
+              <th key={h.id} className="py-2.5 px-0 text-center text-xs font-extrabold text-white w-7">
                 {h.number}
               </th>
             ))}
-            <th className="py-2.5 px-2 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-12 border-l border-white/20">
+            <th className="py-2.5 px-1.5 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-11 border-l border-white/20">
               {label}
-            </th>
-            <th className="py-2.5 px-2 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-12">
-              Tot
             </th>
           </tr>
         </thead>
         <tbody className="bg-background text-foreground">
           {/* Par row */}
           <tr className="border-b border-border">
-            <td className="py-2 px-2 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Par</td>
+            <td className="py-2 px-1.5 text-[11px] font-bold text-muted-foreground uppercase tracking-widest">Par</td>
             {nineHoles.map((h) => (
-              <td key={h.id} className="py-2 px-0.5 text-center text-xs font-semibold text-foreground">
+              <td key={h.id} className="py-2 px-0 text-center text-xs font-semibold text-foreground">
                 {h.par}
               </td>
             ))}
-            <td className="py-2 px-2 text-center text-sm font-bold text-foreground border-l border-border">
-              {stats.ninePar}
-            </td>
-            <td className="py-2 px-2 text-center text-sm font-bold text-foreground">
+            <td className="py-2 px-1.5 text-center text-sm font-bold text-foreground border-l border-border">
               {stats.ninePar}
             </td>
           </tr>
           {/* Score row */}
           <tr>
-            <td className="py-2.5 px-1 text-[9px] font-bold text-muted-foreground">
+            <td className="py-2.5 px-1.5 text-[9px] font-bold text-muted-foreground">
               {playerName
                 ? playerName.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
                 : 'SC'}
@@ -141,7 +135,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
               const hasPowerup = (s?.activePowerups?.length ?? 0) > 0
               const hasAttack = (s?.attacksReceived?.length ?? 0) > 0
               return (
-                <td key={h.id} className="py-2.5 px-0.5 text-center">
+                <td key={h.id} className="py-2.5 px-0 text-center">
                   <button
                     type="button"
                     onClick={() => handleHoleClick(h.number)}
@@ -158,10 +152,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
                 </td>
               )
             })}
-            <td className="py-2.5 px-2 text-center text-sm font-bold text-foreground border-l border-border">
-              {stats.played > 0 ? stats.totalStrokes : '-'}
-            </td>
-            <td className="py-2.5 px-2 text-center text-sm font-bold" style={{ color: 'var(--color-primary)' }}>
+            <td className="py-2.5 px-1.5 text-center text-sm font-bold text-foreground border-l border-border">
               {stats.played > 0 ? stats.totalStrokes : '-'}
             </td>
           </tr>
@@ -189,7 +180,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       </div>
 
       {/* Scorecard tables */}
-      <div className="mx-4 rounded-xl border border-border overflow-hidden shadow-sm">
+      <div className="mx-2 rounded-xl border border-border overflow-hidden shadow-sm">
         {front.length > 0 && renderNineTable(front, 'Out', frontStats)}
         {back.length > 0 && (
           <div className="border-t-2" style={{ borderColor: 'var(--color-primary)' }}>

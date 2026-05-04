@@ -85,7 +85,7 @@ export function BottomTabBar() {
 
       {/* Bottom tab bar */}
       <nav className="fixed bottom-0 left-0 right-0 z-40 lg:hidden bg-background/95 backdrop-blur-md border-t border-border" style={{ paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
-        <div className="flex items-center justify-around h-16">
+        <div className="flex items-center justify-around h-14">
           {TABS.map((tab) => {
             const isMore = tab.href === '#more'
             const isActive = !isMore && (pathname === tab.href || pathname.startsWith(tab.href + '/'))
@@ -117,7 +117,7 @@ export function BottomTabBar() {
                 <Icon className="w-5 h-5" />
                 <span className="text-[11px] font-medium">{tab.label}</span>
                 {isActive && (
-                  <span className="absolute bottom-[calc(env(safe-area-inset-bottom,0px)+4px)] w-1 h-1 rounded-full bg-primary" />
+                  <span className="absolute bottom-1 w-1 h-1 rounded-full bg-primary" />
                 )}
               </Link>
             )

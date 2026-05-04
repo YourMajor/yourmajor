@@ -18,9 +18,9 @@ export function NavShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isDarkPage])
 
-  const solidClass = 'bg-white border-b border-border sticky top-0 z-50'
-  const glassScrolledClass = 'sticky top-0 z-50 transition-all duration-300 bg-white/90 backdrop-blur-xl saturate-150 border-b border-black/8 shadow-sm'
-  const glassTransparentClass = 'sticky top-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent'
+  const solidClass = 'pt-safe bg-white border-b border-border sticky top-0 z-50'
+  const glassScrolledClass = 'pt-safe sticky top-0 z-50 transition-all duration-300 bg-white/90 backdrop-blur-xl saturate-150 border-b border-black/8 shadow-sm'
+  const glassTransparentClass = 'pt-safe sticky top-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent'
 
   const className = !isDarkPage
     ? solidClass

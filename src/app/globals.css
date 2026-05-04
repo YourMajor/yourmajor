@@ -134,6 +134,12 @@
 .pb-bottom-nav {
   padding-bottom: calc(var(--nav-bottom-height) + env(safe-area-inset-bottom, 0px));
 }
+.pt-safe {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.mt-safe {
+  margin-top: env(safe-area-inset-top, 0px);
+}
 
 /* ── Avatar: hide fallback when image is present ─────── */
 [data-slot="avatar"] > [data-slot="avatar-image"] ~ [data-slot="avatar-fallback"] {
