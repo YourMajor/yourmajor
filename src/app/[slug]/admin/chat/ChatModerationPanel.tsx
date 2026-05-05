@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Trash2, ShieldOff } from 'lucide-react'
+import { Trash2, ShieldOff, Shield } from 'lucide-react'
 import type { ChatMessage } from '@/hooks/useChat'
 
 interface BanEntry {
@@ -40,6 +40,30 @@ export function ChatModerationPanel({ tournamentId, initialBans, initialMessages
     const res = await fetch(`/api/tournaments/${tournamentId}/messages/${messageId}`, { method: 'DELETE' })
     if (res.ok) {
       setMessages((prev) => prev.filter((m) => m.id !== messageId))
+    }
+  }
+
+  async function handleBan(userId: string, userName: string | null, userImage: string | null) {
+    if (bans.some((b) => b.userId === userId)) return
+    const res = await fetch(`/api/tournaments/${tournamentId}/chat-bans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId }),
+    })
+    if (res.ok) {
+      const ban = await res.json()
+      setBans((prev) => [
+        {
+          id: ban.id,
+          userId,
+          userName: userName ?? ban.user?.name ?? null,
+          userImage: userImage ?? ban.user?.image ?? null,
+          reason: ban.reason ?? null,
+          expiresAt: ban.expiresAt ?? null,
+          createdAt: ban.createdAt,
+        },
+        ...prev,
+      ])
     }
   }
 
@@ -107,14 +131,25 @@ export function ChatModerationPanel({ tournamentId, initialBans, initialMessages
                     </div>
                     <p className="text-xs mt-0.5 break-words text-muted-foreground">{m.content}</p>
                   </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteMessage(m.id)}
-                    className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
-                    title="Delete message"
-                  >
-                    <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
-                  </button>
+                  <div className="shrink-0 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <button
+                      type="button"
+                      onClick={() => handleBan(m.userId, m.user.name, m.user.image)}
+                      disabled={bans.some((b) => b.userId === m.userId)}
+                      className="p-1 rounded hover:bg-muted disabled:opacity-40 disabled:cursor-not-allowed"
+                      title={bans.some((b) => b.userId === m.userId) ? 'Already banned' : 'Ban user'}
+                    >
+                      <Shield className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteMessage(m.id)}
+                      className="p-1 rounded hover:bg-muted"
+                      title="Delete message"
+                    >
+                      <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
+                    </button>
+                  </div>
                 </div>
               )
             })}

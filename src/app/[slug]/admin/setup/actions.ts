@@ -56,17 +56,22 @@ function parseIntOr(value: FormDataEntryValue | null, fallback: number): number 
   return Number.isFinite(n) ? n : fallback
 }
 
+export type UpdateTournamentState = { ok: true } | { error: string } | null
+
 export async function updateTournament(
   tournamentId: string,
   currentSlug: string,
   currentLogo: string | null,
   currentHeaderImage: string | null,
+  _prevState: UpdateTournamentState,
   formData: FormData,
-) {
-  const user = await requireAuth()
-  if (!(await isTournamentAdmin(user.id, tournamentId))) {
-    throw new Error('Forbidden')
-  }
+): Promise<UpdateTournamentState> {
+  let nextSlug = currentSlug
+  try {
+    const user = await requireAuth()
+    if (!(await isTournamentAdmin(user.id, tournamentId))) {
+      return { error: 'Forbidden' }
+    }
 
   const rawSlug = String(formData.get('slug') ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const rawDescription = formData.get('description')
@@ -245,7 +250,14 @@ export async function updateTournament(
     if (parent?.slug) revalidatePath(`/${parent.slug}`, 'layout')
   }
 
-  if (parsed.slug !== currentSlug) {
-    redirect(`/${parsed.slug}/admin/setup`)
+    nextSlug = parsed.slug
+  } catch (e) {
+    return { error: e instanceof Error ? e.message : 'Save failed.' }
   }
+
+  // redirect() throws NEXT_REDIRECT — must run outside the try/catch.
+  if (nextSlug !== currentSlug) {
+    redirect(`/${nextSlug}/admin/setup`)
+  }
+  return { ok: true }
 }

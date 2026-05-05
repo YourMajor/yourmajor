@@ -1,7 +1,6 @@
 import Link from 'next/link'
 import Image from 'next/image'
 import { prisma } from '@/lib/prisma'
-import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -14,6 +13,7 @@ import { FormatSettings } from './FormatSettings'
 import { PowerupConfigGroup } from './PowerupConfigGroup'
 import { SubdomainCard } from './SubdomainCard'
 import { SponsorCard } from './SponsorCard'
+import { SettingsSaveForm } from './SettingsSaveForm'
 import { EventRoundsEditor, type EventRound } from './EventRoundsEditor'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
@@ -108,7 +108,7 @@ export default async function TournamentSetup({
         </Card>
       )}
 
-      <form action={updateTournamentAction} className="space-y-6">
+      <SettingsSaveForm action={updateTournamentAction}>
         {/* ── Basic Info ── */}
         <Card>
           <CardHeader>
@@ -127,31 +127,31 @@ export default async function TournamentSetup({
               </p>
             </div>
             {tournament.isLeague && !tournament.parentTournamentId ? (
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="leagueEndDate">League End Date</Label>
-                <Input id="leagueEndDate" name="leagueEndDate" type="date" defaultValue={fmt(tournament.leagueEndDate)} />
+                <Input id="leagueEndDate" name="leagueEndDate" type="date" defaultValue={fmt(tournament.leagueEndDate)} className="block max-w-full" />
                 <p className="text-xs text-muted-foreground">
                   When the league season closes. Individual events keep their own dates.
                 </p>
               </div>
             ) : tournament.isLeague ? (
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="startDate">Event Date</Label>
-                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
+                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} className="block max-w-full" />
                 <p className="text-xs text-muted-foreground">
                   League events run on a single day. Saving updates the round date too.
                 </p>
               </div>
             ) : (
               <>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  <div className="space-y-2">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="startDate">Start Date</Label>
-                    <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
+                    <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} className="block max-w-full" />
                   </div>
-                  <div className="space-y-2">
+                  <div className="space-y-2 min-w-0">
                     <Label htmlFor="endDate">End Date</Label>
-                    <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} />
+                    <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} className="block max-w-full" />
                   </div>
                 </div>
                 {(isActive || isCompleted) && (
@@ -269,8 +269,7 @@ export default async function TournamentSetup({
           </CardContent>
         </Card>
 
-        <Button type="submit" className="w-full">Save Changes</Button>
-      </form>
+      </SettingsSaveForm>
 
       {showSubdomainCard && (
         <SubdomainCard

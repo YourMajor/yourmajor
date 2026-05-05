@@ -218,13 +218,14 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
 
           {value.isLeague ? (
             <>
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label htmlFor="leagueEndDate">League End Date</Label>
                 <Input
                   id="leagueEndDate"
                   type="date"
                   value={value.leagueEndDate}
                   onChange={(e) => set('leagueEndDate', e.target.value)}
+                  className="block max-w-full"
                 />
                 <p className="text-xs text-muted-foreground">When the league season ends. A champion will be crowned and the league moves to history.</p>
               </div>
@@ -263,13 +264,14 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
               </div>
 
               {tournamentType === 'INVITE' && (
-                <div className="space-y-2">
+                <div className="space-y-2 min-w-0">
                   <Label htmlFor="registrationDeadline">Registration Deadline</Label>
                   <Input
                     id="registrationDeadline"
                     type="date"
                     value={value.registrationDeadline}
                     onChange={(e) => set('registrationDeadline', e.target.value)}
+                    className="block max-w-full"
                   />
                   <p className="text-xs text-muted-foreground">Last day players can register. Leave blank for no deadline.</p>
                 </div>

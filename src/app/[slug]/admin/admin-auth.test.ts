@@ -76,21 +76,23 @@ describe('updateTournament — auth gate', () => {
     return fd
   }
 
-  it('throws Forbidden when caller is not a tournament admin', async () => {
+  it('returns Forbidden error when caller is not a tournament admin', async () => {
     authMock.requireAuth.mockResolvedValue({ id: 'user_1' })
     authMock.isTournamentAdmin.mockResolvedValue(false)
 
     const { updateTournament } = await import('./setup/actions')
-    await expect(updateTournament('t1', 'ryder', null, null, makeFormData())).rejects.toThrow(/forbidden/i)
+    const result = await updateTournament('t1', 'ryder', null, null, null, makeFormData())
+    expect(result).toEqual({ error: expect.stringMatching(/forbidden/i) })
     expect(prismaMock.tournament.update).not.toHaveBeenCalled()
   })
 
-  it('throws Unauthorized when caller is not authenticated', async () => {
+  it('returns Unauthorized error when caller is not authenticated', async () => {
     authMock.requireAuth.mockRejectedValue(new Error('Unauthorized'))
     authMock.isTournamentAdmin.mockResolvedValue(false)
 
     const { updateTournament } = await import('./setup/actions')
-    await expect(updateTournament('t1', 'ryder', null, null, makeFormData())).rejects.toThrow(/unauthorized/i)
+    const result = await updateTournament('t1', 'ryder', null, null, null, makeFormData())
+    expect(result).toEqual({ error: expect.stringMatching(/unauthorized/i) })
     expect(prismaMock.tournament.update).not.toHaveBeenCalled()
   })
 })

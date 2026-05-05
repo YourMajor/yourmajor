@@ -2,7 +2,7 @@ import Link from 'next/link'
 
 export function Footer() {
   return (
-    <footer className="footer-masters">
+    <footer className="footer-masters hidden lg:block">
       <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-center gap-4 text-xs">
         <Link href="/terms" className="text-white/60 hover:text-white transition-colors">
           Terms of Use

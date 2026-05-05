@@ -72,12 +72,13 @@ export function StepRounds({ numRounds, value, onChange, isOpenRegistration = fa
 
           {openRound === i && (
             <CardContent className="space-y-4 pt-0 overflow-visible">
-              <div className="space-y-2">
+              <div className="space-y-2 min-w-0">
                 <Label>Round Date{isOpenRegistration ? ' (optional)' : ''}</Label>
                 <Input
                   type="date"
                   value={round.date}
                   onChange={(e) => updateRound(i, { date: e.target.value })}
+                  className="block max-w-full"
                 />
                 {isOpenRegistration && !round.date && (
                   <p className="text-xs text-muted-foreground">Open tournaments don&apos;t need specific round dates. Players can submit scores anytime before the tournament end date.</p>
