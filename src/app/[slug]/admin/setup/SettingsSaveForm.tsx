@@ -11,17 +11,19 @@ interface Props {
 
 export function SettingsSaveForm({ action, children }: Props) {
   const [state, formAction, pending] = useActionState<UpdateTournamentState, FormData>(action, null)
-  const [showSuccess, setShowSuccess] = useState(false)
+  // Track which success-state instance has been dismissed so the message hides
+  // 3s after each new save without calling setState synchronously in an effect.
+  const [dismissed, setDismissed] = useState<UpdateTournamentState>(null)
+  const isOk = state !== null && 'ok' in state && state.ok === true
+  const showSuccess = isOk && dismissed !== state
 
   useEffect(() => {
-    if (state && 'ok' in state && state.ok) {
-      setShowSuccess(true)
-      const t = setTimeout(() => setShowSuccess(false), 3000)
-      return () => clearTimeout(t)
-    }
-  }, [state])
+    if (!showSuccess) return
+    const t = setTimeout(() => setDismissed(state), 3000)
+    return () => clearTimeout(t)
+  }, [showSuccess, state])
 
-  const error = state && 'error' in state ? state.error : null
+  const error = state !== null && 'error' in state ? state.error : null
 
   return (
     <form action={formAction} className="space-y-6">
