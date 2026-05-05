@@ -1,10 +1,11 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { Card, CardContent } from '@/components/ui/card'
-import { MapPinOff, Loader2 } from 'lucide-react'
+import { MapPin, MapPinOff, Loader2 } from 'lucide-react'
+import { useUserLocation } from '@/hooks/useUserLocation'
 
 const HCP_LABELS: Record<string, string> = {
   NONE: 'No Handicap',
@@ -35,47 +36,54 @@ type NearbyTournament = {
   distanceKm: number
 }
 
+type FetchState = 'idle' | 'loading' | 'done' | 'error'
+
 export default function NearbyTournaments() {
-  const [state, setState] = useState<'idle' | 'locating' | 'loading' | 'done' | 'denied' | 'error'>('idle')
+  const { coords, status, request } = useUserLocation()
+  const [fetchState, setFetchState] = useState<FetchState>('idle')
   const [tournaments, setTournaments] = useState<NearbyTournament[]>([])
 
-  useEffect(() => {
-    if (!navigator.geolocation) {
-      setState('denied')
-      return
+  const loadTournaments = useCallback(async (lat: number, lng: number) => {
+    setFetchState('loading')
+    try {
+      const res = await fetch(`/api/tournaments/nearby?lat=${lat}&lng=${lng}&radius=50`)
+      if (!res.ok) throw new Error('fetch failed')
+      const data: NearbyTournament[] = await res.json()
+      setTournaments(data)
+      setFetchState('done')
+    } catch {
+      setFetchState('error')
     }
-    setState('locating')
-    navigator.geolocation.getCurrentPosition(
-      async (pos) => {
-        setState('loading')
-        try {
-          const { latitude, longitude } = pos.coords
-          const res = await fetch(
-            `/api/tournaments/nearby?lat=${latitude}&lng=${longitude}&radius=50`
-          )
-          if (!res.ok) throw new Error('fetch failed')
-          const data: NearbyTournament[] = await res.json()
-          setTournaments(data)
-          setState('done')
-        } catch {
-          setState('error')
-        }
-      },
-      () => setState('denied'),
-      { timeout: 10000 }
-    )
   }, [])
 
-  if (state === 'idle' || state === 'locating' || state === 'loading') {
+  useEffect(() => {
+    if (!coords || fetchState !== 'idle') return
+    loadTournaments(coords.lat, coords.lng)
+  }, [coords, fetchState, loadTournaments])
+
+  if (status === 'prompt') {
+    return (
+      <button
+        type="button"
+        onClick={request}
+        className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground py-2 transition-colors"
+      >
+        <MapPin className="w-4 h-4" />
+        Use my location to find nearby tournaments
+      </button>
+    )
+  }
+
+  if (status === 'locating' || (status === 'granted' && fetchState !== 'done' && fetchState !== 'error')) {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
         <Loader2 className="w-4 h-4 animate-spin" />
-        {state === 'loading' ? 'Finding nearby tournaments…' : 'Getting your location…'}
+        {fetchState === 'loading' ? 'Finding nearby tournaments…' : 'Getting your location…'}
       </div>
     )
   }
 
-  if (state === 'denied') {
+  if (status === 'denied' || status === 'unsupported') {
     return (
       <div className="flex items-center gap-2 text-sm text-muted-foreground py-2">
         <MapPinOff className="w-4 h-4" />
@@ -84,7 +92,7 @@ export default function NearbyTournaments() {
     )
   }
 
-  if (state === 'error') {
+  if (status === 'error' || fetchState === 'error') {
     return (
       <p className="text-sm text-muted-foreground py-2">
         Couldn&apos;t load nearby tournaments. Try again later.
@@ -92,12 +100,16 @@ export default function NearbyTournaments() {
     )
   }
 
-  if (tournaments.length === 0) {
+  if (fetchState === 'done' && tournaments.length === 0) {
     return (
       <p className="text-sm text-muted-foreground py-2">
         No open tournaments within 50 km of your location.
       </p>
     )
+  }
+
+  if (fetchState !== 'done') {
+    return null
   }
 
   return (
