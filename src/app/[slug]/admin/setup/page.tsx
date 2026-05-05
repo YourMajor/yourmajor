@@ -129,7 +129,7 @@ export default async function TournamentSetup({
             {tournament.isLeague && !tournament.parentTournamentId ? (
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="leagueEndDate">League End Date</Label>
-                <Input id="leagueEndDate" name="leagueEndDate" type="date" defaultValue={fmt(tournament.leagueEndDate)} className="block max-w-full" />
+                <Input id="leagueEndDate" name="leagueEndDate" type="date" defaultValue={fmt(tournament.leagueEndDate)} />
                 <p className="text-xs text-muted-foreground">
                   When the league season closes. Individual events keep their own dates.
                 </p>
@@ -137,7 +137,7 @@ export default async function TournamentSetup({
             ) : tournament.isLeague ? (
               <div className="space-y-2 min-w-0">
                 <Label htmlFor="startDate">Event Date</Label>
-                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} className="block max-w-full" />
+                <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
                 <p className="text-xs text-muted-foreground">
                   League events run on a single day. Saving updates the round date too.
                 </p>
@@ -147,11 +147,11 @@ export default async function TournamentSetup({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2 min-w-0">
                     <Label htmlFor="startDate">Start Date</Label>
-                    <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} className="block max-w-full" />
+                    <Input id="startDate" name="startDate" type="date" defaultValue={fmt(tournament.startDate)} />
                   </div>
                   <div className="space-y-2 min-w-0">
                     <Label htmlFor="endDate">End Date</Label>
-                    <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} className="block max-w-full" />
+                    <Input id="endDate" name="endDate" type="date" defaultValue={fmt(tournament.endDate)} />
                   </div>
                 </div>
                 {(isActive || isCompleted) && (

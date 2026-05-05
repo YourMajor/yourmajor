@@ -78,7 +78,6 @@ export function StepRounds({ numRounds, value, onChange, isOpenRegistration = fa
                   type="date"
                   value={round.date}
                   onChange={(e) => updateRound(i, { date: e.target.value })}
-                  className="block max-w-full"
                 />
                 {isOpenRegistration && !round.date && (
                   <p className="text-xs text-muted-foreground">Open tournaments don&apos;t need specific round dates. Players can submit scores anytime before the tournament end date.</p>
