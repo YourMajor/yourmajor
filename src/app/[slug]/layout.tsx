@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
 import { PersistentChat } from '@/components/hub/PersistentChat'
+import { NotificationPopup } from '@/components/notifications/NotificationPopup'
 import { TournamentShell } from '@/components/leaderboard/TournamentShell'
 import { TournamentProvider, type TournamentContextValue } from '@/components/TournamentContext'
 
@@ -27,6 +28,7 @@ export default async function TournamentLayout({
   let showAdmin = user?.role === 'ADMIN'
   let isRegistered = false
   let isTournamentAdmin = false
+  let tournamentPlayerId: string | null = null
   let avatarUrl: string | null = null
   let initials = '?'
 
@@ -34,7 +36,7 @@ export default async function TournamentLayout({
     const [membership, profile] = await Promise.all([
       prisma.tournamentPlayer.findUnique({
         where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-        select: { isAdmin: true, isParticipant: true },
+        select: { id: true, isAdmin: true, isParticipant: true },
       }),
       prisma.playerProfile.findUnique({
         where: { userId: user.id },
@@ -44,6 +46,7 @@ export default async function TournamentLayout({
     if (membership?.isAdmin) showAdmin = true
     isTournamentAdmin = membership?.isAdmin ?? false
     isRegistered = !!membership?.isParticipant
+    tournamentPlayerId = membership?.id ?? null
     avatarUrl = profile?.avatar ?? user.image ?? null
     const name = profile?.displayName ?? user.name ?? user.email.split('@')[0]
     initials = name
@@ -173,6 +176,14 @@ export default async function TournamentLayout({
           isAdmin={showAdmin}
           label={tournament.isLeague ? 'League Chat' : undefined}
         />
+
+        {tournamentPlayerId && (
+          <NotificationPopup
+            tournamentId={tournament.id}
+            tournamentPlayerId={tournamentPlayerId}
+            slug={slug}
+          />
+        )}
       </TournamentProvider>
     </div>
   )

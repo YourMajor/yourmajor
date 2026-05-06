@@ -23,13 +23,26 @@ self.addEventListener('push', (event) => {
       data.body = event.data.text()
     }
   }
-  const options = {
-    body: data.body,
-    icon: data.icon || '/icons/icon-192x192.png',
-    badge: '/icons/icon-192x192.png',
-    data: { url: data.url || '/' },
-  }
-  event.waitUntil(self.registration.showNotification(data.title, options))
+  event.waitUntil(
+    (async () => {
+      // If any app tab is currently visible to the user, the in-app
+      // NotificationPopup / chat badge already handles delivery — skip the
+      // system banner so we don't double-notify. When all tabs are hidden
+      // (different tab focused, browser minimized, screen off, app closed),
+      // fall through and show the OS notification.
+      const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
+      const hasVisibleClient = clients.some((c) => c.visibilityState === 'visible')
+      if (hasVisibleClient) return
+
+      const options = {
+        body: data.body,
+        icon: data.icon || '/icons/icon-192x192.png',
+        badge: '/icons/icon-192x192.png',
+        data: { url: data.url || '/' },
+      }
+      await self.registration.showNotification(data.title, options)
+    })(),
+  )
 })
 
 self.addEventListener('notificationclick', (event) => {

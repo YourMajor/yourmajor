@@ -1,4 +1,7 @@
--- Run this in Supabase Dashboard → SQL Editor
--- Enables Realtime for live leaderboard, draft, and notifications
-
-ALTER PUBLICATION supabase_realtime ADD TABLE "Score", "Draft", "DraftPick", "Notification";
+-- DEPRECATED — superseded by ./enable-realtime-and-policies.sql
+--
+-- This script only added tables to the supabase_realtime publication and was
+-- missing TournamentMessage. It also did not create the RLS SELECT policies
+-- that Realtime requires to deliver row events to the browser when RLS is on.
+-- Run scripts/enable-realtime-and-policies.sql instead — it is idempotent and
+-- safe to execute against any environment.

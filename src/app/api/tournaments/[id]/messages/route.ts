@@ -5,11 +5,6 @@ import { checkRateLimit } from '@/lib/rate-limit'
 import { containsProfanity } from '@/lib/content-moderation'
 import { sendPushToUser } from '@/lib/push'
 
-// Process-local throttle: cap chat-driven pushes from one author in one
-// tournament to once per 60s. Resets on lambda lifecycle.
-const lastChatPushAt = new Map<string, number>()
-const CHAT_PUSH_THROTTLE_MS = 60_000
-
 export async function GET(
   _req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
@@ -114,19 +109,14 @@ export async function POST(
   })
 
   // Fire-and-forget push to opted-in participants (excludes author).
-  // Throttled per (tournament, author) to keep chat from spamming devices.
-  const throttleKey = `${id}:${user.id}`
-  const now = Date.now()
-  const last = lastChatPushAt.get(throttleKey) ?? 0
-  if (now - last >= CHAT_PUSH_THROTTLE_MS) {
-    lastChatPushAt.set(throttleKey, now)
-    void dispatchChatPush({
-      tournamentId: id,
-      authorUserId: user.id,
-      authorName: message.user.name ?? 'Someone',
-      content: message.content,
-    }).catch((err) => console.error('[push] chat dispatch failed', err))
-  }
+  // No additional throttle: existing rate-limit (5 msgs / 10s → 3-min mute)
+  // already covers spam protection.
+  void dispatchChatPush({
+    tournamentId: id,
+    authorUserId: user.id,
+    authorName: message.user.name ?? 'Someone',
+    content: message.content,
+  }).catch((err) => console.error('[push] chat dispatch failed', err))
 
   return NextResponse.json(message, { status: 201 })
 }

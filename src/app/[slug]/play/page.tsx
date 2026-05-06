@@ -211,7 +211,6 @@ export default async function PlayPage({
       backLabel={tournament.name}
       playerName={user.name ?? user.email.split('@')[0]}
       tournamentId={tournament.id}
-      tournamentPlayerId2={tournamentPlayer.id}
       playerPowerups={playerPowerups as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['playerPowerups']>}
       attacksReceived={attacksReceived as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['attacksReceived']>}
       tournamentPlayers={tournamentPlayers as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['tournamentPlayers']>}

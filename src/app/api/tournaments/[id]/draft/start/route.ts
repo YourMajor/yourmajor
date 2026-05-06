@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { computeCurrentTurn } from '@/lib/draft-utils'
 import { sendEmailToMany, domain } from '@/lib/email'
+import { sendPushToUser } from '@/lib/push'
 
 export async function POST(
   _req: NextRequest,
@@ -38,10 +39,15 @@ export async function POST(
     select: { powerupsPerPlayer: true },
   })
 
-  // Start the draft
+  // Start the draft. If a turn timer is configured, stamp turnStartedAt now
+  // so the first picker's countdown begins at draft start.
+  const hasTimer = draft.turnSeconds !== null && draft.turnSeconds > 0
   const updated = await prisma.draft.update({
     where: { tournamentId },
-    data: { status: 'ACTIVE' },
+    data: {
+      status: 'ACTIVE',
+      turnStartedAt: hasTimer ? new Date() : null,
+    },
   })
 
   // Notify the first player
@@ -64,7 +70,7 @@ export async function POST(
   // Notify all players that draft has started
   const allPlayers = await prisma.tournamentPlayer.findMany({
     where: { tournamentId },
-    select: { id: true, user: { select: { email: true, name: true } } },
+    select: { id: true, user: { select: { id: true, email: true, name: true } } },
   })
   await prisma.notification.createMany({
     data: allPlayers.map((p) => ({
@@ -89,6 +95,19 @@ export async function POST(
       <p>The powerup draft has started! Keep an eye out for your turn.</p>
       <p><a href="${domain}/${tournamentInfo?.slug}/draft">View Draft</a></p>`,
   )
+
+  // Fire-and-forget push to the first picker so they're alerted off-app.
+  // In-app delivery is handled by the Notification Realtime subscription.
+  if (firstTurn && tournamentInfo) {
+    const firstPicker = allPlayers.find((p) => p.id === firstTurn.tournamentPlayerId)
+    if (firstPicker) {
+      void sendPushToUser(firstPicker.user.id, {
+        title: `${tournamentInfo.name} — You're on the clock`,
+        body: 'It’s your turn to pick a powerup.',
+        url: `/${tournamentInfo.slug}/draft`,
+      }).catch((err) => console.error('[push] draft start dispatch failed', err))
+    }
+  }
 
   return NextResponse.json({ status: updated.status })
 }

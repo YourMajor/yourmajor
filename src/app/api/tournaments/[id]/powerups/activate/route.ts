@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
 import { canActivate, computeAutoModifier, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import { sendPushToUser } from '@/lib/push'
 
 export async function POST(
   req: NextRequest,
@@ -166,7 +167,11 @@ export async function POST(
   if (playerPowerup.powerup.type === 'ATTACK' && targetPlayerId) {
     const targetPlayer = await prisma.tournamentPlayer.findUnique({
       where: { id: targetPlayerId },
-      select: { id: true, user: { select: { name: true } } },
+      select: {
+        id: true,
+        user: { select: { id: true, name: true } },
+        tournament: { select: { slug: true, name: true } },
+      },
     })
 
     await prisma.notification.create({
@@ -182,6 +187,17 @@ export async function POST(
         },
       },
     })
+
+    // Fire-and-forget push so the recipient sees a system banner even if the
+    // app isn't focused. In-app delivery is handled by the Realtime
+    // subscription on Notification (see NotificationPopup).
+    if (targetPlayer?.user.id && targetPlayer.tournament) {
+      void sendPushToUser(targetPlayer.user.id, {
+        title: `${targetPlayer.tournament.name} — Under attack!`,
+        body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${holeNumber})`,
+        url: `/${targetPlayer.tournament.slug}/play`,
+      }).catch((err) => console.error('[push] attack dispatch failed', err))
+    }
 
     // System chat message for attack
     await prisma.tournamentMessage.create({

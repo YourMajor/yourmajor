@@ -9,7 +9,6 @@ import { HoleNavigator } from './HoleNavigator'
 import { HoleScoring } from './HoleScoring'
 import { HoleOverview } from './HoleOverview'
 import { RoundSummary } from './RoundSummary'
-import { NotificationPopup } from '@/components/notifications/NotificationPopup'
 import type { HoleData, ExistingScore } from './useLiveScoringState'
 import type { PlayerPowerupData } from './PowerupTray'
 import type { PowerupEffect } from '@/lib/powerup-engine'
@@ -34,7 +33,6 @@ interface LiveScoringProps {
   backLabel?: string // label for back link (e.g. "Tournament")
   playerName?: string // current player's display name for scorecard
   tournamentId?: string // enables chat panel when provided
-  tournamentPlayerId2?: string // for notifications; rename avoids conflict with existing prop
   playerPowerups?: Array<{
     id: string
     powerupId: string
@@ -94,7 +92,6 @@ export function LiveScoring({
   backLabel = 'Tournament',
   playerName,
   tournamentId,
-  tournamentPlayerId2,
   playerPowerups: rawPlayerPowerups = [],
   attacksReceived: rawAttacksReceived = [],
   tournamentPlayers: rawTournamentPlayers = [],
@@ -387,7 +384,7 @@ export function LiveScoring({
   return (
     <div
       ref={containerRef}
-      className="fixed inset-0 z-50 flex flex-col overflow-hidden"
+      className="fixed top-0 left-0 w-screen h-[100dvh] z-50 flex flex-col overflow-hidden"
       style={{
         backgroundColor: 'var(--color-primary, oklch(0.40 0.11 160))',
         ...rootStyle,
@@ -532,14 +529,6 @@ export function LiveScoring({
         </div>
         <div className="w-8" /> {/* spacer */}
       </div>
-
-      {/* ── Attack Notification Popup ─────────────────────────────── */}
-      {tournamentId && tournamentPlayerId2 && (
-        <NotificationPopup
-          tournamentId={tournamentId}
-          tournamentPlayerId={tournamentPlayerId2}
-        />
-      )}
     </div>
   )
 }
