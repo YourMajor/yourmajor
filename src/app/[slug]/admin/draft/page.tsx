@@ -12,6 +12,7 @@ interface Player {
 }
 
 interface DraftPick {
+  id: string
   pickNumber: number
   powerupId: string
   powerup: PowerupCardData
@@ -97,6 +98,8 @@ export default async function AdminDraftPage({
         status: draft.status,
         draftOrder,
         currentPick: draft.currentPick,
+        turnSeconds: draft.turnSeconds,
+        turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
         picks: draft.picks as unknown as DraftPick[],
       }
     : null
@@ -121,6 +124,7 @@ export default async function AdminDraftPage({
         powerupsPerPlayer={tournament.powerupsPerPlayer}
         maxAttacksPerPlayer={tournament.maxAttacksPerPlayer}
         currentTurn={currentTurn}
+        isAdmin={true}
       />
     </main>
   )

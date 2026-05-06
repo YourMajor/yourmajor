@@ -76,6 +76,8 @@ export async function GET(
       status: draft.status,
       draftOrder,
       currentPick: draft.currentPick,
+      turnSeconds: draft.turnSeconds,
+      turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
       picks: draft.picks,
     },
     currentTurn,

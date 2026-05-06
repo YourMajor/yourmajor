@@ -250,15 +250,15 @@ function NetBreakdownModal({
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
-      <div className="relative bg-background rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden" onClick={(e) => e.stopPropagation()}>
-        <div className="px-5 py-4 flex items-center justify-between" style={{ backgroundColor: 'var(--color-primary)' }}>
+      <div className="relative bg-background rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden flex flex-col max-h-[90dvh]" onClick={(e) => e.stopPropagation()}>
+        <div className="shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: 'var(--color-primary)' }}>
           <h3 className="font-heading font-bold text-white text-lg">Net Score Breakdown</h3>
           <button type="button" onClick={onClose} className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        <div className="px-5 py-4 space-y-4">
+        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full border border-border text-muted-foreground">
               {handicapSystem === 'NONE' ? 'No Handicap (Gross)' :
@@ -361,7 +361,7 @@ function CallawayDeductionDetail({ breakdown, sorted }: {
         Holes 17 &amp; 18 are excluded. Scores capped at 2&times;par before ranking. Worst holes deducted first.
       </p>
 
-      <div className="rounded-lg border border-border overflow-hidden">
+      <div className="rounded-lg border border-border overflow-x-auto">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-muted/50">

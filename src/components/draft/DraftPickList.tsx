@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import { SlugIcon } from './CardHand'
+import type { PowerupCardData } from './PowerupCard'
 
 interface PickEffect {
   scoring: { mode: string; modifier: number | null }
@@ -12,7 +13,9 @@ interface PickEffect {
 }
 
 interface Pick {
+  id?: string
   pickNumber: number
+  powerupId?: string
   powerup: { name: string; type: 'BOOST' | 'ATTACK'; slug?: string; description?: string; effect?: PickEffect }
   tournamentPlayer: {
     id: string
@@ -29,6 +32,12 @@ interface DraftPickListProps {
   picks: Pick[]
   players?: Player[]
   picksPerPlayer?: number
+  /** Admin override mode — shows "Change pick" in the detail overlay */
+  isAdmin?: boolean
+  tournamentId?: string
+  /** Powerups available to swap to (i.e. unpicked) */
+  availablePowerups?: PowerupCardData[]
+  onPickEdited?: () => void
 }
 
 function getLastName(name: string): string {
@@ -36,8 +45,57 @@ function getLastName(name: string): string {
   return parts.length > 1 ? parts[parts.length - 1] : parts[0]
 }
 
-export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickListProps) {
+export function DraftPickList({
+  picks,
+  players,
+  picksPerPlayer = 3,
+  isAdmin = false,
+  tournamentId,
+  availablePowerups,
+  onPickEdited,
+}: DraftPickListProps) {
   const [selectedPick, setSelectedPick] = useState<Pick | null>(null)
+  const [editMode, setEditMode] = useState(false)
+  const [pendingSwapId, setPendingSwapId] = useState<string | null>(null)
+  const [savingSwap, setSavingSwap] = useState(false)
+  const [swapError, setSwapError] = useState<string | null>(null)
+
+  const closeOverlay = () => {
+    setSelectedPick(null)
+    setEditMode(false)
+    setPendingSwapId(null)
+    setSavingSwap(false)
+    setSwapError(null)
+  }
+
+  const handleSaveSwap = async () => {
+    if (!selectedPick || !selectedPick.id || !tournamentId || !pendingSwapId) return
+    setSavingSwap(true)
+    setSwapError(null)
+    try {
+      const res = await fetch(
+        `/api/tournaments/${tournamentId}/draft/pick/${selectedPick.id}`,
+        {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ powerupId: pendingSwapId }),
+        },
+      )
+      if (!res.ok) {
+        let message = 'Failed to change pick.'
+        try {
+          const data = await res.json()
+          if (data.error) message = data.error
+        } catch {}
+        throw new Error(message)
+      }
+      onPickEdited?.()
+      closeOverlay()
+    } catch (e) {
+      setSwapError(e instanceof Error ? e.message : 'Failed to change pick.')
+      setSavingSwap(false)
+    }
+  }
 
   if (picks.length === 0) {
     return (
@@ -182,9 +240,14 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
         const isAttack = selectedPick.powerup.type === 'ATTACK'
         const slug = selectedPick.powerup.slug ?? ''
         const effect = selectedPick.powerup.effect
+        const canShowAdminEdit =
+          isAdmin &&
+          !!tournamentId &&
+          !!selectedPick.id &&
+          !!availablePowerups
         return (
           <>
-            <div className="fixed inset-0 z-[90] bg-black/60" onClick={() => setSelectedPick(null)} />
+            <div className="fixed inset-0 z-[90] bg-black/60" onClick={closeOverlay} />
             <div
               className="fixed z-[95]"
               style={{
@@ -211,50 +274,126 @@ export function DraftPickList({ picks, players, picksPerPlayer = 3 }: DraftPickL
 
                 {/* Body */}
                 <div className="flex-1 px-5 py-4 overflow-y-auto space-y-3">
-                  {selectedPick.powerup.description && (
-                    <p className="text-sm text-zinc-800 leading-relaxed">{selectedPick.powerup.description}</p>
-                  )}
-                  {effect && (
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                        isAttack ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                      }`}>
-                        {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
-                      </span>
-                      {effect.scoring.modifier !== null && (
-                        <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                          effect.scoring.modifier < 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
-                        }`}>
-                          {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier} strokes
-                        </span>
+                  {!editMode && (
+                    <>
+                      {selectedPick.powerup.description && (
+                        <p className="text-sm text-zinc-800 leading-relaxed">{selectedPick.powerup.description}</p>
                       )}
-                      {effect.requiresTarget && (
-                        <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
-                          Targets opponent
-                        </span>
+                      {effect && (
+                        <div className="flex flex-wrap gap-1.5">
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                            isAttack ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
+                          }`}>
+                            {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
+                          </span>
+                          {effect.scoring.modifier !== null && (
+                            <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
+                              effect.scoring.modifier < 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                            }`}>
+                              {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier} strokes
+                            </span>
+                          )}
+                          {effect.requiresTarget && (
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                              Targets opponent
+                            </span>
+                          )}
+                        </div>
+                      )}
+                      {effect?.flavorText && (
+                        <p className="text-xs italic text-zinc-500 border-t border-zinc-200 pt-2.5">
+                          &ldquo;{effect.flavorText}&rdquo;
+                        </p>
+                      )}
+                      <p className="text-xs text-zinc-400 pt-1 border-t border-zinc-200">
+                        Drafted by <span className="font-semibold text-zinc-700">{selectedPick.tournamentPlayer.user.name ?? 'Player'}</span>
+                        {' '}&middot; Pick #{selectedPick.pickNumber}
+                      </p>
+                    </>
+                  )}
+
+                  {editMode && availablePowerups && (
+                    <div className="space-y-2">
+                      <p className="text-xs text-zinc-600 font-semibold">
+                        Change pick for {selectedPick.tournamentPlayer.user.name ?? 'player'} (Pick #{selectedPick.pickNumber})
+                      </p>
+                      <p className="text-[11px] text-zinc-500">
+                        Only powerups not yet used in scoring can be changed. Server validates attack-card limits.
+                      </p>
+                      <div className="grid grid-cols-2 gap-1.5 max-h-[180px] overflow-y-auto">
+                        {availablePowerups.map((p) => {
+                          const isSel = pendingSwapId === p.id
+                          return (
+                            <button
+                              key={p.id}
+                              type="button"
+                              onClick={() => setPendingSwapId(p.id)}
+                              className={`text-left rounded border px-2 py-1.5 text-[11px] leading-tight transition-colors ${
+                                isSel
+                                  ? 'border-emerald-700 bg-emerald-100'
+                                  : 'border-zinc-300 bg-white hover:bg-zinc-50'
+                              }`}
+                            >
+                              <div className="font-semibold text-zinc-800">{p.name}</div>
+                              <div className={`text-[9px] uppercase tracking-wide ${
+                                p.type === 'ATTACK' ? 'text-red-700' : 'text-emerald-700'
+                              }`}>
+                                {p.type}
+                              </div>
+                            </button>
+                          )
+                        })}
+                      </div>
+                      {swapError && (
+                        <p className="text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+                          {swapError}
+                        </p>
                       )}
                     </div>
                   )}
-                  {effect?.flavorText && (
-                    <p className="text-xs italic text-zinc-500 border-t border-zinc-200 pt-2.5">
-                      &ldquo;{effect.flavorText}&rdquo;
-                    </p>
-                  )}
-                  <p className="text-xs text-zinc-400 pt-1 border-t border-zinc-200">
-                    Drafted by <span className="font-semibold text-zinc-700">{selectedPick.tournamentPlayer.user.name ?? 'Player'}</span>
-                    {' '}&middot; Pick #{selectedPick.pickNumber}
-                  </p>
                 </div>
 
                 {/* Footer */}
-                <div className={`px-5 py-3 shrink-0 ${isAttack ? 'bg-red-800/10' : 'bg-emerald-900/10'}`}>
-                  <button
-                    type="button"
-                    onClick={() => setSelectedPick(null)}
-                    className="w-full py-2 rounded-lg text-xs font-semibold text-zinc-400 hover:bg-zinc-200 transition-colors"
-                  >
-                    Tap to close
-                  </button>
+                <div className={`px-5 py-3 shrink-0 flex gap-2 ${isAttack ? 'bg-red-800/10' : 'bg-emerald-900/10'}`}>
+                  {!editMode ? (
+                    <>
+                      {canShowAdminEdit && (
+                        <button
+                          type="button"
+                          onClick={() => setEditMode(true)}
+                          className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-zinc-800 hover:bg-zinc-900 transition-colors"
+                        >
+                          Change Pick
+                        </button>
+                      )}
+                      <button
+                        type="button"
+                        onClick={closeOverlay}
+                        className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
+                      >
+                        Close
+                      </button>
+                    </>
+                  ) : (
+                    <>
+                      <button
+                        type="button"
+                        onClick={() => { setEditMode(false); setPendingSwapId(null); setSwapError(null) }}
+                        disabled={savingSwap}
+                        className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors disabled:opacity-50"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleSaveSwap}
+                        disabled={savingSwap || !pendingSwapId}
+                        className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors disabled:opacity-50"
+                      >
+                        {savingSwap ? 'Saving…' : 'Save Change'}
+                      </button>
+                    </>
+                  )}
                 </div>
               </div>
             </div>

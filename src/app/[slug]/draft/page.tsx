@@ -16,6 +16,7 @@ interface Player {
 }
 
 interface DraftPick {
+  id: string
   pickNumber: number
   powerupId: string
   powerup: PowerupCardData
@@ -205,6 +206,7 @@ export default async function DraftPage({
       <DraftBoard
         tournamentId={tournament.id}
         currentPlayerId={player.id}
+        isAdmin={isAdmin}
         initialState={{
           draft: {
             id: draft.id,
@@ -212,6 +214,8 @@ export default async function DraftPage({
             status: draft.status,
             draftOrder,
             currentPick: draft.currentPick,
+            turnSeconds: draft.turnSeconds,
+            turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
             picks: draft.picks as unknown as DraftPick[],
           },
           currentTurn,

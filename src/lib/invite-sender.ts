@@ -2,6 +2,7 @@
 // Three call sites: createTournamentFromWizard, sendLateInvites, importRosterCsv.
 
 import { sendSMS } from '@/lib/sms'
+import { getAppUrl } from '@/lib/app-url'
 
 export interface InvitationToSend {
   email?: string | null
@@ -45,7 +46,7 @@ function inviteEmailHtml(tournamentName: string, slug: string, token: string, do
  */
 export async function sendInvitations({ tournamentName, slug, invitations }: SendInvitationsOptions): Promise<void> {
   if (invitations.length === 0) return
-  const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+  const domain = getAppUrl()
 
   const emails = invitations.filter((i): i is InvitationToSend & { email: string } => Boolean(i.email))
   const phones = invitations.filter((i): i is InvitationToSend & { phone: string } => Boolean(i.phone))

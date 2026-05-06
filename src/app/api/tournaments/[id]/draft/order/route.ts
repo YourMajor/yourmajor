@@ -20,7 +20,8 @@ export async function PUT(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { order } = await req.json() as { order: string[] }
+  const body = (await req.json()) as { order: string[]; turnSeconds?: number | null }
+  const { order, turnSeconds } = body
   if (!Array.isArray(order) || order.length === 0) {
     return NextResponse.json({ error: 'order must be a non-empty array of tournamentPlayerIds' }, { status: 400 })
   }
@@ -36,6 +37,20 @@ export async function PUT(
     return NextResponse.json({ error: `Invalid player IDs: ${invalid.join(', ')}` }, { status: 400 })
   }
 
+  // Normalize turnSeconds: undefined = leave alone, null/0 = disable, positive int = enable.
+  let normalizedTurnSeconds: number | null | undefined = undefined
+  if (turnSeconds === null || turnSeconds === 0) {
+    normalizedTurnSeconds = null
+  } else if (typeof turnSeconds === 'number') {
+    if (!Number.isInteger(turnSeconds) || turnSeconds < 5 || turnSeconds > 3600) {
+      return NextResponse.json(
+        { error: 'turnSeconds must be an integer between 5 and 3600 (or null to disable).' },
+        { status: 400 },
+      )
+    }
+    normalizedTurnSeconds = turnSeconds
+  }
+
   const draft = await prisma.draft.findUnique({ where: { tournamentId } })
   if (!draft) return NextResponse.json({ error: 'No draft found' }, { status: 404 })
   if (draft.status !== 'PENDING') {
@@ -44,8 +59,11 @@ export async function PUT(
 
   const updated = await prisma.draft.update({
     where: { tournamentId },
-    data: { draftOrder: order },
+    data: {
+      draftOrder: order,
+      ...(normalizedTurnSeconds !== undefined ? { turnSeconds: normalizedTurnSeconds } : {}),
+    },
   })
 
-  return NextResponse.json({ draftOrder: updated.draftOrder })
+  return NextResponse.json({ draftOrder: updated.draftOrder, turnSeconds: updated.turnSeconds })
 }

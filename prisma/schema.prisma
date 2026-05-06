@@ -62,6 +62,7 @@ enum NotificationType {
   POWERUP_USED
   DRAFT_STARTED
   DRAFT_COMPLETED
+  DRAFT_AUTO_PICK
   TEE_TIME_ASSIGNED
 }
 
@@ -630,17 +631,21 @@ model PlayerPowerup {
 // ─── Draft ────────────────────────────────────────────────────────────────────
 
 model Draft {
-  id           String      @id @default(cuid())
-  tournamentId String      @unique
-  format       DraftFormat @default(SNAKE)
-  timing       DraftTiming @default(PRE_TOURNAMENT)
-  status       DraftStatus @default(PENDING)
-  draftOrder   Json?
-  currentPick  Int         @default(0)
-  createdAt    DateTime    @default(now())
+  id             String      @id @default(cuid())
+  tournamentId   String      @unique
+  format         DraftFormat @default(SNAKE)
+  timing         DraftTiming @default(PRE_TOURNAMENT)
+  status         DraftStatus @default(PENDING)
+  draftOrder     Json?
+  currentPick    Int         @default(0)
+  turnSeconds    Int?
+  turnStartedAt  DateTime?
+  createdAt      DateTime    @default(now())
 
   tournament Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   picks      DraftPick[]
+
+  @@index([status, turnStartedAt])
 }
 
 model DraftPick {
@@ -655,6 +660,7 @@ model DraftPick {
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
   powerup          Powerup          @relation(fields: [powerupId], references: [id])
 
+  @@unique([draftId, pickNumber])
   @@index([draftId])
 }
 

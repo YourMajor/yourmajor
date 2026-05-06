@@ -1,0 +1,6 @@
+# Stop the Vercel CLI from uploading local env files in the deploy bundle.
+# Vercel's runtime env-var store is the source of truth for production —
+# uploading these files only triggers a build warning and risks drift.
+.env
+.env.local
+.env.*.local

@@ -6,6 +6,7 @@ import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
 import { sendEmail } from '@/lib/email'
 import { sendSMS } from '@/lib/sms'
+import { getAppUrl } from '@/lib/app-url'
 import { autoAssign, type AssignMode, type AssignablePlayer } from '@/lib/group-assignment'
 import { getRecentPartners, getLeagueRootId } from '@/lib/league-events'
 import {
@@ -102,7 +103,7 @@ async function dispatchTeeTimeMessages(
   dispatches: TeeTimeDispatch[],
   slug: string,
 ): Promise<TeeTimeDelivery[]> {
-  const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://yourmajor.club'
+  const domain = getAppUrl()
   const deliveries: TeeTimeDelivery[] = []
 
   // Send each player's email + SMS in parallel — they're independent, so a

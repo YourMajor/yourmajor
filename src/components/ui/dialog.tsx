@@ -85,11 +85,11 @@ function DialogContent({
       slotProps={{
         paper: {
           className: cn('!rounded-xl !shadow-2xl', className),
-          style: { margin: 16 },
+          style: { margin: 16, maxHeight: 'calc(100dvh - 32px)' },
         },
       }}
     >
-      <div className="relative p-4 sm:p-6" {...props}>
+      <div className="relative p-4 sm:p-6 overflow-y-auto" {...props}>
         {children}
         {showCloseButton && (
           <IconButton

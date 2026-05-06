@@ -1,12 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback, useMemo } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { createClient } from '@/utils/supabase/client'
 import { type PowerupCardData } from './PowerupCard'
 import { DraftPickList } from './DraftPickList'
 import { CardHand, CardBack } from './CardHand'
 import { FlippableCardOverlay } from './FlippableCardOverlay'
 import { TurnStrip } from './TurnStrip'
+import { DraftCountdown } from './DraftCountdown'
 import { PowerupFilterBar, type PowerupTypeFilter } from './PowerupFilterBar'
 import { PowerupBrowseGrid } from './PowerupBrowseGrid'
 import { PowerupHandSheet } from './PowerupHandSheet'
@@ -23,6 +24,7 @@ interface Player {
 }
 
 interface DraftPick {
+  id: string
   pickNumber: number
   powerupId: string
   powerup: PowerupCardData
@@ -36,6 +38,8 @@ interface DraftState {
     status: 'PENDING' | 'ACTIVE' | 'COMPLETED'
     draftOrder: string[]
     currentPick: number
+    turnSeconds: number | null
+    turnStartedAt: string | null
     picks: DraftPick[]
   }
   currentTurn: {
@@ -52,6 +56,7 @@ interface DraftState {
 interface DraftBoardProps {
   tournamentId: string
   currentPlayerId: string
+  isAdmin?: boolean
   initialState: DraftState
 }
 
@@ -72,7 +77,12 @@ function computePicksUntilMine(
   return null
 }
 
-export function DraftBoard({ tournamentId, currentPlayerId, initialState }: DraftBoardProps) {
+export function DraftBoard({
+  tournamentId,
+  currentPlayerId,
+  isAdmin = false,
+  initialState,
+}: DraftBoardProps) {
   const [state, setState] = useState<DraftState>(initialState)
   const [selectedPowerup, setSelectedPowerup] = useState<PowerupCardData | null>(null)
   const [picking, setPicking] = useState(false)
@@ -85,6 +95,11 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
   const [handSheetOpen, setHandSheetOpen] = useState(false)
   const [boardSheetOpen, setBoardSheetOpen] = useState(false)
+  // Guard so we only fire one auto-pick request per turn even though multiple
+  // clients may all observe the timer hit zero. The server is the source of
+  // truth — the unique (draftId, pickNumber) constraint plus the optimistic
+  // currentPick guard make duplicate fires safe; this just avoids needless 409s.
+  const autoPickFiredForRef = useRef<number | null>(null)
 
   const isMyTurn = state.currentTurn?.tournamentPlayerId === currentPlayerId
   const myPicks = state.draft.picks.filter((p) => p.tournamentPlayer.id === currentPlayerId)
@@ -126,6 +141,17 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
       }
     } catch {
       // Silently fail on refetch
+    }
+  }, [tournamentId])
+
+  const fireAutoPick = useCallback(async () => {
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/draft/auto-pick`, {
+        method: 'POST',
+      })
+      // Realtime subscription handles refetch; nothing to do on success
+    } catch {
+      // Race losers (409) and too-early (425) are expected and harmless
     }
   }, [tournamentId])
 
@@ -300,7 +326,15 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
         {/* Draft board inline */}
         <div className="border-t border-border pt-6">
           <h3 className="text-lg font-heading font-bold text-foreground mb-3">Draft Board</h3>
-          <DraftPickList picks={state.draft.picks} players={state.players} picksPerPlayer={state.powerupsPerPlayer} />
+          <DraftPickList
+            picks={state.draft.picks}
+            players={state.players}
+            picksPerPlayer={state.powerupsPerPlayer}
+            isAdmin={isAdmin}
+            tournamentId={tournamentId}
+            availablePowerups={state.availablePowerups}
+            onPickEdited={fetchState}
+          />
         </div>
       </div>
     )
@@ -318,6 +352,19 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
           roundNumber={state.currentTurn?.roundNumber ?? null}
           picksUntilMine={picksUntilMine}
         />
+
+        {state.draft.status === 'ACTIVE' && state.draft.turnSeconds && state.draft.turnStartedAt && (
+          <DraftCountdown
+            turnSeconds={state.draft.turnSeconds}
+            turnStartedAt={state.draft.turnStartedAt}
+            currentPick={state.draft.currentPick}
+            onExpire={() => {
+              if (autoPickFiredForRef.current === state.draft.currentPick) return
+              autoPickFiredForRef.current = state.draft.currentPick
+              void fireAutoPick()
+            }}
+          />
+        )}
 
         <PowerupFilterBar
           search={search}
@@ -358,7 +405,15 @@ export function DraftBoard({ tournamentId, currentPlayerId, initialState }: Draf
 
           <div>
             <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Draft Board</h3>
-            <DraftPickList picks={state.draft.picks} players={state.players} picksPerPlayer={state.powerupsPerPlayer} />
+            <DraftPickList
+              picks={state.draft.picks}
+              players={state.players}
+              picksPerPlayer={state.powerupsPerPlayer}
+              isAdmin={isAdmin}
+              tournamentId={tournamentId}
+              availablePowerups={state.availablePowerups}
+              onPickEdited={fetchState}
+            />
           </div>
         </div>
       </div>

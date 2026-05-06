@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { sendInviteEmails } from '@/app/(main)/tournaments/new/actions'
 import { sendSMS } from '@/lib/sms'
+import { getAppUrl } from '@/lib/app-url'
 
 export async function resendInvite(invitationId: string) {
   const user = await getUser()
@@ -51,7 +52,7 @@ export async function resendInvite(invitationId: string) {
         ])
       }
       if (invitation.phone) {
-        const domain = process.env.NEXTAUTH_URL ?? 'http://localhost:3000'
+        const domain = getAppUrl()
         await sendSMS(
           invitation.phone,
           `You're invited to ${tournament.name}! Join here: ${domain}/${tournament.slug}/register?token=${invitation.token}`,

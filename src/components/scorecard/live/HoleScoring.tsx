@@ -233,7 +233,7 @@ export function HoleScoring({
       )}
 
       {/* ── Scoring Controls ──────────────────────────────────────────── */}
-      <div className="flex-1 px-5 py-4 space-y-6 overflow-y-auto">
+      <div className="flex-1 min-h-0 px-5 py-4 space-y-6 overflow-y-auto">
         {/* Strokes */}
         <StepperInput
           label="Strokes"

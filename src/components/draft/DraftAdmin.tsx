@@ -31,6 +31,7 @@ interface Player {
 }
 
 interface DraftPick {
+  id: string
   pickNumber: number
   powerupId: string
   powerup: PowerupCardData
@@ -44,6 +45,8 @@ interface DraftData {
   draftOrder: string[]
   currentPick: number
   picks: DraftPick[]
+  turnSeconds: number | null
+  turnStartedAt: string | null
 }
 
 interface DraftAdminProps {
@@ -56,6 +59,7 @@ interface DraftAdminProps {
   powerupsPerPlayer: number
   maxAttacksPerPlayer: number
   currentTurn: { tournamentPlayerId: string; roundNumber: number; pickNumber: number } | null
+  isAdmin: boolean
 }
 
 function SortablePlayerCard({ playerId, player, index }: { playerId: string; player: Player; index: number }) {
@@ -100,6 +104,7 @@ export function DraftAdmin({
   powerupsPerPlayer,
   maxAttacksPerPlayer,
   currentTurn,
+  isAdmin,
 }: DraftAdminProps) {
   const [order, setOrder] = useState<string[]>(() => {
     const playerIds = players.map((p) => p.id)
@@ -107,9 +112,24 @@ export function DraftAdmin({
     const missing = playerIds.filter((id) => !saved.includes(id))
     return [...saved, ...missing]
   })
+  // Empty string = no timer; "60" = 60s. Default to 60s for new drafts.
+  const [turnSecondsInput, setTurnSecondsInput] = useState<string>(() => {
+    if (draft?.turnSeconds == null) return ''
+    return String(draft.turnSeconds)
+  })
   const [loading, setLoading] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [showDealAnimation, setShowDealAnimation] = useState(false)
+
+  const parseTurnSeconds = (): number | null | { error: string } => {
+    const trimmed = turnSecondsInput.trim()
+    if (trimmed === '' || trimmed === '0') return null
+    const n = Number(trimmed)
+    if (!Number.isInteger(n) || n < 5 || n > 3600) {
+      return { error: 'Pick timer must be a whole number between 5 and 3600 seconds (or blank to disable).' }
+    }
+    return n
+  }
 
   const sensors = useSensors(
     useSensor(PointerSensor, { activationConstraint: { distance: 5 } }),
@@ -125,13 +145,18 @@ export function DraftAdmin({
   }, [order])
 
   const handleSetOrder = async () => {
+    const parsed = parseTurnSeconds()
+    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+      setError(parsed.error)
+      return
+    }
     setLoading('order')
     setError(null)
     try {
       const res = await fetch(`/api/tournaments/${tournamentId}/draft/order`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order }),
+        body: JSON.stringify({ order, turnSeconds: parsed }),
       })
       if (!res.ok) {
         let message = 'Failed to set draft order.'
@@ -146,13 +171,18 @@ export function DraftAdmin({
   }
 
   const handleStartDraft = async () => {
+    const parsed = parseTurnSeconds()
+    if (parsed && typeof parsed === 'object' && 'error' in parsed) {
+      setError(parsed.error)
+      return
+    }
     setLoading('start')
     setError(null)
     try {
       const orderRes = await fetch(`/api/tournaments/${tournamentId}/draft/order`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ order }),
+        body: JSON.stringify({ order, turnSeconds: parsed }),
       })
       if (!orderRes.ok) {
         let message = 'Failed to save draft order.'
@@ -238,6 +268,7 @@ export function DraftAdmin({
       <DraftBoard
         tournamentId={tournamentId}
         currentPlayerId={currentPlayerId}
+        isAdmin={isAdmin}
         initialState={{
           draft,
           currentTurn,
@@ -277,6 +308,29 @@ export function DraftAdmin({
               </div>
             </SortableContext>
           </DndContext>
+
+          <div className="space-y-2 pt-2 border-t border-border/60">
+            <label htmlFor="turn-seconds" className="text-sm font-semibold text-foreground">
+              Pick timer (seconds)
+            </label>
+            <input
+              id="turn-seconds"
+              type="number"
+              inputMode="numeric"
+              min={5}
+              max={3600}
+              step={5}
+              placeholder="Leave blank for no timer"
+              value={turnSecondsInput}
+              onChange={(e) => setTurnSecondsInput(e.target.value)}
+              className="w-full px-3 py-2 rounded-md border border-border bg-muted/30 text-foreground placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-primary/40"
+            />
+            <p className="text-xs text-muted-foreground">
+              Each pick must be made within this many seconds. When the timer expires the system
+              auto-picks a random powerup for the player (preferring boost cards). Leave blank to
+              run an untimed draft.
+            </p>
+          </div>
 
           {error && <p className="text-sm text-red-400">{error}</p>}
 

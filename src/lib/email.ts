@@ -1,8 +1,9 @@
 import type { Resend } from 'resend'
+import { getAppUrl } from '@/lib/app-url'
 
 let resend: Resend | null = null
 const from = process.env.EMAIL_FROM ?? 'noreply@resend.dev'
-const domain = process.env.NEXT_PUBLIC_APP_URL || 'https://turfwar.app'
+const domain = getAppUrl()
 
 async function getResend(): Promise<Resend | null> {
   if (resend) return resend

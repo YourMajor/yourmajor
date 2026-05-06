@@ -31,7 +31,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
 
   return (
     <div
-      className={`fixed inset-0 z-[60] flex flex-col transition-transform duration-300 ease-out ${
+      className={`fixed top-0 left-0 w-screen h-[100dvh] z-[60] flex flex-col transition-transform duration-300 ease-out ${
         open ? 'translate-y-0' : 'translate-y-full'
       }`}
       style={{ backgroundColor: 'var(--color-primary, oklch(0.40 0.11 160))' }}
@@ -48,7 +48,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
         </button>
       </div>
 
-      <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
+      <div className="flex-1 min-h-0 overflow-y-auto px-4 py-3 space-y-3">
         <ChatMessageList
           messages={messages}
           variant="dark"
@@ -60,7 +60,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
         <div ref={bottomRef} />
       </div>
 
-      <div className="shrink-0 px-4 py-3 bg-black/20">
+      <div className="shrink-0 px-4 pt-3 pb-[calc(0.75rem+env(safe-area-inset-bottom))] bg-black/20">
         {isBanned ? (
           <p className="text-xs text-red-300 font-medium text-center py-1">
             {banReason ?? 'You are restricted from chatting'}
