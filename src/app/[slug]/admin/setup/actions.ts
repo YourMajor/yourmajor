@@ -41,7 +41,9 @@ const updateTournamentSchema = z.object({
   slug: z.string().trim().min(1).max(80),
   primaryColor: hexColor,
   accentColor: hexColor,
-  tournamentFormat: z.enum(FORMAT_IDS),
+  tournamentFormat: z.enum(FORMAT_IDS).optional(),
+  status: z.enum(['REGISTRATION', 'ACTIVE', 'COMPLETED']).optional(),
+  isOpenRegistration: z.boolean(),
   powerupsEnabled: z.boolean(),
   powerupsPerPlayer: z.number().int().min(0).max(20),
   maxAttacksPerPlayer: z.number().int().min(0).max(10),
@@ -75,13 +77,17 @@ export async function updateTournament(
 
   const rawSlug = String(formData.get('slug') ?? '').toLowerCase().replace(/[^a-z0-9-]/g, '-')
   const rawDescription = formData.get('description')
+  const rawFormat = formData.get('tournamentFormat')
+  const rawStatus = formData.get('status')
   const parsed = updateTournamentSchema.parse({
     name: String(formData.get('name') ?? ''),
     description: rawDescription != null ? String(rawDescription) : undefined,
     slug: rawSlug,
     primaryColor: String(formData.get('primaryColor') ?? ''),
     accentColor: String(formData.get('accentColor') ?? ''),
-    tournamentFormat: String(formData.get('tournamentFormat') ?? ''),
+    tournamentFormat: rawFormat ? String(rawFormat) : undefined,
+    status: rawStatus ? String(rawStatus) : undefined,
+    isOpenRegistration: formData.get('isOpenRegistration') === 'on',
     powerupsEnabled: formData.get('powerupsEnabled') === 'on',
     powerupsPerPlayer: parseIntOr(formData.get('powerupsPerPlayer'), 3),
     maxAttacksPerPlayer: parseIntOr(formData.get('maxAttacksPerPlayer'), 1),
@@ -106,9 +112,23 @@ export async function updateTournament(
   const serverHasScores = serverScoreCount > 0
 
   // Format is the user-facing decision; handicap is derived from format's impliedHandicap.
-  // Guard: don't allow format/handicap change once scores exist.
-  const tournamentFormat = serverHasScores ? currentTournament!.tournamentFormat : parsed.tournamentFormat
+  // Guard: don't allow format/handicap change once scores exist. The select is
+  // disabled in that case so the field isn't submitted — fall back to the
+  // existing DB value rather than failing validation.
+  const tournamentFormat =
+    serverHasScores || !parsed.tournamentFormat
+      ? currentTournament!.tournamentFormat
+      : parsed.tournamentFormat
   const formatDef = getFormat(tournamentFormat)
+
+  // Status: keep current value if not submitted; once scores exist, prevent
+  // reverting to REGISTRATION (the form already hides that option, but guard
+  // the server too).
+  const requestedStatus = parsed.status ?? currentTournament!.status
+  const status =
+    serverHasScores && requestedStatus === 'REGISTRATION'
+      ? currentTournament!.status
+      : requestedStatus
   const handicapSystem = serverHasScores
     ? currentTournament!.handicapSystem
     : (formatDef.impliedHandicap ?? 'NONE')
@@ -219,6 +239,8 @@ export async function updateTournament(
       accentColor: parsed.accentColor,
       tournamentFormat,
       handicapSystem,
+      status,
+      isOpenRegistration: parsed.isOpenRegistration,
       powerupsEnabled,
       powerupsPerPlayer,
       maxAttacksPerPlayer,
