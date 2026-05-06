@@ -75,7 +75,8 @@ export function TournamentChat({ tournamentId, currentUserId, isRegistered, isAd
             rows={1}
             enterKeyHint="send"
             inputMode="text"
-            className="resize-none flex-1 min-h-0"
+            style={{ fontSize: '16px' }}
+            className="resize-none flex-1 min-h-0 min-w-0"
             onKeyDown={handleKeyDown}
           />
           <Button onClick={() => sendMessage()} disabled={sending || !input.trim()} size="sm" className="self-end">
