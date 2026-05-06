@@ -222,7 +222,6 @@ export default async function LeaderboardPage({
         status={effectiveStatus}
         handicapSystem={tournament.handicapSystem}
         defendingChampionPlayerId={defendingChampionPlayerId}
-        startDate={tournament.startDate?.toISOString() ?? null}
         isRegistered={isRegistered}
         scoringCta={canScore ? {
           label: currentPlayerHolesPlayed > 0 ? 'Continue Scoring' : 'Enter Scores',

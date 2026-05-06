@@ -65,12 +65,11 @@ interface Props {
   status: string
   scoringCta?: ScoringCta
   defendingChampionPlayerId?: string | null
-  startDate?: string | null
   isRegistered?: boolean
   handicapSystem?: string
 }
 
-export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, roundIds, slug, status, scoringCta, defendingChampionPlayerId, startDate, isRegistered, handicapSystem }: Props) {
+export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, roundIds, slug, status, scoringCta, defendingChampionPlayerId, isRegistered, handicapSystem }: Props) {
   const [standings, setStandings] = useState<PlayerStanding[]>(initialData)
   const [loading, setLoading] = useState(false)
   const [scoreType, setScoreType] = useState<'gross' | 'net'>('gross')
@@ -180,21 +179,16 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
 
   // Pre-tournament: simple registered players table
   if (!showFullTable) {
-    const startDateObj = startDate ? new Date(startDate) : null
-    const formattedStart = startDateObj
-      ? startDateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
-      : null
-
     return (
       <div>
         <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-semibold">
           {standings.length} Player{standings.length !== 1 ? 's' : ''} Registered
         </p>
-        {isRegistered && formattedStart && (
+        {isRegistered && (
           <div className="mb-4 p-3 rounded-lg border border-border bg-muted/30 flex items-center gap-2">
             <span className="text-sm">&#9203;</span>
             <p className="text-sm text-muted-foreground">
-              Live scoring will be available when the tournament begins on <span className="font-semibold text-foreground">{formattedStart}</span>
+              Live scoring will be available once the tournament is started.
             </p>
           </div>
         )}
