@@ -3,7 +3,7 @@
 import { useState, useTransition } from 'react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
-import { LogOut, CalendarClock } from 'lucide-react'
+import { LogOut, CheckCircle2 } from 'lucide-react'
 import Link from 'next/link'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { leaveTournament } from '@/app/[slug]/actions'
@@ -13,7 +13,6 @@ interface Props {
   isParticipant: boolean
   isLoggedIn: boolean
   status: string
-  startDate: string | null
   canRegister: boolean
   inviteToken?: string | null
   registrationClosed?: boolean
@@ -22,20 +21,11 @@ interface Props {
   currentPlayerHolesPlayed?: number
 }
 
-export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, startDate, canRegister, inviteToken, registrationClosed, currentPlayerHolesPlayed = 0 }: Props) {
+export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, canRegister, inviteToken, registrationClosed, currentPlayerHolesPlayed = 0 }: Props) {
   const [open, setOpen] = useState(false)
   const [isPending, startTransition] = useTransition()
 
-  const isPreTournament = status === 'REGISTRATION'
   const registrationOpen = !registrationClosed && status !== 'COMPLETED'
-
-  // Compute days until start
-  let daysUntil: number | null = null
-  if (startDate && isPreTournament) {
-    const now = new Date()
-    const start = new Date(startDate)
-    daysUntil = Math.ceil((start.getTime() - now.getTime()) / (1000 * 60 * 60 * 24))
-  }
 
   // Can always unregister (tournament completed is handled by early return above)
   const canUnregister = true
@@ -86,42 +76,25 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, st
 
   if (!isLoggedIn) return null
 
-  // Registered — show status, scoring message, and unregister option
+  // Registered — single thin line. The "live scoring available when..." copy
+  // is already shown by the dedicated tile below the leaderboard, so we don't
+  // repeat it here.
   return (
     <>
-      <div className="rounded-xl border border-border overflow-hidden">
-        <div className="px-5 py-3 flex items-center justify-between gap-4">
-          <div className="space-y-0.5 min-w-0">
-            <p className="text-sm font-medium text-foreground">You are registered.</p>
-            {isPreTournament && daysUntil !== null && daysUntil > 0 && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CalendarClock className="w-3 h-3 shrink-0" />
-                Live scoring available {daysUntil === 1 ? 'tomorrow' : `in ${daysUntil} days`}.
-              </p>
-            )}
-            {isPreTournament && daysUntil !== null && daysUntil <= 0 && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CalendarClock className="w-3 h-3 shrink-0" />
-                Live scoring available once the tournament begins.
-              </p>
-            )}
-            {isPreTournament && daysUntil === null && (
-              <p className="text-xs text-muted-foreground flex items-center gap-1">
-                <CalendarClock className="w-3 h-3 shrink-0" />
-                Live scoring available when the tournament begins.
-              </p>
-            )}
-          </div>
-          {canUnregister && (
-            <button
-              onClick={() => setOpen(true)}
-              className="shrink-0 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
-            >
-              <LogOut className="w-3 h-3" />
-              Unregister
-            </button>
-          )}
-        </div>
+      <div className="rounded-md border border-border px-3 py-1.5 flex items-center justify-between gap-3">
+        <p className="text-xs font-medium text-foreground flex items-center gap-1.5 min-w-0">
+          <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+          <span className="truncate">You are registered</span>
+        </p>
+        {canUnregister && (
+          <button
+            onClick={() => setOpen(true)}
+            className="shrink-0 text-xs text-muted-foreground hover:text-destructive transition-colors flex items-center gap-1"
+          >
+            <LogOut className="w-3 h-3" />
+            Unregister
+          </button>
+        )}
       </div>
 
       <Dialog open={open} onOpenChange={setOpen}>
