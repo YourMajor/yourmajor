@@ -2,16 +2,19 @@
 
 import { useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
+import Image from 'next/image'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
+import { Separator } from '@/components/ui/separator'
 import { updateSponsor } from './sponsor-actions'
 
 export function SponsorCard({
   tournamentId,
   initialName,
   initialLogoUrl,
+  initialBannerUrl,
   initialLink,
   isLeagueRoot,
   isLeagueChild,
@@ -20,6 +23,7 @@ export function SponsorCard({
   tournamentId: string
   initialName: string | null
   initialLogoUrl: string | null
+  initialBannerUrl: string | null
   initialLink: string | null
   isLeagueRoot: boolean
   isLeagueChild: boolean
@@ -74,8 +78,21 @@ export function SponsorCard({
               Leave blank to clear the sponsor.
             </p>
           </div>
+
+          <Separator />
+
           <div className="space-y-2">
-            <Label htmlFor="sponsorLogoUrl">Logo URL (optional)</Label>
+            <Label>Logo</Label>
+            {initialLogoUrl && (
+              <Image
+                src={initialLogoUrl}
+                alt="Sponsor logo"
+                width={120}
+                height={40}
+                className="h-10 w-auto object-contain"
+                unoptimized
+              />
+            )}
             <Input
               id="sponsorLogoUrl"
               name="sponsorLogoUrl"
@@ -83,7 +100,42 @@ export function SponsorCard({
               defaultValue={initialLogoUrl ?? ''}
               placeholder="https://example.com/logo.png"
             />
+            <p className="text-xs text-muted-foreground">Paste a URL or upload an image. If you upload, the new file replaces the URL.</p>
+            <Input id="sponsorLogoFile" name="sponsorLogoFile" type="file" accept="image/*" />
           </div>
+
+          <Separator />
+
+          <div className="space-y-2">
+            <Label>Banner</Label>
+            <p className="text-xs text-muted-foreground">
+              Optional wide background image shown behind the sponsor attribution.
+              The sponsor name and logo appear overlaid on top.
+            </p>
+            {initialBannerUrl && (
+              <div className="relative h-20 w-full rounded-md overflow-hidden">
+                <Image
+                  src={initialBannerUrl}
+                  alt="Sponsor banner"
+                  fill
+                  sizes="(max-width: 640px) 100vw, 600px"
+                  className="object-cover"
+                  unoptimized
+                />
+              </div>
+            )}
+            <Input
+              id="sponsorBannerUrl"
+              name="sponsorBannerUrl"
+              type="url"
+              defaultValue={initialBannerUrl ?? ''}
+              placeholder="https://example.com/banner.png"
+            />
+            <Input id="sponsorBannerFile" name="sponsorBannerFile" type="file" accept="image/*" />
+          </div>
+
+          <Separator />
+
           <div className="space-y-2">
             <Label htmlFor="sponsorLink">Link (optional)</Label>
             <Input
@@ -94,6 +146,7 @@ export function SponsorCard({
               placeholder="https://example.com"
             />
           </div>
+
           <Button type="submit" disabled={pending}>
             {pending ? 'Saving…' : 'Save Sponsor'}
           </Button>

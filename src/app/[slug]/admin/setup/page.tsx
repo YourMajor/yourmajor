@@ -283,6 +283,7 @@ export default async function TournamentSetup({
           tournamentId={tournament.id}
           initialName={tournament.sponsorName}
           initialLogoUrl={tournament.sponsorLogoUrl}
+          initialBannerUrl={tournament.sponsorBannerUrl}
           initialLink={tournament.sponsorLink}
           isLeagueRoot={isLeagueRoot}
           isLeagueChild={isLeagueChild}

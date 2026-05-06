@@ -282,9 +282,10 @@ model Tournament {
   // to all child tournaments by default. For child tournaments, set these to
   // override the league-level sponsor. Resolution: tournament wins if set,
   // else fall back to root tournament's values, else show nothing.
-  sponsorName    String?
-  sponsorLogoUrl String?
-  sponsorLink    String?
+  sponsorName      String?
+  sponsorLogoUrl   String?
+  sponsorBannerUrl String?
+  sponsorLink      String?
 
   // ── Custom subdomain (Tour tier, league roots only) ──
   // Only meaningful when isLeague=true. Resolves <subdomain>.yourmajor.app

@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 export type EffectiveSponsor = {
   name: string
   logoUrl: string | null
+  bannerUrl: string | null
   link: string | null
 } | null
 
@@ -23,6 +24,7 @@ export async function getEffectiveSponsor(tournamentId: string): Promise<Effecti
     select: {
       sponsorName: true,
       sponsorLogoUrl: true,
+      sponsorBannerUrl: true,
       sponsorLink: true,
       parentTournamentId: true,
     },
@@ -33,6 +35,7 @@ export async function getEffectiveSponsor(tournamentId: string): Promise<Effecti
     return {
       name: tournament.sponsorName,
       logoUrl: tournament.sponsorLogoUrl ?? null,
+      bannerUrl: tournament.sponsorBannerUrl ?? null,
       link: tournament.sponsorLink ?? null,
     }
   }
@@ -40,12 +43,18 @@ export async function getEffectiveSponsor(tournamentId: string): Promise<Effecti
   if (tournament.parentTournamentId) {
     const root = await prisma.tournament.findUnique({
       where: { id: tournament.parentTournamentId },
-      select: { sponsorName: true, sponsorLogoUrl: true, sponsorLink: true },
+      select: {
+        sponsorName: true,
+        sponsorLogoUrl: true,
+        sponsorBannerUrl: true,
+        sponsorLink: true,
+      },
     })
     if (root?.sponsorName) {
       return {
         name: root.sponsorName,
         logoUrl: root.sponsorLogoUrl ?? null,
+        bannerUrl: root.sponsorBannerUrl ?? null,
         link: root.sponsorLink ?? null,
       }
     }
