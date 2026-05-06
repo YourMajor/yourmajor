@@ -98,31 +98,24 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   }, [isBanned, banExpiresAt])
 
   // Supabase real-time subscription (INSERT + UPDATE for soft-delete).
-  // Bursts of events (e.g. a flurry of system messages or a moderator
-  // soft-deleting many at once) are coalesced into a single refetch so we
-  // don't pull the full message history repeatedly per WebSocket event.
+  // Refetch immediately on each event so recipients see new messages with
+  // no artificial delay — push notifications must not beat the in-app view.
   useEffect(() => {
     const supabase = createClient()
-    let timer: ReturnType<typeof setTimeout> | null = null
-    const scheduleRefetch = () => {
-      if (timer) clearTimeout(timer)
-      timer = setTimeout(() => { fetchMessages() }, 300)
-    }
     const channel = supabase
       .channel(`${channelPrefix}-${tournamentId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        scheduleRefetch,
+        () => { fetchMessages() },
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        scheduleRefetch,
+        () => { fetchMessages() },
       )
       .subscribe()
     return () => {
-      if (timer) clearTimeout(timer)
       supabase.removeChannel(channel)
     }
   }, [tournamentId, channelPrefix, fetchMessages])

@@ -45,6 +45,51 @@ self.addEventListener('push', (event) => {
   )
 })
 
+// When the browser/push service rotates or expires the subscription,
+// transparently resubscribe and notify the server so the user keeps
+// receiving notifications without having to re-enable manually.
+self.addEventListener('pushsubscriptionchange', (event) => {
+  event.waitUntil(
+    (async () => {
+      const oldEndpoint = (event.oldSubscription && event.oldSubscription.endpoint) || null
+      try {
+        const res = await fetch('/api/push/vapid-public-key')
+        if (!res.ok) return
+        const vapidKey = (await res.text()).trim()
+        if (!vapidKey) return
+
+        const padding = '='.repeat((4 - (vapidKey.length % 4)) % 4)
+        const b64 = (vapidKey + padding).replace(/-/g, '+').replace(/_/g, '/')
+        const raw = atob(b64)
+        const appServerKey = new Uint8Array(raw.length)
+        for (let i = 0; i < raw.length; i++) appServerKey[i] = raw.charCodeAt(i)
+
+        const newSub = await self.registration.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: appServerKey,
+        })
+        const json = newSub.toJSON()
+        if (!oldEndpoint || !json.endpoint || !json.keys || !json.keys.p256dh || !json.keys.auth) return
+
+        await fetch('/api/push/resubscribe', {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            oldEndpoint,
+            endpoint: json.endpoint,
+            p256dh: json.keys.p256dh,
+            auth: json.keys.auth,
+          }),
+        })
+      } catch (err) {
+        // Best-effort: client-side reconciliation will retry on next app open.
+        console.error('[sw] pushsubscriptionchange resubscribe failed', err)
+      }
+    })(),
+  )
+})
+
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
   const target = (event.notification.data && event.notification.data.url) || '/'

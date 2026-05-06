@@ -56,11 +56,55 @@ export function PushNotificationManager({ vapidPublicKey, initialPrefs }: Props)
     /* eslint-enable react-hooks/set-state-in-effect */
 
     if (!ok) return
-    navigator.serviceWorker.ready
-      .then((reg) => reg.pushManager.getSubscription())
-      .then((sub) => setSubscribed(!!sub))
-      .catch(() => {})
-  }, [])
+
+    const reconcile = async () => {
+      try {
+        const reg = await navigator.serviceWorker.ready
+        const existing = await reg.pushManager.getSubscription()
+        if (existing) {
+          setSubscribed(true)
+          return
+        }
+        // No live subscription. If the user previously opted in (has any
+        // notify pref on, permission still granted, VAPID key available),
+        // silently resubscribe so we recover from browser-side rotation
+        // without making them tap "Enable" again.
+        const wantsNotifications =
+          initialPrefs.notifyChatMessages || initialPrefs.notifyAdminAnnouncements
+        if (
+          !wantsNotifications ||
+          !vapidPublicKey ||
+          Notification.permission !== 'granted'
+        ) {
+          setSubscribed(false)
+          return
+        }
+        const sub = await reg.pushManager.subscribe({
+          userVisibleOnly: true,
+          applicationServerKey: urlBase64ToUint8Array(vapidPublicKey),
+        })
+        const json = sub.toJSON()
+        const endpoint = json.endpoint
+        const p256dh = json.keys?.p256dh
+        const auth = json.keys?.auth
+        if (!endpoint || !p256dh || !auth) {
+          await sub.unsubscribe().catch(() => {})
+          setSubscribed(false)
+          return
+        }
+        const result = await subscribePush({
+          endpoint,
+          p256dh,
+          auth,
+          userAgent: navigator.userAgent,
+        })
+        setSubscribed(result.ok)
+      } catch {
+        setSubscribed(false)
+      }
+    }
+    reconcile()
+  }, [vapidPublicKey, initialPrefs.notifyChatMessages, initialPrefs.notifyAdminAnnouncements])
 
   const handleSubscribe = () => {
     setError(null)

@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { checkRateLimit } from '@/lib/rate-limit'
 import { containsProfanity } from '@/lib/content-moderation'
 import { sendPushToUser } from '@/lib/push'
 
@@ -67,30 +66,6 @@ export async function POST(
     await prisma.chatBan.delete({ where: { id: ban.id } })
   }
 
-  // Rate limit: 5 messages in 10 seconds triggers a 3-minute auto-mute
-  if (checkRateLimit(`${id}:${user.id}`)) {
-    const expiresAt = new Date(Date.now() + 3 * 60 * 1000)
-    await prisma.chatBan.upsert({
-      where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
-      create: {
-        tournamentId: id,
-        userId: user.id,
-        reason: 'Auto-muted: sending messages too quickly',
-        expiresAt,
-        createdBy: 'system',
-      },
-      update: {
-        reason: 'Auto-muted: sending messages too quickly',
-        expiresAt,
-        createdBy: 'system',
-      },
-    })
-    return NextResponse.json(
-      { error: 'Slow down — you are temporarily muted', expiresAt },
-      { status: 429 },
-    )
-  }
-
   // Language filter for chat in publicly discoverable tournaments
   const tournament = await prisma.tournament.findUnique({
     where: { id },
@@ -108,15 +83,18 @@ export async function POST(
     include: { user: { select: { name: true, image: true } } },
   })
 
-  // Fire-and-forget push to opted-in participants (excludes author).
-  // No additional throttle: existing rate-limit (5 msgs / 10s → 3-min mute)
-  // already covers spam protection.
-  void dispatchChatPush({
-    tournamentId: id,
-    authorUserId: user.id,
-    authorName: message.user.name ?? 'Someone',
-    content: message.content,
-  }).catch((err) => console.error('[push] chat dispatch failed', err))
+  // Defer push by 2s so the realtime subscription has time to deliver the
+  // message in-app first. Recipients with a visible chat tab get the in-app
+  // update and the SW suppresses the OS banner; recipients in the background
+  // still receive the push, just slightly delayed.
+  setTimeout(() => {
+    dispatchChatPush({
+      tournamentId: id,
+      authorUserId: user.id,
+      authorName: message.user.name ?? 'Someone',
+      content: message.content,
+    }).catch((err) => console.error('[push] chat dispatch failed', err))
+  }, 2000)
 
   return NextResponse.json(message, { status: 201 })
 }

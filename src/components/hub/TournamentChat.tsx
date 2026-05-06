@@ -73,6 +73,8 @@ export function TournamentChat({ tournamentId, currentUserId, isRegistered, isAd
             onChange={(e) => setInput(e.target.value)}
             placeholder="Say something..."
             rows={1}
+            enterKeyHint="send"
+            inputMode="text"
             className="resize-none flex-1 min-h-0"
             onKeyDown={handleKeyDown}
           />

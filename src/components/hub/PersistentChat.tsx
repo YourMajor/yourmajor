@@ -208,7 +208,9 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
                 onChange={(e) => setInput(e.target.value)}
                 placeholder="Say something..."
                 rows={1}
-                className="flex-1 resize-none rounded-lg border border-border bg-muted/30 px-3 sm:px-2.5 py-2.5 sm:py-1.5 text-sm sm:text-xs outline-none focus:border-[var(--color-primary)]/50 focus:ring-1 focus:ring-[var(--color-primary)]/20"
+                enterKeyHint="send"
+                inputMode="text"
+                className="flex-1 resize-none rounded-lg border border-border bg-muted/30 px-3 sm:px-2.5 py-2.5 sm:py-1.5 text-base sm:text-xs outline-none focus:border-[var(--color-primary)]/50 focus:ring-1 focus:ring-[var(--color-primary)]/20"
                 onKeyDown={handleKeyDown}
               />
               <button
