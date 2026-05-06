@@ -1,6 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/cron/process-scheduled-announcements", "schedule": "*/5 * * * *" },
-    { "path": "/api/cron/auto-pick-stalled-drafts", "schedule": "* * * * *" }
-  ]
-}
