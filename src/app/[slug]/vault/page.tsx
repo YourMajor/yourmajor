@@ -12,11 +12,16 @@ export default async function VaultPage({
   const { slug } = await params
   const tournament = await prisma.tournament.findUnique({
     where: { slug },
-    select: { id: true, parentTournamentId: true },
+    select: { id: true, parentTournamentId: true, isLeague: true },
   })
 
   if (!tournament || !tournament.parentTournamentId) {
     redirect(`/${slug}`)
+  }
+
+  // Non-league renewals use the History tab instead of Vault.
+  if (!tournament.isLeague) {
+    redirect(`/${slug}/history`)
   }
 
   const ancestors = await getAncestorChain(tournament.id)

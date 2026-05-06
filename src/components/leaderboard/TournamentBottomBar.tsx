@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Trophy, BarChart3, Pencil, Menu, User } from 'lucide-react'
+import { Trophy, BarChart3, Pencil, Menu, User, History } from 'lucide-react'
 
 interface TournamentBottomBarProps {
   slug: string
@@ -12,6 +12,7 @@ interface TournamentBottomBarProps {
   isLoggedIn: boolean
   status: string
   hasSeason?: boolean
+  hasHistory?: boolean
   onMenuOpen: () => void
   primaryColor: string
   accentColor: string
@@ -23,6 +24,7 @@ export function TournamentBottomBar({
   isLoggedIn,
   status,
   hasSeason = false,
+  hasHistory = false,
   onMenuOpen,
   primaryColor,
   accentColor,
@@ -42,10 +44,16 @@ export function TournamentBottomBar({
           { href: `/${slug}/season`, label: 'Season', icon: BarChart3 },
           { href: `/${slug}/leaderboard`, label: 'Event', icon: Trophy },
         ]
-      : [
-          { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
-          ...(canScore ? [{ href: `/${slug}/play`, label: 'Score', icon: Pencil }] : []),
-        ]
+      : hasHistory
+        ? [
+            { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
+            { href: `/${slug}/history`, label: 'History', icon: History },
+            ...(canScore ? [{ href: `/${slug}/play`, label: 'Score', icon: Pencil }] : []),
+          ]
+        : [
+            { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
+            ...(canScore ? [{ href: `/${slug}/play`, label: 'Score', icon: Pencil }] : []),
+          ]
     ),
     { href: isLoggedIn ? `/profile?ref=${slug}` : '/auth/login', label: 'Profile', icon: User },
     { href: '#menu', label: 'Menu', icon: Menu },

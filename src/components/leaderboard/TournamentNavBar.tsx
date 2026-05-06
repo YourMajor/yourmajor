@@ -147,7 +147,8 @@ export function TournamentNavBar({
     ),
     ...(powerupsEnabled ? [{ href: `/${slug}/draft`, label: 'Powerups', icon: Swords }] : []),
     { href: `/${slug}/gallery`, label: 'Gallery', icon: ImageIcon },
-    ...(hasVault ? [{ href: `/${slug}/vault`, label: 'Vault', icon: Clock }] : []),
+    // Hide Vault when History is shown — History supersedes it for non-league renewals.
+    ...(hasVault && !hasHistory ? [{ href: `/${slug}/vault`, label: 'Vault', icon: Clock }] : []),
   ], [slug, status, isRegistered, powerupsEnabled, hasSeason, hasHistory, hasVault])
 
   // Determine which image to show on the right panel

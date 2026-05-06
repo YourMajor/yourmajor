@@ -55,7 +55,7 @@ export function TournamentShell({
   children,
 }: TournamentShellProps) {
   const [menuOpen, setMenuOpen] = useState(false)
-  const { latestTournament, hasSeason } = useTournament()
+  const { latestTournament, hasSeason, hasHistory } = useTournament()
 
   return (
     <>
@@ -108,6 +108,7 @@ export function TournamentShell({
         isLoggedIn={isLoggedIn}
         status={status}
         hasSeason={hasSeason}
+        hasHistory={hasHistory}
         onMenuOpen={() => setMenuOpen(true)}
         primaryColor={primaryColor}
         accentColor={accentColor}
