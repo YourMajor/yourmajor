@@ -24,6 +24,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const initializedRef = useRef(false)
   const pathname = usePathname()
   const isLiveScoring = pathname?.endsWith('/play') ?? false
+  const isAdminRoute = pathname?.includes('/admin') ?? false
 
   // Swipe-to-dismiss state
   const dragStartY = useRef<number | null>(null)
@@ -117,6 +118,8 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
     setIsDragging(false)
     dragStartY.current = null
   }
+
+  if (isAdminRoute) return null
 
   return (
     <>

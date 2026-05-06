@@ -42,7 +42,7 @@ export async function SponsorStrip({ tournamentId }: { tournamentId: string }) {
           className="object-cover"
           unoptimized
         />
-        <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/30 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black/75 from-0% to-transparent to-45%" />
         <div className="absolute inset-x-0 bottom-0 p-3 flex justify-center text-white text-xs">
           {attribution}
         </div>
