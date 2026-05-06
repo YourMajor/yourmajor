@@ -22,28 +22,28 @@ interface PlaceConfig {
 
 const PLACE: Record<1 | 2 | 3, PlaceConfig> = {
   1: {
-    blockHeight: 'h-28',
-    ringClass: 'ring-amber-400',
-    blockClass: 'bg-gradient-to-b from-amber-300 to-amber-500',
-    rankNumberClass: 'text-amber-900',
-    avatarSize: 'h-16 w-16',
-    avatarPx: 64,
+    blockHeight: 'h-20',
+    ringClass: 'ring-[#c9a96e]',
+    blockClass: 'bg-gradient-to-b from-[#e8d5a3] to-[#c9a96e]',
+    rankNumberClass: 'text-[#7a5e2a]',
+    avatarSize: 'h-14 w-14',
+    avatarPx: 56,
   },
   2: {
-    blockHeight: 'h-20',
-    ringClass: 'ring-slate-300',
-    blockClass: 'bg-gradient-to-b from-slate-200 to-slate-400',
-    rankNumberClass: 'text-slate-700',
-    avatarSize: 'h-12 w-12',
-    avatarPx: 48,
+    blockHeight: 'h-14',
+    ringClass: 'ring-zinc-300',
+    blockClass: 'bg-gradient-to-b from-zinc-200 to-zinc-400',
+    rankNumberClass: 'text-zinc-600',
+    avatarSize: 'h-10 w-10',
+    avatarPx: 40,
   },
   3: {
-    blockHeight: 'h-14',
-    ringClass: 'ring-orange-400',
-    blockClass: 'bg-gradient-to-b from-orange-300 to-orange-500',
-    rankNumberClass: 'text-orange-900',
-    avatarSize: 'h-12 w-12',
-    avatarPx: 48,
+    blockHeight: 'h-10',
+    ringClass: 'ring-orange-300/80',
+    blockClass: 'bg-gradient-to-b from-orange-200 to-orange-400',
+    rankNumberClass: 'text-orange-800',
+    avatarSize: 'h-10 w-10',
+    avatarPx: 40,
   },
 }
 
@@ -59,7 +59,7 @@ function PodiumColumn({ finisher }: { finisher: PodiumFinisher }) {
     <div className="flex-1 flex flex-col items-center justify-end max-w-[120px] min-w-0">
       {/* Crown for 1st */}
       {finisher.rank === 1 && (
-        <Trophy className="w-5 h-5 text-amber-500 mb-1" aria-hidden />
+        <Trophy className="w-4 h-4 text-[#c9a96e] mb-1" aria-hidden />
       )}
 
       {/* Avatar */}
@@ -69,12 +69,12 @@ function PodiumColumn({ finisher }: { finisher: PodiumFinisher }) {
           alt={finisher.playerName}
           width={cfg.avatarPx}
           height={cfg.avatarPx}
-          className={`rounded-full object-cover ${cfg.avatarSize} ring-4 ${cfg.ringClass} ring-offset-2 ring-offset-card`}
+          className={`rounded-full object-cover ${cfg.avatarSize} ring-2 ${cfg.ringClass} ring-offset-1 ring-offset-card`}
           unoptimized
         />
       ) : (
         <div
-          className={`${cfg.avatarSize} rounded-full bg-muted flex items-center justify-center font-semibold text-muted-foreground ring-4 ${cfg.ringClass} ring-offset-2 ring-offset-card`}
+          className={`${cfg.avatarSize} rounded-full bg-muted flex items-center justify-center font-semibold text-muted-foreground ring-2 ${cfg.ringClass} ring-offset-1 ring-offset-card`}
         >
           {finisher.playerName.charAt(0).toUpperCase()}
         </div>
@@ -97,7 +97,7 @@ function PodiumColumn({ finisher }: { finisher: PodiumFinisher }) {
       <div
         className={`w-full rounded-t-md ${cfg.blockHeight} ${cfg.blockClass} flex items-start justify-center pt-1 shadow-sm`}
       >
-        <span className={`text-3xl sm:text-4xl font-black ${cfg.rankNumberClass}`}>
+        <span className={`text-xl sm:text-2xl font-black ${cfg.rankNumberClass}`}>
           {finisher.rank}
         </span>
       </div>
@@ -131,7 +131,7 @@ export function HistoryPodiumCard({ podium }: { podium: PastTournamentPodium }) 
         {ordered.length === 0 ? (
           <p className="text-sm text-muted-foreground">No finishers recorded.</p>
         ) : (
-          <div className="flex items-end justify-center gap-2 sm:gap-4 pt-4">
+          <div className="flex items-end justify-center gap-2 sm:gap-3 pt-2">
             {ordered.map((f) => (
               <PodiumColumn key={f.tournamentPlayerId} finisher={f} />
             ))}
