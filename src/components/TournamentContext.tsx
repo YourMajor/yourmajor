@@ -26,6 +26,7 @@ export interface TournamentContextValue {
   hasVault: boolean
   isLeague: boolean
   hasSeason: boolean
+  hasHistory: boolean
   latestTournament: LatestTournament | null
 }
 

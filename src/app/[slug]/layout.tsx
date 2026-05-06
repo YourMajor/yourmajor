@@ -1,7 +1,6 @@
 import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { getTournamentTier } from '@/lib/stripe'
 import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
 import { PersistentChat } from '@/components/hub/PersistentChat'
 import { NotificationPopup } from '@/components/notifications/NotificationPopup'
@@ -71,8 +70,10 @@ export default async function TournamentLayout({
 
   // Fetch champion history for renewed tournaments
   const hasVault = !!tournament.parentTournamentId
-  const tournamentTier = await getTournamentTier(tournament.id)
-  const hasSeason = tournament.isLeague || (hasVault && (tournamentTier === 'CLUB' || tournamentTier === 'LEAGUE'))
+  // Leagues keep the full Season Dashboard (POINTS / STROKE_AVG / BEST_OF_N).
+  // Non-league renewals get the simpler History tab instead.
+  const hasSeason = tournament.isLeague
+  const hasHistory = !tournament.isLeague && hasVault
   let champions: PastChampion[] = []
   if (hasVault) {
     champions = await getChampionHistory(tournament.id)
@@ -134,6 +135,7 @@ export default async function TournamentLayout({
     hasVault,
     isLeague: tournament.isLeague,
     hasSeason,
+    hasHistory,
     latestTournament,
   }
 

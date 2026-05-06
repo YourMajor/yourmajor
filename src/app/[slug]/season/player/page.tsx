@@ -18,9 +18,14 @@ export default async function PlayerSeasonPage({
 
   const tournament = await prisma.tournament.findUnique({
     where: { slug },
-    select: { id: true, name: true },
+    select: { id: true, name: true, isLeague: true, parentTournamentId: true },
   })
   if (!tournament) return null
+
+  // Non-league renewals use the new /history tab.
+  if (!tournament.isLeague && tournament.parentTournamentId) {
+    redirect(`/${slug}/history`)
+  }
 
   const user = await getUser()
 

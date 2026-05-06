@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
 import Image from 'next/image'
-import { notFound } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
@@ -24,6 +24,11 @@ export default async function SeasonHistoryPage({
     select: { id: true, isLeague: true, parentTournamentId: true, name: true },
   })
   if (!tournament) notFound()
+
+  // Non-league renewals use the new /history tab.
+  if (!tournament.isLeague && tournament.parentTournamentId) {
+    redirect(`/${slug}/history`)
+  }
 
   const tier = await getTournamentTier(tournament.id)
   if (!TIER_LIMITS[tier].seasonOverSeasonTracking) {

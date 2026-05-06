@@ -1,10 +1,10 @@
 'use client'
 
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 import { usePathname } from 'next/navigation'
-import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3 } from 'lucide-react'
+import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3, History } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
 import type { PastChampion } from '@/lib/tournament-chain'
@@ -69,6 +69,7 @@ const MENU_DESCRIPTIONS: Record<string, string> = {
   'Vault': 'Past champions and historical leaderboards from previous years.',
   'Season Standings': 'Season-long standings, statistics, and player leaderboard across all events.',
   'Event Leaderboard': 'Standings and scores for this individual event.',
+  'History': 'Past podiums and the all-time roster across every edition of this tournament.',
 }
 
 export function TournamentNavBar({
@@ -94,7 +95,7 @@ export function TournamentNavBar({
   externalMenuOpen,
   onExternalMenuChange,
 }: TournamentNavBarProps) {
-  const { latestTournament, hasSeason, isLeague } = useTournament()
+  const { latestTournament, hasSeason, hasHistory, isLeague } = useTournament()
   const [internalMenuOpen, setInternalMenuOpen] = useState(false)
   const menuOpen = externalMenuOpen ?? internalMenuOpen
   const setMenuOpen = (open: boolean) => {
@@ -103,6 +104,13 @@ export function TournamentNavBar({
   }
   const [hoveredIndex, setHoveredIndex] = useState<number | null>(null)
   const [hoveredChampionIdx, setHoveredChampionIdx] = useState<number | null>(null)
+
+  useEffect(() => {
+    if (!menuOpen) return
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => { document.body.style.overflow = prev }
+  }, [menuOpen])
 
   // Admin pages use a wider content container (1600px) than the public hub
   // (max-w-7xl). Match the header's max-width to whichever layout we're in so
@@ -130,12 +138,17 @@ export function TournamentNavBar({
           { href: `/${slug}/season`, label: 'Season Standings', icon: BarChart3 },
           { href: `/${slug}/leaderboard`, label: 'Event Leaderboard', icon: Trophy },
         ]
-      : [{ href: `/${slug}`, label: 'Leaderboard', icon: Trophy }]
+      : hasHistory
+        ? [
+            { href: `/${slug}`, label: 'Leaderboard', icon: Trophy },
+            { href: `/${slug}/history`, label: 'History', icon: History },
+          ]
+        : [{ href: `/${slug}`, label: 'Leaderboard', icon: Trophy }]
     ),
     ...(powerupsEnabled ? [{ href: `/${slug}/draft`, label: 'Powerups', icon: Swords }] : []),
     { href: `/${slug}/gallery`, label: 'Gallery', icon: ImageIcon },
     ...(hasVault ? [{ href: `/${slug}/vault`, label: 'Vault', icon: Clock }] : []),
-  ], [slug, status, isRegistered, powerupsEnabled, hasSeason, hasVault])
+  ], [slug, status, isRegistered, powerupsEnabled, hasSeason, hasHistory, hasVault])
 
   // Determine which image to show on the right panel
   const fallbackImage = headerImage
@@ -229,7 +242,7 @@ export function TournamentNavBar({
         <div className="h-full flex">
           {/* ── Left panel: primary color + navigation ── */}
           <div
-            className="w-full md:w-[38%] lg:w-[35%] h-full flex flex-col px-6 sm:px-10 lg:px-14 pb-8 overflow-y-auto"
+            className="w-full md:w-[38%] lg:w-[35%] h-full flex flex-col px-6 sm:px-10 lg:px-14 pb-8 overflow-y-auto overflow-x-hidden"
             style={{
               backgroundColor: primaryColor,
               paddingTop: 'calc(1.5rem + env(safe-area-inset-top, 0px))',

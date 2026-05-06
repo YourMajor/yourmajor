@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import Link from 'next/link'
+import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
@@ -24,6 +25,12 @@ export default async function SeasonPage({
     select: { id: true, name: true, parentTournamentId: true, isLeague: true },
   })
   if (!tournament) return null
+
+  // Non-league renewals use the new /history tab. Bounce them there so old
+  // /season URLs and bookmarks keep working.
+  if (!tournament.isLeague && tournament.parentTournamentId) {
+    redirect(`/${slug}/history`)
+  }
 
   // Show season page for leagues, tournaments in a chain, or CLUB/LEAGUE tier
   const hasChain = !!tournament.parentTournamentId
