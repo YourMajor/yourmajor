@@ -365,34 +365,67 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
       }
     }
 
-    // Auto-invite roster members for renewed league tournaments
+    // Carry over participants from the parent tournament when renewing.
+    // Includes everyone with isParticipant=true regardless of how they joined
+    // (code, email invite, admin add, or league roster). For league chains,
+    // also reconciles the LeagueRoster so future renewals pick them up via
+    // the existing roster path.
     if (data.parentTournamentId) {
       try {
-        const { getOrCreateRoster } = await import('@/lib/roster-actions')
-        const roster = await getOrCreateRoster(data.parentTournamentId)
-        if (roster) {
-          const activeMembers = roster.members.filter((m) => m.status === 'ACTIVE' && m.userId !== user.id)
-          for (const member of activeMembers) {
-            const existing = await prisma.tournamentPlayer.findUnique({
-              where: { tournamentId_userId: { tournamentId: tournament.id, userId: member.userId } },
+        const parentParticipants = await prisma.tournamentPlayer.findMany({
+          where: {
+            tournamentId: data.parentTournamentId,
+            isParticipant: true,
+            userId: { not: user.id },
+          },
+          select: { userId: true },
+        })
+
+        if (parentParticipants.length > 0) {
+          const userIds = parentParticipants.map((p) => p.userId)
+
+          const { getOrCreateRoster } = await import('@/lib/roster-actions')
+          const roster = await getOrCreateRoster(data.parentTournamentId)
+
+          // Drop users marked INACTIVE on the league roster — preserves
+          // existing behavior where inactive members do not carry forward.
+          const inactiveUserIds = new Set(
+            roster?.members.filter((m) => m.status === 'INACTIVE').map((m) => m.userId) ?? [],
+          )
+          const eligibleUserIds = userIds.filter((id) => !inactiveUserIds.has(id))
+
+          if (eligibleUserIds.length > 0) {
+            const profiles = await prisma.playerProfile.findMany({
+              where: { userId: { in: eligibleUserIds } },
+              select: { userId: true, handicap: true },
             })
-            if (!existing) {
-              const profile = await prisma.playerProfile.findUnique({
-                where: { userId: member.userId },
-                select: { handicap: true },
-              })
+            const handicapByUser = new Map(profiles.map((p) => [p.userId, p.handicap]))
+
+            for (const userId of eligibleUserIds) {
               await prisma.tournamentPlayer.create({
                 data: {
                   tournamentId: tournament.id,
-                  userId: member.userId,
-                  handicap: profile?.handicap ?? 0,
+                  userId,
+                  handicap: handicapByUser.get(userId) ?? 0,
                 },
               }).catch(() => {})
+            }
+
+            // For league chains, ensure carried participants are on the
+            // roster going forward (covers code-joiners who never were).
+            if (roster) {
+              for (const userId of eligibleUserIds) {
+                await prisma.leagueRosterMember.upsert({
+                  where: { rosterId_userId: { rosterId: roster.id, userId } },
+                  create: { rosterId: roster.id, userId, status: 'ACTIVE' },
+                  update: { status: 'ACTIVE' },
+                }).catch(() => {})
+              }
             }
           }
         }
       } catch {
-        console.warn('[createTournamentFromWizard] Roster auto-invite failed')
+        console.warn('[createTournamentFromWizard] Participant carry-over failed')
       }
     }
 
