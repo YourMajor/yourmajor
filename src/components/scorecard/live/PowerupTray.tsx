@@ -35,10 +35,13 @@ interface PowerupTrayProps {
   onActivate: (data: {
     playerPowerupId: string
     targetPlayerId?: string
+    targetHoleNumber?: number
     metadata?: Record<string, unknown>
   }) => Promise<void>
   tournamentPlayers: PlayerOption[]
   currentPlayerId: string
+  courseHoleNumbers: number[]
+  opponentScoredHoles: Record<string, number[]>
 }
 
 export function PowerupTray({
@@ -48,6 +51,8 @@ export function PowerupTray({
   onActivate,
   tournamentPlayers,
   currentPlayerId,
+  courseHoleNumbers,
+  opponentScoredHoles,
 }: PowerupTrayProps) {
   const availablePowerups = playerPowerups.filter((p) => p.status === 'AVAILABLE')
 
@@ -82,6 +87,8 @@ export function PowerupTray({
               currentPlayerId,
               onActivate,
               playerPowerupIdMap,
+              courseHoleNumbers,
+              opponentScoredHoles,
             }}
           />
         </div>

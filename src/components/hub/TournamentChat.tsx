@@ -75,6 +75,7 @@ export function TournamentChat({ tournamentId, currentUserId, isRegistered, isAd
             rows={1}
             enterKeyHint="send"
             inputMode="text"
+            maxLength={500}
             style={{ fontSize: '16px' }}
             className="resize-none flex-1 min-h-0 min-w-0"
             onKeyDown={handleKeyDown}

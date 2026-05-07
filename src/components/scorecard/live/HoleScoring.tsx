@@ -1,5 +1,6 @@
 'use client'
 
+import { useState } from 'react'
 import { StepperInput } from './StepperInput'
 import { StatToggle } from './StatToggle'
 import { hasFairway, canToggleGirOn } from './score-validation'
@@ -8,7 +9,10 @@ import type { HoleData, HoleScore, RejectionField, ActivePowerup } from './useLi
 import type { PlayerPowerupData } from './PowerupTray'
 import { PowerupTray } from './PowerupTray'
 import { VariablePowerupBanner, type VariablePowerupState, type PowerupMessage } from './VariablePowerupBanner'
-import { SlugIcon } from '@/components/draft/CardHand'
+import { SlugIcon, CardBack } from '@/components/draft/CardHand'
+import { FlippableCardOverlay } from '@/components/draft/FlippableCardOverlay'
+import type { PowerupCardData } from '@/components/draft/PowerupCard'
+import type { PowerupEffect } from '@/lib/powerup-engine'
 import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
 
 // ─── Score type styling ───────────────────────────────────────────────────────
@@ -49,6 +53,10 @@ interface HoleScoringProps {
   powerupMessage: PowerupMessage | null
   tournamentPlayers: { id: string; name: string }[]
   currentPlayerId: string
+  /** All hole numbers on the current round's course (sorted). */
+  courseHoleNumbers: number[]
+  /** Map of opponent tournamentPlayerId → list of scored hole numbers. */
+  opponentScoredHoles: Record<string, number[]>
   rejection: { field: RejectionField; ts: number } | null
   saveStatus: 'idle' | 'saving' | 'saved'
   runningScore: { holesPlayed: number; diff: number | null }
@@ -59,7 +67,7 @@ interface HoleScoringProps {
   onDecrementPutts: () => void
   onToggleFairway: () => void
   onToggleGir: () => void
-  onActivatePowerup: (data: { playerPowerupId: string; targetPlayerId?: string; metadata?: Record<string, unknown> }) => Promise<void>
+  onActivatePowerup: (data: { playerPowerupId: string; targetPlayerId?: string; targetHoleNumber?: number; metadata?: Record<string, unknown> }) => Promise<void>
   onPrev: () => void
   onNext: () => void
   onFinishRound: () => void
@@ -82,6 +90,8 @@ export function HoleScoring({
   powerupMessage,
   tournamentPlayers,
   currentPlayerId,
+  courseHoleNumbers,
+  opponentScoredHoles,
   rejection,
   saveStatus,
   runningScore,
@@ -100,6 +110,7 @@ export function HoleScoring({
   hasNext,
   isLastHole,
 }: HoleScoringProps) {
+  const [inspectedCard, setInspectedCard] = useState<PowerupCardData | null>(null)
   const scoreType = getScoreType(score.strokes, hole.par)
   const scoreLabel = score.strokes !== null
     ? score.strokes === 1
@@ -190,12 +201,26 @@ export function HoleScoring({
         <div className="px-5 pt-3 space-y-1.5">
           {activePowerups.map((ap) => {
             const isAtk = ap.powerupType === 'ATTACK'
+            const inspectable = ap.powerup
+              ? {
+                  id: ap.powerup.id,
+                  slug: ap.powerup.slug,
+                  name: ap.powerup.name,
+                  type: ap.powerup.type,
+                  description: ap.powerup.description,
+                  effect: ap.powerup.effect,
+                }
+              : null
             return (
-              <div
+              <button
                 key={ap.playerPowerupId}
-                className={`flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.25)] ${
+                type="button"
+                onClick={() => inspectable && setInspectedCard(inspectable)}
+                disabled={!inspectable}
+                aria-label={`View ${ap.powerupName} card details`}
+                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.25)] transition-transform active:scale-[0.98] ${
                   isAtk ? 'bg-red-50' : 'bg-emerald-50'
-                }`}
+                } ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
               >
                 <SlugIcon slug={ap.powerupSlug} isAttack={isAtk} className={`w-5 h-5 shrink-0 ${isAtk ? 'text-red-700' : 'text-emerald-800'}`} />
                 <div className="flex-1 min-w-0">
@@ -206,23 +231,56 @@ export function HoleScoring({
                     </p>
                   )}
                 </div>
-              </div>
+              </button>
             )
           })}
-          {attacksReceived.map((ar) => (
-            <div
-              key={ar.playerPowerupId}
-              className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 bg-red-50 border-red-700"
-            >
-              <SlugIcon slug={ar.powerupSlug} isAttack className="w-5 h-5 shrink-0 text-red-700" />
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-semibold text-red-800 truncate">{ar.powerupName}</p>
-                <p className="text-[11px] text-red-600/70">{ar.description}</p>
-              </div>
-            </div>
-          ))}
+          {attacksReceived.map((ar) => {
+            const inspectable = ar.powerup
+              ? {
+                  id: ar.powerup.id,
+                  slug: ar.powerup.slug,
+                  name: ar.powerup.name,
+                  type: ar.powerup.type,
+                  description: ar.powerup.description,
+                  effect: ar.powerup.effect,
+                }
+              : null
+            return (
+              <button
+                key={ar.playerPowerupId}
+                type="button"
+                onClick={() => inspectable && setInspectedCard(inspectable)}
+                disabled={!inspectable}
+                aria-label={`View ${ar.powerupName} card details`}
+                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 bg-red-50 border-red-700 transition-transform active:scale-[0.98] ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
+              >
+                <SlugIcon slug={ar.powerupSlug} isAttack className="w-5 h-5 shrink-0 text-red-700" />
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-semibold text-red-800 truncate">{ar.powerupName}</p>
+                  <p className="text-[11px] text-red-600/70">{ar.description}</p>
+                </div>
+              </button>
+            )
+          })}
         </div>
       )}
+
+      {/* ── Card detail overlay (clicked played powerup / received attack) ── */}
+      <FlippableCardOverlay
+        powerup={inspectedCard}
+        onClose={() => setInspectedCard(null)}
+        backContent={(close) => inspectedCard ? (
+          <CardBack
+            slug={inspectedCard.slug}
+            name={inspectedCard.name}
+            type={inspectedCard.type}
+            description={inspectedCard.description}
+            effect={inspectedCard.effect as PowerupEffect}
+            isAttack={inspectedCard.type === 'ATTACK'}
+            onClose={close}
+          />
+        ) : null}
+      />
 
       {/* ── Variable Powerup Banner (Fairway Finder / King of the Hill) ── */}
       {powerupsEnabled && (activeVariablePowerups.length > 0 || powerupMessage) && (
@@ -283,6 +341,8 @@ export function HoleScoring({
               onActivate={onActivatePowerup}
               tournamentPlayers={tournamentPlayers}
               currentPlayerId={currentPlayerId}
+              courseHoleNumbers={courseHoleNumbers}
+              opponentScoredHoles={opponentScoredHoles}
             />
           )}
         </div>

@@ -79,6 +79,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
               rows={1}
               enterKeyHint="send"
               inputMode="text"
+              maxLength={500}
               style={{ fontSize: '16px' }}
               className="flex-1 min-w-0 resize-none rounded-lg bg-white/10 border border-white/15 px-3 py-2 text-white placeholder:text-white/30 outline-none focus:border-white/30 focus:ring-1 focus:ring-white/20"
               onKeyDown={handleKeyDown}

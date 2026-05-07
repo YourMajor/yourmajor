@@ -22,6 +22,7 @@ interface SeasonDashboardProps {
   scheduleEvents?: ScheduleEvent[]
   isAuthenticated?: boolean
   onRoster?: boolean
+  isLeague?: boolean
 }
 
 function formatValue(value: number, method: SeasonScoringMethod): string {
@@ -70,6 +71,7 @@ export function SeasonDashboard({
   scheduleEvents = [],
   isAuthenticated = false,
   onRoster = false,
+  isLeague = false,
 }: SeasonDashboardProps) {
   const completedEvents = events.filter((e) => e.status === 'COMPLETED' || e.status === 'ACTIVE')
   const showSchedule = scheduleEvents.length > 0
@@ -95,7 +97,7 @@ export function SeasonDashboard({
       <Tabs defaultValue="standings">
         <TabsList variant="line">
           <TabsTrigger value="standings">Standings</TabsTrigger>
-          <TabsTrigger value="events">Events</TabsTrigger>
+          {!isLeague && <TabsTrigger value="events">Events</TabsTrigger>}
           {showSchedule && <TabsTrigger value="schedule">My Schedule</TabsTrigger>}
           {awards.length > 0 && <TabsTrigger value="awards">Awards</TabsTrigger>}
         </TabsList>
@@ -104,9 +106,11 @@ export function SeasonDashboard({
           <StandingsTable standings={standings} scoringMethod={scoringMethod} slug={slug} />
         </TabsContent>
 
-        <TabsContent value="events">
-          <EventsList events={events} />
-        </TabsContent>
+        {!isLeague && (
+          <TabsContent value="events">
+            <EventsList events={events} />
+          </TabsContent>
+        )}
 
         {showSchedule && (
           <TabsContent value="schedule">

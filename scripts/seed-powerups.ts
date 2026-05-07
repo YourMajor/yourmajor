@@ -21,6 +21,7 @@ type PowerupSeed = {
       mode: 'auto' | 'manual' | 'behavioral' | 'variable'
       modifier: number | null
       conditionalKey: string | null
+      cap?: number | null
     }
     duration: number
     requiresTarget: boolean
@@ -45,7 +46,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'Take a shot (drink), subtract that many strokes from your hole score.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'drink_count' },
+      scoring: { mode: 'manual', modifier: -1, conditionalKey: 'drink_count' },
       duration: 1,
       requiresTarget: false,
       input: { type: 'number_input', label: 'How many shots (drinks) did you take?', count: null },
@@ -185,7 +186,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'Each bunker you intentionally enter on this hole subtracts 1 from your score.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'bunkers_entered' },
+      scoring: { mode: 'manual', modifier: -1, conditionalKey: 'bunkers_entered' },
       duration: 1,
       requiresTarget: false,
       input: { type: 'number_input', label: 'How many bunkers did you enter?', count: null },
@@ -269,7 +270,9 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'Play the hole twice and take the better score (best ball with yourself).',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'best_of_two' },
+      // Pure rule-change: player just enters their better score directly into
+      // the hole input. No modifier needed.
+      scoring: { mode: 'behavioral', modifier: null, conditionalKey: null },
       duration: 1,
       requiresTarget: false,
       input: null,
@@ -356,10 +359,10 @@ const POWERUPS: PowerupSeed[] = [
     type: 'ATTACK',
     description: "Each time your opponent's ball touches the fairway, add 1 to their score.",
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'fairway_touches' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'fairway_touches' },
       duration: 1,
       requiresTarget: true,
-      input: { type: 'player_select', label: 'Select opponent to attack', count: null },
+      input: { type: 'number_input', label: "How many of opponent's fairway touches? +1 each", count: null },
       restrictions: { excludePar3: false },
       flavorText: "Stay off the short grass!",
     },
@@ -368,12 +371,12 @@ const POWERUPS: PowerupSeed[] = [
     slug: 'proximity-mine',
     name: 'Proximity Mine',
     type: 'ATTACK',
-    description: 'Pick 3 future holes. If your opponent lands within 2 club lengths of a bunker on any of them, add 1 per occurrence.',
+    description: "Each time opponent's ball lands within 2 club lengths of a bunker on this hole, add 1 to their score.",
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'proximity_trigger' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'proximity_trigger' },
       duration: 1,
       requiresTarget: true,
-      input: { type: 'hole_select', label: 'Select 3 future holes to mine', count: 3 },
+      input: { type: 'number_input', label: 'How many proximity hits? +1 each', count: null },
       restrictions: { excludePar3: false },
       flavorText: "Watch your step.",
     },
@@ -778,7 +781,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'Subtract 1 for each beer you finish on this hole, max -3.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'beers_finished' },
+      scoring: { mode: 'manual', modifier: -1, conditionalKey: 'beers_finished', cap: -3 },
       duration: 1,
       requiresTarget: false,
       input: { type: 'number_input', label: 'How many beers did you finish?', count: null },
@@ -963,7 +966,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'ATTACK',
     description: 'If your opponent goes OB or loses a ball on this hole, +1 per occurrence.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'opponent_ob_count' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'opponent_ob_count' },
       duration: 1,
       requiresTarget: true,
       input: { type: 'number_input', label: 'How many OBs/lost balls? +1 each', count: null },
@@ -1087,12 +1090,12 @@ const POWERUPS: PowerupSeed[] = [
     slug: 'the-cursed-club',
     name: 'The Cursed Club',
     type: 'ATTACK',
-    description: 'Pick a club, and don tell your opponent which club it is. Each time your opponent uses it on this hole, add 1 to their score.',
+    description: "Pick a club mentally — don't tell your opponent. Each time they use it on this hole, add 1 to their score.",
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'cursed_club_uses' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'cursed_club_uses' },
       duration: 1,
       requiresTarget: true,
-      input: { type: 'club_select', label: 'Curse a club', count: null },
+      input: { type: 'number_input', label: 'How many uses of the cursed club? +1 each', count: null },
       restrictions: { excludePar3: false },
       flavorText: 'Bad mojo.',
     },
@@ -1103,7 +1106,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'ATTACK',
     description: 'Opponent misses any putt inside 5 feet on this hole, add 1 per miss.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'short_putt_misses' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'short_putt_misses' },
       duration: 1,
       requiresTarget: true,
       input: { type: 'number_input', label: 'How many missed short putts? +1 each', count: null },
@@ -1117,7 +1120,7 @@ const POWERUPS: PowerupSeed[] = [
     type: 'ATTACK',
     description: '+1 for each of opponent\'s shots from the rough on this hole, max +3.',
     effect: {
-      scoring: { mode: 'manual', modifier: null, conditionalKey: 'rough_shots' },
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'rough_shots', cap: 3 },
       duration: 1,
       requiresTarget: true,
       input: { type: 'number_input', label: 'How many shots from the rough? (max 3)', count: null },

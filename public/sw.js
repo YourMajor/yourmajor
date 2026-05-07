@@ -25,14 +25,21 @@ self.addEventListener('push', (event) => {
   }
   event.waitUntil(
     (async () => {
-      // If any app tab is currently visible to the user, the in-app
-      // NotificationPopup / chat badge already handles delivery — skip the
-      // system banner so we don't double-notify. When all tabs are hidden
-      // (different tab focused, browser minimized, screen off, app closed),
-      // fall through and show the OS notification.
+      // Suppress the OS banner only when the user is actively on the live
+      // scoring page (`/<slug>/play`) — the in-app modal handles delivery
+      // there. Anywhere else (in-app on chat/roster/draft, backgrounded,
+      // closed) we fall through and show the system notification so the
+      // user always learns about an attack immediately.
       const clients = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
-      const hasVisibleClient = clients.some((c) => c.visibilityState === 'visible')
-      if (hasVisibleClient) return
+      const onLiveScoring = clients.some((c) => {
+        if (c.visibilityState !== 'visible') return false
+        try {
+          return /^\/[^/]+\/play(\/|$|\?)/.test(new URL(c.url).pathname)
+        } catch {
+          return false
+        }
+      })
+      if (onLiveScoring) return
 
       const options = {
         body: data.body,

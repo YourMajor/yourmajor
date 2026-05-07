@@ -158,11 +158,17 @@ export function PowerupActivationDialog({
 
         {/* Inputs section */}
         <div className="space-y-3">
-          {/* Target player selection */}
+          {/* Target player selection.
+              When the input.type is also player_select, input.label IS the
+              target prompt; otherwise (e.g. number_input + requiresTarget for
+              ATTACK count cards) fall back to a generic prompt so the target
+              picker doesn't borrow the count question. */}
           {needsTarget && (
             <div className="space-y-1.5">
               <label className="text-sm font-medium text-zinc-200">
-                {effect.input?.label ?? 'Select target player'}
+                {effect.input?.type === 'player_select' && effect.input?.label
+                  ? effect.input.label
+                  : 'Select target opponent'}
               </label>
               <Select value={targetPlayerId} onValueChange={(v) => setTargetPlayerId(v ?? '')}>
                 <SelectTrigger className="bg-zinc-900 border-zinc-700 text-white">
@@ -196,22 +202,30 @@ export function PowerupActivationDialog({
             </div>
           )}
 
-          {/* Number input */}
-          {inputType === 'number_input' && !needsTarget && (
-            <div className="space-y-1.5">
-              <label className="text-sm font-medium text-zinc-200">
-                {effect.input?.label ?? 'Enter a number'}
-              </label>
-              <Input
-                type="number"
-                min={0}
-                max={20}
-                value={numberValue}
-                onChange={(e) => setNumberValue(e.target.value)}
-                className="w-24 bg-zinc-900 border-zinc-700 text-white"
-              />
-            </div>
-          )}
+          {/* Number input.
+              Direct-modifier cards (modifier null) ask the player to enter the
+              signed score change itself — labels look like "Enter -3 if yes,
+              0 if no" — so we allow negative values. Count cards (modifier
+              non-null) ask for a positive count multiplied server-side.
+              Shown alongside the target selector for ATTACK count cards. */}
+          {inputType === 'number_input' && (() => {
+            const isDirectModifier = effect.scoring.mode === 'manual' && effect.scoring.modifier === null
+            return (
+              <div className="space-y-1.5">
+                <label className="text-sm font-medium text-zinc-200">
+                  {effect.input?.label ?? 'Enter a number'}
+                </label>
+                <Input
+                  type="number"
+                  min={isDirectModifier ? -15 : 0}
+                  max={isDirectModifier ? 15 : 20}
+                  value={numberValue}
+                  onChange={(e) => setNumberValue(e.target.value)}
+                  className="w-24 bg-zinc-900 border-zinc-700 text-white"
+                />
+              </div>
+            )
+          })()}
 
           {error && (
             <p className="text-sm font-medium text-red-400 bg-red-950/50 border border-red-800/50 rounded-md px-3 py-2">

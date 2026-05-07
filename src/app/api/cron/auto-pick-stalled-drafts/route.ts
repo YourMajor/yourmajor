@@ -4,6 +4,7 @@ import { computeCurrentTurn } from '@/lib/draft-utils'
 import { executePick } from '@/lib/draft-pick'
 import { selectAutoPickPowerupId } from '@/lib/draft-auto-pick'
 import { sendPushToUser } from '@/lib/push'
+import { broadcastDraftPick } from '@/lib/draft-broadcast'
 
 const CLOCK_SKEW_GRACE_MS = 2_000
 const MAX_DRAFTS_PER_RUN = 50
@@ -120,6 +121,10 @@ export async function GET(request: NextRequest) {
 
         return picked
       })
+
+      if (out) {
+        void broadcastDraftPick(d.id)
+      }
 
       if (out && out.nextPickerUserId && tournament) {
         void sendPushToUser(out.nextPickerUserId, {

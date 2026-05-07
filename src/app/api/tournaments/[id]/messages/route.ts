@@ -44,6 +44,9 @@ export async function POST(
   const { id } = await params
   const { content } = await req.json()
   if (!content?.trim()) return NextResponse.json({ error: 'Content required' }, { status: 400 })
+  if (typeof content !== 'string' || content.length > 500) {
+    return NextResponse.json({ error: 'Message must be 500 characters or fewer' }, { status: 400 })
+  }
 
   // Verify user is a registered player
   const player = await prisma.tournamentPlayer.findUnique({

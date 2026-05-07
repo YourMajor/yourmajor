@@ -2,6 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getStrategy } from '@/lib/formats'
 import type { ScoringContext } from '@/lib/formats/types'
+import { buildStrokeOverrideMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
 
 // Re-export everything from scoring-utils so existing imports still work
 export {
@@ -43,6 +44,7 @@ export async function getLeaderboard(
           where: roundId ? { roundId } : undefined,
           select: {
             strokes: true,
+            gir: true, // needed for Concede! stroke override
             hole: { select: { number: true, par: true, handicap: true } },
             round: { select: { roundNumber: true, courseId: true } },
           },
@@ -68,6 +70,18 @@ export async function getLeaderboard(
       include: { members: { select: { tournamentPlayerId: true } } },
     }),
   ])
+
+  // Build stroke override map for the three replacement-style powerups.
+  const flatScores = players.flatMap((p) =>
+    p.scores.map((s) => ({
+      tournamentPlayerId: p.id,
+      holeNumber: s.hole.number,
+      par: s.hole.par,
+      strokes: s.strokes,
+      gir: s.gir,
+    })),
+  )
+  const strokeOverrides = await buildStrokeOverrideMap(tournamentId, flatScores, roundId)
 
   const handicapSystem = tournament?.handicapSystem ?? 'WHS'
   // Effective format: if the tournament is on legacy STROKE_PLAY but the handicap system
@@ -112,7 +126,7 @@ export async function getLeaderboard(
         scores: p.scores.map((s) => ({
           holeNumber: s.hole.number,
           par: s.hole.par,
-          strokes: s.strokes,
+          strokes: effectiveStrokes(strokeOverrides, p.id, s.hole.number, s.strokes),
           handicap: s.hole.handicap,
           roundNumber: s.round.roundNumber,
         })),

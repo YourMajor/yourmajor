@@ -5,6 +5,7 @@ import { computeCurrentTurn } from '@/lib/draft-utils'
 import { executePick } from '@/lib/draft-pick'
 import { selectAutoPickPowerupId } from '@/lib/draft-auto-pick'
 import { sendPushToUser } from '@/lib/push'
+import { broadcastDraftPick } from '@/lib/draft-broadcast'
 
 const CLOCK_SKEW_GRACE_MS = 2_000
 
@@ -130,6 +131,8 @@ export async function POST(
 
       return picked
     })
+
+    void broadcastDraftPick(draft.id)
 
     if (result.nextPickerUserId) {
       void sendPushToUser(result.nextPickerUserId, {

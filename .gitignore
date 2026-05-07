@@ -47,3 +47,6 @@ next-env.d.ts
 
 # python virtualenvs (e.g. for playwright scripts)
 .venv*/
+
+# local data exports
+powerups-export.csv

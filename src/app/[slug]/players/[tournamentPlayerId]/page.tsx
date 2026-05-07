@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScorecardDetail } from '@/components/scorecard/ScorecardDetail'
+import { buildStrokeOverrideMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
 
 export default async function PlayerScorecardPage({
   params,
@@ -24,6 +25,8 @@ export default async function PlayerScorecardPage({
       },
     },
   })
+  // Note: scores.gir is needed by Concede! override evaluation but it's
+  // already on the Score row (selected via include above).
 
   if (!player) return null
 
@@ -41,12 +44,38 @@ export default async function PlayerScorecardPage({
 
   const playerName = player.user.name ?? player.user.email.split('@')[0]
 
-  // Fetch powerup score modifiers (used powerups affect net score)
+  // Build stroke override map for replacement-style powerups (Number, Concede!).
+  // Parent Trap swaps require the counterparty's scores; we don't load every
+  // player on this page, so Parent Trap is reflected on the leaderboard
+  // (handled in scoring.ts) but not in this per-player view. Acceptable v1 gap.
+  const playerScoreInputs = player.scores.map((s) => ({
+    tournamentPlayerId: player.id,
+    holeNumber: s.hole.number,
+    par: s.hole.par,
+    strokes: s.strokes,
+    gir: s.gir,
+  }))
+  const strokeOverrides = await buildStrokeOverrideMap(tournament.id, playerScoreInputs)
+
+  // Fetch powerup score modifiers (used powerups affect net score).
+  // Bucket per round so each tab's breakdown reflects only that round's
+  // powerups; tournament-wide powerups (roundId == null) apply to every
+  // round's breakdown.
   const usedPowerups = await prisma.playerPowerup.findMany({
     where: { tournamentPlayerId: player.id, status: 'USED', scoreModifier: { not: null } },
     select: { scoreModifier: true, roundId: true },
   })
-  const totalPowerupModifier = usedPowerups.reduce((sum, pp) => sum + (pp.scoreModifier ?? 0), 0)
+  const roundIdToNumber = new Map(tournament.rounds.map((r) => [r.id, r.roundNumber]))
+  const tournamentWidePowerupModifier = usedPowerups
+    .filter((pp) => pp.roundId === null)
+    .reduce((sum, pp) => sum + (pp.scoreModifier ?? 0), 0)
+  const powerupModifierByRound: Record<number, number> = {}
+  for (const pp of usedPowerups) {
+    if (pp.roundId === null) continue
+    const rn = roundIdToNumber.get(pp.roundId)
+    if (rn === undefined) continue
+    powerupModifierByRound[rn] = (powerupModifierByRound[rn] ?? 0) + (pp.scoreModifier ?? 0)
+  }
 
   // Group scores by round number
   const scoresByRound: Record<number, typeof player.scores> = {}
@@ -123,7 +152,7 @@ export default async function PlayerScorecardPage({
                     scores={roundScores.map((s) => ({
                       holeNumber: s.hole.number,
                       par: s.hole.par,
-                      strokes: s.strokes,
+                      strokes: effectiveStrokes(strokeOverrides, player.id, s.hole.number, s.strokes),
                       handicapIndex: s.hole.handicap,
                       putts: s.putts,
                       fairwayHit: s.fairwayHit,
@@ -136,7 +165,7 @@ export default async function PlayerScorecardPage({
                     courseName={course?.name}
                     coursePar={course?.par ?? undefined}
                     courseHoles={course?.holes?.map((h) => ({ number: h.number, par: h.par, handicap: h.handicap }))}
-                    powerupModifier={totalPowerupModifier}
+                    powerupModifier={(powerupModifierByRound[rn] ?? 0) + tournamentWidePowerupModifier}
                   />
                 )}
               </TabsContent>

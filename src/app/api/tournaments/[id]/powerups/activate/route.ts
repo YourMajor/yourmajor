@@ -2,8 +2,9 @@ import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
-import { canActivate, computeAutoModifier, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import { canActivate, computeActivationModifier, computeAttackTargetHole, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
 import { sendPushToUser } from '@/lib/push'
+import { broadcastNotification } from '@/lib/notification-broadcast'
 
 export async function POST(
   req: NextRequest,
@@ -18,10 +19,11 @@ export async function POST(
     roundId: string
     holeNumber: number
     targetPlayerId?: string
+    targetHoleNumber?: number
     metadata?: Record<string, unknown>
   }
 
-  const { playerPowerupId, roundId, holeNumber, targetPlayerId, metadata } = body
+  const { playerPowerupId, roundId, holeNumber, targetPlayerId, targetHoleNumber: targetHoleOverride, metadata } = body
   if (!playerPowerupId || !roundId || !holeNumber) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
@@ -52,12 +54,14 @@ export async function POST(
     return NextResponse.json({ error: 'Powerup effect data is malformed' }, { status: 500 })
   }
 
-  // Validate restrictions
+  // Validate restrictions. Load all holes — we need them not just for the
+  // attacker's activation hole but also to compute the recipient's target hole
+  // when this is an attack.
   const round = await prisma.tournamentRound.findUnique({
     where: { id: roundId },
-    include: { course: { include: { holes: { where: { number: holeNumber } } } } },
+    include: { course: { include: { holes: true } } },
   })
-  const hole = round?.course.holes[0]
+  const hole = round?.course.holes.find((h) => h.number === holeNumber)
   if (!hole) return NextResponse.json({ error: 'Hole not found' }, { status: 404 })
 
   const activation = canActivate(effect, { par: hole.par, number: hole.number })
@@ -70,10 +74,42 @@ export async function POST(
     return NextResponse.json({ error: 'Target player required for attack cards' }, { status: 400 })
   }
 
+  // For attacks, decide which hole on the recipient's scorecard the attack
+  // lands on. Default = recipient's first unscored hole + 1 (clamped). The
+  // client may override to any of the recipient's unscored holes; we validate
+  // the override is actually unscored before accepting it.
+  let resolvedTargetHole: number | null = null
+  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayerId) {
+    const targetScores = await prisma.score.findMany({
+      where: { tournamentPlayerId: targetPlayerId, roundId },
+      select: { hole: { select: { number: true } } },
+    })
+    const scoredNumbers = new Set(targetScores.map((s) => s.hole.number))
+    const allHoleNumbers = round!.course.holes.map((h) => h.number)
+
+    if (typeof targetHoleOverride === 'number') {
+      if (!allHoleNumbers.includes(targetHoleOverride)) {
+        return NextResponse.json({ error: 'Override hole is not on the course' }, { status: 400 })
+      }
+      if (scoredNumbers.has(targetHoleOverride)) {
+        return NextResponse.json({ error: 'Cannot apply attack on a hole the target has already scored' }, { status: 400 })
+      }
+      resolvedTargetHole = targetHoleOverride
+    } else {
+      const auto = computeAttackTargetHole(allHoleNumbers, scoredNumbers)
+      if (auto === null) {
+        return NextResponse.json({ error: 'Target has finished — no hole to attack' }, { status: 400 })
+      }
+      resolvedTargetHole = auto
+    }
+  }
+
   // Determine status and modifier based on powerup type
   const isVariable = isVariablePowerup(effect)
   const status = isVariable ? 'ACTIVE' as const : 'USED' as const
-  const scoreModifier = isVariable ? null : computeAutoModifier(effect)
+  const scoreModifier = isVariable
+    ? null
+    : computeActivationModifier(effect, metadata as { numberValue?: unknown } | null, playerPowerup.powerup.slug)
 
   // Build structured metadata for variable powerups
   let structuredMetadata: Record<string, unknown> | undefined = metadata ? { ...metadata } : undefined
@@ -154,6 +190,7 @@ export async function POST(
       usedAt: new Date(),
       roundId,
       holeNumber,
+      targetHoleNumber: resolvedTargetHole,
       targetPlayerId: targetPlayerId ?? null,
       scoreModifier,
       metadata: structuredMetadata as Prisma.InputJsonValue | undefined,
@@ -174,6 +211,8 @@ export async function POST(
       },
     })
 
+    const landsOnHole = resolvedTargetHole ?? holeNumber
+
     await prisma.notification.create({
       data: {
         tournamentPlayerId: targetPlayerId,
@@ -182,19 +221,24 @@ export async function POST(
           attackerName: player.user.name ?? 'A player',
           powerupName: playerPowerup.powerup.name,
           powerupDescription: playerPowerup.powerup.description,
-          holeNumber,
+          holeNumber: landsOnHole,
           powerupSlug: playerPowerup.powerup.slug,
         },
       },
     })
 
+    // Broadcast to the recipient's notification channel so the in-app modal
+    // updates instantly without depending on RLS-gated postgres_changes.
+    // The client refetches via the auth-checked notifications API.
+    void broadcastNotification(targetPlayerId).catch(() => {})
+
     // Fire-and-forget push so the recipient sees a system banner even if the
-    // app isn't focused. In-app delivery is handled by the Realtime
-    // subscription on Notification (see NotificationPopup).
+    // app isn't focused. In-app delivery is handled by the broadcast above
+    // (see NotificationPopup).
     if (targetPlayer?.user.id && targetPlayer.tournament) {
       void sendPushToUser(targetPlayer.user.id, {
         title: `${targetPlayer.tournament.name} — Under attack!`,
-        body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${holeNumber})`,
+        body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${landsOnHole})`,
         url: `/${targetPlayer.tournament.slug}/play`,
       }).catch((err) => console.error('[push] attack dispatch failed', err))
     }
@@ -204,7 +248,7 @@ export async function POST(
       data: {
         tournamentId,
         userId: user.id,
-        content: `⚔️ ${player.user.name ?? 'Player'} ATTACKED ${targetPlayer?.user.name ?? 'Player'} with ${playerPowerup.powerup.name} on Hole ${holeNumber}!`,
+        content: `⚔️ ${player.user.name ?? 'Player'} ATTACKED ${targetPlayer?.user.name ?? 'Player'} with ${playerPowerup.powerup.name} on Hole ${landsOnHole}!`,
         isSystem: true,
       },
     })

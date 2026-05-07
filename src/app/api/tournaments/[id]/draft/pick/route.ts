@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { executePick } from '@/lib/draft-pick'
 import { sendPushToUser } from '@/lib/push'
+import { broadcastDraftPick } from '@/lib/draft-broadcast'
 
 export async function POST(
   req: NextRequest,
@@ -44,6 +45,8 @@ export async function POST(
         expectedCurrentPick: draft.currentPick,
       })
     })
+
+    void broadcastDraftPick(draft.id)
 
     if (result.nextPickerUserId) {
       void sendPushToUser(result.nextPickerUserId, {

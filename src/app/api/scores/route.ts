@@ -132,17 +132,30 @@ export async function POST(request: NextRequest) {
 
   // Evaluate active variable powerups after score save
   let powerupEvaluations: Array<{ playerPowerupId: string; slug: string; outcome: string; scoreModifier: number | null; message: string }> = []
+  // Confirmations the saver should answer (BOOST cards they activated whose
+  // hole is now scored). ATTACK confirmations where the saver is the target
+  // do NOT surface here — those reach the attacker via the GET endpoint.
+  let pendingConfirmations: Awaited<ReturnType<typeof import('@/lib/variable-powerup-evaluator')['findPendingConfirmations']>> = []
   try {
-    const { evaluateActiveVariablePowerups, evaluateAsKothTarget, evaluateAsDoubleOrNothingTarget } = await import('@/lib/variable-powerup-evaluator')
-    const [ownResults, kothResults, donResults] = await Promise.all([
+    const {
+      evaluateActiveVariablePowerups,
+      evaluateAsKothTarget,
+      evaluateAsDoubleOrNothingTarget,
+      evaluatePostHoleAttacks,
+      findPendingConfirmations,
+    } = await import('@/lib/variable-powerup-evaluator')
+    const [ownResults, kothResults, donResults, postHoleAttacks, pending] = await Promise.all([
       evaluateActiveVariablePowerups(tournamentPlayerId, roundId),
       evaluateAsKothTarget(tournamentPlayerId, roundId),
       evaluateAsDoubleOrNothingTarget(tournamentPlayerId, roundId),
+      evaluatePostHoleAttacks(tournamentPlayerId, roundId),
+      findPendingConfirmations(tournamentPlayerId, roundId),
     ])
-    powerupEvaluations = [...ownResults, ...kothResults, ...donResults]
+    powerupEvaluations = [...ownResults, ...kothResults, ...donResults, ...postHoleAttacks]
+    pendingConfirmations = pending
   } catch (err) {
     console.error('[scores] Variable powerup evaluation failed:', err)
   }
 
-  return NextResponse.json({ ...score, powerupEvaluations })
+  return NextResponse.json({ ...score, powerupEvaluations, pendingConfirmations })
 }

@@ -8,7 +8,7 @@ import { CardHand, CardBack } from './CardHand'
 import { FlippableCardOverlay } from './FlippableCardOverlay'
 import { TurnStrip } from './TurnStrip'
 import { DraftCountdown } from './DraftCountdown'
-import { PowerupFilterBar, type PowerupTypeFilter } from './PowerupFilterBar'
+import { PowerupFilterBar, type PowerupTypeFilter, type PowerupSortKey } from './PowerupFilterBar'
 import { PowerupBrowseGrid } from './PowerupBrowseGrid'
 import { PowerupHandSheet } from './PowerupHandSheet'
 import { DraftBoardSheet } from './DraftBoardSheet'
@@ -90,6 +90,7 @@ export function DraftBoard({
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<PowerupTypeFilter>('ALL')
   const [durationFilter, setDurationFilter] = useState<DurationFilter>('ALL')
+  const [sortBy, setSortBy] = useState<PowerupSortKey>('DEFAULT')
   const [draftReset, setDraftReset] = useState(false)
   const [falling, setFalling] = useState(false)
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
@@ -156,9 +157,16 @@ export function DraftBoard({
   }, [tournamentId])
 
   // Subscribe to real-time draft pick events and draft status changes.
-  // DraftPick INSERTs can arrive in quick succession during a snake draft;
-  // we coalesce them into a single state refetch so a 6-pick burst doesn't
-  // trigger 6 round-trips.
+  //
+  // Three independent paths feed scheduleRefetch so a single broken layer
+  // (RLS misconfig, dropped websocket, etc.) can't strand a player on a
+  // stale "waiting for someone else" view:
+  //   1) server-side broadcast on the same channel (RLS-free, primary path)
+  //   2) postgres_changes INSERT on DraftPick (legacy, RLS-gated)
+  //   3) visibility-aware polling fallback (separate effect below)
+  //
+  // The subscribe status callback also refetches on (re)connect so any
+  // events fired during a brief disconnect are caught up automatically.
   useEffect(() => {
     const supabase = createClient()
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -168,6 +176,7 @@ export function DraftBoard({
     }
     const channel = supabase
       .channel(`draft-${state.draft.id}`)
+      .on('broadcast', { event: 'pick' }, scheduleRefetch)
       .on(
         'postgres_changes',
         {
@@ -193,13 +202,53 @@ export function DraftBoard({
           }
         },
       )
-      .subscribe()
+      .subscribe((status) => {
+        if (status === 'SUBSCRIBED') {
+          void fetchState()
+        }
+      })
 
     return () => {
       if (timer) clearTimeout(timer)
       supabase.removeChannel(channel)
     }
   }, [state.draft.id, fetchState])
+
+  // Polling fallback while the draft is ACTIVE and the tab is visible.
+  // Guarantees turn-flip propagation within ~5s even if both broadcast and
+  // postgres_changes are unavailable. Also refetches immediately when the
+  // user returns to the tab (covers laptop-sleep / tab-switch).
+  useEffect(() => {
+    if (state.draft.status !== 'ACTIVE') return
+
+    let interval: ReturnType<typeof setInterval> | null = null
+    const start = () => {
+      if (interval) return
+      interval = setInterval(() => { void fetchState() }, 5000)
+    }
+    const stop = () => {
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
+    }
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchState()
+        start()
+      } else {
+        stop()
+      }
+    }
+
+    if (document.visibilityState === 'visible') start()
+    document.addEventListener('visibilitychange', onVisibility)
+
+    return () => {
+      stop()
+      document.removeEventListener('visibilitychange', onVisibility)
+    }
+  }, [state.draft.status, fetchState])
 
   const handleConfirmPick = async () => {
     if (!selectedPowerup) return
@@ -255,7 +304,8 @@ export function DraftBoard({
     return Array.from(map.values())
   }, [state.availablePowerups, state.draft.picks])
 
-  // Apply filters + search + sort
+  // Apply filters + search + sort. Tier 0 (picked sinks) is always applied
+  // regardless of sortBy so already-drafted cards stay at the bottom.
   const filteredAndSorted = useMemo(() => {
     const q = search.trim().toLowerCase()
     const matches = allPowerupsWithStatus.filter(({ powerup }) => {
@@ -268,11 +318,33 @@ export function DraftBoard({
       const aP = pickedPowerupIds.has(a.powerup.id) ? 1 : 0
       const bP = pickedPowerupIds.has(b.powerup.id) ? 1 : 0
       if (aP !== bP) return aP - bP
-      if (a.powerup.type !== b.powerup.type) return a.powerup.type === 'BOOST' ? -1 : 1
-      return a.powerup.name.localeCompare(b.powerup.name)
+
+      switch (sortBy) {
+        case 'POWER_DESC': {
+          // Use absolute value so a -2 boost ranks alongside a +2 attack as
+          // "high impact". null modifiers sink within their picked/unpicked tier.
+          const aMod = a.powerup.effect.scoring?.modifier
+          const bMod = b.powerup.effect.scoring?.modifier
+          const aImpact = aMod == null ? -Infinity : Math.abs(aMod)
+          const bImpact = bMod == null ? -Infinity : Math.abs(bMod)
+          if (aImpact !== bImpact) return bImpact - aImpact
+          return a.powerup.name.localeCompare(b.powerup.name)
+        }
+        case 'DURATION_ASC': {
+          const aBucket = a.powerup.effect.duration === 1 ? 0 : 1
+          const bBucket = b.powerup.effect.duration === 1 ? 0 : 1
+          if (aBucket !== bBucket) return aBucket - bBucket
+          return a.powerup.name.localeCompare(b.powerup.name)
+        }
+        case 'DEFAULT':
+        default: {
+          if (a.powerup.type !== b.powerup.type) return a.powerup.type === 'BOOST' ? -1 : 1
+          return a.powerup.name.localeCompare(b.powerup.name)
+        }
+      }
     })
     return matches
-  }, [allPowerupsWithStatus, typeFilter, durationFilter, search, pickedPowerupIds])
+  }, [allPowerupsWithStatus, typeFilter, durationFilter, search, sortBy, pickedPowerupIds])
 
   // Counts for the segmented control (across all available + picked)
   const counts = useMemo(() => {
@@ -373,6 +445,8 @@ export function DraftBoard({
           onTypeFilterChange={setTypeFilter}
           durationFilter={durationFilter}
           onDurationFilterChange={setDurationFilter}
+          sortBy={sortBy}
+          onSortChange={setSortBy}
           counts={counts}
           durationCounts={durationCounts}
         />

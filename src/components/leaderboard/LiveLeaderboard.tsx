@@ -301,7 +301,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
               <th style={{ width: '36px' }} className="px-0">POS</th>
               <th className="text-left pl-3 sm:pl-4">PLAYER</th>
               <th style={{ width: '10%' }}>TOTAL</th>
-              <th className="hidden sm:table-cell" style={{ width: '8%' }}>THRU</th>
+              <th style={{ width: '8%' }}>THRU</th>
               <th className="hidden sm:table-cell" style={{ width: '8%' }}>TODAY</th>
               {roundNumbers.map((r) => (
                 <th key={r} className="hidden lg:table-cell" style={{ width: '7%' }}>R{r}</th>
@@ -394,7 +394,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                   </td>
 
                   {/* Thru */}
-                  <td className="text-center text-xs sm:text-sm text-muted-foreground hidden sm:table-cell">
+                  <td className="text-center text-xs sm:text-sm text-muted-foreground">
                     {thru ?? '—'}
                   </td>
 

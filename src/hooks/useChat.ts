@@ -100,6 +100,8 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   // Supabase real-time subscription (INSERT + UPDATE for soft-delete).
   // Refetch immediately on each event so recipients see new messages with
   // no artificial delay — push notifications must not beat the in-app view.
+  // Also poll every 15s and refetch on tab focus as a safety net for Android,
+  // which silently kills idle WebSockets when the app is backgrounded.
   useEffect(() => {
     const supabase = createClient()
     const channel = supabase
@@ -115,8 +117,17 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
         () => { fetchMessages() },
       )
       .subscribe()
+
+    const poll = setInterval(() => { fetchMessages() }, 15000)
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') fetchMessages()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
       supabase.removeChannel(channel)
+      clearInterval(poll)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [tournamentId, channelPrefix, fetchMessages])
 

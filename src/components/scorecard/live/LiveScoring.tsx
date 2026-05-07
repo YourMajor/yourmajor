@@ -9,6 +9,7 @@ import { HoleNavigator } from './HoleNavigator'
 import { HoleScoring } from './HoleScoring'
 import { HoleOverview } from './HoleOverview'
 import { RoundSummary } from './RoundSummary'
+import { PendingConfirmationModal, type PendingConfirmation } from './PendingConfirmationModal'
 import type { HoleData, ExistingScore } from './useLiveScoringState'
 import type { PlayerPowerupData } from './PowerupTray'
 import type { PowerupEffect } from '@/lib/powerup-engine'
@@ -38,6 +39,7 @@ interface LiveScoringProps {
     powerupId: string
     status: string
     holeNumber: number | null
+    targetHoleNumber: number | null
     roundId: string | null
     scoreModifier: number | null
     metadata?: Record<string, unknown>
@@ -53,6 +55,7 @@ interface LiveScoringProps {
   attacksReceived?: Array<{
     id: string
     holeNumber: number | null
+    targetHoleNumber: number | null
     scoreModifier: number | null
     powerup: {
       id: string
@@ -68,6 +71,10 @@ interface LiveScoringProps {
     id: string
     user: { name: string | null }
   }>
+  /** Map of opponent tournamentPlayerId → list of hole numbers they've scored
+   *  on the current round. Used by the activation dialog to compute the next
+   *  valid attack hole on each opponent. */
+  opponentScoredHoles?: Record<string, number[]>
 }
 
 // ─── Swipe Panel Indices ──────────────────────────────────────────────────────
@@ -95,6 +102,7 @@ export function LiveScoring({
   playerPowerups: rawPlayerPowerups = [],
   attacksReceived: rawAttacksReceived = [],
   tournamentPlayers: rawTournamentPlayers = [],
+  opponentScoredHoles = {},
 }: LiveScoringProps) {
   const router = useRouter()
 
@@ -110,6 +118,84 @@ export function LiveScoring({
     // Initialize from any already-used powerups in the server data
     return new Set(rawPlayerPowerups.filter((pp) => pp.status === 'USED').map((pp) => pp.id))
   })
+
+  // ─── Pending powerup confirmations (Big Brother / Drink Up etc.) ────────
+  // These are USED cards whose scoreModifier is null because the trigger needs
+  // a Yes/No answer from the activator. We fetch on mount, on tab focus, and
+  // after each score save (which is when most BOOST-card holes become eligible).
+  // `deferredIds` skips a card the user dismissed this session — it'll re-
+  // surface on the next refetch.
+  const [pendingQueue, setPendingQueue] = useState<PendingConfirmation[]>([])
+  const [deferredIds, setDeferredIds] = useState<Set<string>>(new Set())
+
+  const fetchPendingConfirmations = useCallback(async () => {
+    if (!tournamentId || !powerupsEnabled) return
+    try {
+      const res = await fetch(
+        `/api/tournaments/${tournamentId}/powerups/pending-confirmations?roundId=${roundId}`,
+      )
+      if (!res.ok) return
+      const data = (await res.json()) as { pendingConfirmations: PendingConfirmation[] }
+      setPendingQueue(data.pendingConfirmations ?? [])
+    } catch {
+      // Non-critical — they'll re-surface on the next save.
+    }
+  }, [tournamentId, powerupsEnabled, roundId])
+
+  // Fetch on mount.
+  useEffect(() => {
+    fetchPendingConfirmations()
+  }, [fetchPendingConfirmations])
+
+  // Refetch when a save lands (BOOST cards become eligible the moment the
+  // activator's hole gets a score; ATTACK cards become eligible when a target
+  // they hit posts a score, so refetching on focus also catches that case).
+  useEffect(() => {
+    if (state.saveStatus === 'saved') {
+      fetchPendingConfirmations()
+    }
+  }, [state.saveStatus, fetchPendingConfirmations])
+
+  // Refetch on tab focus (covers ATTACK confirmations triggered by an opponent
+  // saving while this player isn't actively scoring).
+  useEffect(() => {
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') fetchPendingConfirmations()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => document.removeEventListener('visibilitychange', onVisible)
+  }, [fetchPendingConfirmations])
+
+  const handleAnswerConfirmation = useCallback(
+    async (playerPowerupId: string, modifier: number): Promise<boolean> => {
+      if (!tournamentId) return false
+      const res = await fetch(`/api/tournaments/${tournamentId}/powerups/resolve`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerPowerupId, scoreModifier: modifier }),
+      })
+      if (!res.ok) return false
+      setPendingQueue((prev) => prev.filter((p) => p.playerPowerupId !== playerPowerupId))
+      return true
+    },
+    [tournamentId],
+  )
+
+  const handleDeferConfirmation = useCallback(() => {
+    setPendingQueue((prev) => {
+      const [first, ...rest] = prev
+      if (first) {
+        setDeferredIds((d) => {
+          const next = new Set(d)
+          next.add(first.playerPowerupId)
+          return next
+        })
+      }
+      return rest
+    })
+  }, [])
+
+  const visibleConfirmation = pendingQueue.find((p) => !deferredIds.has(p.playerPowerupId)) ?? null
 
   // Transform raw powerup data for components, applying local used state
   const mappedPowerups: PlayerPowerupData[] = rawPlayerPowerups.map((pp) => ({
@@ -148,6 +234,14 @@ export function LiveScoring({
             powerupType: pp.powerup.type,
             scoreModifier: pp.scoreModifier ?? null,
             description: pp.powerup.description,
+            powerup: {
+              id: pp.powerup.id,
+              slug: pp.powerup.slug,
+              name: pp.powerup.name,
+              type: pp.powerup.type,
+              description: pp.powerup.description,
+              effect: pp.powerup.effect as PowerupEffect,
+            },
           })
         }
       }
@@ -166,10 +260,13 @@ export function LiveScoring({
       }
     }
 
-    // Hydrate attacks received on this round
+    // Hydrate attacks received on this round. Prefer targetHoleNumber (the
+    // hole on the recipient's scorecard) over holeNumber (the attacker's
+    // activation hole), falling back for legacy rows that pre-date the field.
     for (const ar of rawAttacksReceived) {
-      if (ar.holeNumber) {
-        const holeId = holeNumToId.get(ar.holeNumber)
+      const landsOn = ar.targetHoleNumber ?? ar.holeNumber
+      if (landsOn) {
+        const holeId = holeNumToId.get(landsOn)
         if (holeId) {
           state.addAttackReceived(holeId, {
             playerPowerupId: ar.id,
@@ -178,6 +275,14 @@ export function LiveScoring({
             powerupType: ar.powerup.type,
             scoreModifier: ar.scoreModifier ?? null,
             description: ar.powerup.description,
+            powerup: {
+              id: ar.powerup.id,
+              slug: ar.powerup.slug,
+              name: ar.powerup.name,
+              type: ar.powerup.type,
+              description: ar.powerup.description,
+              effect: ar.powerup.effect as PowerupEffect,
+            },
           })
         }
       }
@@ -211,6 +316,7 @@ export function LiveScoring({
   const handleActivatePowerup = useCallback(async (data: {
     playerPowerupId: string
     targetPlayerId?: string
+    targetHoleNumber?: number
     metadata?: Record<string, unknown>
   }) => {
     if (!state.currentHole || !tournamentId) return
@@ -223,6 +329,7 @@ export function LiveScoring({
         roundId,
         holeNumber: state.currentHole.number,
         targetPlayerId: data.targetPlayerId,
+        targetHoleNumber: data.targetHoleNumber,
         metadata: data.metadata,
       }),
     })
@@ -256,6 +363,14 @@ export function LiveScoring({
           powerupType: powerup.type,
           scoreModifier: result.scoreModifier ?? null,
           description: powerup.description,
+          powerup: {
+            id: powerup.powerupId,
+            slug: powerup.slug,
+            name: powerup.name,
+            type: powerup.type,
+            description: powerup.description,
+            effect: powerup.effect,
+          },
         })
       }
       // Remove from hand by marking as used in local state
@@ -390,6 +505,13 @@ export function LiveScoring({
         ...rootStyle,
       }}
     >
+      {/* Stacked Yes/No prompt for manual-trigger powerups. */}
+      <PendingConfirmationModal
+        confirmation={visibleConfirmation}
+        onAnswer={handleAnswerConfirmation}
+        onDefer={handleDeferConfirmation}
+      />
+
       {/* ── Hole Navigator + Back link (top) ─────────────────────────── */}
       <div className="shrink-0 bg-black/20 flex items-center pt-safe">
         <div
@@ -462,6 +584,8 @@ export function LiveScoring({
                 powerupMessage={state.powerupMessage}
                 tournamentPlayers={mappedPlayers}
                 currentPlayerId={tournamentPlayerId}
+                courseHoleNumbers={state.sortedHoles.map((h) => h.number)}
+                opponentScoredHoles={opponentScoredHoles}
                 rejection={state.rejection}
                 saveStatus={state.saveStatus}
                 runningScore={runningScore}

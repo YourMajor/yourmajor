@@ -1,0 +1,6 @@
+storageState.json
+screenshots/
+__pycache__/
+*.pyc
+last_run.txt
+auth_bootstrap_error.*

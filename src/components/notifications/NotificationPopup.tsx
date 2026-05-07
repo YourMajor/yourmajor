@@ -41,6 +41,11 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
   const [visible, setVisible] = useState(false)
   const pathname = usePathname()
   const isOnDraftPage = !!pathname && pathname.startsWith(`/${slug}/draft`)
+  // Attack modals are exclusive to live scoring. When the user is anywhere
+  // else in the app, the OS push handles delivery (see public/sw.js) and we
+  // leave the notification unread so it surfaces the next time they open
+  // the scoring screen.
+  const isOnLiveScoringPage = !!pathname && (pathname === `/${slug}/play` || pathname.startsWith(`/${slug}/play/`))
 
   const markRead = useCallback(
     async (ids: string[]) => {
@@ -71,7 +76,8 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
 
       const showable = data.find(
         (n) =>
-          n.type === 'ATTACK_RECEIVED' || (n.type === 'DRAFT_YOUR_TURN' && !isOnDraftPage),
+          (n.type === 'ATTACK_RECEIVED' && isOnLiveScoringPage) ||
+          (n.type === 'DRAFT_YOUR_TURN' && !isOnDraftPage),
       )
       if (showable) {
         setNotification(showable as DisplayNotification)
@@ -80,32 +86,37 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     } catch {
       // ignore
     }
-  }, [tournamentId, isOnDraftPage, markRead])
+  }, [tournamentId, isOnDraftPage, isOnLiveScoringPage, markRead])
 
   useEffect(() => {
+    // Use a broadcast channel rather than postgres_changes: the server emits
+    // a broadcast on Notification insert (see src/lib/notification-broadcast),
+    // and broadcasts are channel-scoped (no RLS evaluation) so this works
+    // with the anon supabase client even though auth runs through NextAuth.
     const supabase = createClient()
     const channel = supabase
       .channel(`notifications-${tournamentPlayerId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'Notification',
-          filter: `tournamentPlayerId=eq.${tournamentPlayerId}`,
-        },
-        () => {
-          fetchNotifications()
-        },
-      )
+      .on('broadcast', { event: 'new' }, () => {
+        fetchNotifications()
+      })
       .subscribe()
 
     queueMicrotask(() => {
       void fetchNotifications()
     })
 
+    // Resilience: if the websocket dropped while the tab was hidden, refetch
+    // when it becomes visible again so we don't miss any inserts.
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        void fetchNotifications()
+      }
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+
     return () => {
       supabase.removeChannel(channel)
+      document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [tournamentPlayerId, fetchNotifications])
 

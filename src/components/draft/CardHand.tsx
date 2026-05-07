@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useCallback, useMemo, type ElementType } from 'react'
+import { useState, useCallback, useEffect, useMemo, type ElementType } from 'react'
 import {
   Zap, Swords, Beer, Footprints, Flag, HandMetal, Dice5, Pickaxe, Shield,
   Crown, Handshake, Ruler, Bomb, Target, Shuffle, Hand, Waves,
@@ -9,7 +9,7 @@ import {
 } from 'lucide-react'
 import type { PowerupCardData } from './PowerupCard'
 import { FlippableCardOverlay } from './FlippableCardOverlay'
-import { GOLF_CLUBS, type PowerupEffect } from '@/lib/powerup-engine'
+import { GOLF_CLUBS, computeAttackTargetHole, type PowerupEffect } from '@/lib/powerup-engine'
 
 const SLUG_ICON_COMPONENTS: Record<string, ElementType> = {
   'shots-for-shots': Beer, 'walk-it-in': Footprints, 'left-on-red': Flag, 'concede': HandMetal,
@@ -37,10 +37,18 @@ interface ActivationContext {
   onActivate: (data: {
     playerPowerupId: string
     targetPlayerId?: string
+    targetHoleNumber?: number
     metadata?: Record<string, unknown>
   }) => Promise<void>
   /** Map from powerupId to playerPowerupId */
   playerPowerupIdMap: Record<string, string>
+  /** All hole numbers on the current course (sorted). Required for the
+   *  attack hole selector. Optional for non-scoring activation contexts
+   *  (e.g. draft preview) where attack-targeting is N/A. */
+  courseHoleNumbers?: number[]
+  /** Map of opponent tournamentPlayerId → list of scored hole numbers on
+   *  the active round. Used to filter the target-hole selector. */
+  opponentScoredHoles?: Record<string, number[]>
 }
 
 interface CardHandProps {
@@ -101,6 +109,8 @@ export function CardHand({ cards, onCardClick, onActivateCard, activationContext
           ...activationContext,
           powerupId: card.powerupId,
           playerPowerupId: activationContext.playerPowerupIdMap[card.powerupId],
+          courseHoleNumbers: activationContext.courseHoleNumbers,
+          opponentScoredHoles: activationContext.opponentScoredHoles,
         } : undefined}
         onActivate={!activationContext && onActivateCard ? () => {
           closeCard()
@@ -243,14 +253,17 @@ export function CardBack({
   activationContext?: {
     players: Array<{ id: string; name: string }>
     currentPlayerId: string
-    onActivate: (data: { playerPowerupId: string; targetPlayerId?: string; metadata?: Record<string, unknown> }) => Promise<void>
+    onActivate: (data: { playerPowerupId: string; targetPlayerId?: string; targetHoleNumber?: number; metadata?: Record<string, unknown> }) => Promise<void>
     powerupId: string
     playerPowerupId: string
+    courseHoleNumbers?: number[]
+    opponentScoredHoles?: Record<string, number[]>
   }
   /** When provided, replaces the default footer */
   customFooter?: React.ReactNode
 }) {
   const [targetPlayerId, setTargetPlayerId] = useState('')
+  const [targetHoleNumber, setTargetHoleNumber] = useState<number | null>(null)
   const [selectedPlayerIds, setSelectedPlayerIds] = useState<string[]>([])
   const [playerSearch, setPlayerSearch] = useState('')
   const [clubName, setClubName] = useState('')
@@ -265,9 +278,36 @@ export function CardBack({
   const isMultiPlayerSelect = inputType === 'player_select' && inputCount !== null && !needsTarget
   const otherPlayers = activationContext?.players.filter((p) => p.id !== activationContext.currentPlayerId) ?? []
 
+  // ATTACK cards: compute the recipient's unscored holes and auto-default
+  // the target hole. Only active when invoked from live scoring (course +
+  // opponent score data are provided).
+  const courseHoleNumbers = activationContext?.courseHoleNumbers ?? []
+  const opponentScoredHoles = activationContext?.opponentScoredHoles ?? {}
+  const showHoleSelect = !!(isAttack && needsTarget && targetPlayerId && courseHoleNumbers.length > 0)
+  const targetScoredKey = JSON.stringify(opponentScoredHoles[targetPlayerId] ?? [])
+  const courseKey = courseHoleNumbers.join(',')
+  const targetUnscoredHoles = useMemo(() => {
+    if (!showHoleSelect) return [] as number[]
+    const scored = new Set<number>(opponentScoredHoles[targetPlayerId] ?? [])
+    return courseHoleNumbers.filter((n) => !scored.has(n))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHoleSelect, targetPlayerId, courseKey, targetScoredKey])
+
+  // Auto-default the target hole whenever the chosen target changes.
+  useEffect(() => {
+    if (!showHoleSelect) {
+      setTargetHoleNumber(null)
+      return
+    }
+    const scored = new Set<number>(opponentScoredHoles[targetPlayerId] ?? [])
+    setTargetHoleNumber(computeAttackTargetHole(courseHoleNumbers, scored))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [showHoleSelect, targetPlayerId, courseKey, targetScoredKey])
+
   const canSubmit = (() => {
     if (!canActivateCtx) return false
     if (needsTarget && !targetPlayerId) return false
+    if (showHoleSelect && (targetHoleNumber === null || targetUnscoredHoles.length === 0)) return false
     if (isMultiPlayerSelect && selectedPlayerIds.length === 0) return false
     if (inputType === 'club_select' && !clubName) return false
     if (inputType === 'number_input' && !needsTarget && !numberValue) return false
@@ -294,6 +334,7 @@ export function CardBack({
       await activationContext.onActivate({
         playerPowerupId: activationContext.playerPowerupId,
         targetPlayerId: targetPlayerId || undefined,
+        targetHoleNumber: showHoleSelect && targetHoleNumber !== null ? targetHoleNumber : undefined,
         metadata: Object.keys(metadata).length > 0 ? metadata : undefined,
       })
       onClose()
@@ -360,6 +401,28 @@ export function CardBack({
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+              </div>
+            )}
+            {showHoleSelect && (
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-600 mb-1 block">
+                  Apply on hole
+                </label>
+                {targetUnscoredHoles.length === 0 ? (
+                  <p className="text-[11px] text-red-600">
+                    Target has finished — no hole to attack.
+                  </p>
+                ) : (
+                  <select
+                    value={targetHoleNumber ?? ''}
+                    onChange={(e) => setTargetHoleNumber(e.target.value ? parseInt(e.target.value, 10) : null)}
+                    className="w-full h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800"
+                  >
+                    {targetUnscoredHoles.map((n) => (
+                      <option key={n} value={n}>Hole {n}</option>
+                    ))}
+                  </select>
+                )}
               </div>
             )}
             {inputType === 'club_select' && (

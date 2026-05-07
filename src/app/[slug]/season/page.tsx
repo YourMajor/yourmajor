@@ -150,6 +150,7 @@ export default async function SeasonPage({
         scheduleEvents={scheduleEvents}
         isAuthenticated={!!user}
         onRoster={onRoster}
+        isLeague={isLeague}
       />
     </main>
   )

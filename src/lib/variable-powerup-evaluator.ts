@@ -799,6 +799,215 @@ async function evaluateFootWedge(
   return { playerPowerupId, slug, outcome: 'in_progress', scoreModifier: null, message: `Foot Wedge: ${holesRemaining} hole${holesRemaining === 1 ? '' : 's'} remaining` }
 }
 
+// ─── Post-hole attack evaluator ─────────────────────────────────────────────
+//
+// Some manual ATTACK powerups have a static modifier that should fire IF the
+// targeted opponent's score on the landing hole meets a condition (e.g.
+// Three-Putt Fee → +1 if opponent putts ≥ 3; Snowman → +2 if opponent strokes
+// ≥ 8). These are stored as status='USED' with scoreModifier=null at
+// activation time, then resolved here once the target's score lands.
+//
+// Called from /api/scores after the *target's* score is saved — pass the
+// tournamentPlayerId of the player who just scored.
+
+const POST_HOLE_ATTACK_SLUGS = ['three-putt-fee', 'snowman'] as const
+
+export async function evaluatePostHoleAttacks(
+  targetTournamentPlayerId: string,
+  roundId: string,
+): Promise<EvaluationResult[]> {
+  const pending = await prisma.playerPowerup.findMany({
+    where: {
+      roundId,
+      status: 'USED',
+      scoreModifier: null,
+      targetPlayerId: targetTournamentPlayerId,
+      powerup: { slug: { in: POST_HOLE_ATTACK_SLUGS as unknown as string[] } },
+    },
+    include: {
+      powerup: { select: { slug: true, name: true, effect: true } },
+    },
+  })
+
+  if (pending.length === 0) return []
+
+  const scores = await prisma.score.findMany({
+    where: { tournamentPlayerId: targetTournamentPlayerId, roundId },
+    select: { strokes: true, putts: true, hole: { select: { number: true } } },
+  })
+  const scoreByHole = new Map(scores.map((s) => [s.hole.number, s]))
+
+  const results: EvaluationResult[] = []
+
+  for (const pp of pending) {
+    if (pp.targetHoleNumber === null) continue
+    const score = scoreByHole.get(pp.targetHoleNumber)
+    if (!score) continue // Target hasn't scored that hole yet — wait for the next save.
+
+    const effect = pp.powerup.effect as { scoring: { modifier: number | null } }
+    const fullModifier = effect.scoring.modifier ?? 0
+    let triggered = false
+    let message = ''
+
+    if (pp.powerup.slug === 'three-putt-fee') {
+      triggered = (score.putts ?? 0) >= 3
+      message = triggered
+        ? `Three-Putt Fee: target three-putted hole ${pp.targetHoleNumber} (+${fullModifier})`
+        : `Three-Putt Fee: target avoided three-putt on hole ${pp.targetHoleNumber}`
+    } else if (pp.powerup.slug === 'snowman') {
+      triggered = score.strokes >= 8
+      message = triggered
+        ? `Snowman: target made ${score.strokes} on hole ${pp.targetHoleNumber} (+${fullModifier})`
+        : `Snowman: target made ${score.strokes} on hole ${pp.targetHoleNumber}, didn't reach 8`
+    }
+
+    const modifier = triggered ? fullModifier : 0
+    await prisma.playerPowerup.update({
+      where: { id: pp.id },
+      data: { scoreModifier: modifier },
+    })
+
+    results.push({
+      playerPowerupId: pp.id,
+      slug: pp.powerup.slug,
+      outcome: triggered ? 'success' : 'failed',
+      scoreModifier: modifier,
+      message,
+    })
+  }
+
+  return results
+}
+
+// ─── Pending confirmation finder ────────────────────────────────────────────
+//
+// Six cards have a manual trigger that can't be auto-evaluated from score
+// data. We surface them as a modal prompt to the activator after the relevant
+// hole is scored; their Yes/No answer is then POSTed to /resolve.
+
+export interface PendingConfirmation {
+  playerPowerupId: string
+  slug: string
+  name: string
+  prompt: string
+  modifierIfYes: number
+  /** Hole the prompt relates to (BOOST: activator's hole; ATTACK: target's hole). */
+  contextHoleNumber: number
+  targetPlayerName: string | null
+}
+
+const CONFIRMATION_BOOST_SLUGS = ['big-brother', 'caddys-pick', 'showdown', 'twinning'] as const
+const CONFIRMATION_ATTACK_SLUGS = ['drink-up', 'the-long-and-winding-road'] as const
+
+const CONFIRMATION_PROMPTS: Record<string, string> = {
+  'big-brother': 'Did you score lower than your chosen partner on this hole?',
+  'caddys-pick': "Did you make par or better with your partner's club choice?",
+  'showdown': 'Did you outdrive AND beat your chosen partner on this hole?',
+  'twinning': 'Did you and your chosen partner score the same on this hole?',
+  'drink-up': 'Did your target fail to finish their drink before the green?',
+  'the-long-and-winding-road': "Did your target's ball fail to visit both rough sides?",
+}
+
+export async function findPendingConfirmations(
+  currentTournamentPlayerId: string,
+  roundId: string,
+): Promise<PendingConfirmation[]> {
+  const allSlugs: string[] = [...CONFIRMATION_BOOST_SLUGS, ...CONFIRMATION_ATTACK_SLUGS]
+  const rows = await prisma.playerPowerup.findMany({
+    where: {
+      roundId,
+      status: 'USED',
+      scoreModifier: null,
+      tournamentPlayerId: currentTournamentPlayerId,
+      powerup: { slug: { in: allSlugs } },
+    },
+    include: {
+      powerup: { select: { slug: true, name: true, effect: true } },
+    },
+  })
+
+  if (rows.length === 0) return []
+
+  // Pre-fetch target names + score availability in two batched queries.
+  const targetIds = Array.from(new Set(rows.map((r) => r.targetPlayerId).filter((id): id is string => Boolean(id))))
+  const targets = targetIds.length > 0
+    ? await prisma.tournamentPlayer.findMany({
+        where: { id: { in: targetIds } },
+        select: { id: true, user: { select: { name: true } } },
+      })
+    : []
+  const nameById = new Map(targets.map((t) => [t.id, t.user.name]))
+
+  // For BOOST cards we need the activator's score on the activation hole.
+  // For ATTACK cards we need the target's score on the target hole.
+  const activatorScoreHoles = rows
+    .filter((r) => CONFIRMATION_BOOST_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_BOOST_SLUGS[number]))
+    .map((r) => r.holeNumber)
+    .filter((n): n is number => n !== null)
+
+  const activatorScores = activatorScoreHoles.length > 0
+    ? await prisma.score.findMany({
+        where: {
+          tournamentPlayerId: currentTournamentPlayerId,
+          roundId,
+          hole: { number: { in: activatorScoreHoles } },
+        },
+        select: { hole: { select: { number: true } } },
+      })
+    : []
+  const scoredActivatorHoles = new Set(activatorScores.map((s) => s.hole.number))
+
+  // Group ATTACK target lookups by targetPlayerId.
+  const attackTargetPairs = rows
+    .filter((r) => CONFIRMATION_ATTACK_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_SLUGS[number]))
+    .filter((r) => r.targetPlayerId && r.targetHoleNumber !== null)
+    .map((r) => ({ tpId: r.targetPlayerId!, hole: r.targetHoleNumber! }))
+
+  const attackTargetScores = attackTargetPairs.length > 0
+    ? await prisma.score.findMany({
+        where: {
+          OR: attackTargetPairs.map((p) => ({
+            tournamentPlayerId: p.tpId,
+            roundId,
+            hole: { number: p.hole },
+          })),
+        },
+        select: { tournamentPlayerId: true, hole: { select: { number: true } } },
+      })
+    : []
+  const scoredTargetKey = new Set(attackTargetScores.map((s) => `${s.tournamentPlayerId}:${s.hole.number}`))
+
+  const pending: PendingConfirmation[] = []
+
+  for (const r of rows) {
+    const effect = r.powerup.effect as { scoring: { modifier: number | null } }
+    const fullModifier = effect.scoring.modifier ?? 0
+    const isBoost = CONFIRMATION_BOOST_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_BOOST_SLUGS[number])
+
+    let contextHole: number | null = null
+    if (isBoost) {
+      if (r.holeNumber === null || !scoredActivatorHoles.has(r.holeNumber)) continue
+      contextHole = r.holeNumber
+    } else {
+      if (!r.targetPlayerId || r.targetHoleNumber === null) continue
+      if (!scoredTargetKey.has(`${r.targetPlayerId}:${r.targetHoleNumber}`)) continue
+      contextHole = r.targetHoleNumber
+    }
+
+    pending.push({
+      playerPowerupId: r.id,
+      slug: r.powerup.slug,
+      name: r.powerup.name,
+      prompt: CONFIRMATION_PROMPTS[r.powerup.slug] ?? 'Did the trigger fire?',
+      modifierIfYes: fullModifier,
+      contextHoleNumber: contextHole,
+      targetPlayerName: r.targetPlayerId ? (nameById.get(r.targetPlayerId) ?? null) : null,
+    })
+  }
+
+  return pending
+}
+
 // ─── Shared resolution helper ─────────────────────────────────────────────────
 
 async function resolvePowerup(

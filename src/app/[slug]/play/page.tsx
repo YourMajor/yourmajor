@@ -148,8 +148,10 @@ export default async function PlayPage({
     yards: teeYardageMap[h.id] ?? h.yardages[0]?.yards ?? null,
   }))
 
-  // Fetch player powerups, attacks received, and tournament players
-  const [playerPowerups, attacksReceived, tournamentPlayers] = await Promise.all([
+  // Fetch player powerups, attacks received, tournament players, and the
+  // scored-hole map for every other participant (used by the activation
+  // dialog to pick a valid attack hole on the recipient).
+  const [playerPowerups, attacksReceived, tournamentPlayers, opponentScores] = await Promise.all([
     tournament.powerupsEnabled
       ? prisma.playerPowerup.findMany({
           where: { tournamentPlayerId: tournamentPlayer.id },
@@ -158,6 +160,7 @@ export default async function PlayPage({
             powerupId: true,
             status: true,
             holeNumber: true,
+            targetHoleNumber: true,
             roundId: true,
             scoreModifier: true,
             metadata: true,
@@ -177,6 +180,7 @@ export default async function PlayPage({
           select: {
             id: true,
             holeNumber: true,
+            targetHoleNumber: true,
             scoreModifier: true,
             powerup: {
               select: { id: true, slug: true, name: true, type: true, description: true, effect: true },
@@ -193,7 +197,25 @@ export default async function PlayPage({
           select: { id: true, user: { select: { name: true } } },
         })
       : [],
+    tournament.powerupsEnabled
+      ? prisma.score.findMany({
+          where: {
+            roundId: selectedRound.id,
+            tournamentPlayer: { tournamentId: tournament.id, isParticipant: true },
+          },
+          select: { tournamentPlayerId: true, hole: { select: { number: true } } },
+        })
+      : [],
   ])
+
+  // Bucket scored-hole numbers per opponent so the activation dialog can show
+  // only valid (unscored) target holes.
+  const opponentScoredHoles: Record<string, number[]> = {}
+  for (const s of opponentScores) {
+    if (s.tournamentPlayerId === tournamentPlayer.id) continue
+    const list = opponentScoredHoles[s.tournamentPlayerId] ?? (opponentScoredHoles[s.tournamentPlayerId] = [])
+    list.push(s.hole.number)
+  }
 
   return (
     <LiveScoring
@@ -214,6 +236,7 @@ export default async function PlayPage({
       playerPowerups={playerPowerups as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['playerPowerups']>}
       attacksReceived={attacksReceived as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['attacksReceived']>}
       tournamentPlayers={tournamentPlayers as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['tournamentPlayers']>}
+      opponentScoredHoles={opponentScoredHoles}
     />
   )
 }

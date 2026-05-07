@@ -618,6 +618,7 @@ model PlayerPowerup {
   targetPlayerId     String?
   roundId            String?
   holeNumber         Int?
+  targetHoleNumber   Int?
   scoreModifier      Int?
   status             PlayerPowerupStatus @default(AVAILABLE)
   metadata           Json?

@@ -8,6 +8,7 @@ import {
   clampPutts,
 } from './score-validation'
 import type { VariablePowerupState, PowerupMessage } from './VariablePowerupBanner'
+import type { PowerupEffect } from '@/lib/powerup-engine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -34,6 +35,17 @@ export interface ActivePowerup {
   powerupType: 'BOOST' | 'ATTACK'
   scoreModifier: number | null
   description: string
+  /** Full card definition — present when hydrated from the server load.
+   *  Optional so legacy / locally-added rows still type-check; the detail
+   *  dialog falls back to an inline-rendered minimal card when absent. */
+  powerup?: {
+    id: string
+    slug: string
+    name: string
+    type: 'BOOST' | 'ATTACK'
+    description: string
+    effect: PowerupEffect
+  }
 }
 
 export interface HoleScore {
@@ -305,8 +317,10 @@ export function useLiveScoringState({
   const incrementStrokes = useCallback(() => {
     if (!currentHole) return
     updateScore(currentHole.id, (prev) => {
+      // Cap live-scoring strokes at 15 to prevent runaway tap-ups; admin and
+      // post-round entry paths still allow up to 20 for rare blow-up holes.
       const newStrokes =
-        prev.strokes === null ? currentHole.par : prev.strokes + 1
+        prev.strokes === null ? currentHole.par : Math.min(15, prev.strokes + 1)
       const newPutts = prev.putts // putts stay valid when strokes increase
       const newGir = computeGir(newStrokes, newPutts, currentHole.par)
       return { ...prev, strokes: newStrokes, gir: newGir }

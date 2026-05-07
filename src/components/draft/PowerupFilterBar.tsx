@@ -4,6 +4,7 @@ import { Search, X } from 'lucide-react'
 import type { DurationFilter } from '@/lib/draft-utils'
 
 export type PowerupTypeFilter = 'ALL' | 'BOOST' | 'ATTACK'
+export type PowerupSortKey = 'DEFAULT' | 'POWER_DESC' | 'DURATION_ASC'
 
 interface PowerupFilterBarProps {
   search: string
@@ -12,6 +13,8 @@ interface PowerupFilterBarProps {
   onTypeFilterChange: (value: PowerupTypeFilter) => void
   durationFilter: DurationFilter
   onDurationFilterChange: (value: DurationFilter) => void
+  sortBy: PowerupSortKey
+  onSortChange: (value: PowerupSortKey) => void
   /** Counts shown next to each chip; pass undefined to hide. */
   counts?: { ALL: number; BOOST: number; ATTACK: number }
   durationCounts?: { ALL: number; SINGLE: number; MULTI: number }
@@ -29,7 +32,13 @@ const DURATIONS: { value: DurationFilter; label: string }[] = [
   { value: 'MULTI', label: 'Multi' },
 ]
 
-export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, durationFilter, onDurationFilterChange, counts, durationCounts }: PowerupFilterBarProps) {
+const SORTS: { value: PowerupSortKey; label: string }[] = [
+  { value: 'DEFAULT', label: 'Default' },
+  { value: 'POWER_DESC', label: 'Power: high → low' },
+  { value: 'DURATION_ASC', label: 'Duration: 1H first' },
+]
+
+export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, durationFilter, onDurationFilterChange, sortBy, onSortChange, counts, durationCounts }: PowerupFilterBarProps) {
   return (
     <div className="sticky top-9 z-20 -mx-3 sm:-mx-4 px-3 sm:px-4 py-2 bg-background/95 backdrop-blur-sm border-b border-border space-y-2">
       {/* Search */}
@@ -112,6 +121,23 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
             </button>
           )
         })}
+      </div>
+
+      {/* Sort dropdown */}
+      <div className="flex items-center gap-2">
+        <label htmlFor="powerup-sort" className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
+          Sort
+        </label>
+        <select
+          id="powerup-sort"
+          value={sortBy}
+          onChange={(e) => onSortChange(e.target.value as PowerupSortKey)}
+          className="flex-1 h-8 rounded-md border border-input bg-card px-2 text-xs sm:text-sm font-medium text-foreground shadow-sm transition-colors outline-none focus-visible:border-primary focus-visible:ring-2 focus-visible:ring-primary/25"
+        >
+          {SORTS.map((s) => (
+            <option key={s.value} value={s.value}>{s.label}</option>
+          ))}
+        </select>
       </div>
     </div>
   )
