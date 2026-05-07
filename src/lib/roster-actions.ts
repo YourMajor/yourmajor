@@ -6,19 +6,7 @@ import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { sendInvitations } from '@/lib/invite-sender'
-
-async function getRootTournamentId(tournamentId: string): Promise<string> {
-  let currentId = tournamentId
-  for (let i = 0; i < 100; i++) {
-    const t = await prisma.tournament.findUnique({
-      where: { id: currentId },
-      select: { id: true, parentTournamentId: true },
-    })
-    if (!t || !t.parentTournamentId) return currentId
-    currentId = t.parentTournamentId
-  }
-  return currentId
-}
+import { getRootTournamentId } from '@/lib/league-chain'
 
 async function revalidateRosterScope(tournamentId: string, rootId: string) {
   // Revalidate the entered slug (where the action originated) plus the league

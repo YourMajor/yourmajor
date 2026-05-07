@@ -42,11 +42,20 @@ export function GpsMap() {
         return
       }
 
+      // The marker updates imperatively via Mapbox on every fix so movement
+      // looks smooth. React state (used only by the footer text) is throttled
+      // to 1 Hz — that's plenty for 5-decimal lat/lng + accuracy display and
+      // avoids re-rendering the entire <div> tree on every GPS sample.
+      let lastStateAt = 0
       watchIdRef.current = navigator.geolocation.watchPosition(
         (position) => {
           const { latitude: lat, longitude: lng, accuracy, heading } = position.coords
-          setPos({ lat, lng, accuracy, heading })
-          setError(null)
+          const now = Date.now()
+          if (now - lastStateAt >= 1000) {
+            lastStateAt = now
+            setPos({ lat, lng, accuracy, heading })
+            setError(null)
+          }
 
           if (!mapRef.current) return
 

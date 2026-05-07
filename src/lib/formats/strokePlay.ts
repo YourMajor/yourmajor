@@ -3,10 +3,7 @@
 
 import { allocateHandicapStrokes, callawayDeduction, type PlayerStanding } from '@/lib/scoring-utils'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
-
-function holesArr(ctx: ScoringContext) {
-  return ctx.holes.map((h) => ({ number: h.number, handicap: h.handicap }))
-}
+import { getHoleHandicapPairs } from './context-helpers'
 
 function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
   const grossTotal = p.scores.length > 0
@@ -39,7 +36,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       netVsPar = netTotal - playedPar
     } else {
       // WHS / PEORIA / STABLEFORD-as-handicap-system: WHS-style stroke allocation
-      const strokeSet = allocateHandicapStrokes(p.handicap, holesArr(ctx))
+      const strokeSet = allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
       const handicapStrokesApplied = p.scores.filter((s) => strokeSet.has(s.holeNumber)).length
       netTotal = adjustedGross - handicapStrokesApplied
       netVsPar = netTotal - playedPar
@@ -47,6 +44,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
   }
 
   return {
+    kind: 'stroke',
     rank: 0,
     tournamentPlayerId: p.tournamentPlayerId,
     playerName: p.name,

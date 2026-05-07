@@ -5,8 +5,12 @@ import Link from 'next/link'
 import { ChevronDown, Crown, Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { type PlayerStanding } from '@/lib/scoring-utils'
+import { type PlayerStanding, type StandingKind } from '@/lib/scoring-utils'
 import { ComparativeScoreChart } from './ComparativeScoreChart'
+import { MatchPlayLeaderboardTable } from './MatchPlayLeaderboardTable'
+import { SkinsLeaderboardTable } from './SkinsLeaderboardTable'
+import { TeamLeaderboardTable } from './TeamLeaderboardTable'
+import { NassauLeaderboardTable } from './NassauLeaderboardTable'
 
 function vsParLabel(n: number): string {
   if (n === 0) return 'E'
@@ -67,18 +71,30 @@ interface Props {
   defendingChampionPlayerId?: string | null
   isRegistered?: boolean
   handicapSystem?: string
+  tournamentFormat?: string
 }
 
-export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, roundIds, slug, status, scoringCta, defendingChampionPlayerId, isRegistered, handicapSystem }: Props) {
+export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, roundIds, slug, status, scoringCta, defendingChampionPlayerId, isRegistered, handicapSystem, tournamentFormat }: Props) {
   const [standings, setStandings] = useState<PlayerStanding[]>(initialData)
   const [loading, setLoading] = useState(false)
   const [scoreType, setScoreType] = useState<'gross' | 'net'>('gross')
   const [roundFilter, setRoundFilter] = useState<string>('all')
   const [playerSearch, setPlayerSearch] = useState('')
 
-  const isStableford = standings.some((s) => s.points !== null)
+  // Format detection prefers the per-row `kind` discriminator. Old cached blobs
+  // and stableford-via-handicap-system paths still set `points`, so we fall
+  // back to that heuristic if no row carries `kind` yet.
+  const standingKind: StandingKind | undefined = standings[0]?.kind
+  const isStableford = standingKind === 'stableford'
+    || (standingKind === undefined && standings.some((s) => s.points !== null))
+  const isMatchPlay = standingKind === 'match'
+  const isSkins = standingKind === 'skins'
+  const isTeamFormat = standingKind === 'team-stroke' || standingKind === 'team-best-ball'
+  const isNassau = standingKind === 'nassau'
+  const isPointsSort = isStableford || isMatchPlay || isSkins || isNassau
   const hasNet = standings.some((s) => s.netVsPar !== null)
   const totalHoles = 18 * roundNumbers.length
+  void tournamentFormat   // reserved for future per-format row registry
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -121,7 +137,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
   // mode. Keeping it in its own memo means typing in the search box doesn't
   // re-run a full O(N) sort over every player on each keystroke.
   const sorted = useMemo(() => [...standings].sort((a, b) => {
-    if (isStableford) {
+    if (isPointsSort) {
       if (a.points === null && b.points === null) return 0
       if (a.points === null) return 1
       if (b.points === null) return -1
@@ -133,27 +149,27 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
     if (av === null) return 1
     if (bv === null) return -1
     return av - bv
-  }), [standings, isStableford, scoreType])
+  }), [standings, isPointsSort, scoreType])
 
   type Ranked = PlayerStanding & { displayRank: string }
   const withRanks: Ranked[] = useMemo(() => {
     const result: Ranked[] = []
     for (let i = 0; i < sorted.length; i++) {
       const p = sorted[i]
-      const val = isStableford ? p.points : scoreType === 'net' ? p.netVsPar : p.grossVsPar
+      const val = isPointsSort ? p.points : scoreType === 'net' ? p.netVsPar : p.grossVsPar
       const prev = i > 0 ? result[i - 1] : null
       const prevVal = prev
-        ? (isStableford ? prev.points : scoreType === 'net' ? prev.netVsPar : prev.grossVsPar)
+        ? (isPointsSort ? prev.points : scoreType === 'net' ? prev.netVsPar : prev.grossVsPar)
         : null
       const nextVal = i < sorted.length - 1
-        ? (isStableford ? sorted[i + 1].points : scoreType === 'net' ? sorted[i + 1].netVsPar : sorted[i + 1].grossVsPar)
+        ? (isPointsSort ? sorted[i + 1].points : scoreType === 'net' ? sorted[i + 1].netVsPar : sorted[i + 1].grossVsPar)
         : null
       const rank = i === 0 ? 1 : prevVal === val ? parseInt(prev!.displayRank.replace('T', '')) : i + 1
       const isTied = val !== null && (prevVal === val || nextVal === val)
       result.push({ ...p, displayRank: isTied ? `T${rank}` : `${rank}` })
     }
     return result
-  }, [sorted, isStableford, scoreType])
+  }, [sorted, isPointsSort, scoreType])
 
   const hasScores = standings.some((s) => s.holesPlayed > 0)
   const showingRound = roundFilter !== 'all' ? Number(roundFilter) : null
@@ -251,7 +267,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
     <div>
       {/* Filters + Search + Scoring CTA */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-4 lg:mb-6 flex-wrap">
-        {!isStableford && (
+        {!isPointsSort && (
           <FilterPill value={scoreType} options={scoreTypeOptions} onChange={(v) => setScoreType(v as 'gross' | 'net')} />
         )}
         {roundNumbers.length > 1 && (
@@ -292,7 +308,40 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
         )}
       </div>
 
-      {/* Masters-style leaderboard table */}
+      {/* Match play renders its own table (W-L-H + status). */}
+      {isMatchPlay ? (
+        <MatchPlayLeaderboardTable
+          rows={filteredRanks}
+          slug={slug}
+          loading={loading}
+          defendingChampionPlayerId={defendingChampionPlayerId}
+          playerNames={Object.fromEntries(standings.map((s) => [s.tournamentPlayerId, s.playerName]))}
+        />
+      ) : isSkins ? (
+        <SkinsLeaderboardTable
+          rows={filteredRanks}
+          slug={slug}
+          loading={loading}
+          defendingChampionPlayerId={defendingChampionPlayerId}
+          trailingCarryover={standings[0]?.skinsTrailingCarryover ?? 0}
+          showValueColumn={(standings[0]?.skinsValue ?? 1) > 1}
+        />
+      ) : isTeamFormat ? (
+        <TeamLeaderboardTable
+          rows={filteredRanks}
+          slug={slug}
+          loading={loading}
+          roundNumbers={roundNumbers}
+          hasNet={hasNet}
+        />
+      ) : isNassau ? (
+        <NassauLeaderboardTable
+          rows={filteredRanks}
+          slug={slug}
+          loading={loading}
+          defendingChampionPlayerId={defendingChampionPlayerId}
+        />
+      ) : (
       <div className="rounded-lg overflow-hidden overflow-x-auto" role="region" aria-label="Leaderboard">
         <table className="masters-table">
           <caption className="sr-only">Tournament leaderboard — {filteredRanks.length} players</caption>
@@ -342,44 +391,60 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                   {/* Player */}
                   <td className="pl-3 sm:pl-4">
                     <div className="relative group/player">
-                      <Link href={`/${slug}/players/${p.tournamentPlayerId}`} className="flex items-center gap-2.5 sm:gap-3 min-w-0">
-                        <div className="relative shrink-0">
-                          {defendingChampionPlayerId === p.tournamentPlayerId ? (
-                            <div className="rounded-full p-[2px] bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600">
-                              <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-background">
-                                <AvatarImage src={p.avatarUrl ?? undefined} />
-                                <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
-                                  {p.playerName.charAt(0).toUpperCase()}
-                                </AvatarFallback>
-                              </Avatar>
+                      {(() => {
+                        // Team rows store team.id in tournamentPlayerId, so the
+                        // per-player link 404s. Phase 4 will wire /teams/{id};
+                        // for now team rows render without a link.
+                        const isTeamRow = p.kind === 'team-stroke' || p.kind === 'team-best-ball'
+                        const inner = (
+                          <>
+                            <div className="relative shrink-0">
+                              {defendingChampionPlayerId === p.tournamentPlayerId ? (
+                                <div className="rounded-full p-[2px] bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600">
+                                  <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-background">
+                                    <AvatarImage src={p.avatarUrl ?? undefined} />
+                                    <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                      {p.playerName.charAt(0).toUpperCase()}
+                                    </AvatarFallback>
+                                  </Avatar>
+                                </div>
+                              ) : (
+                                <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
+                                  <AvatarImage src={p.avatarUrl ?? undefined} />
+                                  <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                    {p.playerName.charAt(0).toUpperCase()}
+                                  </AvatarFallback>
+                                </Avatar>
+                              )}
+                              {defendingChampionPlayerId === p.tournamentPlayerId && (
+                                <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-400 text-yellow-900 ring-2 ring-background">
+                                  <Crown className="w-3 h-3" />
+                                </span>
+                              )}
                             </div>
-                          ) : (
-                            <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
-                              <AvatarImage src={p.avatarUrl ?? undefined} />
-                              <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
-                                {p.playerName.charAt(0).toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                          )}
-                          {defendingChampionPlayerId === p.tournamentPlayerId && (
-                            <span className="absolute -top-1.5 -right-1.5 flex items-center justify-center w-5 h-5 rounded-full bg-yellow-400 text-yellow-900 ring-2 ring-background">
-                              <Crown className="w-3 h-3" />
+                            <span className="text-sm sm:text-base font-medium text-foreground truncate">
+                              {isTeamRow ? p.playerName : getShortName(p.playerName)}
                             </span>
-                          )}
-                        </div>
-                        <span className="text-sm sm:text-base font-medium text-foreground truncate">
-                          {getShortName(p.playerName)}
-                        </span>
-                      </Link>
-                      {/* Masters-style hover tooltip — positioned in dead space to the right */}
-                      <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover/player:flex items-center z-10">
-                        <Link
-                          href={`/${slug}/players/${p.tournamentPlayerId}`}
-                          className="whitespace-nowrap rounded-md bg-white border border-border shadow-lg px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
-                        >
-                          Click to View Player Profile
-                        </Link>
-                      </div>
+                          </>
+                        )
+                        return isTeamRow ? (
+                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">{inner}</div>
+                        ) : (
+                          <>
+                            <Link href={`/${slug}/players/${p.tournamentPlayerId}`} className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                              {inner}
+                            </Link>
+                            <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover/player:flex items-center z-10">
+                              <Link
+                                href={`/${slug}/players/${p.tournamentPlayerId}`}
+                                className="whitespace-nowrap rounded-md bg-white border border-border shadow-lg px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                              >
+                                Click to View Player Profile
+                              </Link>
+                            </div>
+                          </>
+                        )
+                      })()}
                     </div>
                   </td>
 
@@ -429,6 +494,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
           </tbody>
         </table>
       </div>
+      )}
 
       {/* Comparative score progression chart for completed non-handicap tournaments */}
       {status === 'COMPLETED' && handicapSystem === 'NONE' && (

@@ -8,6 +8,7 @@ import {
   type StablefordPointsTable,
 } from '@/lib/scoring-utils'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
+import { getHoleHandicapPairs } from './context-helpers'
 
 interface QuotaConfig {
   basePoints?: StablefordPointsTable
@@ -15,10 +16,9 @@ interface QuotaConfig {
 }
 
 function playerStanding(ctx: ScoringContext, p: ScoringPlayer, cfg: QuotaConfig): PlayerStanding {
-  const holes = ctx.holes.map((h) => ({ number: h.number, handicap: h.handicap }))
   const strokeSet = ctx.handicapSystem === 'NONE'
     ? new Set<number>()
-    : allocateHandicapStrokes(p.handicap, holes)
+    : allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
 
   let earned = 0
   for (const s of p.scores) {
@@ -35,6 +35,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer, cfg: QuotaConfig)
   const playedPar = p.scores.reduce((sum, s) => sum + s.par, 0)
 
   return {
+    kind: 'quota',
     rank: 0,
     tournamentPlayerId: p.tournamentPlayerId,
     playerName: p.name,
@@ -47,6 +48,9 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer, cfg: QuotaConfig)
     netVsPar: null,
     todayTotal: null,
     points: overUnder,    // standings rank by margin over quota
+    quotaTarget: target,
+    quotaEarned: earned,
+    quotaOverUnder: overUnder,
     roundTotals: {},
     holes: p.scores.map((s) => ({
       holeNumber: s.holeNumber,

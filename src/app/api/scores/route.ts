@@ -7,14 +7,22 @@ export async function POST(request: NextRequest) {
   if (!dbUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const body = await request.json()
-  const { tournamentPlayerId, holeId, roundId, strokes, fairwayHit, gir, putts } = body
+  const { tournamentPlayerId, holeId, roundId, strokes, fairwayHit, gir, putts, conceded } = body
 
-  if (!tournamentPlayerId || !holeId || !roundId || strokes == null) {
+  const isConceded = conceded === true
+  if (!tournamentPlayerId || !holeId || !roundId || (strokes == null && !isConceded)) {
     return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
   }
 
-  if (typeof strokes !== 'number' || !Number.isInteger(strokes) || strokes < 1 || strokes > 20) {
-    return NextResponse.json({ error: 'Strokes must be an integer between 1 and 20' }, { status: 400 })
+  // When conceded, strokes are optional and may be 0 (the player did not finish
+  // the hole). Otherwise enforce the standard 1–20 range.
+  const persistedStrokes: number = isConceded ? (typeof strokes === 'number' ? strokes : 0) : strokes
+  if (!isConceded) {
+    if (typeof strokes !== 'number' || !Number.isInteger(strokes) || strokes < 1 || strokes > 20) {
+      return NextResponse.json({ error: 'Strokes must be an integer between 1 and 20' }, { status: 400 })
+    }
+  } else if (typeof persistedStrokes !== 'number' || persistedStrokes < 0 || persistedStrokes > 20) {
+    return NextResponse.json({ error: 'Strokes for a conceded hole must be 0–20' }, { status: 400 })
   }
   if (putts != null && (typeof putts !== 'number' || !Number.isInteger(putts) || putts < 0 || putts > 10)) {
     return NextResponse.json({ error: 'Putts must be an integer between 0 and 10' }, { status: 400 })
@@ -48,8 +56,8 @@ export async function POST(request: NextRequest) {
 
   const score = await prisma.score.upsert({
     where: { tournamentPlayerId_holeId_roundId: { tournamentPlayerId, holeId, roundId } },
-    create: { tournamentPlayerId, holeId, roundId, strokes, fairwayHit, gir, putts },
-    update: { strokes, fairwayHit, gir, putts, submittedAt: new Date() },
+    create: { tournamentPlayerId, holeId, roundId, strokes: persistedStrokes, fairwayHit, gir, putts, conceded: isConceded },
+    update: { strokes: persistedStrokes, fairwayHit, gir, putts, conceded: isConceded, submittedAt: new Date() },
   })
 
   // Auto-post "Round has begun!" system message on first score for a round

@@ -7,7 +7,7 @@ import type { FormatStrategy, ScoringContext } from './types'
 
 function buildTeamStanding(
   ctx: ScoringContext,
-  team: { id: string; name: string; memberIds: string[] },
+  team: { id: string; name: string; color: string | null; memberIds: string[]; captainId?: string },
 ): PlayerStanding | null {
   const members = ctx.players.filter((p) => team.memberIds.includes(p.tournamentPlayerId))
   if (members.length === 0) return null
@@ -30,12 +30,17 @@ function buildTeamStanding(
   })
   const teamTotal = holes.reduce((sum, h) => sum + h.strokes, 0)
   const playedPar = holes.reduce((sum, h) => sum + h.par, 0)
+  const roundTotals: Record<number, number> = {}
+  for (const h of holes) {
+    roundTotals[h.roundNumber] = (roundTotals[h.roundNumber] ?? 0) + h.strokes
+  }
 
   // Team handicap allowances vary by exact format; we apply a conservative 0 here and
   // leave nuanced allowances (e.g., 35% × low + 15% × high for 2-person scramble) for a
   // follow-up `formatConfig.handicapAllowance` knob.
 
   return {
+    kind: 'team-stroke',
     rank: 0,
     tournamentPlayerId: team.id,
     playerName: team.name,
@@ -48,7 +53,17 @@ function buildTeamStanding(
     netVsPar: holes.length > 0 ? teamTotal - playedPar : null,
     todayTotal: null,
     points: null,
-    roundTotals: {},
+    teamId: team.id,
+    teamName: team.name,
+    teamColor: team.color,
+    memberIds: team.memberIds,
+    captainId: team.captainId,
+    teamMembers: members.map((m) => ({
+      tournamentPlayerId: m.tournamentPlayerId,
+      name: m.name,
+      avatarUrl: m.avatarUrl,
+    })),
+    roundTotals,
     holes: holes.map((h) => ({
       holeNumber: h.holeNumber,
       par: h.par,

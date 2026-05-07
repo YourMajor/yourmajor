@@ -34,6 +34,7 @@ export type FormatId =
   | 'CHAPMAN'
   | 'PINEHURST'
   | 'LOW_GROSS_LOW_NET'
+  | 'NASSAU'
 
 export type HandicapSystemId = 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'
 
@@ -69,6 +70,12 @@ export interface ScoringScore {
   strokes: number
   handicap: number | null   // hole's stroke-index, not the player's
   roundNumber: number
+  /**
+   * True when the player conceded this hole (match play). The match-play
+   * scoring strategy treats this as "opponent wins this hole regardless of
+   * strokes". Other formats skip the row entirely. Defaults to false.
+   */
+  conceded?: boolean
 }
 
 export interface ScoringPlayer {
@@ -87,6 +94,8 @@ export interface ScoringTeam {
   name: string
   color: string | null
   memberIds: string[]   // tournamentPlayerId list
+  /** tournamentPlayerId of the designated captain, if any. */
+  captainId?: string
 }
 
 export interface ScoringContext {

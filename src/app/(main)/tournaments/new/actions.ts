@@ -67,6 +67,7 @@ export type WizardPayload = {
     | 'SKINS' | 'SKINS_GROSS' | 'SKINS_NET'
     | 'QUOTA' | 'CALLAWAY' | 'PEORIA'
     | 'CHAPMAN' | 'PINEHURST' | 'LOW_GROSS_LOW_NET'
+    | 'NASSAU'
   formatConfig?: Record<string, unknown> | null
   powerupsEnabled: boolean
   powerupsPerPlayer: number
@@ -401,26 +402,33 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
             })
             const handicapByUser = new Map(profiles.map((p) => [p.userId, p.handicap]))
 
-            for (const userId of eligibleUserIds) {
-              await prisma.tournamentPlayer.create({
-                data: {
-                  tournamentId: tournament.id,
-                  userId,
-                  handicap: handicapByUser.get(userId) ?? 0,
-                },
-              }).catch(() => {})
-            }
+            await prisma.tournamentPlayer.createMany({
+              data: eligibleUserIds.map((userId) => ({
+                tournamentId: tournament.id,
+                userId,
+                handicap: handicapByUser.get(userId) ?? 0,
+              })),
+              skipDuplicates: true,
+            }).catch(() => {})
 
             // For league chains, ensure carried participants are on the
             // roster going forward (covers code-joiners who never were).
+            // createMany inserts only the new rows (skipDuplicates ignores
+            // existing); updateMany then forces ACTIVE on every eligible row,
+            // matching the prior upsert's update branch.
             if (roster) {
-              for (const userId of eligibleUserIds) {
-                await prisma.leagueRosterMember.upsert({
-                  where: { rosterId_userId: { rosterId: roster.id, userId } },
-                  create: { rosterId: roster.id, userId, status: 'ACTIVE' },
-                  update: { status: 'ACTIVE' },
-                }).catch(() => {})
-              }
+              await prisma.leagueRosterMember.createMany({
+                data: eligibleUserIds.map((userId) => ({
+                  rosterId: roster.id,
+                  userId,
+                  status: 'ACTIVE',
+                })),
+                skipDuplicates: true,
+              }).catch(() => {})
+              await prisma.leagueRosterMember.updateMany({
+                where: { rosterId: roster.id, userId: { in: eligibleUserIds } },
+                data: { status: 'ACTIVE' },
+              }).catch(() => {})
             }
           }
         }

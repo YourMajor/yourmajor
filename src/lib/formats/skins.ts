@@ -4,20 +4,23 @@ import {
   allocateHandicapStrokes,
   skinsPerHole,
   type PlayerStanding,
+  type SkinsHoleInput,
+  type SkinsHoleAttribution,
+  type SkinsHoleOutcome,
 } from '@/lib/scoring-utils'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
+import { getHoleHandicapPairs } from './context-helpers'
 
 interface SkinsConfig {
   carryOver?: boolean
   valuePerSkin?: number
 }
 
-function buildHoleScores(ctx: ScoringContext, useNet: boolean) {
-  // Group scores by (roundNumber, holeNumber); each hole is one skin.
-  const buckets = new Map<string, Array<{ tournamentPlayerId: string; strokes: number | null }>>()
+function buildHoleInputs(ctx: ScoringContext, useNet: boolean): SkinsHoleInput[] {
+  const buckets = new Map<string, SkinsHoleInput>()
   const playerStrokeSet = new Map<string, Set<number>>()
   if (useNet) {
-    const holes = ctx.holes.map((h) => ({ number: h.number, handicap: h.handicap }))
+    const holes = getHoleHandicapPairs(ctx)
     for (const p of ctx.players) {
       playerStrokeSet.set(p.tournamentPlayerId, allocateHandicapStrokes(p.handicap, holes))
     }
@@ -31,25 +34,44 @@ function buildHoleScores(ctx: ScoringContext, useNet: boolean) {
         const hsSet = playerStrokeSet.get(p.tournamentPlayerId)
         if (hsSet?.has(s.holeNumber)) strokes -= 1
       }
-      const bucket = buckets.get(key) ?? []
-      bucket.push({ tournamentPlayerId: p.tournamentPlayerId, strokes })
+      const bucket = buckets.get(key) ?? { round: s.roundNumber, hole: s.holeNumber, scores: [] }
+      bucket.scores.push({ tournamentPlayerId: p.tournamentPlayerId, strokes })
       buckets.set(key, bucket)
     }
   }
 
-  // Order buckets by roundNumber asc, then holeNumber asc, so carry-over flows correctly.
-  const ordered = [...buckets.entries()]
-    .sort((a, b) => {
-      const [ar, ah] = a[0].split(':').map(Number)
-      const [br, bh] = b[0].split(':').map(Number)
-      if (ar !== br) return ar - br
-      return ah - bh
-    })
-    .map(([, v]) => v)
-  return ordered
+  // Order by roundNumber asc, then holeNumber asc, so carry-over flows correctly.
+  return [...buckets.values()].sort((a, b) => {
+    if (a.round !== b.round) return a.round - b.round
+    return a.hole - b.hole
+  })
 }
 
-function buildStandings(ctx: ScoringContext, wins: Record<string, number>, valuePerSkin: number) {
+function attributionsForPlayer(
+  outcomes: SkinsHoleOutcome[],
+  playerId: string,
+): SkinsHoleAttribution[] {
+  return outcomes
+    .filter((o) => o.winnerId === playerId)
+    .map((o) => ({ round: o.round, hole: o.hole, carryover: o.skinsAwarded }))
+}
+
+// Skins waiting on the next hole. After the last outcome, if the winner was
+// null (tie) the trailing carry equals carryEntering + 1 (the +1 from this
+// tied hole that didn't claim). After a winning hole, carry is 0.
+function trailingCarryoverOf(outcomes: SkinsHoleOutcome[]): number {
+  if (outcomes.length === 0) return 0
+  const last = outcomes[outcomes.length - 1]
+  return last.winnerId === null ? last.carryEntering + 1 : 0
+}
+
+function buildStandings(
+  ctx: ScoringContext,
+  wins: Record<string, number>,
+  outcomes: SkinsHoleOutcome[],
+  valuePerSkin: number,
+) {
+  const trailing = trailingCarryoverOf(outcomes)
   const standings: PlayerStanding[] = ctx.players.map((p: ScoringPlayer) => {
     const grossTotal = p.scores.length > 0
       ? p.scores.reduce((sum, s) => sum + s.strokes, 0)
@@ -57,6 +79,7 @@ function buildStandings(ctx: ScoringContext, wins: Record<string, number>, value
     const playedPar = p.scores.reduce((sum, s) => sum + s.par, 0)
     const skins = wins[p.tournamentPlayerId] ?? 0
     return {
+      kind: 'skins',
       rank: 0,
       tournamentPlayerId: p.tournamentPlayerId,
       playerName: p.name,
@@ -69,6 +92,10 @@ function buildStandings(ctx: ScoringContext, wins: Record<string, number>, value
       netVsPar: null,
       todayTotal: null,
       points: skins * valuePerSkin,
+      skinsWon: skins,
+      skinsValue: valuePerSkin,
+      skinsHoles: attributionsForPlayer(outcomes, p.tournamentPlayerId),
+      skinsTrailingCarryover: trailing,
       roundTotals: {},
       holes: p.scores.map((s) => ({
         holeNumber: s.holeNumber,
@@ -96,9 +123,9 @@ function makeStrategy(useNet: boolean, id: 'SKINS' | 'SKINS_GROSS' | 'SKINS_NET'
       const cfg = (ctx.formatConfig ?? {}) as SkinsConfig
       const carryOver = cfg.carryOver ?? true
       const valuePerSkin = cfg.valuePerSkin ?? 1
-      const ordered = buildHoleScores(ctx, useNet)
-      const wins = skinsPerHole(ordered, carryOver)
-      return buildStandings(ctx, wins, valuePerSkin)
+      const ordered = buildHoleInputs(ctx, useNet)
+      const { wins, outcomes } = skinsPerHole(ordered, carryOver)
+      return buildStandings(ctx, wins, outcomes, valuePerSkin)
     },
   }
 }

@@ -104,6 +104,7 @@ enum TournamentFormat {
   CHAPMAN
   PINEHURST
   LOW_GROSS_LOW_NET
+  NASSAU
 }
 
 enum PricingTier {
@@ -355,9 +356,13 @@ model TournamentTeam {
 }
 
 model TournamentTeamMember {
-  id                 String @id @default(cuid())
+  id                 String  @id @default(cuid())
   teamId             String
-  tournamentPlayerId String @unique
+  tournamentPlayerId String  @unique
+  // Captain badge for the team. Informational only — any team member can submit
+  // scores in team-mode entry. Backfill installs the first-created member as
+  // captain; admins can reassign in the team-management UI.
+  isCaptain          Boolean @default(false)
 
   team             TournamentTeam   @relation(fields: [teamId], references: [id], onDelete: Cascade)
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
@@ -572,6 +577,10 @@ model Score {
   fairwayHit         Boolean?
   gir                Boolean?
   putts              Int?
+  // Match-play concession marker. When true, the conceding player loses the
+  // hole regardless of strokes. Match-play scoring ignores `strokes` if
+  // `conceded` is true; other formats also ignore the row when conceded.
+  conceded           Boolean  @default(false)
   submittedAt        DateTime @default(now())
 
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)

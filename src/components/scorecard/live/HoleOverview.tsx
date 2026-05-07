@@ -1,5 +1,6 @@
 'use client'
 
+import { useMemo } from 'react'
 import type { HoleData } from './useLiveScoringState'
 
 interface HoleOverviewProps {
@@ -22,9 +23,14 @@ function getSatelliteUrl(lat: number, lng: number, width = 600, height = 900): s
 }
 
 export function HoleOverview({ hole, teeName, teeColor, courseLatitude, courseLongitude }: HoleOverviewProps) {
-  const satelliteUrl = courseLatitude && courseLongitude
-    ? getSatelliteUrl(courseLatitude, courseLongitude)
-    : null
+  // Mapbox URL is identical for the whole tournament; without memoization the
+  // string regenerates on every parent render and the <img> src changes on
+  // every render — some browsers re-issue the request on src reassignment
+  // even when the value is byte-identical.
+  const satelliteUrl = useMemo(
+    () => (courseLatitude && courseLongitude ? getSatelliteUrl(courseLatitude, courseLongitude) : null),
+    [courseLatitude, courseLongitude],
+  )
 
   return (
     <div className="relative flex flex-col items-center justify-center h-full text-center overflow-hidden">

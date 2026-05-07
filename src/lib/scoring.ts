@@ -45,6 +45,7 @@ export async function getLeaderboard(
           select: {
             strokes: true,
             gir: true, // needed for Concede! stroke override
+            conceded: true,
             hole: { select: { number: true, par: true, handicap: true } },
             round: { select: { roundNumber: true, courseId: true } },
           },
@@ -67,7 +68,7 @@ export async function getLeaderboard(
     }),
     prisma.tournamentTeam.findMany({
       where: { tournamentId },
-      include: { members: { select: { tournamentPlayerId: true } } },
+      include: { members: { select: { tournamentPlayerId: true, isCaptain: true } } },
     }),
   ])
 
@@ -129,6 +130,7 @@ export async function getLeaderboard(
           strokes: effectiveStrokes(strokeOverrides, p.id, s.hole.number, s.strokes),
           handicap: s.hole.handicap,
           roundNumber: s.round.roundNumber,
+          conceded: s.conceded,
         })),
       }
     }),
@@ -137,6 +139,7 @@ export async function getLeaderboard(
       name: t.name,
       color: t.color,
       memberIds: t.members.map((m) => m.tournamentPlayerId),
+      captainId: t.members.find((m) => m.isCaptain)?.tournamentPlayerId,
     })),
   }
 
@@ -145,21 +148,34 @@ export async function getLeaderboard(
 }
 
 /**
- * Tag-cached leaderboard read for use in season aggregations where the same
- * COMPLETED tournament's standings are needed across many requests. ACTIVE /
- * REGISTRATION tournaments bypass the cache so live leaderboards stay fresh.
+ * Tag-cached leaderboard read used by both season aggregations and the
+ * server-rendered tournament hub.
  *
- * Bust the cache for a tournament after admin edits or status change with
- * `revalidateTag(\`leaderboard-${tournamentId}\`)`.
+ * - COMPLETED: cached indefinitely, busted via `updateTag` (server action) on
+ *   admin edits or status change.
+ * - ACTIVE: cached for 30s. Score writes go through a route handler so we can't
+ *   reliably `updateTag` on every write — the 30s TTL is the safety net.
+ *   Live updates already reach the client through Supabase Realtime, so this
+ *   only affects the SSR pass and 30s staleness is invisible end-to-end.
+ * - REGISTRATION / DRAFT / etc.: bypass cache.
  */
 export async function getCachedLeaderboard(
   tournamentId: string,
   status: string,
 ) {
-  if (status !== 'COMPLETED') return getLeaderboard(tournamentId)
-  return unstable_cache(
-    async () => getLeaderboard(tournamentId),
-    [`leaderboard-${tournamentId}`],
-    { tags: [`leaderboard-${tournamentId}`, 'leaderboard'] },
-  )()
+  if (status === 'COMPLETED') {
+    return unstable_cache(
+      async () => getLeaderboard(tournamentId),
+      [`leaderboard-${tournamentId}`],
+      { tags: [`leaderboard-${tournamentId}`, 'leaderboard'] },
+    )()
+  }
+  if (status === 'ACTIVE') {
+    return unstable_cache(
+      async () => getLeaderboard(tournamentId),
+      [`leaderboard-active-${tournamentId}`],
+      { tags: [`leaderboard-${tournamentId}`, 'leaderboard'], revalidate: 30 },
+    )()
+  }
+  return getLeaderboard(tournamentId)
 }

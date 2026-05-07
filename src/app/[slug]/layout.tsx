@@ -2,6 +2,7 @@ import { notFound } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
+import { getRootTournamentId } from '@/lib/league-chain'
 import { PersistentChat } from '@/components/hub/PersistentChat'
 import { NotificationPopup } from '@/components/notifications/NotificationPopup'
 import { TournamentShell } from '@/components/leaderboard/TournamentShell'
@@ -86,19 +87,7 @@ export default async function TournamentLayout({
   let leagueChatId = tournament.id
   let leagueChatAuthorized = isRegistered || isTournamentAdmin
   if (tournament.isLeague && tournament.parentTournamentId) {
-    // Walk up the chain to find root
-    let rootId = tournament.id
-    let parentId: string | null = tournament.parentTournamentId
-    while (parentId) {
-      const ancestor: { id: string; parentTournamentId: string | null } | null = await prisma.tournament.findUnique({
-        where: { id: parentId },
-        select: { id: true, parentTournamentId: true },
-      })
-      if (!ancestor) break
-      rootId = ancestor.id
-      parentId = ancestor.parentTournamentId
-    }
-    leagueChatId = rootId
+    leagueChatId = await getRootTournamentId(tournament.id)
     // Authorize if user is a member of ANY event in the league chain
     if (!leagueChatAuthorized && user) {
       const anyMembership = await prisma.tournamentPlayer.findFirst({

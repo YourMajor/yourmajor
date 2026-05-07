@@ -82,16 +82,17 @@ export async function POST(req: NextRequest) {
   const avatarUrl = urlData.publicUrl
   console.log('[avatar upload] Success:', { userId: user.id, path, avatarUrl })
 
-  await prisma.user.update({
-    where: { id: user.id },
-    data: { image: avatarUrl },
-  })
-
-  await prisma.playerProfile.upsert({
-    where: { userId: user.id },
-    update: { avatar: avatarUrl },
-    create: { userId: user.id, avatar: avatarUrl },
-  })
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: user.id },
+      data: { image: avatarUrl },
+    }),
+    prisma.playerProfile.upsert({
+      where: { userId: user.id },
+      update: { avatar: avatarUrl },
+      create: { userId: user.id, avatar: avatarUrl },
+    }),
+  ])
 
   revalidatePath('/profile')
   return NextResponse.json({ avatarUrl }, { status: 200 })

@@ -224,6 +224,17 @@ export const FORMATS: FormatDef[] = [
     supportsNet: true,
     impliedHandicap: 'WHS',
   },
+  {
+    id: 'NASSAU',
+    label: 'Nassau',
+    description: 'Three sub-matches in one round — front 9, back 9, and overall 18. Each is its own match-play scoreboard.',
+    kind: 'match',
+    requiresTeams: false,
+    defaultTeamSize: null,
+    scoringMode: 'MATCH',
+    supportsNet: false,
+    impliedHandicap: 'NONE',
+  },
 ]
 
 const FORMAT_BY_ID: Record<FormatId, FormatDef> = Object.fromEntries(

@@ -9,6 +9,7 @@ import { scrambleStrategy, shambleStrategy, chapmanStrategy, pinehurstStrategy }
 import { matchPlayStrategy, ryderCupStrategy } from './match'
 import { quotaStrategy } from './quota'
 import { lowGrossLowNetStrategy } from './combined'
+import { nassauStrategy } from './nassau'
 
 export const STRATEGIES: Record<FormatId, FormatStrategy> = {
   STROKE_PLAY: strokePlayStrategy,
@@ -35,6 +36,7 @@ export const STRATEGIES: Record<FormatId, FormatStrategy> = {
   CHAPMAN: chapmanStrategy,
   PINEHURST: pinehurstStrategy,
   LOW_GROSS_LOW_NET: lowGrossLowNetStrategy,
+  NASSAU: nassauStrategy,
 }
 
 export function getStrategy(id: FormatId | string | null | undefined): FormatStrategy {

@@ -2,7 +2,7 @@ export const dynamic = 'force-dynamic'
 
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { getLeaderboard } from '@/lib/scoring'
+import { getCachedLeaderboard } from '@/lib/scoring'
 import { maybeAutoAdvanceStatus } from '@/lib/tournament-status'
 import { LiveLeaderboard } from '@/components/leaderboard/LiveLeaderboard'
 import { SponsorStrip } from '@/components/hub/SponsorStrip'
@@ -50,7 +50,7 @@ export default async function LeaderboardPage({
     tournament.leagueEndDate,
   )
 
-  const initialStandings = await getLeaderboard(tournament.id)
+  const initialStandings = await getCachedLeaderboard(tournament.id, effectiveStatus)
   const roundNumbers = tournament.rounds.map((r) => r.roundNumber)
   const roundIds = tournament.rounds.map((r) => r.id)
 
@@ -221,6 +221,7 @@ export default async function LeaderboardPage({
         slug={slug}
         status={effectiveStatus}
         handicapSystem={tournament.handicapSystem}
+        tournamentFormat={tournament.tournamentFormat}
         defendingChampionPlayerId={defendingChampionPlayerId}
         isRegistered={isRegistered}
         scoringCta={canScore ? {

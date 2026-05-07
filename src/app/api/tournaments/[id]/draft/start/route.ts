@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { computeCurrentTurn } from '@/lib/draft-utils'
@@ -23,7 +23,16 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const draft = await prisma.draft.findUnique({ where: { tournamentId } })
+  // Draft + tournament are independent reads — fan out in parallel. Tournament
+  // pulls every field the rest of the handler needs (powerupsPerPlayer drives
+  // turn computation; name/slug are used for the post-response email).
+  const [draft, tournament] = await Promise.all([
+    prisma.draft.findUnique({ where: { tournamentId } }),
+    prisma.tournament.findUnique({
+      where: { id: tournamentId },
+      select: { powerupsPerPlayer: true, name: true, slug: true },
+    }),
+  ])
   if (!draft) return NextResponse.json({ error: 'No draft found' }, { status: 404 })
   if (draft.status !== 'PENDING') {
     return NextResponse.json({ error: 'Draft has already started' }, { status: 400 })
@@ -33,11 +42,6 @@ export async function POST(
   if (!draftOrder || draftOrder.length === 0) {
     return NextResponse.json({ error: 'Draft order must be set before starting' }, { status: 400 })
   }
-
-  const tournament = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    select: { powerupsPerPlayer: true },
-  })
 
   // Start the draft. If a turn timer is configured, stamp turnStartedAt now
   // so the first picker's countdown begins at draft start.
@@ -80,31 +84,32 @@ export async function POST(
     })),
   })
 
-  // Fetch tournament for email context
-  const tournamentInfo = await prisma.tournament.findUnique({
-    where: { id: tournamentId },
-    select: { name: true, slug: true },
+  // Email all players that draft started — runs after the response is sent so
+  // the admin's "Start draft" click doesn't wait on Resend (1-2s for a batch).
+  after(async () => {
+    try {
+      await sendEmailToMany(
+        allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
+        `Draft started — ${tournament?.name ?? 'Tournament'}`,
+        () =>
+          `<h2>${tournament?.name ?? 'Tournament'}</h2>
+          <p>The powerup draft has started! Keep an eye out for your turn.</p>
+          <p><a href="${domain}/${tournament?.slug}/draft">View Draft</a></p>`,
+      )
+    } catch (err) {
+      console.error('[draft/start] email dispatch failed', err)
+    }
   })
-
-  // Email all players that draft started
-  await sendEmailToMany(
-    allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
-    `Draft started — ${tournamentInfo?.name ?? 'Tournament'}`,
-    () =>
-      `<h2>${tournamentInfo?.name ?? 'Tournament'}</h2>
-      <p>The powerup draft has started! Keep an eye out for your turn.</p>
-      <p><a href="${domain}/${tournamentInfo?.slug}/draft">View Draft</a></p>`,
-  )
 
   // Fire-and-forget push to the first picker so they're alerted off-app.
   // In-app delivery is handled by the Notification Realtime subscription.
-  if (firstTurn && tournamentInfo) {
+  if (firstTurn && tournament) {
     const firstPicker = allPlayers.find((p) => p.id === firstTurn.tournamentPlayerId)
     if (firstPicker) {
       void sendPushToUser(firstPicker.user.id, {
-        title: `${tournamentInfo.name} — You're on the clock`,
+        title: `${tournament.name} — You're on the clock`,
         body: 'It’s your turn to pick a powerup.',
-        url: `/${tournamentInfo.slug}/draft`,
+        url: `/${tournament.slug}/draft`,
       }).catch((err) => console.error('[push] draft start dispatch failed', err))
     }
   }

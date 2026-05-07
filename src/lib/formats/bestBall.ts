@@ -8,6 +8,7 @@ import {
   type PlayerStanding,
 } from '@/lib/scoring-utils'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
+import { getHoleMap, getHoleHandicapPairs } from './context-helpers'
 
 function netStrokesFor(ctx: ScoringContext, p: ScoringPlayer): Map<string, number> {
   // key = `${roundNumber}:${holeNumber}` → net strokes for this player
@@ -16,8 +17,7 @@ function netStrokesFor(ctx: ScoringContext, p: ScoringPlayer): Map<string, numbe
     for (const s of p.scores) result.set(`${s.roundNumber}:${s.holeNumber}`, s.strokes)
     return result
   }
-  const holes = ctx.holes.map((h) => ({ number: h.number, handicap: h.handicap }))
-  const strokeSet = allocateHandicapStrokes(p.handicap, holes)
+  const strokeSet = allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
   for (const s of p.scores) {
     const handicapStrokes = strokeSet.has(s.holeNumber) ? 1 : 0
     result.set(`${s.roundNumber}:${s.holeNumber}`, s.strokes - handicapStrokes)
@@ -27,7 +27,7 @@ function netStrokesFor(ctx: ScoringContext, p: ScoringPlayer): Map<string, numbe
 
 function buildTeamStanding(
   ctx: ScoringContext,
-  team: { id: string; name: string; memberIds: string[] },
+  team: { id: string; name: string; color: string | null; memberIds: string[]; captainId?: string },
 ): PlayerStanding | null {
   const members = ctx.players.filter((p) => team.memberIds.includes(p.tournamentPlayerId))
   if (members.length === 0) return null
@@ -48,6 +48,8 @@ function buildTeamStanding(
   const teamHoles = bestBallSelect(grid)
 
   // Effective team total + par played
+  const holeMap = getHoleMap(ctx)
+  const roundTotals: Record<number, number> = {}
   let teamTotal = 0
   let playedPar = 0
   let played = 0
@@ -56,12 +58,14 @@ function buildTeamStanding(
     if (v === null) continue
     teamTotal += v
     played += 1
-    const [, holeNumber] = orderedKeys[i].split(':').map(Number)
-    const hole = ctx.holes.find((h) => h.number === holeNumber)
+    const [roundNumber, holeNumber] = orderedKeys[i].split(':').map(Number)
+    roundTotals[roundNumber] = (roundTotals[roundNumber] ?? 0) + v
+    const hole = holeMap.get(holeNumber)
     if (hole) playedPar += hole.par
   }
 
   return {
+    kind: 'team-best-ball',
     rank: 0,
     tournamentPlayerId: team.id,
     playerName: team.name,
@@ -74,10 +78,20 @@ function buildTeamStanding(
     netVsPar: played > 0 ? teamTotal - playedPar : null,
     todayTotal: null,
     points: null,
-    roundTotals: {},
+    teamId: team.id,
+    teamName: team.name,
+    teamColor: team.color,
+    memberIds: team.memberIds,
+    captainId: team.captainId,
+    teamMembers: members.map((m) => ({
+      tournamentPlayerId: m.tournamentPlayerId,
+      name: m.name,
+      avatarUrl: m.avatarUrl,
+    })),
+    roundTotals,
     holes: orderedKeys.map((k, i) => {
       const [roundNumber, holeNumber] = k.split(':').map(Number)
-      const hole = ctx.holes.find((h) => h.number === holeNumber)
+      const hole = holeMap.get(holeNumber)
       const strokes = teamHoles[i]
       return {
         holeNumber,
@@ -101,6 +115,7 @@ function makeStrategy(id: 'BEST_BALL' | 'BEST_BALL_2' | 'BEST_BALL_4'): FormatSt
           const grossTotal = p.scores.length > 0 ? p.scores.reduce((s, x) => s + x.strokes, 0) : null
           const playedPar = p.scores.reduce((s, x) => s + x.par, 0)
           return {
+            kind: 'stroke',
             rank: 0,
             tournamentPlayerId: p.tournamentPlayerId,
             playerName: p.name,

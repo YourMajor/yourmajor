@@ -98,23 +98,43 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   }, [isBanned, banExpiresAt])
 
   // Supabase real-time subscription (INSERT + UPDATE for soft-delete).
-  // Refetch immediately on each event so recipients see new messages with
-  // no artificial delay — push notifications must not beat the in-app view.
+  // Coalescing strategy: fetch immediately on the first event after a quiet
+  // period (so the first new message has no artificial delay — push must not
+  // beat the in-app view), then debounce a trailing fetch for a 250ms window
+  // to absorb bursts. A 5-message burst becomes 2 fetches instead of 5 without
+  // changing perceived latency for the recipient.
   // Also poll every 15s and refetch on tab focus as a safety net for Android,
   // which silently kills idle WebSockets when the app is backgrounded.
   useEffect(() => {
     const supabase = createClient()
+    const QUIET_MS = 250
+    let lastFetchAt = 0
+    let trailingTimer: ReturnType<typeof setTimeout> | null = null
+    const onEvent = () => {
+      const now = Date.now()
+      if (now - lastFetchAt >= QUIET_MS) {
+        lastFetchAt = now
+        fetchMessages()
+        return
+      }
+      if (trailingTimer) return
+      trailingTimer = setTimeout(() => {
+        trailingTimer = null
+        lastFetchAt = Date.now()
+        fetchMessages()
+      }, QUIET_MS - (now - lastFetchAt))
+    }
     const channel = supabase
       .channel(`${channelPrefix}-${tournamentId}`)
       .on(
         'postgres_changes',
         { event: 'INSERT', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        () => { fetchMessages() },
+        onEvent,
       )
       .on(
         'postgres_changes',
         { event: 'UPDATE', schema: 'public', table: 'TournamentMessage', filter: `tournamentId=eq.${tournamentId}` },
-        () => { fetchMessages() },
+        onEvent,
       )
       .subscribe()
 
@@ -127,6 +147,7 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     return () => {
       supabase.removeChannel(channel)
       clearInterval(poll)
+      if (trailingTimer) clearTimeout(trailingTimer)
       document.removeEventListener('visibilitychange', onVisibility)
     }
   }, [tournamentId, channelPrefix, fetchMessages])

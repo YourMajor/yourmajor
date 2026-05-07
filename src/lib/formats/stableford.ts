@@ -9,6 +9,7 @@ import {
   type StablefordPointsTable,
 } from '@/lib/scoring-utils'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
+import { getHoleHandicapPairs } from './context-helpers'
 
 function tableFor(ctx: ScoringContext): StablefordPointsTable {
   const cfg = ctx.formatConfig as { points?: StablefordPointsTable } | null
@@ -18,10 +19,9 @@ function tableFor(ctx: ScoringContext): StablefordPointsTable {
 
 function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
   const table = tableFor(ctx)
-  const holes = ctx.holes.map((h) => ({ number: h.number, handicap: h.handicap }))
   const strokeSet = ctx.handicapSystem === 'NONE'
     ? new Set<number>()
-    : allocateHandicapStrokes(p.handicap, holes)
+    : allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
 
   let totalPoints = 0
   for (const s of p.scores) {
@@ -43,6 +43,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
   const todayTotal = todayRound !== null ? roundTotals[todayRound] ?? null : null
 
   return {
+    kind: 'stableford',
     rank: 0,
     tournamentPlayerId: p.tournamentPlayerId,
     playerName: p.name,
@@ -55,6 +56,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
     netVsPar: null,
     todayTotal,
     points: totalPoints,
+    stablefordPoints: totalPoints,
     roundTotals,
     holes: p.scores.map((s) => ({
       holeNumber: s.holeNumber,

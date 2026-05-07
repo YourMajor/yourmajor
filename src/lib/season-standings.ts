@@ -1,5 +1,6 @@
 import { prisma } from '@/lib/prisma'
 import { getCachedLeaderboard } from '@/lib/scoring'
+import { getRootTournamentId } from '@/lib/league-chain'
 import type { PlayerStanding } from '@/lib/scoring-utils'
 import type { SeasonScoringMethod } from '@/generated/prisma/client'
 import {
@@ -92,30 +93,25 @@ async function getFullChain(tournamentId: string) {
 }
 
 /**
- * Find the root tournament in a chain (the one with no parent).
+ * Find the root tournament in a chain (the one with no parent), with the
+ * season-config fields the standings calculator needs.
  */
 async function getRootTournament(tournamentId: string) {
-  let currentId = tournamentId
-  for (let i = 0; i < 100; i++) {
-    const t = await prisma.tournament.findUnique({
-      where: { id: currentId },
-      select: {
-        id: true,
-        parentTournamentId: true,
-        seasonScoringMethod: true,
-        seasonBestOf: true,
-        seasonPointsTable: true,
-        seasonDropLowest: true,
-        seasonTiebreakers: true,
-        seasonAttendanceBonus: true,
-        name: true,
-      },
-    })
-    if (!t) break
-    if (!t.parentTournamentId) return t
-    currentId = t.parentTournamentId
-  }
-  return null
+  const rootId = await getRootTournamentId(tournamentId)
+  return prisma.tournament.findUnique({
+    where: { id: rootId },
+    select: {
+      id: true,
+      parentTournamentId: true,
+      seasonScoringMethod: true,
+      seasonBestOf: true,
+      seasonPointsTable: true,
+      seasonDropLowest: true,
+      seasonTiebreakers: true,
+      seasonAttendanceBonus: true,
+      name: true,
+    },
+  })
 }
 
 // ─── Tiebreakers ─────────────────────────────────────────────────────────────

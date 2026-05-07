@@ -8,9 +8,49 @@ export interface HoleResult {
   roundNumber?: number
 }
 
+/**
+ * Discriminator on PlayerStanding so the leaderboard UI can render format-aware
+ * rows (team chips for Scramble, W-L-H for match play, etc) instead of falling
+ * back to a stroke-play heuristic.
+ *
+ * Phase 1 introduces the discriminator and per-kind extension fields. The legacy
+ * `points` / `playerName` / `tournamentPlayerId` fields stay populated for
+ * backward compat — Phase 6 drops them.
+ */
+export type StandingKind =
+  | 'stroke'         // STROKE_PLAY, STROKE_PLAY_NET, CALLAWAY, PEORIA
+  | 'low-gross-net'  // LOW_GROSS_LOW_NET (dual rank)
+  | 'stableford'     // STABLEFORD, MODIFIED_STABLEFORD
+  | 'quota'          // QUOTA
+  | 'skins'          // SKINS, SKINS_GROSS, SKINS_NET
+  | 'match'          // MATCH_PLAY, RYDER_CUP
+  | 'team-stroke'    // SCRAMBLE, SHAMBLE, CHAPMAN, PINEHURST
+  | 'team-best-ball' // BEST_BALL, BEST_BALL_2, BEST_BALL_4
+  | 'nassau'         // NASSAU (added in Phase 5)
+
+export interface MatchRecord {
+  won: number
+  lost: number
+  halved: number
+}
+
+export type MatchStatus = 'live' | 'AS' | 'closed' | 'dormie' | 'final'
+
+export interface SkinsHoleAttribution {
+  round: number
+  hole: number
+  /** Number of skins claimed on this hole (1 + accumulated carry). */
+  carryover: number
+}
+
 export interface PlayerStanding {
+  /** Format-aware discriminator. Default 'stroke' for legacy callers. */
+  kind: StandingKind
+
   rank: number
+  /** Row identity. Individual rows: tournamentPlayerId. Team rows: team.id. */
   tournamentPlayerId: string
+  /** Display name. Individual rows: player name. Team rows: team name. */
   playerName: string
   avatarUrl: string | null
   handicap: number
@@ -20,9 +60,53 @@ export interface PlayerStanding {
   grossVsPar: number | null
   netVsPar: number | null
   todayTotal: number | null
+  /**
+   * @deprecated Use kind-specific fields. Populated for stableford
+   * (= stablefordPoints), match (= holesUp), skins (= skinsWon × skinsValue),
+   * quota (= quotaOverUnder). Kept for one release while consumers migrate.
+   */
   points: number | null
   roundTotals: Record<number, number>
   holes: HoleResult[]
+
+  // ─── Per-kind extensions (presence governed by `kind`) ─────────────────────
+  // stableford
+  stablefordPoints?: number
+  // quota
+  quotaTarget?: number
+  quotaEarned?: number
+  quotaOverUnder?: number
+  // skins
+  skinsWon?: number
+  skinsValue?: number
+  skinsHoles?: SkinsHoleAttribution[]
+  /**
+   * Skins waiting on the next hole because the most-recently-played hole
+   * tied. Same value populated on every skins-kind row in a given standings
+   * snapshot — it's a tournament-level fact, not per-player.
+   */
+  skinsTrailingCarryover?: number
+  // match
+  matchRecord?: MatchRecord
+  holesUp?: number
+  through?: number
+  matchStatus?: MatchStatus
+  opponentId?: string
+  // team-stroke / team-best-ball
+  teamId?: string
+  teamName?: string
+  teamColor?: string | null
+  memberIds?: string[]
+  captainId?: string
+  /** Full member details (name + avatar) to render member chips. */
+  teamMembers?: Array<{ tournamentPlayerId: string; name: string; avatarUrl: string | null }>
+  // nassau
+  front?: { holesUp: number; thru: number }
+  back?: { holesUp: number; thru: number }
+  overall?: { holesUp: number; thru: number }
+  // low-gross-net (dual ranking)
+  grossRank?: number
+  netRank?: number
 }
 
 export function scoreName(diff: number | null): string {
@@ -201,34 +285,56 @@ export function quotaPointsFor(
 }
 
 /**
- * Skins per hole: a skin is awarded only if one player has the strictly-lowest score on a hole.
- * Ties carry over to the next hole when carryOver=true.
+ * Skins per hole. A skin is awarded only when a player has the strictly-lowest
+ * score on a hole. Ties carry over to the next hole when carryOver=true.
  *
- * Returns a map of tournamentPlayerId → number of skins won.
+ * Returns:
+ *   - wins: tournamentPlayerId → number of skins won
+ *   - outcomes: per-hole record (winnerId, skinsAwarded) so the UI can render a
+ *     per-hole breakdown and detect a trailing carryover.
  */
+export interface SkinsHoleInput {
+  round: number
+  hole: number
+  scores: Array<{ tournamentPlayerId: string; strokes: number | null }>
+}
+
+export interface SkinsHoleOutcome {
+  round: number
+  hole: number
+  winnerId: string | null   // null when the hole tied (and the skins carried)
+  carryEntering: number     // skins carried INTO this hole from prior ties
+  skinsAwarded: number      // 0 if tied; otherwise 1 + carryEntering
+}
+
 export function skinsPerHole(
-  holeScores: Array<Array<{ tournamentPlayerId: string; strokes: number | null }>>,
+  holes: SkinsHoleInput[],
   carryOver = true,
-): Record<string, number> {
+): { wins: Record<string, number>; outcomes: SkinsHoleOutcome[] } {
   const wins: Record<string, number> = {}
+  const outcomes: SkinsHoleOutcome[] = []
   let carry = 0
 
-  for (const hole of holeScores) {
-    const playable = hole.filter((s) => s.strokes !== null) as Array<{ tournamentPlayerId: string; strokes: number }>
+  for (const h of holes) {
+    const playable = h.scores.filter((s) => s.strokes !== null) as Array<{ tournamentPlayerId: string; strokes: number }>
     if (playable.length === 0) continue
     const lowest = Math.min(...playable.map((s) => s.strokes))
     const lowestPlayers = playable.filter((s) => s.strokes === lowest)
     if (lowestPlayers.length === 1) {
       const id = lowestPlayers[0].tournamentPlayerId
-      wins[id] = (wins[id] ?? 0) + 1 + carry
+      const awarded = 1 + carry
+      wins[id] = (wins[id] ?? 0) + awarded
+      outcomes.push({ round: h.round, hole: h.hole, winnerId: id, carryEntering: carry, skinsAwarded: awarded })
       carry = 0
     } else if (carryOver) {
+      outcomes.push({ round: h.round, hole: h.hole, winnerId: null, carryEntering: carry, skinsAwarded: 0 })
       carry += 1
     } else {
+      outcomes.push({ round: h.round, hole: h.hole, winnerId: null, carryEntering: carry, skinsAwarded: 0 })
       carry = 0
     }
   }
-  return wins
+  return { wins, outcomes }
 }
 
 /**
@@ -245,15 +351,28 @@ export function bestBallSelect(
 }
 
 /**
- * Match play status: returns the leader's "X up" / "AS" status after a sequence of hole-diffs.
- * holeWinners: 1 if A wins the hole, -1 if B wins, 0 if halved.
- * Returns { up: number; through: number; closed: boolean } — closed = match dormie/closed
- * because A's lead exceeds remaining holes.
+ * Match play status from a sequence of hole results.
+ * holeWinners: +1 if A wins, -1 if B wins, 0 halved.
+ *
+ * Status precedence (highest first):
+ *   final  — every scheduled hole has been played
+ *   closed — leader's margin exceeds remaining holes (match cannot be reversed)
+ *   dormie — leader's margin equals remaining holes
+ *   AS     — through some holes but currently all-square
+ *   live   — match is in progress and one side is ahead
+ *
+ * If `closed` triggers mid-card, `through` is fixed at the closing hole and
+ * remaining holes are ignored.
  */
 export function matchPlayStatus(
   holeWinners: number[],
   totalHoles = 18,
-): { up: number; through: number; closed: boolean } {
+): {
+  up: number
+  through: number
+  closed: boolean
+  status: 'live' | 'AS' | 'closed' | 'dormie' | 'final'
+} {
   let lead = 0
   let through = 0
   for (const r of holeWinners) {
@@ -261,9 +380,16 @@ export function matchPlayStatus(
     through += 1
     const remaining = totalHoles - through
     if (Math.abs(lead) > remaining) {
-      return { up: lead, through, closed: true }
+      return { up: lead, through, closed: true, status: 'closed' }
     }
   }
-  return { up: lead, through, closed: false }
+  const remaining = totalHoles - through
+  if (through === totalHoles) return { up: lead, through, closed: false, status: 'final' }
+  if (through === 0) return { up: 0, through: 0, closed: false, status: 'live' }
+  if (Math.abs(lead) === remaining && remaining > 0) {
+    return { up: lead, through, closed: false, status: 'dormie' }
+  }
+  if (lead === 0) return { up: 0, through, closed: false, status: 'AS' }
+  return { up: lead, through, closed: false, status: 'live' }
 }
 
