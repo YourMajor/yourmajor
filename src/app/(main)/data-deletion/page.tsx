@@ -1,9 +1,10 @@
 import type { Metadata } from 'next'
+import Link from 'next/link'
 
 export const metadata: Metadata = {
   title: 'Data Deletion Instructions | YourMajor',
   description:
-    'How to request deletion of your YourMajor account and personal data, including data shared via Facebook Login.',
+    'How to request deletion of your YourMajor account and personal data, including data shared via third-party sign-in providers.',
 }
 
 export default function DataDeletionPage() {
@@ -19,7 +20,7 @@ export default function DataDeletionPage() {
             You can request deletion of your YourMajor account and any personal data we hold
             about you at any time. This applies to data you provided directly (name, email,
             handicap, scores, photos) as well as data we received from third-party sign-in
-            providers such as Google, Apple, or Facebook.
+            providers such as Google or Apple.
           </p>
         </section>
 
@@ -40,8 +41,7 @@ export default function DataDeletionPage() {
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>The email address on your YourMajor account</li>
             <li>
-              The sign-in provider you used (email/password, Google, Apple, Facebook, or
-              magic link)
+              The sign-in provider you used (email/password, Google, Apple, or magic link)
             </li>
             <li>
               Optionally, the display name you used in tournaments — useful if your account
@@ -51,9 +51,9 @@ export default function DataDeletionPage() {
           <p className="mt-3">
             We&apos;ll confirm receipt within 2 business days and complete the deletion within
             30 days, in line with our{' '}
-            <a href="/privacy" className="underline hover:text-foreground">
+            <Link href="/privacy" className="underline hover:text-foreground">
               Privacy Policy
-            </a>
+            </Link>
             .
           </p>
         </section>
@@ -68,7 +68,7 @@ export default function DataDeletionPage() {
             <li>Photos you uploaded to tournament galleries</li>
             <li>Chat messages you posted in tournament chats</li>
             <li>Notifications and email preferences linked to your account</li>
-            <li>Identity links to third-party sign-in providers (Google, Apple, Facebook)</li>
+            <li>Identity links to third-party sign-in providers (Google, Apple)</li>
           </ul>
         </section>
 
@@ -96,9 +96,9 @@ export default function DataDeletionPage() {
             5. Disconnecting third-party sign-in
           </h2>
           <p className="mt-3">
-            If you only want to disconnect a third-party login (Google, Apple, or Facebook)
-            without deleting your YourMajor account, you can do so by revoking access from
-            the provider directly:
+            If you only want to disconnect a third-party login (Google or Apple) without
+            deleting your YourMajor account, you can do so by revoking access from the
+            provider directly:
           </p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>
@@ -115,18 +115,6 @@ export default function DataDeletionPage() {
             <li>
               <strong>Apple:</strong> Settings → Apple ID → Sign in with Apple → YourMajor →
               Stop using Apple ID
-            </li>
-            <li>
-              <strong>Facebook:</strong>{' '}
-              <a
-                href="https://www.facebook.com/settings?tab=applications"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-foreground"
-              >
-                facebook.com/settings?tab=applications
-              </a>{' '}
-              → remove YourMajor
             </li>
           </ul>
           <p className="mt-3">

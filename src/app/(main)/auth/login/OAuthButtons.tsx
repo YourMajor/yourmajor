@@ -9,7 +9,7 @@ interface Props {
   next?: string | null
 }
 
-type ProviderKey = 'google' | 'apple' | 'facebook'
+type ProviderKey = 'google' | 'apple'
 
 export function OAuthButtons({ next }: Props) {
   const [loadingProvider, setLoadingProvider] = useState<ProviderKey | null>(null)
@@ -48,13 +48,6 @@ export function OAuthButtons({ next }: Props) {
         disabled={loadingProvider !== null}
         onClick={() => signInWith('apple')}
         icon={<AppleIcon />}
-      />
-      <ProviderButton
-        label="Continue with Facebook"
-        loading={loadingProvider === 'facebook'}
-        disabled={loadingProvider !== null}
-        onClick={() => signInWith('facebook')}
-        icon={<FacebookIcon />}
       />
     </div>
   )
@@ -120,17 +113,6 @@ function AppleIcon() {
       <path
         fill="#000"
         d="M16.365 1.43c0 1.14-.42 2.23-1.25 3.06-.83.83-1.93 1.32-2.97 1.27-.04-1.16.42-2.27 1.25-3.1.83-.83 1.99-1.27 2.97-1.23zM20.5 17.21c-.55 1.27-.81 1.83-1.51 2.95-.97 1.55-2.34 3.49-4.04 3.51-1.51.02-1.9-.98-3.95-.96-2.05.02-2.49 1-4 .96-1.7-.02-2.99-1.78-3.97-3.33C.85 16.46.42 11.96 2.42 9.05c1.41-2.06 3.62-3.27 5.7-3.27 2.12 0 3.46 1.16 5.21 1.16 1.7 0 2.74-1.16 5.19-1.16 1.86 0 3.83 1.01 5.23 2.76-4.6 2.52-3.85 9.09 1.75 8.67z"
-      />
-    </svg>
-  )
-}
-
-function FacebookIcon() {
-  return (
-    <svg className="w-5 h-5 shrink-0" viewBox="0 0 24 24" aria-hidden="true">
-      <path
-        fill="#1877F2"
-        d="M24 12.073C24 5.405 18.627 0 12 0 5.373 0 0 5.405 0 12.073c0 6.019 4.388 11.005 10.125 11.927v-8.437H7.078v-3.49h3.047V9.413c0-3.026 1.792-4.697 4.533-4.697 1.312 0 2.686.235 2.686.235v2.97h-1.514c-1.49 0-1.955.93-1.955 1.886v2.266h3.328l-.532 3.49h-2.796V24c5.737-.922 10.125-5.908 10.125-11.927z"
       />
     </svg>
   )
