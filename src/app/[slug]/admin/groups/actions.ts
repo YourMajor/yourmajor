@@ -208,12 +208,40 @@ export async function renameGroup(tournamentId: string, groupId: string, name: s
 
 // ── Player ↔ Group Assignment ────────────────────────────────────────────────
 
+// Tee-time groups currently cap at 4 players. moveTeamToGroup uses this to
+// decide whether the team-lock rule applies and to bound auto-assign output.
+const GROUP_CAPACITY = 4
+
 export async function movePlayerToGroup(
   tournamentId: string,
   tournamentPlayerId: string,
   targetGroupId: string | null,
 ) {
   await requireTournamentAdmin(tournamentId)
+
+  // Block per-player moves when the player belongs to a team that should be
+  // grouped as a unit (team size fits inside the group capacity). Splitting
+  // teammates across tee times breaks team-format scoring, so callers must
+  // use moveTeamToGroup instead.
+  const tp = await prisma.tournamentPlayer.findUnique({
+    where: { id: tournamentPlayerId },
+    select: {
+      tournamentId: true,
+      teamMembership: {
+        select: {
+          teamId: true,
+          team: { select: { _count: { select: { members: true } } } },
+        },
+      },
+      tournament: { select: { teamsEnabled: true } },
+    },
+  })
+  if (tp && tp.tournamentId === tournamentId && tp.tournament.teamsEnabled && tp.teamMembership) {
+    const teamSize = tp.teamMembership.team._count.members
+    if (teamSize <= GROUP_CAPACITY) {
+      throw new Error('This player is on a team — move the whole team instead.')
+    }
+  }
 
   if (!targetGroupId) {
     // Move back to unassigned
@@ -236,6 +264,67 @@ export async function movePlayerToGroup(
     create: { groupId: targetGroupId, tournamentPlayerId, position: nextPosition },
     update: { groupId: targetGroupId, position: nextPosition },
   })
+}
+
+// Move every member of a team into the same group atomically. Used when the
+// admin drags a team chip in the team-aware GroupBuilder.
+export async function moveTeamToGroup(
+  tournamentId: string,
+  teamId: string,
+  targetGroupId: string | null,
+): Promise<{ ok: true } | { ok: false; error: string }> {
+  await requireTournamentAdmin(tournamentId)
+
+  const team = await prisma.tournamentTeam.findUnique({
+    where: { id: teamId },
+    select: {
+      tournamentId: true,
+      members: { select: { tournamentPlayerId: true } },
+    },
+  })
+  if (!team || team.tournamentId !== tournamentId) {
+    return { ok: false, error: 'Team not found' }
+  }
+  const memberIds = team.members.map((m) => m.tournamentPlayerId)
+  if (memberIds.length === 0) return { ok: true }
+
+  await prisma.$transaction(async (tx) => {
+    if (!targetGroupId) {
+      await tx.tournamentGroupMember.deleteMany({
+        where: { tournamentPlayerId: { in: memberIds } },
+      })
+      return
+    }
+
+    // Capacity check: total players in the destination after the move must
+    // not exceed GROUP_CAPACITY. Players already in the destination group
+    // who belong to this team count once, not twice.
+    const existing = await tx.tournamentGroupMember.findMany({
+      where: { groupId: targetGroupId },
+      select: { tournamentPlayerId: true, position: true },
+    })
+    const teamSet = new Set(memberIds)
+    const otherInGroup = existing.filter((m) => !teamSet.has(m.tournamentPlayerId)).length
+    if (otherInGroup + memberIds.length > GROUP_CAPACITY) {
+      throw new Error(`Group is full — cannot fit ${memberIds.length} more player(s).`)
+    }
+
+    // Drop any prior assignments for these team members so the upsert below
+    // doesn't collide with a stale row in another group.
+    await tx.tournamentGroupMember.deleteMany({
+      where: { tournamentPlayerId: { in: memberIds } },
+    })
+    const startPos = existing.filter((m) => !teamSet.has(m.tournamentPlayerId)).length
+    await tx.tournamentGroupMember.createMany({
+      data: memberIds.map((id, i) => ({
+        groupId: targetGroupId,
+        tournamentPlayerId: id,
+        position: startPos + i,
+      })),
+    })
+  })
+
+  return { ok: true }
 }
 
 // ── Auto-assign ──────────────────────────────────────────────────────────────
@@ -261,7 +350,7 @@ export async function autoAssignGroups(
 
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
-    select: { id: true, slug: true, isLeague: true, parentTournamentId: true },
+    select: { id: true, slug: true, isLeague: true, parentTournamentId: true, teamsEnabled: true },
   })
   if (!tournament) return { ok: false, error: 'Tournament not found.' }
 
@@ -272,6 +361,7 @@ export async function autoAssignGroups(
       userId: true,
       handicap: true,
       user: { select: { name: true, email: true } },
+      teamMembership: { select: { teamId: true } },
     },
   })
 
@@ -289,6 +379,90 @@ export async function autoAssignGroups(
   const isLeagueChild = tournament.isLeague || !!tournament.parentTournamentId
   const recentPartners =
     avoidLastEventPartners && isLeagueChild ? await getRecentPartners(tournamentId) : {}
+
+  // Team-aware assignment: when teams are enabled and at least one team fits
+  // inside group capacity, we pack teams (not individual players) into groups.
+  // Players not on a team are left unassigned and the admin can place them
+  // manually later.
+  if (tournament.teamsEnabled) {
+    const teams = await prisma.tournamentTeam.findMany({
+      where: { tournamentId },
+      select: {
+        id: true,
+        members: {
+          select: { tournamentPlayerId: true },
+        },
+      },
+    })
+    const fittableTeams = teams.filter((t) => t.members.length > 0 && t.members.length <= groupSize)
+    if (fittableTeams.length > 0) {
+      const handicapByPlayer = new Map(participants.map((p) => [p.id, p.handicap]))
+      type TeamUnit = { id: string; memberIds: string[]; size: number; avgHandicap: number }
+      const units: TeamUnit[] = fittableTeams.map((t) => {
+        const memberIds = t.members.map((m) => m.tournamentPlayerId)
+        const sum = memberIds.reduce((s, id) => s + (handicapByPlayer.get(id) ?? 0), 0)
+        return {
+          id: t.id,
+          memberIds,
+          size: memberIds.length,
+          avgHandicap: memberIds.length > 0 ? sum / memberIds.length : 0,
+        }
+      })
+
+      // Order teams: RANDOM shuffles, BALANCED/TIGHT sort by avg handicap.
+      let ordered: TeamUnit[]
+      if (mode === 'RANDOM') {
+        ordered = [...units]
+        for (let i = ordered.length - 1; i > 0; i--) {
+          const j = Math.floor(Math.random() * (i + 1))
+          ;[ordered[i], ordered[j]] = [ordered[j], ordered[i]]
+        }
+      } else {
+        ordered = [...units].sort((a, b) => a.avgHandicap - b.avgHandicap)
+      }
+
+      // Pack teams into groups, biggest first so 4-person teams claim a slot
+      // before 2-person teams try to pair up.
+      const sizeFirst = [...ordered].sort((a, b) => b.size - a.size)
+      const groupBuckets: TeamUnit[][] = []
+      for (const unit of sizeFirst) {
+        const target = groupBuckets.find(
+          (g) => g.reduce((sum, u) => sum + u.size, 0) + unit.size <= groupSize,
+        )
+        if (target) {
+          target.push(unit)
+        } else {
+          groupBuckets.push([unit])
+        }
+      }
+
+      const groupRows = groupBuckets.map((_, i) => ({
+        id: crypto.randomUUID(),
+        tournamentId,
+        name: `Group ${i + 1}`,
+      }))
+      const memberRows: { groupId: string; tournamentPlayerId: string; position: number }[] = []
+      groupBuckets.forEach((bucket, gi) => {
+        let pos = 0
+        for (const unit of bucket) {
+          for (const playerId of unit.memberIds) {
+            memberRows.push({ groupId: groupRows[gi].id, tournamentPlayerId: playerId, position: pos++ })
+          }
+        }
+      })
+
+      await prisma.$transaction([
+        prisma.tournamentGroup.deleteMany({ where: { tournamentId } }),
+        prisma.tournamentGroup.createMany({ data: groupRows }),
+        prisma.tournamentGroupMember.createMany({ data: memberRows }),
+      ])
+
+      revalidatePath(`/${tournament.slug}/admin/groups`)
+      return { ok: true, groupCount: groupBuckets.length, conflicts: 0 }
+    }
+    // Fall through to per-player assignment when no team fits in a group
+    // (e.g., RYDER_CUP with 12-player teams).
+  }
 
   const { groups: assignedGroups, conflicts } = autoAssign(players, mode, groupSize, {
     avoidLastEventPartners: avoidLastEventPartners && isLeagueChild,

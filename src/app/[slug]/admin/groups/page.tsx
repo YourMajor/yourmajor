@@ -15,6 +15,7 @@ export default async function AdminGroupsPage({
       name: true,
       isLeague: true,
       parentTournamentId: true,
+      teamsEnabled: true,
       players: {
         where: { isParticipant: true },
         include: {
@@ -33,6 +34,15 @@ export default async function AdminGroupsPage({
             },
             orderBy: { position: 'asc' },
           },
+        },
+        orderBy: { createdAt: 'asc' },
+      },
+      teams: {
+        select: {
+          id: true,
+          name: true,
+          color: true,
+          members: { select: { tournamentPlayerId: true } },
         },
         orderBy: { createdAt: 'asc' },
       },
@@ -78,6 +88,13 @@ export default async function AdminGroupsPage({
     unregisteredAt: v.unregisteredAt.toISOString(),
   }))
 
+  const teams = tournament.teams.map((t) => ({
+    id: t.id,
+    name: t.name,
+    color: t.color,
+    memberIds: t.members.map((m) => m.tournamentPlayerId),
+  }))
+
   return (
     <main>
       <GroupBuilder
@@ -88,6 +105,8 @@ export default async function AdminGroupsPage({
         initialPlayers={players}
         initialGroups={groups}
         initialVacancies={vacancies}
+        teamsEnabled={tournament.teamsEnabled}
+        teams={teams}
       />
     </main>
   )

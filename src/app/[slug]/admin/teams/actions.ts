@@ -27,6 +27,29 @@ async function requireTournamentAdmin(slug: string): Promise<
   return { ok: true, tournamentId: tournament.id, userId: user.id }
 }
 
+// Renaming a team is captain-only — admins seed the initial name at create
+// time but cannot rename after the captain takes ownership of the team.
+async function requireTeamCaptain(slug: string, teamId: string): Promise<
+  { ok: true; tournamentId: string; userId: string } | { error: string }
+> {
+  const user = await getUser()
+  if (!user) return { error: 'Unauthorized' }
+  const team = await prisma.tournamentTeam.findUnique({
+    where: { id: teamId },
+    select: { tournamentId: true, tournament: { select: { slug: true } } },
+  })
+  if (!team || team.tournament.slug !== slug) return { error: 'Team not found' }
+
+  const player = await prisma.tournamentPlayer.findUnique({
+    where: { tournamentId_userId: { tournamentId: team.tournamentId, userId: user.id } },
+    select: { teamMembership: { select: { teamId: true, isCaptain: true } } },
+  })
+  if (player?.teamMembership?.teamId === teamId && player.teamMembership.isCaptain) {
+    return { ok: true, tournamentId: team.tournamentId, userId: user.id }
+  }
+  return { error: 'Only the team captain can rename this team.' }
+}
+
 function revalidateTeamPaths(slug: string, teamId?: string) {
   revalidatePath(`/${slug}/admin/teams`)
   revalidatePath(`/${slug}`)
@@ -50,6 +73,24 @@ export async function createTeam(input: {
   })
   revalidateTeamPaths(input.slug)
   return { ok: true, teamId: team.id }
+}
+
+export async function updateTeamName(input: {
+  slug: string
+  teamId: string
+  name: string
+}): Promise<{ ok: true } | { error: string }> {
+  const auth = await requireTeamCaptain(input.slug, input.teamId)
+  if ('error' in auth) return auth
+  const trimmed = input.name.trim()
+  if (!trimmed) return { error: 'Team name is required' }
+  if (trimmed.length > 80) return { error: 'Team name is too long' }
+  await prisma.tournamentTeam.update({
+    where: { id: input.teamId },
+    data: { name: trimmed },
+  })
+  revalidateTeamPaths(input.slug, input.teamId)
+  return { ok: true }
 }
 
 export async function deleteTeam(input: {

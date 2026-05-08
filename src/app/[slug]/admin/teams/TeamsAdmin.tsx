@@ -48,6 +48,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
   const [newTeamName, setNewTeamName] = useState('')
   const [newTeamColor, setNewTeamColor] = useState<string>(DEFAULT_COLORS[teams.length % DEFAULT_COLORS.length])
   const [openMemberPicker, setOpenMemberPicker] = useState<string | null>(null)
+  const [assigningPlayerId, setAssigningPlayerId] = useState<string | null>(null)
 
   function run(action: () => Promise<{ ok: true } | { ok: true; teamId: string } | { error: string }>) {
     setError(null)
@@ -77,6 +78,84 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
           {error}
         </div>
       )}
+
+      {/* ── Unassigned players ──────────────────────────────────────── */}
+      <section className="rounded-lg border border-border bg-card p-4">
+        <header className="flex items-center gap-2 mb-3">
+          <h2 className="text-base font-semibold">Unassigned players</h2>
+          <span className="text-xs text-muted-foreground">
+            ({unassignedPlayers.length})
+          </span>
+        </header>
+        {unassignedPlayers.length === 0 ? (
+          <p className="text-sm text-muted-foreground italic">
+            All registered players are on a team.
+          </p>
+        ) : (
+          <ul className="space-y-1.5">
+            {unassignedPlayers.map((p) => {
+              const isPicking = assigningPlayerId === p.tournamentPlayerId
+              return (
+                <li
+                  key={p.tournamentPlayerId}
+                  className="rounded-md bg-amber-50 ring-1 ring-amber-200 px-2 py-1.5"
+                >
+                  <div className="flex items-center gap-3">
+                    <Avatar className="h-7 w-7">
+                      <AvatarImage src={p.avatarUrl ?? undefined} />
+                      <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                        {p.name.charAt(0).toUpperCase()}
+                      </AvatarFallback>
+                    </Avatar>
+                    <span className="flex-1 text-sm font-medium">{p.name}</span>
+                    <span className="text-xs text-amber-700">No team yet</span>
+                    {teams.length > 0 && (
+                      <button
+                        type="button"
+                        onClick={() => setAssigningPlayerId(isPicking ? null : p.tournamentPlayerId)}
+                        disabled={pending}
+                        className="text-xs font-semibold text-[var(--color-primary)] hover:underline disabled:opacity-50"
+                      >
+                        {isPicking ? 'Cancel' : 'Assign to team…'}
+                      </button>
+                    )}
+                  </div>
+                  {isPicking && (
+                    <div className="mt-2 flex flex-wrap gap-1.5">
+                      {teams.map((t) => (
+                        <button
+                          key={t.id}
+                          type="button"
+                          disabled={pending}
+                          onClick={() => {
+                            run(async () => {
+                              const res = await addTeamMember({
+                                slug,
+                                teamId: t.id,
+                                tournamentPlayerId: p.tournamentPlayerId,
+                              })
+                              if ('ok' in res) setAssigningPlayerId(null)
+                              return res
+                            })
+                          }}
+                          className="inline-flex items-center gap-1.5 rounded-md border border-border bg-background px-2 py-1 text-xs hover:bg-muted disabled:opacity-50"
+                        >
+                          <span
+                            className="inline-block h-3 w-3 rounded-full ring-1 ring-border"
+                            style={{ backgroundColor: t.color ?? 'var(--color-primary)' }}
+                            aria-hidden="true"
+                          />
+                          {t.name}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </li>
+              )
+            })}
+          </ul>
+        )}
+      </section>
 
       {/* ── Create team ─────────────────────────────────────────────── */}
       {showCreate ? (

@@ -28,6 +28,7 @@ import {
   deleteGroup,
   renameGroup,
   movePlayerToGroup,
+  moveTeamToGroup,
   addLatePlayer,
   removePlayer,
   updateGroupTeeTime,
@@ -138,6 +139,13 @@ type Vacancy = {
   unregisteredAt: string
 }
 
+type Team = {
+  id: string
+  name: string
+  color: string | null
+  memberIds: string[]
+}
+
 interface Props {
   tournamentId: string
   tournamentName: string
@@ -146,11 +154,18 @@ interface Props {
   initialPlayers: Player[]
   initialGroups: Group[]
   initialVacancies?: Vacancy[]
+  teamsEnabled?: boolean
+  teams?: Team[]
 }
+
+// Group capacity (server enforces the same value).
+const GROUP_CAPACITY = 4
+// dnd-kit drag IDs are namespaced so team and player drags don't collide.
+const TEAM_DRAG_PREFIX = 'team:'
 
 // ── Component ────────────────────────────────────────────────────────────────
 
-export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups, initialVacancies = [] }: Props) {
+export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, initialPlayers, initialGroups, initialVacancies = [], teamsEnabled = false, teams = [] }: Props) {
   const router = useRouter()
   const [isPending, startTransition] = useTransition()
   const [players, setPlayers] = useState<Player[]>(initialPlayers)
@@ -179,7 +194,60 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
   )
 
   const unassigned = players.filter((p) => !p.groupId).sort((a, b) => a.name.localeCompare(b.name))
-  const draggedPlayer = activeDragId ? players.find((p) => p.id === activeDragId) ?? null : null
+  const draggedPlayer = activeDragId && !activeDragId.startsWith(TEAM_DRAG_PREFIX)
+    ? players.find((p) => p.id === activeDragId) ?? null
+    : null
+
+  // ── Team-mode derivations ────────────────────────────────────────────────
+  // When teamsEnabled is true and at least one team fits inside group capacity,
+  // we render team chips instead of individual player pills. Server enforces
+  // the same lock so a stale client can't split teammates.
+  const teamModeActive =
+    teamsEnabled
+    && teams.length > 0
+    && teams.some((t) => t.memberIds.length > 0 && t.memberIds.length <= GROUP_CAPACITY)
+
+  // playerId → team it belongs to (if any). Used to render team chips and to
+  // resolve which team a player-anchored drag/click corresponds to.
+  const teamByPlayerId = new Map<string, Team>()
+  if (teamModeActive) {
+    for (const t of teams) {
+      for (const id of t.memberIds) teamByPlayerId.set(id, t)
+    }
+  }
+
+  // Each team's current group is wherever its members live. A "split" team
+  // (members in different groups) shouldn't happen once team-lock is on, but
+  // we surface it via takeFirst-defined location so the chip renders somewhere.
+  function teamGroupId(team: Team): string | null {
+    for (const memberId of team.memberIds) {
+      const p = players.find((pl) => pl.id === memberId)
+      if (p?.groupId) return p.groupId
+    }
+    return null
+  }
+
+  const teamLocations = teamModeActive
+    ? teams.map((t) => ({ team: t, groupId: teamGroupId(t) }))
+    : []
+  const unassignedTeams = teamLocations.filter((tl) => tl.groupId === null).map((tl) => tl.team)
+  const teamsByGroupId = new Map<string, Team[]>()
+  for (const tl of teamLocations) {
+    if (!tl.groupId) continue
+    const arr = teamsByGroupId.get(tl.groupId) ?? []
+    arr.push(tl.team)
+    teamsByGroupId.set(tl.groupId, arr)
+  }
+  // Players who are registered but haven't been placed on any team. In team
+  // mode they appear in the unassigned pool as non-draggable amber chips —
+  // they must be put on a team via /admin/teams before they can be grouped.
+  const noTeamPlayers = teamModeActive
+    ? players.filter((p) => !teamByPlayerId.has(p.id)).sort((a, b) => a.name.localeCompare(b.name))
+    : []
+
+  const draggedTeam = teamModeActive && activeDragId?.startsWith(TEAM_DRAG_PREFIX)
+    ? teams.find((t) => t.id === activeDragId.slice(TEAM_DRAG_PREFIX.length)) ?? null
+    : null
 
   // ── Tap-to-select interaction (multi-select) ────────────────────────────
 
@@ -291,16 +359,82 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
     setActiveDragId(String(e.active.id))
   }
 
+  // Move every member of a team into a single group (or to unassigned).
+  // Mirrors the server's moveTeamToGroup; runs optimistically so the chip
+  // animates without waiting for the round-trip.
+  function applyTeamMove(team: Team, targetGroupId: string | null) {
+    const memberIdSet = new Set(team.memberIds)
+    setPlayers((prev) =>
+      prev.map((p) => (memberIdSet.has(p.id) ? { ...p, groupId: targetGroupId } : p)),
+    )
+    setGroups((prev) => {
+      let updated = prev.map((g) => ({
+        ...g,
+        members: g.members.filter((m) => !memberIdSet.has(m.tournamentPlayerId)),
+      }))
+      if (targetGroupId) {
+        updated = updated.map((g) => {
+          if (g.id !== targetGroupId) return g
+          const startPos = g.members.length
+          const adds = team.memberIds.map((id, i) => {
+            const p = players.find((pl) => pl.id === id)
+            return {
+              tournamentPlayerId: id,
+              name: p?.name ?? '',
+              position: startPos + i,
+              notifiedAt: null,
+            }
+          })
+          return { ...g, members: [...g.members, ...adds] }
+        })
+      }
+      return updated
+    })
+
+    startTransition(async () => {
+      try {
+        const res = await moveTeamToGroup(tournamentId, team.id, targetGroupId)
+        if (!res.ok) {
+          setMessage({ type: 'error', text: res.error })
+          router.refresh()
+        }
+      } catch {
+        router.refresh()
+      }
+    })
+  }
+
   function handleDragEnd(e: DragEndEvent) {
     setActiveDragId(null)
     const activeId = String(e.active.id)
     const overId = e.over ? String(e.over.id) : null
     if (!overId) return
+    const targetGroupId = overId === UNASSIGNED_DROPPABLE_ID ? null : overId
+
+    // Team drag — move all members at once.
+    if (teamModeActive && activeId.startsWith(TEAM_DRAG_PREFIX)) {
+      const teamId = activeId.slice(TEAM_DRAG_PREFIX.length)
+      const team = teams.find((t) => t.id === teamId)
+      if (!team) return
+      const currentGroupId = teamGroupId(team)
+      if (currentGroupId === targetGroupId) return
+      if (targetGroupId) {
+        const target = groups.find((g) => g.id === targetGroupId)
+        if (!target) return
+        const teamSet = new Set(team.memberIds)
+        const otherInGroup = target.members.filter((m) => !teamSet.has(m.tournamentPlayerId)).length
+        if (otherInGroup + team.memberIds.length > GROUP_CAPACITY) {
+          setMessage({ type: 'error', text: `Group is full — cannot fit ${team.memberIds.length} more player(s).` })
+          return
+        }
+      }
+      applyTeamMove(team, targetGroupId)
+      return
+    }
 
     const player = players.find((p) => p.id === activeId)
     if (!player) return
 
-    const targetGroupId = overId === UNASSIGNED_DROPPABLE_ID ? null : overId
     if (player.groupId === targetGroupId) return
 
     // Cap at 4 per group (server enforces too).
@@ -670,8 +804,19 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       <div className="flex items-center justify-between gap-4 flex-wrap">
         <p className="text-sm text-muted-foreground">
           <span className="font-semibold text-foreground">{players.length}</span> player{players.length !== 1 ? 's' : ''} registered
-          {unassigned.length > 0 && (
-            <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassigned.length} unassigned</span></span>
+          {teamModeActive ? (
+            <>
+              {unassignedTeams.length > 0 && (
+                <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassignedTeams.length} team{unassignedTeams.length === 1 ? '' : 's'} unassigned</span></span>
+              )}
+              {noTeamPlayers.length > 0 && (
+                <span> &middot; <span className="text-amber-600 dark:text-amber-400">{noTeamPlayers.length} without a team</span></span>
+              )}
+            </>
+          ) : (
+            unassigned.length > 0 && (
+              <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassigned.length} unassigned</span></span>
+            )
           )}
         </p>
         <div className="flex items-center gap-2">
@@ -687,23 +832,76 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       </div>
 
       {/* Instructions */}
-      <p className="text-xs text-muted-foreground">Drag players onto a group, or tap to select then tap a group. Max 4 per group.</p>
+      <p className="text-xs text-muted-foreground">
+        {teamModeActive
+          ? 'Drag a team onto a group. Teammates always play together — assign players to teams via Manage Teams.'
+          : 'Drag players onto a group, or tap to select then tap a group. Max 4 per group.'}
+      </p>
 
       {/* Unassigned pool */}
       <DroppableArea id={UNASSIGNED_DROPPABLE_ID}>
       <Card>
         <CardHeader
-          className={`pb-3 transition-colors rounded-t-xl ${selectedPlayerIds.size > 0 && ![...selectedPlayerIds].every((id) => unassigned.find((p) => p.id === id)) ? 'cursor-pointer hover:bg-[var(--color-primary)]/5 ring-2 ring-[var(--color-primary)]/30' : ''}`}
-          onClick={() => handleGroupTap(null)}
+          className={`pb-3 transition-colors rounded-t-xl ${!teamModeActive && selectedPlayerIds.size > 0 && ![...selectedPlayerIds].every((id) => unassigned.find((p) => p.id === id)) ? 'cursor-pointer hover:bg-[var(--color-primary)]/5 ring-2 ring-[var(--color-primary)]/30' : ''}`}
+          onClick={() => { if (!teamModeActive) handleGroupTap(null) }}
         >
           <CardTitle className="text-sm flex items-center gap-2">
             <Users className="w-4 h-4 text-muted-foreground" />
-            Unassigned Players
-            <span className="text-xs font-normal text-muted-foreground">({unassigned.length})</span>
+            {teamModeActive ? 'Unassigned Teams' : 'Unassigned Players'}
+            <span className="text-xs font-normal text-muted-foreground">
+              ({teamModeActive ? unassignedTeams.length : unassigned.length})
+            </span>
           </CardTitle>
         </CardHeader>
         <CardContent>
-          {unassigned.length === 0 ? (
+          {teamModeActive ? (
+            <div className="space-y-3">
+              {unassignedTeams.length === 0 ? (
+                <p className="text-xs text-muted-foreground py-1">All teams are assigned to groups.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {unassignedTeams.map((t) => (
+                    <DraggablePill
+                      key={t.id}
+                      id={`${TEAM_DRAG_PREFIX}${t.id}`}
+                      className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border border-border bg-card hover:border-[var(--color-primary)]/40 transition-all select-none"
+                    >
+                      <span
+                        className="inline-block h-3 w-3 rounded-full ring-1 ring-border"
+                        style={{ backgroundColor: t.color ?? 'var(--color-primary)' }}
+                        aria-hidden="true"
+                      />
+                      <span className="font-medium">{t.name}</span>
+                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                        {t.memberIds.length}
+                      </span>
+                    </DraggablePill>
+                  ))}
+                </div>
+              )}
+              {noTeamPlayers.length > 0 && (
+                <div className="space-y-1.5 pt-2 border-t border-border">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                    Players without a team ({noTeamPlayers.length})
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    Place these players on a team in <Link href={`/${slug}/admin/teams`} className="underline">Manage Teams</Link> before grouping them.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {noTeamPlayers.map((p) => (
+                      <span
+                        key={p.id}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-200"
+                      >
+                        <span className="font-medium">{p.name}</span>
+                        <span className="text-[10px]">No team</span>
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
+          ) : unassigned.length === 0 ? (
             <p className="text-xs text-muted-foreground py-2">All players are assigned to groups.</p>
           ) : (
             <div className="flex flex-wrap gap-2">
@@ -740,7 +938,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       </Card>
       </DroppableArea>
 
-      {selectedPlayerIds.size > 0 && (
+      {!teamModeActive && selectedPlayerIds.size > 0 && (
         <p className="text-xs text-center text-[var(--color-primary)] font-medium animate-pulse">
           {selectedPlayerIds.size === 1
             ? `Tap a group to move ${players.find((p) => selectedPlayerIds.has(p.id))?.name ?? 'player'} there`
@@ -753,9 +951,9 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
         {groups.map((group) => (
           <DroppableArea key={group.id} id={group.id}>
           <Card
-            className={`group transition-all ${selectedPlayerIds.size > 0 && group.members.length < 4 && ![...selectedPlayerIds].every((id) => group.members.find((m) => m.tournamentPlayerId === id)) ? 'ring-2 ring-[var(--color-primary)]/30 cursor-pointer hover:ring-[var(--color-primary)]' : ''}`}
+            className={`group transition-all ${!teamModeActive && selectedPlayerIds.size > 0 && group.members.length < 4 && ![...selectedPlayerIds].every((id) => group.members.find((m) => m.tournamentPlayerId === id)) ? 'ring-2 ring-[var(--color-primary)]/30 cursor-pointer hover:ring-[var(--color-primary)]' : ''}`}
             onClick={() => {
-              if (selectedPlayerIds.size > 0 && group.members.length < 4) {
+              if (!teamModeActive && selectedPlayerIds.size > 0 && group.members.length < 4) {
                 handleGroupTap(group.id)
               }
             }}
@@ -816,7 +1014,45 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
             </CardHeader>
             <CardContent className="space-y-4">
               {/* Members */}
-              {group.members.length === 0 ? (
+              {teamModeActive ? (() => {
+                const groupTeams = teamsByGroupId.get(group.id) ?? []
+                if (groupTeams.length === 0) {
+                  return (
+                    <p className="text-xs text-muted-foreground py-1">
+                      No teams assigned yet. Drag a team here.
+                    </p>
+                  )
+                }
+                return (
+                  <div className="space-y-2">
+                    {groupTeams.map((t) => (
+                      <DraggablePill
+                        key={t.id}
+                        id={`${TEAM_DRAG_PREFIX}${t.id}`}
+                        className="flex items-center gap-2 px-3 py-2 rounded-lg border border-border bg-card hover:border-[var(--color-primary)]/40 transition-all select-none"
+                      >
+                        <span
+                          className="inline-block h-3 w-3 rounded-full ring-1 ring-border shrink-0"
+                          style={{ backgroundColor: t.color ?? 'var(--color-primary)' }}
+                          aria-hidden="true"
+                        />
+                        <span className="font-medium text-sm">{t.name}</span>
+                        <span className="text-[10px] text-muted-foreground">
+                          {t.memberIds.map((id) => players.find((p) => p.id === id)?.name).filter(Boolean).join(', ')}
+                        </span>
+                        <button
+                          onPointerDown={(e) => e.stopPropagation()}
+                          onClick={(e) => { e.stopPropagation(); applyTeamMove(t, null) }}
+                          className="ml-auto p-0.5 rounded hover:bg-destructive/10 hover:text-destructive transition-colors"
+                          aria-label={`Remove ${t.name} from this group`}
+                        >
+                          <X className="w-3.5 h-3.5" />
+                        </button>
+                      </DraggablePill>
+                    ))}
+                  </div>
+                )
+              })() : group.members.length === 0 ? (
                 <p className="text-xs text-muted-foreground py-1">No players assigned yet. Tap a player then tap this group.</p>
               ) : (
                 <div className="flex flex-wrap gap-2">
@@ -1043,7 +1279,19 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       </Dialog>
     </div>
     <DragOverlay>
-      {draggedPlayer ? (
+      {draggedTeam ? (
+        <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full text-sm border-2 border-[var(--color-primary)] bg-background shadow-lg cursor-grabbing">
+          <span
+            className="inline-block h-3 w-3 rounded-full ring-1 ring-border"
+            style={{ backgroundColor: draggedTeam.color ?? 'var(--color-primary)' }}
+            aria-hidden="true"
+          />
+          <span className="font-medium">{draggedTeam.name}</span>
+          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+            {draggedTeam.memberIds.length}
+          </span>
+        </div>
+      ) : draggedPlayer ? (
         <div className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border-2 border-[var(--color-primary)] bg-background shadow-lg cursor-grabbing">
           <span className="font-medium">{draggedPlayer.name}</span>
           {(() => {

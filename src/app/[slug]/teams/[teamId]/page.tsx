@@ -5,7 +5,9 @@ import { notFound } from 'next/navigation'
 import { ChevronLeft, Crown } from 'lucide-react'
 import { prisma } from '@/lib/prisma'
 import { getLeaderboard } from '@/lib/scoring'
+import { getUser } from '@/lib/auth'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { TeamNameEditor } from './TeamNameEditor'
 
 export default async function TeamDetailPage({
   params,
@@ -113,6 +115,20 @@ export default async function TeamDetailPage({
     isCaptain: m.isCaptain,
   }))
 
+  // Renaming is captain-only — admins (global or tournament) cannot rename
+  // someone else's team. Server enforces the same rule.
+  const viewer = await getUser()
+  let canEditName = false
+  if (viewer) {
+    const player = await prisma.tournamentPlayer.findUnique({
+      where: { tournamentId_userId: { tournamentId: tournament.id, userId: viewer.id } },
+      select: { teamMembership: { select: { teamId: true, isCaptain: true } } },
+    })
+    if (player?.teamMembership?.teamId === team.id && player.teamMembership.isCaptain) {
+      canEditName = true
+    }
+  }
+
   return (
     <main className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <Link
@@ -131,7 +147,12 @@ export default async function TeamDetailPage({
           aria-hidden="true"
         />
         <div>
-          <h1 className="text-2xl font-heading font-bold">{team.name}</h1>
+          <TeamNameEditor
+            slug={slug}
+            teamId={team.id}
+            initialName={team.name}
+            canEdit={canEditName}
+          />
           {standing && (
             <p className="text-sm text-muted-foreground">
               Rank {standing.rank} · {standing.holesPlayed} holes played
