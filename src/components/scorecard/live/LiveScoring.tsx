@@ -75,6 +75,20 @@ interface LiveScoringProps {
    *  on the current round. Used by the activation dialog to compute the next
    *  valid attack hole on each opponent. */
   opponentScoredHoles?: Record<string, number[]>
+  /**
+   * Team-mode metadata. Present when the tournament format is SCRAMBLE /
+   * SHAMBLE / CHAPMAN / PINEHURST and the current user belongs to a team.
+   * When set, all score writes route through the team-anchor (already
+   * provided as `tournamentPlayerId`) and the UI shows a banner explaining
+   * the shared-entry behaviour.
+   */
+  teamMode?: {
+    teamId: string
+    teamName: string
+    captainName: string | null
+  }
+  /** Tournament format id, used to enable the Concede Hole button on match-play formats. */
+  tournamentFormat?: string
 }
 
 // ─── Swipe Panel Indices ──────────────────────────────────────────────────────
@@ -103,7 +117,13 @@ export function LiveScoring({
   attacksReceived: rawAttacksReceived = [],
   tournamentPlayers: rawTournamentPlayers = [],
   opponentScoredHoles = {},
+  teamMode,
+  tournamentFormat,
 }: LiveScoringProps) {
+  const isMatchPlayFormat =
+    tournamentFormat === 'MATCH_PLAY'
+    || tournamentFormat === 'RYDER_CUP'
+    || tournamentFormat === 'NASSAU'
   const router = useRouter()
 
   const state = useLiveScoringState({
@@ -539,6 +559,23 @@ export function LiveScoring({
         )}
       </div>
 
+      {/* ── Team-mode banner ────────────────────────────────────────── */}
+      {teamMode && (
+        <div
+          role="status"
+          className="shrink-0 bg-amber-500/90 text-amber-950 text-xs font-semibold px-4 py-1.5 flex items-center gap-2"
+        >
+          <span className="inline-block h-2 w-2 rounded-full bg-amber-700" aria-hidden="true" />
+          <span className="truncate">
+            Recording for <span className="font-bold">{teamMode.teamName}</span>
+            {teamMode.captainName && (
+              <> · Captain: <span className="font-bold">{teamMode.captainName}</span></>
+            )}
+            <span className="ml-1.5 font-normal opacity-80">— any teammate&apos;s entry counts.</span>
+          </span>
+        </div>
+      )}
+
       {/* ── Swipe Carousel ──────────────────────────────────────────── */}
       <div
         className="flex-1 overflow-hidden relative"
@@ -606,6 +643,11 @@ export function LiveScoring({
                 }
                 isLastHole={
                   state.currentHoleIndex === state.sortedHoles.length - 1
+                }
+                onConcede={
+                  isMatchPlayFormat && state.currentHole
+                    ? () => state.concedeHole(state.currentHole!.id)
+                    : undefined
                 }
               />
             )}

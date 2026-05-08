@@ -104,7 +104,14 @@ export interface ScoringContext {
   formatConfig: Record<string, unknown> | null
   handicapSystem: 'NONE' | 'WHS' | 'STABLEFORD' | 'CALLAWAY' | 'PEORIA'
   holes: ScoringHole[]              // canonical hole list (round 1 used as the index)
-  rounds: Array<{ roundNumber: number; par: number }>
+  rounds: Array<{
+    roundNumber: number
+    par: number
+    /** Six secret holes for Peoria. Empty/absent for non-Peoria rounds. */
+    peoriaHoles?: number[]
+    /** True when every active participant has scored all 18 holes for this round. */
+    complete?: boolean
+  }>
   players: ScoringPlayer[]
   teams: ScoringTeam[]
 }

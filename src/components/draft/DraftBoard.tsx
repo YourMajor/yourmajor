@@ -17,6 +17,7 @@ import { computeCurrentTurn, matchesDurationFilter, type DurationFilter } from '
 import { Button } from '@/components/ui/button'
 import { Loader2 } from 'lucide-react'
 import type { PowerupEffect } from '@/lib/powerup-engine'
+import { togglePowerupFavorite } from '@/app/[slug]/draft/actions'
 
 interface Player {
   id: string
@@ -58,6 +59,10 @@ interface DraftBoardProps {
   currentPlayerId: string
   isAdmin?: boolean
   initialState: DraftState
+  /** User's currently-favourited powerup IDs. Lives outside `initialState`
+   *  because the /draft refetch endpoint doesn't return favourites — they're
+   *  managed locally with optimistic updates. */
+  initialFavoriteIds: string[]
 }
 
 function computePicksUntilMine(
@@ -82,6 +87,7 @@ export function DraftBoard({
   currentPlayerId,
   isAdmin = false,
   initialState,
+  initialFavoriteIds,
 }: DraftBoardProps) {
   const [state, setState] = useState<DraftState>(initialState)
   const [selectedPowerup, setSelectedPowerup] = useState<PowerupCardData | null>(null)
@@ -91,6 +97,10 @@ export function DraftBoard({
   const [typeFilter, setTypeFilter] = useState<PowerupTypeFilter>('ALL')
   const [durationFilter, setDurationFilter] = useState<DurationFilter>('ALL')
   const [sortBy, setSortBy] = useState<PowerupSortKey>('DEFAULT')
+  const [favoritesOnly, setFavoritesOnly] = useState(false)
+  const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
+    () => new Set(initialFavoriteIds),
+  )
   const [draftReset, setDraftReset] = useState(false)
   const [falling, setFalling] = useState(false)
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
@@ -155,6 +165,23 @@ export function DraftBoard({
       // Race losers (409) and too-early (425) are expected and harmless
     }
   }, [tournamentId])
+
+  const handleToggleFavorite = useCallback(async (powerupId: string) => {
+    // Optimistic flip; revert on error.
+    let snapshot: Set<string> | null = null
+    setFavoriteIds((prev) => {
+      snapshot = prev
+      const next = new Set(prev)
+      if (next.has(powerupId)) next.delete(powerupId)
+      else next.add(powerupId)
+      return next
+    })
+    try {
+      await togglePowerupFavorite(powerupId)
+    } catch {
+      if (snapshot) setFavoriteIds(snapshot)
+    }
+  }, [])
 
   // Subscribe to real-time draft pick events and draft status changes.
   //
@@ -309,6 +336,7 @@ export function DraftBoard({
   const filteredAndSorted = useMemo(() => {
     const q = search.trim().toLowerCase()
     const matches = allPowerupsWithStatus.filter(({ powerup }) => {
+      if (favoritesOnly && !favoriteIds.has(powerup.id)) return false
       if (typeFilter !== 'ALL' && powerup.type !== typeFilter) return false
       if (!matchesDurationFilter(powerup.effect.duration, durationFilter)) return false
       if (q && !(powerup.name.toLowerCase().includes(q) || powerup.description.toLowerCase().includes(q))) return false
@@ -344,7 +372,7 @@ export function DraftBoard({
       }
     })
     return matches
-  }, [allPowerupsWithStatus, typeFilter, durationFilter, search, sortBy, pickedPowerupIds])
+  }, [allPowerupsWithStatus, typeFilter, durationFilter, search, sortBy, pickedPowerupIds, favoritesOnly, favoriteIds])
 
   // Counts for the segmented control (across all available + picked)
   const counts = useMemo(() => {
@@ -367,7 +395,12 @@ export function DraftBoard({
     return { ALL: single + multi, SINGLE: single, MULTI: multi }
   }, [allPowerupsWithStatus])
 
-  const hasFilters = search.trim().length > 0 || typeFilter !== 'ALL' || durationFilter !== 'ALL'
+  const hasFilters = search.trim().length > 0 || typeFilter !== 'ALL' || durationFilter !== 'ALL' || favoritesOnly
+
+  const favoriteCount = useMemo(
+    () => allPowerupsWithStatus.reduce((n, x) => n + (favoriteIds.has(x.powerup.id) ? 1 : 0), 0),
+    [allPowerupsWithStatus, favoriteIds],
+  )
 
   if (draftReset) {
     return (
@@ -449,6 +482,9 @@ export function DraftBoard({
           onSortChange={setSortBy}
           counts={counts}
           durationCounts={durationCounts}
+          favoritesOnly={favoritesOnly}
+          onFavoritesOnlyChange={setFavoritesOnly}
+          favoriteCount={favoriteCount}
         />
 
         <PowerupBrowseGrid
@@ -460,7 +496,14 @@ export function DraftBoard({
           isMyTurn={isMyTurn}
           hasFilters={hasFilters}
           onSelect={(p) => setSelectedPowerup(p)}
-          onClearFilters={() => { setSearch(''); setTypeFilter('ALL') }}
+          onClearFilters={() => {
+            setSearch('')
+            setTypeFilter('ALL')
+            setDurationFilter('ALL')
+            setFavoritesOnly(false)
+          }}
+          favoriteIds={favoriteIds}
+          onToggleFavorite={handleToggleFavorite}
         />
 
         {/* Desktop-only: inline hand + draft board (mobile uses sheets via peek bar) */}

@@ -26,6 +26,7 @@ export interface ExistingScore {
   fairwayHit: boolean | null
   gir: boolean | null
   putts: number | null
+  conceded?: boolean
 }
 
 export interface ActivePowerup {
@@ -53,6 +54,7 @@ export interface HoleScore {
   putts: number | null
   fairwayHit: boolean | null
   gir: boolean | null
+  conceded: boolean
   powerupUsed: boolean
   activePowerups: ActivePowerup[]
   attacksReceived: ActivePowerup[]
@@ -114,6 +116,7 @@ export function useLiveScoringState({
             putts: ex.putts,
             fairwayHit: ex.fairwayHit,
             gir: ex.gir,
+            conceded: ex.conceded ?? false,
             powerupUsed: false,
             activePowerups: [],
             attacksReceived: [],
@@ -126,6 +129,7 @@ export function useLiveScoringState({
             putts: null,
             fairwayHit: null,
             gir: null,
+            conceded: false,
             powerupUsed: false,
             activePowerups: [],
             attacksReceived: [],
@@ -159,7 +163,10 @@ export function useLiveScoringState({
     field: RejectionField
     ts: number
   } | null>(null)
-  const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>(
+  // 'pending' fires the instant a score is dirty so the user sees acknowledgement
+  // immediately, before the 600ms save-debounce fires. The lifecycle is:
+  // pending → saving → saved → idle.
+  const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved'>(
     'idle',
   )
   const [activeVariablePowerups, setActiveVariablePowerups] = useState<VariablePowerupState[]>([])
@@ -271,13 +278,16 @@ export function useLiveScoringState({
     [tournamentPlayerId, roundId, apiEndpoint],
   )
 
-  // Debounced auto-save: triggers 1.5s after last change
+  // Debounced auto-save. 600ms is the sweet spot — short enough that the
+  // "Saving..." indicator appears before users feel uncertainty (research:
+  // 1s is the threshold for losing flow), long enough to coalesce rapid
+  // +/- taps into a single POST.
   const scheduleSave = useCallback(
     (holeId: string) => {
       if (debounceTimer.current) clearTimeout(debounceTimer.current)
       debounceTimer.current = setTimeout(() => {
         saveHole(holeId)
-      }, 1500)
+      }, 600)
     },
     [saveHole],
   )
@@ -291,6 +301,56 @@ export function useLiveScoringState({
       await saveHole(holeId)
     },
     [saveHole],
+  )
+
+  // ─── Concede hole (match-play only) ──────────────────────────────────────
+  // Bypasses the 1.5s debounce — concession is decisive and should hit the
+  // server immediately so the leaderboard reflects the lost hole.
+  const concedeHole = useCallback(
+    async (holeId: string) => {
+      setScores((prev) => ({
+        ...prev,
+        [holeId]: {
+          ...prev[holeId],
+          conceded: true,
+          strokes: 0,
+          isSaving: true,
+          isDirty: false,
+        },
+      }))
+      setSaveStatus('saving')
+      try {
+        const res = await fetch(apiEndpoint, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            tournamentPlayerId,
+            holeId,
+            roundId,
+            strokes: 0,
+            conceded: true,
+            fairwayHit: null,
+            gir: null,
+            putts: null,
+          }),
+        })
+        if (!res.ok) throw new Error(await res.text())
+        setScores((prev) => ({
+          ...prev,
+          [holeId]: { ...prev[holeId], isSaving: false, isExisting: true, isDirty: false },
+        }))
+        setSaveStatus('saved')
+        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
+        saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+      } catch {
+        setScores((prev) => ({
+          ...prev,
+          [holeId]: { ...prev[holeId], conceded: false, isSaving: false },
+        }))
+        setSaveStatus('idle')
+      }
+    },
+    [tournamentPlayerId, roundId, apiEndpoint],
   )
 
   // ─── Rejection trigger ───────────────────────────────────────────────────
@@ -309,6 +369,8 @@ export function useLiveScoringState({
         const updated = updater(prev[holeId])
         return { ...prev, [holeId]: { ...updated, isDirty: true } }
       })
+      // Show acknowledgement immediately — don't wait for the debounce.
+      setSaveStatus('pending')
       scheduleSave(holeId)
     },
     [scheduleSave],
@@ -319,23 +381,31 @@ export function useLiveScoringState({
     updateScore(currentHole.id, (prev) => {
       // Cap live-scoring strokes at 15 to prevent runaway tap-ups; admin and
       // post-round entry paths still allow up to 20 for rare blow-up holes.
+      // If the hole was previously conceded, re-entering strokes implicitly
+      // unconcedes it.
+      const fromConceded = prev.conceded
       const newStrokes =
-        prev.strokes === null ? currentHole.par : Math.min(15, prev.strokes + 1)
+        prev.strokes === null || fromConceded
+          ? currentHole.par
+          : Math.min(15, prev.strokes + 1)
       const newPutts = prev.putts // putts stay valid when strokes increase
       const newGir = computeGir(newStrokes, newPutts, currentHole.par)
-      return { ...prev, strokes: newStrokes, gir: newGir }
+      return { ...prev, strokes: newStrokes, gir: newGir, conceded: false }
     })
   }, [currentHole, updateScore])
 
   const decrementStrokes = useCallback(() => {
     if (!currentHole) return
     updateScore(currentHole.id, (prev) => {
+      const fromConceded = prev.conceded
       const newStrokes =
-        prev.strokes === null ? currentHole.par : Math.max(1, prev.strokes - 1)
+        prev.strokes === null || fromConceded
+          ? currentHole.par
+          : Math.max(1, prev.strokes - 1)
       if (newStrokes < 1) return prev
       const newPutts = clampPutts(prev.putts, newStrokes)
       const newGir = computeGir(newStrokes, newPutts, currentHole.par)
-      return { ...prev, strokes: newStrokes, putts: newPutts, gir: newGir }
+      return { ...prev, strokes: newStrokes, putts: newPutts, gir: newGir, conceded: false }
     })
   }, [currentHole, updateScore])
 
@@ -549,5 +619,6 @@ export function useLiveScoringState({
 
     // Save
     flushSave,
+    concedeHole,
   }
 }

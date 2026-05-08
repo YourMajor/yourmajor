@@ -9,6 +9,7 @@ import {
   bestBallSelect,
   matchPlayStatus,
 } from '@/lib/scoring-utils'
+import { isSingleTeamScoreFormat } from '@/lib/formats'
 
 describe('stablefordPoints (default table)', () => {
   it('eagle = 4, birdie = 3, par = 2, bogey = 1, double+ = 0', () => {
@@ -189,5 +190,30 @@ describe('matchPlayStatus', () => {
     const winners = [1, 1, 1, 1, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0]   // +5 after 14
     // remaining = 4, |5|>4 → closed at hole 14
     expect(matchPlayStatus(winners)).toMatchObject({ up: 5, through: 14, closed: true, status: 'closed' })
+  })
+})
+
+describe('isSingleTeamScoreFormat', () => {
+  it('matches scramble-family formats', () => {
+    expect(isSingleTeamScoreFormat('SCRAMBLE')).toBe(true)
+    expect(isSingleTeamScoreFormat('SHAMBLE')).toBe(true)
+    expect(isSingleTeamScoreFormat('CHAPMAN')).toBe(true)
+    expect(isSingleTeamScoreFormat('PINEHURST')).toBe(true)
+  })
+  it('does NOT match best-ball formats (each member plays own ball)', () => {
+    expect(isSingleTeamScoreFormat('BEST_BALL')).toBe(false)
+    expect(isSingleTeamScoreFormat('BEST_BALL_2')).toBe(false)
+    expect(isSingleTeamScoreFormat('BEST_BALL_4')).toBe(false)
+  })
+  it('does NOT match individual / match formats', () => {
+    expect(isSingleTeamScoreFormat('STROKE_PLAY')).toBe(false)
+    expect(isSingleTeamScoreFormat('STABLEFORD')).toBe(false)
+    expect(isSingleTeamScoreFormat('MATCH_PLAY')).toBe(false)
+    expect(isSingleTeamScoreFormat('NASSAU')).toBe(false)
+  })
+  it('handles null/undefined safely', () => {
+    expect(isSingleTeamScoreFormat(null)).toBe(false)
+    expect(isSingleTeamScoreFormat(undefined)).toBe(false)
+    expect(isSingleTeamScoreFormat('')).toBe(false)
   })
 })

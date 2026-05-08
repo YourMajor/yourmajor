@@ -59,7 +59,12 @@ export async function getLeaderboard(
     }),
     prisma.tournamentRound.findMany({
       where: { tournamentId },
-      include: { course: { select: { par: true, holes: { select: { number: true, par: true, handicap: true } } } } },
+      select: {
+        id: true,
+        roundNumber: true,
+        peoriaHoles: true,
+        course: { select: { par: true, holes: { select: { number: true, par: true, handicap: true } } } },
+      },
       orderBy: { roundNumber: 'asc' },
     }),
     prisma.tournament.findUnique({
@@ -101,13 +106,51 @@ export async function getLeaderboard(
     handicap: h.handicap,
   }))
 
+  // Peoria gates net + reveal on per-round completion: every active participant
+  // must have scored all 18 holes for the round. Pre-compute per-round completion
+  // here so format strategies don't each have to recount scores. The players
+  // query above already filters to isParticipant=true.
+  const participantIds = players.map((p) => p.id)
+  const scoredHolesByRound = new Map<number, Map<string, Set<number>>>()
+  for (const player of players) {
+    for (const score of player.scores) {
+      const roundNumber = score.round.roundNumber
+      let perRound = scoredHolesByRound.get(roundNumber)
+      if (!perRound) {
+        perRound = new Map()
+        scoredHolesByRound.set(roundNumber, perRound)
+      }
+      let played = perRound.get(player.id)
+      if (!played) {
+        played = new Set()
+        perRound.set(player.id, played)
+      }
+      played.add(score.hole.number)
+    }
+  }
+  function isRoundComplete(roundNumber: number): boolean {
+    if (participantIds.length === 0) return false
+    const perRound = scoredHolesByRound.get(roundNumber)
+    if (!perRound) return false
+    for (const id of participantIds) {
+      const played = perRound.get(id)
+      if (!played || played.size < 18) return false
+    }
+    return true
+  }
+
   const ctx: ScoringContext = {
     tournamentId,
     format: effectiveFormat as ScoringContext['format'],
     formatConfig: (tournament?.formatConfig ?? null) as Record<string, unknown> | null,
     handicapSystem: handicapSystem as ScoringContext['handicapSystem'],
     holes: canonicalHoles,
-    rounds: rounds.map((r) => ({ roundNumber: r.roundNumber, par: r.course.par })),
+    rounds: rounds.map((r) => ({
+      roundNumber: r.roundNumber,
+      par: r.course.par,
+      peoriaHoles: r.peoriaHoles,
+      complete: isRoundComplete(r.roundNumber),
+    })),
     players: players.map((p) => {
       const name = p.user.name ?? p.user.email.split('@')[0]
       const avatarUrl = p.user.profile?.avatar ?? p.user.image ?? null

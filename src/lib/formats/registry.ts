@@ -237,6 +237,23 @@ export const FORMATS: FormatDef[] = [
   },
 ]
 
+/**
+ * Formats where a single canonical team score is recorded per hole. Any team
+ * member may submit, but all entries route to the same team-anchor row so the
+ * scoring UI shows one shared value. Best Ball is NOT in this set — every
+ * member plays their own ball and the strategy picks the lowest.
+ */
+export const SINGLE_TEAM_SCORE_FORMATS: readonly FormatId[] = [
+  'SCRAMBLE',
+  'SHAMBLE',
+  'CHAPMAN',
+  'PINEHURST',
+] as const
+
+export function isSingleTeamScoreFormat(formatId: string | null | undefined): boolean {
+  return !!formatId && (SINGLE_TEAM_SCORE_FORMATS as readonly string[]).includes(formatId)
+}
+
 const FORMAT_BY_ID: Record<FormatId, FormatDef> = Object.fromEntries(
   FORMATS.map((f) => [f.id, f]),
 ) as Record<FormatId, FormatDef>

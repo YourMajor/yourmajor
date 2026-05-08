@@ -81,6 +81,17 @@ export default async function AdminDraftPage({
     .filter((tp) => !pickedIds.has(tp.powerupId))
     .map((tp) => tp.powerup as PowerupCardData)
 
+  // Admin's own favourites — passed through so the embedded DraftBoard renders
+  // hearts pre-populated for them too.
+  const favorites = await prisma.powerupFavorite.findMany({
+    where: {
+      userId: user.id,
+      powerupId: { in: tournamentPowerups.map((tp) => tp.powerupId) },
+    },
+    select: { powerupId: true },
+  })
+  const favoriteIds = favorites.map((f) => f.powerupId)
+
   const draftOrder = (draft?.draftOrder as string[] | null) ?? []
   const currentTurn = draft
     ? computeCurrentTurn(
@@ -125,6 +136,7 @@ export default async function AdminDraftPage({
         maxAttacksPerPlayer={tournament.maxAttacksPerPlayer}
         currentTurn={currentTurn}
         isAdmin={true}
+        favoriteIds={favoriteIds}
       />
     </main>
   )

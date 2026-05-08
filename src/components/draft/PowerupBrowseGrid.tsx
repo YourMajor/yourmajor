@@ -15,6 +15,9 @@ interface PowerupBrowseGridProps {
   hasFilters: boolean
   onSelect: (p: PowerupCardData) => void
   onClearFilters: () => void
+  /** Pass favouriteIds + onToggleFavorite together to render heart buttons. */
+  favoriteIds?: Set<string>
+  onToggleFavorite?: (powerupId: string) => void
 }
 
 export function PowerupBrowseGrid({
@@ -25,6 +28,8 @@ export function PowerupBrowseGrid({
   hasFilters,
   onSelect,
   onClearFilters,
+  favoriteIds,
+  onToggleFavorite,
 }: PowerupBrowseGridProps) {
   const pickedMap = new Map(picks.map((p) => [p.powerupId, p.pickedBy]))
 
@@ -80,6 +85,8 @@ export function PowerupBrowseGrid({
               if (!isPicked && isMyTurn) onSelect(powerup)
             }}
             disabled={!isMyTurn || isPicked}
+            isFavorite={favoriteIds?.has(powerup.id) ?? false}
+            onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(powerup.id) : undefined}
           />
         )
       })}

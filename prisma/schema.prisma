@@ -180,6 +180,7 @@ model User {
   ownedAdminSeats        AccountAdmin[]               @relation("AccountAdminOwner")
   delegatedAdminFor      AccountAdmin[]               @relation("AccountAdminUser")
   pushSubscriptions      PushSubscription[]
+  powerupFavorites       PowerupFavorite[]
 }
 
 // ─── Push Notifications (Web Push, VAPID) ─────────────────────────────────────
@@ -377,6 +378,11 @@ model TournamentRound {
   date         DateTime?
   courseId     String
   teeMode      TeeMode   @default(UNIFORM)
+  // Six secret holes for Peoria format (2 par-3, 2 par-4, 2 par-5, one per nine for each par class).
+  // Empty array for non-Peoria tournaments. Selected at round creation time so the set is fixed
+  // before any scores are entered. Revealed on the leaderboard only after every participant has
+  // scored all 18 holes for the round.
+  peoriaHoles  Int[]     @default([])
 
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   course          Course           @relation(fields: [courseId], references: [id])
@@ -605,6 +611,19 @@ model Powerup {
   tournamentPowerups TournamentPowerup[]
   playerPowerups     PlayerPowerup[]
   draftPicks         DraftPick[]
+  favorites          PowerupFavorite[]
+}
+
+model PowerupFavorite {
+  userId    String
+  powerupId String
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  powerup Powerup @relation(fields: [powerupId], references: [id], onDelete: Cascade)
+
+  @@id([userId, powerupId])
+  @@index([userId])
 }
 
 model TournamentPowerup {

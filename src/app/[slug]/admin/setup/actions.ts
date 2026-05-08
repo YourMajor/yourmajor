@@ -260,6 +260,28 @@ export async function updateTournament(
     })
   }
 
+  // If format flipped TO Peoria (no scores yet — guarded above), draw secret
+  // holes for every round that doesn't already have a set. The 6-hole pick is
+  // fixed at this point so it's safe to reveal once a round completes.
+  if (tournamentFormat === 'PEORIA' && currentTournament!.tournamentFormat !== 'PEORIA') {
+    const { selectPeoriaHoles } = await import('@/lib/peoria')
+    const rounds = await prisma.tournamentRound.findMany({
+      where: { tournamentId },
+      select: { id: true, peoriaHoles: true, courseId: true },
+    })
+    for (const round of rounds) {
+      if (round.peoriaHoles.length > 0) continue
+      const holes = await prisma.hole.findMany({
+        where: { courseId: round.courseId },
+        select: { number: true, par: true },
+      })
+      await prisma.tournamentRound.update({
+        where: { id: round.id },
+        data: { peoriaHoles: selectPeoriaHoles(holes) },
+      })
+    }
+  }
+
   revalidatePath(`/${parsed.slug}`, 'layout')
   revalidatePath(`/${parsed.slug}/admin/setup`)
   // Season schedule table on the parent league reads from this event — refresh

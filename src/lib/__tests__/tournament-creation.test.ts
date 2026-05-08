@@ -353,6 +353,46 @@ describe('Leaderboard Scoring by Handicap System', () => {
   // Course par: 6 × (4+3+5) = 72
   const coursePar = holes18.reduce((s, h) => s + h.par, 0) // 72
 
+  // Build a minimal ScoringContext for the Peoria-via-strokePlayStrategy tests.
+  // Single player, single round; the round's `complete` flag drives the gate.
+  function makePeoriaContext(opts: {
+    peoriaHoles: number[]
+    roundComplete: boolean
+    scores: Array<{ number: number; par: number; handicap: number; strokes: number }>
+    playerHandicap?: number
+  }): import('@/lib/formats/types').ScoringContext {
+    return {
+      tournamentId: 't1',
+      format: 'PEORIA',
+      formatConfig: null,
+      handicapSystem: 'PEORIA',
+      holes: holes18,
+      rounds: [{
+        roundNumber: 1,
+        par: coursePar,
+        peoriaHoles: opts.peoriaHoles,
+        complete: opts.roundComplete,
+      }],
+      players: [{
+        tournamentPlayerId: 'p1',
+        userId: 'u1',
+        name: 'A',
+        avatarUrl: null,
+        handicap: opts.playerHandicap ?? 0,
+        scoreModifier: 0,
+        teamId: null,
+        scores: opts.scores.map((s) => ({
+          holeNumber: s.number,
+          par: s.par,
+          strokes: s.strokes,
+          handicap: s.handicap,
+          roundNumber: 1,
+        })),
+      }],
+      teams: [],
+    }
+  }
+
   describe('NONE — gross only', () => {
     it('net equals gross when handicap system is NONE', () => {
       // 18 holes, all par → gross = 72
@@ -543,20 +583,62 @@ describe('Leaderboard Scoring by Handicap System', () => {
   })
 
   describe('PEORIA', () => {
-    it('falls back to WHS logic (same net as WHS)', () => {
-      const scores = makeScores(holes18.map((h) => h.par), holes18)
-      const player = { name: 'A', handicap: 10, scores, powerupModifier: 0 }
-      const [pWhs] = computeLeaderboard('WHS', [{ ...player }], holes18)
-      const [pPeoria] = computeLeaderboard('PEORIA', [{ ...player }], holes18)
-      expect(pPeoria.netTotal).toBe(pWhs.netTotal)
+    // The pure-function helpers (selectPeoriaHoles, computePeoriaHandicap,
+    // isPeoriaRoundComplete) are exercised in peoria.test.ts. Here we verify
+    // the integration with strokePlayStrategy: the round-complete gate hides
+    // net until every participant has 18 holes, and the calculation differs
+    // from WHS once revealed.
+
+    it('hides net (returns null) while round is incomplete', async () => {
+      const { strokePlayStrategy } = await import('@/lib/formats/strokePlay')
+      const ctx = makePeoriaContext({
+        peoriaHoles: [3, 4, 5, 12, 13, 14],
+        roundComplete: false,
+        scores: holes18.map((h) => ({ ...h, strokes: h.par })),
+      })
+      const [standing] = strokePlayStrategy.computeStandings(ctx)
+      expect(standing.netTotal).toBeNull()
+      expect(standing.netVsPar).toBeNull()
+      // Reveal data shouldn't include the secret holes for an incomplete round.
+      expect(Object.keys(standing.peoriaRoundDetails ?? {})).toHaveLength(0)
     })
 
-    it('allocates handicap strokes identically to WHS', () => {
-      const scores = makeScores(holes18.map((h) => h.par + 1), holes18)
-      const player = { name: 'A', handicap: 15, scores, powerupModifier: 0 }
-      const [pWhs] = computeLeaderboard('WHS', [{ ...player }], holes18)
-      const [pPeoria] = computeLeaderboard('PEORIA', [{ ...player }], holes18)
-      expect(pPeoria.netVsPar).toBe(pWhs.netVsPar)
+    it('reveals net + secret holes once round is complete', async () => {
+      const { strokePlayStrategy } = await import('@/lib/formats/strokePlay')
+      const secretHoles = [3, 4, 5, 12, 13, 14]
+      // Player shoots par on every hole. Capped sum on the 6 secret holes =
+      // sum of their pars. With our holes18 layout these are par 3+5+4+3+5+4=24.
+      const ctx = makePeoriaContext({
+        peoriaHoles: secretHoles,
+        roundComplete: true,
+        scores: holes18.map((h) => ({ ...h, strokes: h.par })),
+      })
+      const [standing] = strokePlayStrategy.computeStandings(ctx)
+      // Even-par round: capped sum 24 → projected 72 → raw 0 → handicap 0 → net = gross.
+      expect(standing.peoriaRoundDetails?.[1]?.secretHoles).toEqual(secretHoles)
+      expect(standing.peoriaRoundDetails?.[1]?.peoriaHandicap).toBe(0)
+      expect(standing.netTotal).toBe(standing.grossTotal)
+    })
+
+    it('produces a different net than WHS once revealed', async () => {
+      const { strokePlayStrategy } = await import('@/lib/formats/strokePlay')
+      // Player handicap 15, shooting bogey on every hole.
+      const bogeyScores = holes18.map((h) => ({ ...h, strokes: h.par + 1 }))
+      const peoriaCtx = makePeoriaContext({
+        peoriaHoles: [3, 4, 5, 12, 13, 14],
+        roundComplete: true,
+        scores: bogeyScores,
+        playerHandicap: 15,
+      })
+      const [pPeoria] = strokePlayStrategy.computeStandings(peoriaCtx)
+
+      // Compare with WHS-style net for the same player. For a 15-HC bogey-on-every-hole
+      // round, WHS gives 15 strokes back (one per indexed hole) → net 90 - 15 = 75.
+      const whsScores = makeScores(holes18.map((h) => h.par + 1), holes18)
+      const [pWhs] = computeLeaderboard('WHS', [
+        { name: 'A', handicap: 15, scores: whsScores, powerupModifier: 0 },
+      ], holes18)
+      expect(pPeoria.netTotal).not.toBe(pWhs.netTotal)
     })
   })
 

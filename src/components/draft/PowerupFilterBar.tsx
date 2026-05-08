@@ -1,6 +1,6 @@
 'use client'
 
-import { Search, X } from 'lucide-react'
+import { Search, X, Heart } from 'lucide-react'
 import type { DurationFilter } from '@/lib/draft-utils'
 
 export type PowerupTypeFilter = 'ALL' | 'BOOST' | 'ATTACK'
@@ -18,6 +18,10 @@ interface PowerupFilterBarProps {
   /** Counts shown next to each chip; pass undefined to hide. */
   counts?: { ALL: number; BOOST: number; ATTACK: number }
   durationCounts?: { ALL: number; SINGLE: number; MULTI: number }
+  /** Pass an `onFavoritesOnlyChange` to render the favourites-only toggle. */
+  favoritesOnly?: boolean
+  onFavoritesOnlyChange?: (value: boolean) => void
+  favoriteCount?: number
 }
 
 const TYPES: { value: PowerupTypeFilter; label: string }[] = [
@@ -38,7 +42,7 @@ const SORTS: { value: PowerupSortKey; label: string }[] = [
   { value: 'DURATION_ASC', label: 'Duration: 1H first' },
 ]
 
-export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, durationFilter, onDurationFilterChange, sortBy, onSortChange, counts, durationCounts }: PowerupFilterBarProps) {
+export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFilterChange, durationFilter, onDurationFilterChange, sortBy, onSortChange, counts, durationCounts, favoritesOnly, onFavoritesOnlyChange, favoriteCount }: PowerupFilterBarProps) {
   return (
     <div className="sticky top-9 z-20 -mx-3 sm:-mx-4 px-3 sm:px-4 py-2 bg-background/95 backdrop-blur-sm border-b border-border space-y-2">
       {/* Search */}
@@ -122,6 +126,30 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
           )
         })}
       </div>
+
+      {/* Favourites-only toggle (only when caller wires it up) */}
+      {onFavoritesOnlyChange && (
+        <button
+          type="button"
+          role="switch"
+          aria-checked={!!favoritesOnly}
+          aria-label="Show favourites only"
+          onClick={() => onFavoritesOnlyChange(!favoritesOnly)}
+          className={`flex items-center justify-center gap-2 w-full min-h-9 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors border ${
+            favoritesOnly
+              ? 'bg-red-50 text-red-700 border-red-200 shadow-sm'
+              : 'bg-card text-muted-foreground border-input hover:text-foreground'
+          }`}
+        >
+          <Heart className={`w-3.5 h-3.5 ${favoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
+          <span>Favourites only</span>
+          {typeof favoriteCount === 'number' && (
+            <span className={`text-[10px] font-mono ${favoritesOnly ? 'text-red-600/70' : 'text-muted-foreground/70'}`}>
+              {favoriteCount}
+            </span>
+          )}
+        </button>
+      )}
 
       {/* Sort dropdown */}
       <div className="flex items-center gap-2">

@@ -22,6 +22,7 @@ export default async function AdminLayout({
       tournamentType: true,
       isLeague: true,
       powerupsEnabled: true,
+      teamsEnabled: true,
     },
   })
 
@@ -41,6 +42,7 @@ export default async function AdminLayout({
         tournamentType={tournament.tournamentType}
         isLeague={tournament.isLeague}
         powerupsEnabled={tournament.powerupsEnabled}
+        teamsEnabled={tournament.teamsEnabled}
         vacancyCount={vacancyCount}
       />
       <div className="min-w-0 px-4 py-6 lg:px-8 lg:py-8 w-full lg:max-w-[1600px]">{children}</div>

@@ -6,6 +6,7 @@ import { getUser } from '@/lib/auth'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { TournamentMessage } from '@/components/ui/tournament-message'
 import { LiveScoring } from '@/components/scorecard/live/LiveScoring'
+import { isSingleTeamScoreFormat } from '@/lib/formats'
 import { Clock, Swords, AlertCircle } from 'lucide-react'
 
 export default async function PlayPage({
@@ -105,10 +106,54 @@ export default async function PlayPage({
     )
   }
 
-  // Existing scores for this player + round
+  // ── Team-mode resolution ────────────────────────────────────────────────
+  // For SCRAMBLE / SHAMBLE / CHAPMAN / PINEHURST a single canonical Score row
+  // exists per (team, hole, round). All team members read and write through
+  // the team-anchor: the lexicographically-smallest tournamentPlayerId on the
+  // team. This keeps the strategy's "one team score per hole" invariant
+  // without making the anchor depend on the captain badge (which can be
+  // reassigned mid-tournament). The captain shows in the UI banner only.
+  const teamMode = isSingleTeamScoreFormat(tournament.tournamentFormat)
+  let teamAnchorPlayerId: string | null = null
+  let teamMeta: { teamId: string; teamName: string; captainName: string | null } | null = null
+  if (teamMode) {
+    const teamMembership = await prisma.tournamentTeamMember.findUnique({
+      where: { tournamentPlayerId: tournamentPlayer.id },
+      select: {
+        team: {
+          select: {
+            id: true,
+            name: true,
+            members: {
+              select: {
+                isCaptain: true,
+                tournamentPlayerId: true,
+                tournamentPlayer: { select: { user: { select: { name: true, email: true } } } },
+              },
+            },
+          },
+        },
+      },
+    })
+    if (teamMembership) {
+      const memberIds = teamMembership.team.members.map((m) => m.tournamentPlayerId).sort()
+      teamAnchorPlayerId = memberIds[0]
+      const captain = teamMembership.team.members.find((m) => m.isCaptain)
+      teamMeta = {
+        teamId: teamMembership.team.id,
+        teamName: teamMembership.team.name,
+        captainName: captain
+          ? captain.tournamentPlayer.user.name ?? captain.tournamentPlayer.user.email.split('@')[0]
+          : null,
+      }
+    }
+  }
+  const scoringPlayerId = teamAnchorPlayerId ?? tournamentPlayer.id
+
+  // Existing scores for this player + round (anchor row when team-mode)
   const existingScores = await prisma.score.findMany({
-    where: { tournamentPlayerId: tournamentPlayer.id, roundId: selectedRound.id },
-    select: { holeId: true, strokes: true, fairwayHit: true, gir: true, putts: true },
+    where: { tournamentPlayerId: scoringPlayerId, roundId: selectedRound.id },
+    select: { holeId: true, strokes: true, fairwayHit: true, gir: true, putts: true, conceded: true },
   })
 
   // Player's tee assignment for this round
@@ -219,7 +264,7 @@ export default async function PlayPage({
 
   return (
     <LiveScoring
-      tournamentPlayerId={tournamentPlayer.id}
+      tournamentPlayerId={scoringPlayerId}
       roundId={selectedRound.id}
       holes={holes}
       existingScores={existingScores}
@@ -237,6 +282,8 @@ export default async function PlayPage({
       attacksReceived={attacksReceived as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['attacksReceived']>}
       tournamentPlayers={tournamentPlayers as unknown as NonNullable<React.ComponentProps<typeof LiveScoring>['tournamentPlayers']>}
       opponentScoredHoles={opponentScoredHoles}
+      teamMode={teamMode && teamMeta !== null ? teamMeta : undefined}
+      tournamentFormat={tournament.tournamentFormat}
     />
   )
 }

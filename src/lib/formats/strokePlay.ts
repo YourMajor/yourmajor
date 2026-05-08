@@ -2,6 +2,7 @@
 // CLIENT-SAFE — no prisma imports.
 
 import { allocateHandicapStrokes, callawayDeduction, type PlayerStanding } from '@/lib/scoring-utils'
+import { cappedPeoriaScore, computePeoriaHandicap } from '@/lib/peoria'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
 import { getHoleHandicapPairs } from './context-helpers'
 
@@ -22,6 +23,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
 
   let netTotal: number | null = null
   let netVsPar: number | null = null
+  let peoriaRoundDetails: PlayerStanding['peoriaRoundDetails'] = undefined
 
   if (adjustedGross !== null) {
     if (ctx.handicapSystem === 'NONE') {
@@ -34,8 +36,33 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       )
       netTotal = adjustedGross - deduction
       netVsPar = netTotal - playedPar
+    } else if (ctx.handicapSystem === 'PEORIA') {
+      // Per-round Peoria handicap: only completed rounds (every participant has
+      // 18 scores) contribute. While any round is still in progress its 6 secret
+      // holes stay hidden and net stays null — that's the whole point of the
+      // format. Multi-round events reveal round-by-round as each finishes.
+      let totalPeoriaHandicap = 0
+      let anyRoundComplete = false
+      const details: NonNullable<PlayerStanding['peoriaRoundDetails']> = {}
+      for (const r of ctx.rounds) {
+        if (!r.complete || !r.peoriaHoles?.length) continue
+        anyRoundComplete = true
+        const secretSet = new Set(r.peoriaHoles)
+        const cappedSum = p.scores
+          .filter((s) => s.roundNumber === r.roundNumber && secretSet.has(s.holeNumber))
+          .reduce((sum, s) => sum + cappedPeoriaScore(s.strokes, s.par), 0)
+        const hc = computePeoriaHandicap(cappedSum, r.par)
+        totalPeoriaHandicap += hc
+        details[r.roundNumber] = { secretHoles: r.peoriaHoles, peoriaHandicap: hc }
+      }
+      peoriaRoundDetails = details
+      if (anyRoundComplete) {
+        netTotal = adjustedGross - totalPeoriaHandicap
+        netVsPar = netTotal - playedPar
+      }
+      // else leave netTotal/netVsPar null → leaderboard's hasNet check hides the column
     } else {
-      // WHS / PEORIA / STABLEFORD-as-handicap-system: WHS-style stroke allocation
+      // WHS / STABLEFORD-as-handicap-system: WHS-style stroke allocation
       const strokeSet = allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
       const handicapStrokesApplied = p.scores.filter((s) => strokeSet.has(s.holeNumber)).length
       netTotal = adjustedGross - handicapStrokesApplied
@@ -65,6 +92,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       diff: s.strokes - s.par,
       roundNumber: s.roundNumber,
     })),
+    peoriaRoundDetails,
   }
 }
 

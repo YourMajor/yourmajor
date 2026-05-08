@@ -58,7 +58,7 @@ interface HoleScoringProps {
   /** Map of opponent tournamentPlayerId → list of scored hole numbers. */
   opponentScoredHoles: Record<string, number[]>
   rejection: { field: RejectionField; ts: number } | null
-  saveStatus: 'idle' | 'saving' | 'saved'
+  saveStatus: 'idle' | 'pending' | 'saving' | 'saved'
   runningScore: { holesPlayed: number; diff: number | null }
 
   onIncrementStrokes: () => void
@@ -75,6 +75,12 @@ interface HoleScoringProps {
   hasPrev: boolean
   hasNext: boolean
   isLastHole: boolean
+  /**
+   * When provided (match-play formats), enables a Concede Hole button. Calling
+   * it persists `conceded: true` to the API and updates local state so the UI
+   * shows a "Conceded" badge instead of the strokes editor.
+   */
+  onConcede?: () => void | Promise<void>
 }
 
 export function HoleScoring({
@@ -109,6 +115,7 @@ export function HoleScoring({
   hasPrev,
   hasNext,
   isLastHole,
+  onConcede,
 }: HoleScoringProps) {
   const [inspectedCard, setInspectedCard] = useState<PowerupCardData | null>(null)
   const scoreType = getScoreType(score.strokes, hole.par)
@@ -292,15 +299,43 @@ export function HoleScoring({
 
       {/* ── Scoring Controls ──────────────────────────────────────────── */}
       <div className="flex-1 min-h-0 px-5 py-4 space-y-6 overflow-y-auto">
-        {/* Strokes */}
-        <StepperInput
-          label="Strokes"
-          value={score.strokes}
-          onIncrement={onIncrementStrokes}
-          onDecrement={onDecrementStrokes}
-          rejectionTs={rejection?.field === 'strokes' ? rejection.ts : null}
-          size="lg"
-        />
+        {/* Conceded state replaces the strokes stepper for match-play. */}
+        {score.conceded ? (
+          <div
+            role="status"
+            className="rounded-xl border border-red-400/40 bg-red-50 px-4 py-3 flex items-center gap-3"
+          >
+            <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-red-100 text-red-700 font-bold text-base">
+              C
+            </span>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-red-800">Hole Conceded</p>
+              <p className="text-xs text-red-700/80">Opponent wins this hole. Tap + or − to undo.</p>
+            </div>
+          </div>
+        ) : (
+          <StepperInput
+            label="Strokes"
+            value={score.strokes}
+            onIncrement={onIncrementStrokes}
+            onDecrement={onDecrementStrokes}
+            rejectionTs={rejection?.field === 'strokes' ? rejection.ts : null}
+            size="lg"
+          />
+        )}
+
+        {/* Concede Hole button (match-play formats only) */}
+        {onConcede && !score.conceded && (
+          <div className="flex justify-center">
+            <button
+              type="button"
+              onClick={onConcede}
+              className="inline-flex items-center gap-1.5 rounded-md border border-white/25 bg-white/5 px-3 py-1.5 text-xs font-semibold text-white/85 hover:bg-white/10 active:scale-95 transition-all touch-manipulation"
+            >
+              Concede Hole
+            </button>
+          </div>
+        )}
 
         {/* Putts */}
         <StepperInput
@@ -356,8 +391,10 @@ export function HoleScoring({
             <p className="text-xs text-red-400 font-medium text-center px-2">
               {finishError}
             </p>
+          ) : saveStatus === 'pending' ? (
+            <span className="text-xs text-white/60">Pending…</span>
           ) : saveStatus === 'saving' ? (
-            <span className="text-xs text-white/80">Saving...</span>
+            <span className="text-xs text-white/80">Saving…</span>
           ) : saveStatus === 'saved' ? (
             <span className="flex items-center gap-1 text-xs text-green-400/80">
               <Check className="w-3 h-3" />

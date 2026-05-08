@@ -60,6 +60,7 @@ interface DraftAdminProps {
   maxAttacksPerPlayer: number
   currentTurn: { tournamentPlayerId: string; roundNumber: number; pickNumber: number } | null
   isAdmin: boolean
+  favoriteIds: string[]
 }
 
 function SortablePlayerCard({ playerId, player, index }: { playerId: string; player: Player; index: number }) {
@@ -105,6 +106,7 @@ export function DraftAdmin({
   maxAttacksPerPlayer,
   currentTurn,
   isAdmin,
+  favoriteIds,
 }: DraftAdminProps) {
   const [order, setOrder] = useState<string[]>(() => {
     const playerIds = players.map((p) => p.id)
@@ -269,6 +271,7 @@ export function DraftAdmin({
         tournamentId={tournamentId}
         currentPlayerId={currentPlayerId}
         isAdmin={isAdmin}
+        initialFavoriteIds={favoriteIds}
         initialState={{
           draft,
           currentTurn,

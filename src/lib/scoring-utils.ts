@@ -107,6 +107,13 @@ export interface PlayerStanding {
   // low-gross-net (dual ranking)
   grossRank?: number
   netRank?: number
+  // peoria: only populated for rounds that are complete (every participant scored
+  // all 18 holes). The leaderboard treats presence of an entry as "reveal this
+  // round's secret holes + handicap"; absence means "still hidden".
+  peoriaRoundDetails?: Record<number, {
+    secretHoles: number[]
+    peoriaHandicap: number
+  }>
 }
 
 export function scoreName(diff: number | null): string {

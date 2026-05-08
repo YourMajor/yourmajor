@@ -1,13 +1,12 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { buttonVariants } from '@/components/ui/button-variants'
 import { TournamentMessage } from '@/components/ui/tournament-message'
 import { DraftBoard } from '@/components/draft/DraftBoard'
 import { PowerupCard } from '@/components/draft/PowerupCard'
+import { PreDraftPowerupPreview } from '@/components/draft/PreDraftPowerupPreview'
 import { computeCurrentTurn } from '@/lib/draft-utils'
-import { Swords, Clock, Target } from 'lucide-react'
+import { Swords, Clock } from 'lucide-react'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
 
 interface Player {
@@ -63,6 +62,23 @@ export default async function DraftPage({
   if (!player) redirect(`/${slug}/register`)
 
   const isAdmin = player.isAdmin || user.role === 'ADMIN'
+
+  // Fetched upfront so both pre-draft preview and live DraftBoard share the
+  // same source of truth for the configured powerup pool and the user's
+  // favourites. Favourites are global to the user; intersecting with the
+  // tournament's pool happens client-side.
+  const tournamentPowerups = await prisma.tournamentPowerup.findMany({
+    where: { tournamentId: tournament.id },
+    include: {
+      powerup: { select: { id: true, slug: true, name: true, type: true, description: true, effect: true } },
+    },
+  })
+  const allPowerups = tournamentPowerups.map((tp) => tp.powerup as PowerupCardData)
+  const favorites = await prisma.powerupFavorite.findMany({
+    where: { userId: user.id, powerupId: { in: allPowerups.map((p) => p.id) } },
+    select: { powerupId: true },
+  })
+  const favoriteIds = favorites.map((f) => f.powerupId)
 
   // If RANDOM distribution — show the player their cards (or "waiting" if not dealt yet)
   if (tournament.distributionMode === 'RANDOM') {
@@ -125,39 +141,27 @@ export default async function DraftPage({
 
   if (!draft) {
     return (
-      <TournamentMessage
-        icon={Target}
-        heading="No Draft Yet"
-        description="No draft has been set up yet."
+      <PreDraftPowerupPreview
+        powerups={allPowerups}
+        initialFavoriteIds={favoriteIds}
+        heading="Powerup Draft"
+        description="No draft has been set up yet. Browse the pool and favourite the cards you want to grab once the draft starts."
         backHref={`/${slug}`}
-      >
-        {isAdmin && (
-          <Link href={`/${slug}/admin/draft`} className={buttonVariants({ variant: 'outline' })}>
-            Set Up Draft
-          </Link>
-        )}
-      </TournamentMessage>
+        adminCta={isAdmin ? { href: `/${slug}/admin/draft`, label: 'Set Up Draft' } : undefined}
+      />
     )
   }
 
   if (draft.status === 'PENDING') {
     return (
-      <TournamentMessage
-        icon={Clock}
+      <PreDraftPowerupPreview
+        powerups={allPowerups}
+        initialFavoriteIds={favoriteIds}
         heading="Powerup Draft"
-        description="Waiting for the admin to set the draft order and start the draft..."
-        variant="waiting"
+        description="Waiting for the admin to set the draft order and start the draft."
         backHref={`/${slug}`}
-      >
-        {isAdmin && (
-          <Link
-            href={`/${slug}/admin/draft`}
-            className={buttonVariants({ size: 'sm' }) + ' bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
-          >
-            Set Order &amp; Start Draft
-          </Link>
-        )}
-      </TournamentMessage>
+        adminCta={isAdmin ? { href: `/${slug}/admin/draft`, label: 'Set Order & Start Draft' } : undefined}
+      />
     )
   }
 
@@ -167,17 +171,8 @@ export default async function DraftPage({
     orderBy: { createdAt: 'asc' },
   })
 
-  const tournamentPowerups = await prisma.tournamentPowerup.findMany({
-    where: { tournamentId: tournament.id },
-    include: {
-      powerup: { select: { id: true, slug: true, name: true, type: true, description: true, effect: true } },
-    },
-  })
-
   const pickedIds = new Set(draft.picks.map((p) => p.powerupId))
-  const availablePowerups = tournamentPowerups
-    .filter((tp) => !pickedIds.has(tp.powerupId))
-    .map((tp) => tp.powerup as PowerupCardData)
+  const availablePowerups = allPowerups.filter((p) => !pickedIds.has(p.id))
 
   const draftOrder = (draft.draftOrder as string[]) ?? []
   const currentTurn = computeCurrentTurn(
@@ -207,6 +202,7 @@ export default async function DraftPage({
         tournamentId={tournament.id}
         currentPlayerId={player.id}
         isAdmin={isAdmin}
+        initialFavoriteIds={favoriteIds}
         initialState={{
           draft: {
             id: draft.id,

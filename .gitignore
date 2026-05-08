@@ -50,3 +50,6 @@ next-env.d.ts
 
 # local data exports
 powerups-export.csv
+
+# local QA artifacts (screenshots, scratch output)
+/tmp/

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { isSingleTeamScoreFormat } from '@/lib/formats'
 
 export async function POST(request: NextRequest) {
   const dbUser = await getUser()
@@ -30,21 +32,39 @@ export async function POST(request: NextRequest) {
 
   const tp = await prisma.tournamentPlayer.findUnique({
     where: { id: tournamentPlayerId },
-    select: { userId: true, tournamentId: true },
+    select: {
+      userId: true,
+      tournamentId: true,
+      teamMembership: { select: { teamId: true } },
+    },
   })
   if (!tp) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
 
   const isOwn = tp.userId === dbUser.id
   const isGlobalAdmin = dbUser.role === 'ADMIN'
   let isTournamentAdmin = false
+  let isTeammate = false
   if (!isOwn && !isGlobalAdmin) {
-    const adminMembership = await prisma.tournamentPlayer.findUnique({
+    const callerMembership = await prisma.tournamentPlayer.findUnique({
       where: { tournamentId_userId: { tournamentId: tp.tournamentId, userId: dbUser.id } },
-      select: { isAdmin: true },
+      select: { isAdmin: true, teamMembership: { select: { teamId: true } } },
     })
-    isTournamentAdmin = adminMembership?.isAdmin ?? false
+    isTournamentAdmin = callerMembership?.isAdmin ?? false
+    // Team-mode entry: any member of the same team as the target player may
+    // submit, but only when the tournament's format actually uses a single
+    // team-anchor score (Scramble / Shamble / Chapman / Pinehurst).
+    if (!isTournamentAdmin && callerMembership?.teamMembership?.teamId
+        && tp.teamMembership?.teamId === callerMembership.teamMembership.teamId) {
+      const tournamentFormat = await prisma.tournament.findUnique({
+        where: { id: tp.tournamentId },
+        select: { tournamentFormat: true },
+      })
+      if (isSingleTeamScoreFormat(tournamentFormat?.tournamentFormat)) {
+        isTeammate = true
+      }
+    }
   }
-  if (!isOwn && !isGlobalAdmin && !isTournamentAdmin) {
+  if (!isOwn && !isGlobalAdmin && !isTournamentAdmin && !isTeammate) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
@@ -59,6 +79,12 @@ export async function POST(request: NextRequest) {
     create: { tournamentPlayerId, holeId, roundId, strokes: persistedStrokes, fairwayHit, gir, putts, conceded: isConceded },
     update: { strokes: persistedStrokes, fairwayHit, gir, putts, conceded: isConceded, submittedAt: new Date() },
   })
+
+  // Bust the leaderboard SSR cache so the next server-rendered visit (e.g. a
+  // spectator opening the hub) sees the fresh standing immediately. Live
+  // clients still receive the same change via Supabase Realtime within ~200ms.
+  // expire:0 = hard immediate eviction (Next 16 requires the profile arg).
+  revalidateTag(`leaderboard-${tp.tournamentId}`, { expire: 0 })
 
   // Auto-post "Round has begun!" system message on first score for a round
   if (isNewScore) {

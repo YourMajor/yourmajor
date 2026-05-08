@@ -11,6 +11,7 @@ import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
 import { sendInvitations, sendInviteEmails as sendInviteEmailsImpl } from '@/lib/invite-sender'
 import { containsProfanity } from '@/lib/content-moderation'
+import { selectPeoriaHoles } from '@/lib/peoria'
 
 function friendlyPrismaError(err: unknown): string {
   if (err instanceof Prisma.PrismaClientValidationError) {
@@ -269,8 +270,19 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
       data: { tournamentId: t.id, userId: user.id, isAdmin: true, isParticipant: false, handicap: creatorProfile?.handicap ?? 0 },
     })
 
-    // Create rounds
+    // Create rounds. For PEORIA we draw 6 secret holes per round at creation
+    // time so the set is fixed before any scores exist; the leaderboard later
+    // reveals these only after every participant has completed the round.
+    const isPeoria = (data.tournamentFormat ?? 'STROKE_PLAY') === 'PEORIA'
     for (const r of data.rounds) {
+      let peoriaHoles: number[] = []
+      if (isPeoria) {
+        const courseHoles = await tx.hole.findMany({
+          where: { courseId: r.courseId },
+          select: { number: true, par: true },
+        })
+        peoriaHoles = selectPeoriaHoles(courseHoles)
+      }
       const round = await tx.tournamentRound.create({
         data: {
           tournamentId: t.id,
@@ -278,6 +290,7 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
           date: r.date ? new Date(r.date) : null,
           courseId: r.courseId,
           teeMode: r.teeMode,
+          peoriaHoles,
         },
       })
 

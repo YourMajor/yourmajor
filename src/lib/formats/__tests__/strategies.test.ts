@@ -7,6 +7,7 @@ import { scrambleStrategy } from '@/lib/formats/scramble'
 import { matchPlayStrategy } from '@/lib/formats/match'
 import { quotaStrategy } from '@/lib/formats/quota'
 import { nassauStrategy } from '@/lib/formats/nassau'
+import { lowGrossLowNetStrategy } from '@/lib/formats/combined'
 import type { ScoringContext, ScoringPlayer } from '@/lib/formats/types'
 
 const PAR_72_HOLES = Array.from({ length: 18 }, (_, i) => ({
@@ -365,6 +366,56 @@ describe('nassauStrategy', () => {
     const ctx = makeCtx({ format: 'NASSAU', players })
     const standings = nassauStrategy.computeStandings(ctx)
     expect(standings.map((s) => s.playerName)).toEqual(['Alpha', 'Beta', 'Gamma'])
+  })
+})
+
+describe('lowGrossLowNetStrategy', () => {
+  it('emits kind low-gross-net with grossRank and netRank populated', () => {
+    // 3 players, all handicap 0 → gross == net for everyone.
+    const ctx = makeCtx({
+      format: 'LOW_GROSS_LOW_NET',
+      players: [
+        makePlayer('alice', 'Alice', 0, () => 3),       // 54
+        makePlayer('bob', 'Bob', 0, (h) => h.par),      // 72
+        makePlayer('carol', 'Carol', 0, (h) => h.par + 1), // 90
+      ],
+    })
+    const standings = lowGrossLowNetStrategy.computeStandings(ctx)
+    for (const s of standings) {
+      expect(s.kind).toBe('low-gross-net')
+      expect(typeof s.grossRank).toBe('number')
+      expect(typeof s.netRank).toBe('number')
+    }
+    const alice = standings.find((s) => s.playerName === 'Alice')!
+    expect(alice.grossRank).toBe(1)
+    expect(alice.netRank).toBe(1)
+  })
+
+  it('crowns separate gross and net winners when handicaps differ', () => {
+    // Alice has handicap 0 and shoots even par → gross 72.
+    // Bob has handicap 18 and shoots +18 → gross 90, net 72.
+    // Carol has handicap 9 and shoots +5 → gross 77, net 68.
+    // Expected: Carol nets best (rank 1), Alice ties Bob on net (both 72).
+    // Gross order: Alice (72) < Carol (77) < Bob (90).
+    const ctx = makeCtx({
+      format: 'LOW_GROSS_LOW_NET',
+      handicapSystem: 'WHS',
+      players: [
+        makePlayer('alice', 'Alice', 0, (h) => h.par),
+        makePlayer('bob', 'Bob', 18, (h) => h.par + 1),
+        makePlayer('carol', 'Carol', 9, (h) => h.par + (h.number <= 5 ? 1 : 0)),
+      ],
+    })
+    const standings = lowGrossLowNetStrategy.computeStandings(ctx)
+    const alice = standings.find((s) => s.playerName === 'Alice')!
+    const carol = standings.find((s) => s.playerName === 'Carol')!
+    // Carol is the net leader (lowest netVsPar).
+    expect(carol.netRank).toBe(1)
+    // Alice is the gross leader (lowest grossVsPar).
+    expect(alice.grossRank).toBe(1)
+    // The two ranks are independent — gross winner and net winner are different.
+    expect(carol.grossRank).not.toBe(1)
+    expect(alice.netRank).not.toBe(1)
   })
 })
 

@@ -1,7 +1,8 @@
 'use client'
 
+import Link from 'next/link'
 import { useFormStatus } from 'react-dom'
-import { AlertCircle, Loader2, Mail } from 'lucide-react'
+import { AlertCircle, Loader2, LogIn } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 
@@ -28,19 +29,19 @@ function SubmitButton() {
       {pending ? (
         <>
           <Loader2 className="w-4 h-4 animate-spin" />
-          Sending link…
+          Signing in…
         </>
       ) : (
         <>
-          <Mail className="w-4 h-4" />
-          Send magic link
+          <LogIn className="w-4 h-4" />
+          Sign in
         </>
       )}
     </button>
   )
 }
 
-export function MagicLinkForm({ signIn, next, error, defaultEmail }: Props) {
+export function PasswordForm({ signIn, next, error, defaultEmail }: Props) {
   return (
     <form action={signIn} className="space-y-3">
       {next && <input type="hidden" name="next" value={next} />}
@@ -56,6 +57,29 @@ export function MagicLinkForm({ signIn, next, error, defaultEmail }: Props) {
           required
           autoComplete="email"
           defaultValue={defaultEmail}
+          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
+            focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
+        />
+      </div>
+      <div className="space-y-1.5">
+        <div className="flex items-baseline justify-between">
+          <Label htmlFor="password" className="text-white/80 text-sm font-medium">
+            Password
+          </Label>
+          <Link
+            href="/auth/forgot-password"
+            className="text-xs text-accent hover:text-accent/80 font-semibold transition-colors"
+          >
+            Forgot password?
+          </Link>
+        </div>
+        <Input
+          id="password"
+          name="password"
+          type="password"
+          placeholder="Your password"
+          required
+          autoComplete="current-password"
           className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
             focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
         />

@@ -45,4 +45,4 @@ export function getStrategy(id: FormatId | string | null | undefined): FormatStr
 }
 
 export type { FormatStrategy, FormatDef, FormatId, ScoringContext, ScoringPlayer, ScoringScore, ScoringHole } from './types'
-export { FORMATS, getFormat, isTeamFormat, isMatchFormat, defaultFormatConfig } from './registry'
+export { FORMATS, getFormat, isTeamFormat, isMatchFormat, defaultFormatConfig, isSingleTeamScoreFormat, SINGLE_TEAM_SCORE_FORMATS } from './registry'

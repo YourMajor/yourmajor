@@ -10,7 +10,11 @@ export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url)
   const code = searchParams.get('code')
   const oauthError = searchParams.get('error_description') ?? searchParams.get('error')
-  const next = searchParams.get('next') ?? '/dashboard'
+  const type = searchParams.get('type')
+  // Recovery emails from Supabase include type=recovery — force the user to
+  // /auth/reset-password even if the email template didn't pass an explicit next.
+  const explicitNext = searchParams.get('next')
+  const next = explicitNext ?? (type === 'recovery' ? '/auth/reset-password' : '/dashboard')
 
   if (oauthError) {
     console.error('[auth/callback] provider error:', oauthError)

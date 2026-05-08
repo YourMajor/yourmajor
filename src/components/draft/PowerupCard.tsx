@@ -1,7 +1,7 @@
 'use client'
 
 import Image from 'next/image'
-import { Crosshair, Ban, Sliders } from 'lucide-react'
+import { Crosshair, Ban, Sliders, Heart } from 'lucide-react'
 import { SlugIcon } from './CardHand'
 
 export interface PowerupCardData {
@@ -27,6 +27,8 @@ interface PowerupCardProps {
   size?: 'sm' | 'md' | 'lg' | 'grid' | 'browse'
   onClick?: () => void
   disabled?: boolean
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
 }
 
 function formatDuration(duration: number): string {
@@ -47,6 +49,8 @@ export function PowerupCard({
   size = 'md',
   onClick,
   disabled,
+  isFavorite,
+  onToggleFavorite,
 }: PowerupCardProps) {
   const isAttack = powerup.type === 'ATTACK'
   const isPicked = state === 'picked'
@@ -63,6 +67,8 @@ export function PowerupCard({
       pickedBy={pickedBy}
       onClick={onClick}
       disabled={disabled}
+      isFavorite={isFavorite}
+      onToggleFavorite={onToggleFavorite}
     />
   }
 
@@ -168,9 +174,11 @@ interface BrowseCardProps {
   pickedBy?: { name: string | null; image: string | null } | null
   onClick?: () => void
   disabled?: boolean
+  isFavorite?: boolean
+  onToggleFavorite?: () => void
 }
 
-function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy, onClick, disabled }: BrowseCardProps) {
+function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy, onClick, disabled, isFavorite, onToggleFavorite }: BrowseCardProps) {
   const iconColor = isAttack ? 'text-red-700' : 'text-emerald-800'
   const requiresTarget = powerup.effect.requiresTarget
   const excludePar3 = powerup.effect.restrictions?.excludePar3
@@ -182,89 +190,116 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
     : 'bg-[oklch(0.72_0.11_78/0.15)] text-[oklch(0.45_0.12_78)] border-[oklch(0.72_0.11_78/0.40)]'
 
   return (
-    <button
-      type="button"
-      onClick={onClick}
-      disabled={disabled || isPicked || isUsed}
-      aria-label={`${powerup.name}, ${powerup.type.toLowerCase()}, ${powerup.effect.duration === -1 ? 'variable' : powerup.effect.duration} hole${powerup.effect.duration === 1 ? '' : 's'}`}
-      className={`
-        relative w-full aspect-[3/4] rounded-2xl overflow-hidden flex flex-col text-left
-        bg-[#f5f0e8] border-2 transition-all select-none
-        ${isAttack ? 'border-red-700/70' : 'border-emerald-800/70'}
-        ${isSelected ? 'ring-2 ring-amber-400 shadow-xl shadow-amber-400/20 scale-[1.02]' : 'shadow-sm'}
-        ${isPicked || isUsed ? 'opacity-55 cursor-not-allowed' : ''}
-        ${!isPicked && !isUsed && !disabled ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer' : ''}
-        ${disabled && !isPicked && !isUsed ? 'opacity-60 cursor-not-allowed' : ''}
-      `}
-    >
-      {/* Top row: type pill + duration chip */}
-      <div className="flex items-start justify-between px-2.5 pt-2.5">
-        <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${typePillClasses}`}>
-          {powerup.type}
-        </span>
-        <span className={`font-mono text-[10px] font-bold px-1.5 py-0.5 rounded-md bg-card/70 ${iconColor}`}>
-          {formatDuration(powerup.effect.duration)}
-        </span>
-      </div>
+    <div className="relative w-full">
+      <button
+        type="button"
+        onClick={onClick}
+        disabled={disabled || isPicked || isUsed}
+        aria-label={`${powerup.name}, ${powerup.type.toLowerCase()}, ${powerup.effect.duration === -1 ? 'variable' : powerup.effect.duration} hole${powerup.effect.duration === 1 ? '' : 's'}`}
+        className={`
+          relative w-full aspect-[3/4] rounded-2xl overflow-hidden flex flex-col text-left
+          bg-[#f5f0e8] border-2 transition-all select-none
+          ${isAttack ? 'border-red-700/70' : 'border-emerald-800/70'}
+          ${isSelected ? 'ring-2 ring-amber-400 shadow-xl shadow-amber-400/20 scale-[1.02]' : 'shadow-sm'}
+          ${isPicked || isUsed ? 'opacity-55 cursor-not-allowed' : ''}
+          ${!isPicked && !isUsed && !disabled ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer' : ''}
+          ${disabled && !isPicked && !isUsed ? 'opacity-60 cursor-not-allowed' : ''}
+        `}
+      >
+        {/* Top row: type pill on the left; right side reserved for the heart overlay */}
+        <div className="flex items-start justify-between px-2.5 pt-2.5">
+          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${typePillClasses}`}>
+            {powerup.type}
+          </span>
+          {/* spacer the same width as the heart button so the type pill stays
+              aligned whether or not the heart is rendered */}
+          <span aria-hidden="true" className="w-7 h-5" />
+        </div>
 
-      {/* Icon */}
-      <div className="flex-1 flex items-center justify-center pt-1 pb-0.5">
-        <SlugIcon slug={powerup.slug} isAttack={isAttack} className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor}`} />
-      </div>
+        {/* Icon + duration */}
+        <div className="flex-1 flex flex-col items-center justify-center pt-1 pb-0.5 gap-0.5">
+          <SlugIcon slug={powerup.slug} isAttack={isAttack} className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor}`} />
+          <span className={`font-mono text-[10px] font-bold ${iconColor}`}>
+            {formatDuration(powerup.effect.duration)}
+          </span>
+        </div>
 
-      {/* Name + teaser */}
-      <div className="px-2.5 pb-1.5">
-        <p className={`font-heading font-bold leading-tight text-[12px] line-clamp-2 ${isAttack ? 'text-red-900' : 'text-emerald-900'}`}>
-          {powerup.name}
-        </p>
-        {teaser && (
-          <p className="text-[10px] leading-tight text-zinc-600 line-clamp-2 mt-0.5">
-            {teaser}
+        {/* Name + teaser */}
+        <div className="px-2.5 pb-1.5">
+          <p className={`font-heading font-bold leading-tight text-[12px] line-clamp-2 ${isAttack ? 'text-red-900' : 'text-emerald-900'}`}>
+            {powerup.name}
           </p>
-        )}
-      </div>
-
-      {/* Micro-icon footer */}
-      {(requiresTarget || excludePar3 || needsInput) && (
-        <div className={`flex items-center gap-1 px-2.5 py-1 border-t ${isAttack ? 'border-red-700/15' : 'border-emerald-800/15'}`}>
-          {requiresTarget && (
-            <span title="Targets opponent" aria-label="Targets opponent">
-              <Crosshair className={`w-3 h-3 ${iconColor}`} />
-            </span>
-          )}
-          {excludePar3 && (
-            <span title="Not on par 3" aria-label="Not on par 3">
-              <Ban className={`w-3 h-3 ${iconColor}`} />
-            </span>
-          )}
-          {needsInput && (
-            <span title="Needs input" aria-label="Needs input">
-              <Sliders className={`w-3 h-3 ${iconColor}`} />
-            </span>
-          )}
-        </div>
-      )}
-
-      {/* Picked overlay */}
-      {isPicked && pickedBy && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/45">
-          <div className="text-center">
-            {pickedBy.image && (
-              <Image src={pickedBy.image} alt="" width={32} height={32} className="w-8 h-8 rounded-full mx-auto mb-1 border-2 border-white/40 object-cover" />
-            )}
-            <p className="text-[11px] font-semibold text-white px-2">
-              {pickedBy.name ?? 'Player'}
+          {teaser && (
+            <p className="text-[10px] leading-tight text-zinc-600 line-clamp-2 mt-0.5">
+              {teaser}
             </p>
-          </div>
+          )}
         </div>
-      )}
 
-      {/* Used indicator */}
-      {isUsed && (
-        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/45">
-          <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Used</span>
-        </div>
+        {/* Micro-icon footer */}
+        {(requiresTarget || excludePar3 || needsInput) && (
+          <div className={`flex items-center gap-1 px-2.5 py-1 border-t ${isAttack ? 'border-red-700/15' : 'border-emerald-800/15'}`}>
+            {requiresTarget && (
+              <span title="Targets opponent" aria-label="Targets opponent">
+                <Crosshair className={`w-3 h-3 ${iconColor}`} />
+              </span>
+            )}
+            {excludePar3 && (
+              <span title="Not on par 3" aria-label="Not on par 3">
+                <Ban className={`w-3 h-3 ${iconColor}`} />
+              </span>
+            )}
+            {needsInput && (
+              <span title="Needs input" aria-label="Needs input">
+                <Sliders className={`w-3 h-3 ${iconColor}`} />
+              </span>
+            )}
+          </div>
+        )}
+
+        {/* Picked overlay */}
+        {isPicked && pickedBy && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/45">
+            <div className="text-center">
+              {pickedBy.image && (
+                <Image src={pickedBy.image} alt="" width={32} height={32} className="w-8 h-8 rounded-full mx-auto mb-1 border-2 border-white/40 object-cover" />
+              )}
+              <p className="text-[11px] font-semibold text-white px-2">
+                {pickedBy.name ?? 'Player'}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Used indicator */}
+        {isUsed && (
+          <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/45">
+            <span className="text-xs font-bold text-white/80 uppercase tracking-wider">Used</span>
+          </div>
+        )}
+      </button>
+
+      {/* Favourite heart — rendered outside the card button so clicks don't
+          trigger card selection. Stays interactive even when the card is
+          disabled / picked / used so players can curate freely. */}
+      {onToggleFavorite && (
+        <button
+          type="button"
+          onClick={(e) => {
+            e.stopPropagation()
+            onToggleFavorite()
+          }}
+          aria-pressed={!!isFavorite}
+          aria-label={isFavorite ? `Remove ${powerup.name} from favourites` : `Add ${powerup.name} to favourites`}
+          className="absolute top-1.5 right-1.5 z-10 p-1.5 rounded-full bg-card/85 backdrop-blur-sm shadow-sm hover:bg-card transition-colors"
+        >
+          <Heart
+            className={`w-3.5 h-3.5 transition-colors ${
+              isFavorite ? 'fill-red-500 text-red-500' : 'text-zinc-500'
+            }`}
+          />
+        </button>
       )}
-    </button>
+    </div>
   )
 }

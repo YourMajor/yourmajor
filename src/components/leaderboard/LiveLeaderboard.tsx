@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronDown, Crown, Search } from 'lucide-react'
+import { ChevronDown, Crown, Lock, Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { type PlayerStanding, type StandingKind } from '@/lib/scoring-utils'
@@ -11,6 +11,8 @@ import { MatchPlayLeaderboardTable } from './MatchPlayLeaderboardTable'
 import { SkinsLeaderboardTable } from './SkinsLeaderboardTable'
 import { TeamLeaderboardTable } from './TeamLeaderboardTable'
 import { NassauLeaderboardTable } from './NassauLeaderboardTable'
+import { LowGrossNetLeaderboardTable } from './LowGrossNetLeaderboardTable'
+import { FormatInfoButton } from './FormatInfoButton'
 
 function vsParLabel(n: number): string {
   if (n === 0) return 'E'
@@ -91,10 +93,10 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
   const isSkins = standingKind === 'skins'
   const isTeamFormat = standingKind === 'team-stroke' || standingKind === 'team-best-ball'
   const isNassau = standingKind === 'nassau'
+  const isLowGrossNet = standingKind === 'low-gross-net'
   const isPointsSort = isStableford || isMatchPlay || isSkins || isNassau
   const hasNet = standings.some((s) => s.netVsPar !== null)
   const totalHoles = 18 * roundNumbers.length
-  void tournamentFormat   // reserved for future per-format row registry
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -113,7 +115,10 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
     const supabase = createClient()
     const scheduleRefresh = () => {
       if (debounceRef.current) clearTimeout(debounceRef.current)
-      debounceRef.current = setTimeout(() => { refresh() }, 400)
+      // 150ms coalesces a burst of writes (e.g., a player saving multiple
+      // holes in a row) into one refetch while keeping the spectator's
+      // perceived lag well under "feels slow" territory (~1s).
+      debounceRef.current = setTimeout(() => { refresh() }, 150)
     }
     const channel = supabase
       .channel(`leaderboard-${tournamentId}`)
@@ -185,6 +190,24 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
 
   const showFullTable = hasScores || status === 'ACTIVE' || status === 'COMPLETED'
 
+  // Peoria: collect the per-round reveal info. The 6 secret holes are the same
+  // for every player in the field, so we read them off any standing that has
+  // them. For rounds where no standing carries an entry, the round is still in
+  // progress and the holes stay hidden.
+  const isPeoria = handicapSystem === 'PEORIA'
+  const peoriaReveal = useMemo(() => {
+    if (!isPeoria) return null
+    const detailsByRound = new Map<number, { secretHoles: number[]; peoriaHandicap: number }>()
+    for (const s of standings) {
+      if (!s.peoriaRoundDetails) continue
+      for (const [roundStr, info] of Object.entries(s.peoriaRoundDetails)) {
+        const r = Number(roundStr)
+        if (!detailsByRound.has(r)) detailsByRound.set(r, info)
+      }
+    }
+    return roundNumbers.map((r) => ({ roundNumber: r, revealed: detailsByRound.get(r) ?? null }))
+  }, [isPeoria, standings, roundNumbers])
+
   const searchTerm = playerSearch.trim().toLowerCase()
   const filteredRanks = useMemo(
     () => searchTerm
@@ -197,6 +220,11 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
   if (!showFullTable) {
     return (
       <div>
+        {tournamentFormat && (
+          <div className="mb-3 flex items-center gap-2 flex-wrap">
+            <FormatInfoButton formatId={tournamentFormat} />
+          </div>
+        )}
         <p className="text-xs text-muted-foreground mb-3 uppercase tracking-wide font-semibold">
           {standings.length} Player{standings.length !== 1 ? 's' : ''} Registered
         </p>
@@ -265,6 +293,12 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
 
   return (
     <div>
+      {tournamentFormat && (
+        <div className="mb-3 flex items-center gap-2 flex-wrap">
+          <FormatInfoButton formatId={tournamentFormat} />
+        </div>
+      )}
+
       {/* Filters + Search + Scoring CTA */}
       <div className="flex items-center gap-1.5 sm:gap-2 mb-4 lg:mb-6 flex-wrap">
         {!isPointsSort && (
@@ -308,6 +342,36 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
         )}
       </div>
 
+      {/* Peoria: secret-hole reveal panel. Each round shows either its 6 secret
+          hole numbers (after every player has finished) or a "hidden" lock —
+          revealing live would give away which holes the handicap depends on. */}
+      {peoriaReveal && peoriaReveal.length > 0 && (
+        <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs sm:text-sm">
+          <div className="font-semibold text-foreground mb-1.5 uppercase tracking-wide text-[10px] sm:text-xs">
+            Peoria secret holes
+          </div>
+          <ul className="space-y-1">
+            {peoriaReveal.map(({ roundNumber, revealed }) => (
+              <li key={roundNumber} className="flex items-center gap-2">
+                {peoriaReveal.length > 1 && (
+                  <span className="font-medium text-muted-foreground shrink-0">R{roundNumber}:</span>
+                )}
+                {revealed ? (
+                  <span className="font-mono tabular-nums text-foreground">
+                    {revealed.secretHoles.join(', ')}
+                  </span>
+                ) : (
+                  <span className="inline-flex items-center gap-1.5 text-muted-foreground">
+                    <Lock className="w-3 h-3" />
+                    Hidden until round complete
+                  </span>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
       {/* Match play renders its own table (W-L-H + status). */}
       {isMatchPlay ? (
         <MatchPlayLeaderboardTable
@@ -336,6 +400,13 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
         />
       ) : isNassau ? (
         <NassauLeaderboardTable
+          rows={filteredRanks}
+          slug={slug}
+          loading={loading}
+          defendingChampionPlayerId={defendingChampionPlayerId}
+        />
+      ) : isLowGrossNet ? (
+        <LowGrossNetLeaderboardTable
           rows={filteredRanks}
           slug={slug}
           loading={loading}

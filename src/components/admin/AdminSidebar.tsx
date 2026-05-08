@@ -7,6 +7,7 @@ import {
   Settings,
   PenLine,
   Users,
+  UsersRound,
   Target,
   ShieldAlert,
   Trophy,
@@ -28,10 +29,11 @@ interface Props {
   tournamentType: 'OPEN' | 'INVITE' | 'PUBLIC'
   isLeague: boolean
   powerupsEnabled: boolean
+  teamsEnabled?: boolean
   vacancyCount?: number
 }
 
-export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, powerupsEnabled, vacancyCount = 0 }: Props) {
+export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, powerupsEnabled, teamsEnabled = false, vacancyCount = 0 }: Props) {
   const pathname = usePathname()
   const base = `/${slug}/admin`
 
@@ -43,6 +45,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
     { href: `${base}/setup`, label: 'Settings', icon: Settings, show: true },
     { href: `${base}/scores`, label: 'Manage Scores', icon: PenLine, show: !isLeague },
     { href: `${base}/groups`, label: 'Manage Groups', icon: Users, show: !isLeague && tournamentType !== 'PUBLIC', badge: vacancyCount },
+    { href: `${base}/teams`, label: 'Manage Teams', icon: UsersRound, show: !isLeague && teamsEnabled },
     { href: `${base}/draft`, label: 'Draft & Powerups', icon: Target, show: powerupsEnabled },
     { href: `${base}/chat`, label: 'Chat Moderation', icon: ShieldAlert, show: true },
   ].filter((l) => l.show)
