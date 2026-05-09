@@ -5,9 +5,12 @@ import Link from 'next/link'
 import { Clock } from 'lucide-react'
 import { PowerupCard, type PowerupCardData } from './PowerupCard'
 import { PowerupFilterBar, type PowerupTypeFilter, type PowerupSortKey } from './PowerupFilterBar'
+import { FlippableCardOverlay } from './FlippableCardOverlay'
+import { CardBack } from './CardHand'
 import { matchesDurationFilter, type DurationFilter } from '@/lib/draft-utils'
 import { togglePowerupFavorite } from '@/app/[slug]/draft/actions'
 import { buttonVariants } from '@/components/ui/button-variants'
+import type { PowerupEffect } from '@/lib/powerup-engine'
 
 interface PreDraftPowerupPreviewProps {
   powerups: PowerupCardData[]
@@ -34,6 +37,7 @@ export function PreDraftPowerupPreview({
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
     () => new Set(initialFavoriteIds),
   )
+  const [selectedPowerup, setSelectedPowerup] = useState<PowerupCardData | null>(null)
 
   const handleToggleFavorite = useCallback(async (powerupId: string) => {
     let snapshot: Set<string> | null = null
@@ -202,10 +206,7 @@ export function PreDraftPowerupPreview({
               key={powerup.id}
               powerup={powerup}
               size="browse"
-              // Card-tap is a no-op pre-draft; only the heart is interactive.
-              // Passing `disabled` keeps the card-button truly inert without
-              // dimming, since we override styling above.
-              onClick={undefined}
+              onClick={() => setSelectedPowerup(powerup)}
               isFavorite={favoriteIds.has(powerup.id)}
               onToggleFavorite={() => handleToggleFavorite(powerup.id)}
             />
@@ -221,6 +222,33 @@ export function PreDraftPowerupPreview({
           &larr; Back to Leaderboard
         </Link>
       </div>
+
+      <FlippableCardOverlay
+        powerup={selectedPowerup}
+        onClose={() => setSelectedPowerup(null)}
+        backContent={(animatedClose) =>
+          selectedPowerup ? (
+            <CardBack
+              slug={selectedPowerup.slug}
+              name={selectedPowerup.name}
+              type={selectedPowerup.type}
+              description={selectedPowerup.description}
+              effect={selectedPowerup.effect as PowerupEffect}
+              isAttack={selectedPowerup.type === 'ATTACK'}
+              onClose={animatedClose}
+              customFooter={
+                <button
+                  type="button"
+                  onClick={animatedClose}
+                  className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
+                >
+                  Close
+                </button>
+              }
+            />
+          ) : null
+        }
+      />
     </main>
   )
 }
