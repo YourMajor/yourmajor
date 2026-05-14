@@ -491,6 +491,7 @@ model TournamentPlayer {
   handicap      Float    @default(0)
   isAdmin       Boolean  @default(false)
   isParticipant Boolean  @default(true)
+  isWatching    Boolean  @default(false)
   createdAt     DateTime @default(now())
 
   tournament      Tournament             @relation(fields: [tournamentId], references: [id], onDelete: Cascade)

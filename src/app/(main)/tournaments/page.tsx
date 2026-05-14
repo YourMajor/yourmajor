@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent } from '@/components/ui/card'
-import { PlusCircle, Trophy, Clock, Repeat, Users } from 'lucide-react'
+import { PlusCircle, Trophy, Clock, Repeat, Users, Eye } from 'lucide-react'
 import { TournamentCard } from '@/components/TournamentCard'
 
 const TOURNAMENT_SELECT = {
@@ -48,7 +48,16 @@ export default async function TournamentsPage() {
     (m) => m.isAdmin && m.tournament.status !== 'COMPLETED' && !m.tournament.isLeague
   )
   const playing = memberships.filter(
-    (m) => !m.isAdmin && m.tournament.status !== 'COMPLETED' && !m.tournament.isLeague
+    (m) => !m.isAdmin && m.isParticipant && m.tournament.status !== 'COMPLETED' && !m.tournament.isLeague
+  )
+  // Watching: code-lookup rows where the user hasn't registered and isn't an admin.
+  const watching = memberships.filter(
+    (m) =>
+      m.isWatching &&
+      !m.isParticipant &&
+      !m.isAdmin &&
+      m.tournament.status !== 'COMPLETED' &&
+      !m.tournament.isLeague
   )
 
   // Leagues: dedupe by name (league events share a name). Keep the most recent membership per chain.
@@ -79,6 +88,7 @@ export default async function TournamentsPage() {
     history.length > 0 ||
     organising.length > 0 ||
     playing.length > 0 ||
+    watching.length > 0 ||
     activeLeagues.length > 0
 
   return (
@@ -157,6 +167,23 @@ export default async function TournamentsPage() {
               t={m.tournament}
               showAdmin={false}
               isRegistered
+            />
+          ))}
+        </section>
+      )}
+
+      {watching.length > 0 && (
+        <section className="space-y-3">
+          <div className="flex items-center gap-2">
+            <Eye className="w-4 h-4 text-muted-foreground" />
+            <h2 className="font-heading font-semibold text-lg">Watching</h2>
+          </div>
+          {watching.map((m) => (
+            <TournamentCard
+              key={m.id}
+              t={m.tournament}
+              showAdmin={false}
+              showUnwatch
             />
           ))}
         </section>

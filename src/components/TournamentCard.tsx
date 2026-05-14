@@ -47,11 +47,13 @@ export function TournamentCard({
   showAdmin,
   isRegistered,
   inviteToken,
+  showUnwatch,
 }: {
   t: TournamentCardData
   showAdmin: boolean
   isRegistered?: boolean
   inviteToken?: string
+  showUnwatch?: boolean
 }) {
   const isInvite = !!inviteToken && !isRegistered
   const canRegister = !isRegistered && !t.registrationClosed && t.status !== 'COMPLETED'
@@ -184,14 +186,16 @@ export function TournamentCard({
         </Card>
       </Link>
 
-      {/* Admin menu — bottom right of card */}
-      {showAdmin && (
+      {/* Per-card menu — admin actions for organisers, Unwatch for watchers */}
+      {(showAdmin || showUnwatch) && (
         <div className="absolute bottom-1.5 right-1.5 z-20">
           <TournamentCardMenu
             slug={t.slug}
             tournamentId={t.id}
             tournamentName={t.name}
-            showRenew={t.status === 'COMPLETED'}
+            showAdminActions={showAdmin}
+            showRenew={showAdmin && t.status === 'COMPLETED'}
+            showUnwatch={showUnwatch}
           />
         </div>
       )}
