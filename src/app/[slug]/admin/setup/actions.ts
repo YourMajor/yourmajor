@@ -229,26 +229,50 @@ export async function updateTournament(
     dateFields.endDate = parsed.endDate ? new Date(parsed.endDate) : null
   }
 
-  await prisma.tournament.update({
-    where: { id: tournamentId },
-    data: {
-      name: parsed.name,
-      ...(parsed.description !== undefined ? { description: parsed.description || null } : {}),
-      slug: parsed.slug,
-      primaryColor: parsed.primaryColor,
-      accentColor: parsed.accentColor,
-      tournamentFormat,
-      handicapSystem,
-      status,
-      isOpenRegistration: parsed.isOpenRegistration,
-      powerupsEnabled,
-      powerupsPerPlayer,
-      maxAttacksPerPlayer,
-      distributionMode,
-      ...dateFields,
-      logo: logoUrl,
-      headerImage: headerImageUrl,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.tournament.update({
+      where: { id: tournamentId },
+      data: {
+        name: parsed.name,
+        ...(parsed.description !== undefined ? { description: parsed.description || null } : {}),
+        slug: parsed.slug,
+        primaryColor: parsed.primaryColor,
+        accentColor: parsed.accentColor,
+        tournamentFormat,
+        handicapSystem,
+        status,
+        isOpenRegistration: parsed.isOpenRegistration,
+        powerupsEnabled,
+        powerupsPerPlayer,
+        maxAttacksPerPlayer,
+        distributionMode,
+        ...dateFields,
+        logo: logoUrl,
+        headerImage: headerImageUrl,
+      },
+    })
+
+    // Backfill the powerup pool and Draft row if the wizard skipped them because
+    // powerups were off at creation. isLocked above already blocks this branch
+    // once a draft has started or cards have been dealt.
+    if (powerupsEnabled) {
+      const poolCount = await tx.tournamentPowerup.count({ where: { tournamentId } })
+      if (poolCount === 0) {
+        const allPowerups = await tx.powerup.findMany({ select: { id: true } })
+        if (allPowerups.length > 0) {
+          await tx.tournamentPowerup.createMany({
+            data: allPowerups.map((p) => ({ tournamentId, powerupId: p.id, quantity: 1 })),
+          })
+        }
+      }
+
+      if (distributionMode === 'DRAFT') {
+        const existingDraft = await tx.draft.findUnique({ where: { tournamentId } })
+        if (!existingDraft) {
+          await tx.draft.create({ data: { tournamentId } })
+        }
+      }
+    }
   })
 
   // Keep round dates in sync with the league event date so player-facing UIs
