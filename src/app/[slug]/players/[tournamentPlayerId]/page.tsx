@@ -57,12 +57,23 @@ export default async function PlayerScorecardPage({
   }))
   const strokeOverrides = await buildStrokeOverrideMap(tournament.id, playerScoreInputs)
 
-  // Fetch powerup score modifiers (used powerups affect net score).
-  // Bucket per round so each tab's breakdown reflects only that round's
-  // powerups; tournament-wide powerups (roundId == null) apply to every
-  // round's breakdown.
+  // Fetch powerup score modifiers that apply to this player's score:
+  //   - Own boosts (self-cast, targetPlayerId IS NULL).
+  //   - Inbound attacks (targetPlayerId = this player).
+  // Crucially we exclude outbound attacks (this player is the activator but
+  // someone else is the target) — those modifiers belong on the victim's
+  // breakdown, not the attacker's. Bucket per round so each tab reflects only
+  // its round's modifiers; tournament-wide powerups (roundId == null) apply
+  // to every round's breakdown.
   const usedPowerups = await prisma.playerPowerup.findMany({
-    where: { tournamentPlayerId: player.id, status: 'USED', scoreModifier: { not: null } },
+    where: {
+      status: 'USED',
+      scoreModifier: { not: null },
+      OR: [
+        { tournamentPlayerId: player.id, targetPlayerId: null },
+        { targetPlayerId: player.id },
+      ],
+    },
     select: { scoreModifier: true, roundId: true },
   })
   const roundIdToNumber = new Map(tournament.rounds.map((r) => [r.id, r.roundNumber]))

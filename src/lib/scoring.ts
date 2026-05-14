@@ -50,8 +50,11 @@ export async function getLeaderboard(
             round: { select: { roundNumber: true, courseId: true } },
           },
         },
+        // Only self-cast powerups (boosts) belong on the activator's net.
+        // Inbound attacks are loaded separately below so they can be matched
+        // by targetPlayerId.
         playerPowerups: {
-          where: { status: 'USED' },
+          where: { status: 'USED', targetPlayerId: null },
           select: { scoreModifier: true },
         },
         teamMembership: { select: { teamId: true } },
@@ -89,6 +92,27 @@ export async function getLeaderboard(
   )
   const strokeOverrides = await buildStrokeOverrideMap(tournamentId, flatScores, roundId)
 
+  // Inbound attacks — modifiers applied to a player because someone else cast
+  // an attack on them. The PlayerPowerup row's `tournamentPlayerId` is the
+  // attacker, so these never show up through the player's own `playerPowerups`
+  // relation; load them separately and bucket by targetPlayerId.
+  const participantIds = players.map((p) => p.id)
+  const inboundAttacks = participantIds.length > 0
+    ? await prisma.playerPowerup.findMany({
+        where: {
+          status: 'USED',
+          scoreModifier: { not: null },
+          targetPlayerId: { in: participantIds },
+        },
+        select: { targetPlayerId: true, scoreModifier: true },
+      })
+    : []
+  const inboundByPlayer = new Map<string, number>()
+  for (const a of inboundAttacks) {
+    if (!a.targetPlayerId) continue
+    inboundByPlayer.set(a.targetPlayerId, (inboundByPlayer.get(a.targetPlayerId) ?? 0) + (a.scoreModifier ?? 0))
+  }
+
   const handicapSystem = tournament?.handicapSystem ?? 'WHS'
   // Effective format: if the tournament is on legacy STROKE_PLAY but the handicap system
   // is set to STABLEFORD, treat that as a STABLEFORD-format event so legacy data keeps
@@ -110,7 +134,6 @@ export async function getLeaderboard(
   // must have scored all 18 holes for the round. Pre-compute per-round completion
   // here so format strategies don't each have to recount scores. The players
   // query above already filters to isParticipant=true.
-  const participantIds = players.map((p) => p.id)
   const scoredHolesByRound = new Map<number, Map<string, Set<number>>>()
   for (const player of players) {
     for (const score of player.scores) {
@@ -155,10 +178,11 @@ export async function getLeaderboard(
       const name = p.user.name ?? p.user.email.split('@')[0]
       const avatarUrl = p.user.profile?.avatar ?? p.user.image ?? null
       const effectiveHandicap = p.handicap || p.user.profile?.handicap || 0
-      const scoreModifier = p.playerPowerups.reduce(
+      const ownBoostModifier = p.playerPowerups.reduce(
         (sum: number, pp: { scoreModifier: number | null }) => sum + (pp.scoreModifier ?? 0),
         0,
       )
+      const scoreModifier = ownBoostModifier + (inboundByPlayer.get(p.id) ?? 0)
       return {
         tournamentPlayerId: p.id,
         userId: p.userId,
