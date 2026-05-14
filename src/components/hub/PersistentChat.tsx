@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { createClient } from '@/utils/supabase/client'
 import { MessageCircle, X, Send, ChevronDown } from 'lucide-react'
 import { useChat } from '@/hooks/useChat'
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
 import { ChatMessageList } from '@/components/chat/ChatMessageList'
 
 interface PersistentChatProps {
@@ -32,6 +33,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [isDragging, setIsDragging] = useState(false)
 
   const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
+  const viewport = useVisualViewportHeight({ mobileOnly: true })
 
   // Fetch on first open
   useEffect(() => {
@@ -81,6 +83,11 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
       scrollToBottom()
     }
   }, [open, messages.length, scrollToBottom])
+
+  // Re-pin to bottom when the visible viewport changes (mobile keyboard open/close)
+  useEffect(() => {
+    if (open && viewport) scrollToBottom()
+  }, [open, viewport?.height, viewport, scrollToBottom])
 
   // Subscribe to attack notifications
   useEffect(() => {
@@ -151,7 +158,12 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         <div
           className="fixed inset-0 sm:inset-auto sm:bottom-20 sm:right-5 z-[80] sm:w-[420px] sm:max-w-[calc(100vw-40px)] sm:h-[540px] sm:max-h-[calc(100vh-120px)] sm:rounded-2xl shadow-2xl border-0 sm:border sm:border-border bg-background flex flex-col overflow-hidden"
           style={{
-            transform: dragOffset > 0 ? `translateY(${dragOffset}px)` : undefined,
+            height: viewport ? `${viewport.height}px` : undefined,
+            transform: viewport
+              ? `translateY(${(viewport.offsetTop ?? 0) + dragOffset}px)`
+              : dragOffset > 0
+                ? `translateY(${dragOffset}px)`
+                : undefined,
             transition: isDragging ? 'none' : 'transform 0.2s ease-out',
             opacity: dragOffset > 0 ? Math.max(0.4, 1 - dragOffset / 300) : 1,
           }}

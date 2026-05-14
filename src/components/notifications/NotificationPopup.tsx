@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import { usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { createClient } from '@/utils/supabase/client'
@@ -82,11 +82,25 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
       if (showable) {
         setNotification(showable as DisplayNotification)
         setVisible(true)
+        // DRAFT_YOUR_TURN is a one-shot alert — mark it read the moment it
+        // appears so a missed dismiss (back button, tab close, navigation)
+        // doesn't make it resurface on the next fetch.
+        if (showable.type === 'DRAFT_YOUR_TURN') {
+          void markRead([showable.id])
+        }
       }
     } catch {
       // ignore
     }
   }, [tournamentId, isOnDraftPage, isOnLiveScoringPage, markRead])
+
+  // Hold the latest fetchNotifications in a ref so the subscription effect
+  // below doesn't tear down and refetch every time the pathname changes
+  // (which would re-show the DRAFT_YOUR_TURN popup on every navigation).
+  const fetchRef = useRef(fetchNotifications)
+  useEffect(() => {
+    fetchRef.current = fetchNotifications
+  }, [fetchNotifications])
 
   useEffect(() => {
     // Use a broadcast channel rather than postgres_changes: the server emits
@@ -97,19 +111,19 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     const channel = supabase
       .channel(`notifications-${tournamentPlayerId}`)
       .on('broadcast', { event: 'new' }, () => {
-        fetchNotifications()
+        void fetchRef.current()
       })
       .subscribe()
 
     queueMicrotask(() => {
-      void fetchNotifications()
+      void fetchRef.current()
     })
 
     // Resilience: if the websocket dropped while the tab was hidden, refetch
     // when it becomes visible again so we don't miss any inserts.
     const onVisibility = () => {
       if (document.visibilityState === 'visible') {
-        void fetchNotifications()
+        void fetchRef.current()
       }
     }
     document.addEventListener('visibilitychange', onVisibility)
@@ -118,7 +132,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
       supabase.removeChannel(channel)
       document.removeEventListener('visibilitychange', onVisibility)
     }
-  }, [tournamentPlayerId, fetchNotifications])
+  }, [tournamentPlayerId])
 
   const dismiss = async () => {
     setVisible(false)

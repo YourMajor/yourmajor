@@ -3,6 +3,7 @@
 import { useEffect } from 'react'
 import { X, Send } from 'lucide-react'
 import { useChat } from '@/hooks/useChat'
+import { useVisualViewportHeight } from '@/hooks/useVisualViewportHeight'
 import { ChatMessageList } from '@/components/chat/ChatMessageList'
 
 interface LiveChatProps {
@@ -15,6 +16,7 @@ interface LiveChatProps {
 
 export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }: LiveChatProps) {
   const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser } = useChat({ tournamentId, channelPrefix: 'live-chat', eager: false })
+  const viewport = useVisualViewportHeight()
 
   // Fetch on first open
   useEffect(() => {
@@ -29,12 +31,19 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
     if (open) scrollToBottom()
   }, [open, messages, scrollToBottom])
 
+  // Re-pin to bottom when the visible viewport changes (keyboard open/close)
+  useEffect(() => {
+    if (open) scrollToBottom()
+  }, [open, viewport?.height, scrollToBottom])
+
   return (
     <div
-      className={`fixed top-0 left-0 w-screen h-[100dvh] z-[60] flex flex-col transition-transform duration-300 ease-out ${
-        open ? 'translate-y-0' : 'translate-y-full'
-      }`}
-      style={{ backgroundColor: 'var(--color-primary, oklch(0.40 0.11 160))' }}
+      className="fixed top-0 left-0 w-screen z-[60] flex flex-col transition-transform duration-300 ease-out"
+      style={{
+        height: viewport ? `${viewport.height}px` : '100dvh',
+        transform: open ? `translateY(${viewport?.offsetTop ?? 0}px)` : `translateY(100%)`,
+        backgroundColor: 'var(--color-primary, oklch(0.40 0.11 160))',
+      }}
     >
       <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-black/20">
         <h3 className="text-base font-heading font-bold text-white">Chat</h3>

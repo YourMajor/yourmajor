@@ -16,8 +16,32 @@ export async function GET(
   })
   if (!player) return NextResponse.json({ error: 'Not a participant' }, { status: 403 })
 
+  const draft = await prisma.draft.findUnique({
+    where: { tournamentId },
+    select: { status: true },
+  })
+
+  // Once the draft is COMPLETED, suppress (and self-heal) any stale
+  // DRAFT_YOUR_TURN rows so the popup can never resurface from old data.
+  if (draft?.status === 'COMPLETED') {
+    await prisma.notification.updateMany({
+      where: {
+        tournamentPlayerId: player.id,
+        type: 'DRAFT_YOUR_TURN',
+        readAt: null,
+      },
+      data: { readAt: new Date() },
+    })
+  }
+
   const notifications = await prisma.notification.findMany({
-    where: { tournamentPlayerId: player.id, readAt: null },
+    where: {
+      tournamentPlayerId: player.id,
+      readAt: null,
+      ...(draft?.status === 'COMPLETED'
+        ? { type: { not: 'DRAFT_YOUR_TURN' } }
+        : {}),
+    },
     orderBy: { createdAt: 'desc' },
     take: 20,
   })
