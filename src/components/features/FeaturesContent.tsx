@@ -5,8 +5,10 @@ import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import {
   BarChart3, ClipboardList, Zap, Users, Camera, Shield,
   MessageSquare, TrendingUp, Map, Smartphone, Settings,
-  Repeat, Timer, Globe, Crosshair, Palette, Trophy,
+  Repeat, Timer, Globe, Crosshair, Palette, Trophy, Swords,
 } from 'lucide-react'
+import { PowerupCard } from '@/components/draft/PowerupCard'
+import { EXAMPLE_BOOST, EXAMPLE_ATTACK } from '@/components/wizard/PowerupsInfoPanel'
 
 /* ═══════════════════════════════════════════════════════
    ANIMATED VISUAL MOCKUPS
@@ -332,6 +334,58 @@ export function FeaturesContent() {
         {CORE_FEATURES.map((f, i) => (
           <FeatureRow key={f.title} feature={f} reverse={i % 2 === 1} delay={i * 75} />
         ))}
+
+        {/* Extended powerups explainer — mirrors the wizard's "What are powerups?" panel */}
+        <ScrollReveal direction="up" duration={600}>
+          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 sm:p-6 space-y-5">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+              {/* Boost column */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Zap className="w-4 h-4 text-emerald-400" />
+                  <h4 className="text-sm font-heading font-bold text-emerald-400">Boost Cards</h4>
+                </div>
+                <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
+                  Boosts benefit you — reduce strokes, improve lies, or earn creative advantages.
+                  Play them on your own holes to gain an edge.
+                </p>
+                <div className="flex justify-center pt-1">
+                  <PowerupCard powerup={EXAMPLE_BOOST} size="sm" disabled />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-white/40 italic leading-relaxed">
+                  Example: &ldquo;{EXAMPLE_BOOST.name}&rdquo; — {EXAMPLE_BOOST.description}
+                </p>
+              </div>
+
+              {/* Attack column */}
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <Swords className="w-4 h-4 text-red-400" />
+                  <h4 className="text-sm font-heading font-bold text-red-400">Attack Cards</h4>
+                </div>
+                <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
+                  Attacks target opponents — force handicaps, swap scores, or impose restrictions.
+                  Use them strategically to disrupt the competition.
+                </p>
+                <div className="flex justify-center pt-1">
+                  <PowerupCard powerup={EXAMPLE_ATTACK} size="sm" disabled />
+                </div>
+                <p className="text-[10px] sm:text-xs text-center text-white/40 italic leading-relaxed">
+                  Example: &ldquo;{EXAMPLE_ATTACK.name}&rdquo; — {EXAMPLE_ATTACK.description}
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-white/8 pt-4">
+              <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
+                <span className="font-semibold text-white">How are cards distributed?</span>{' '}
+                Choose between a <span className="font-semibold text-white/80">live draft</span> where players take turns picking cards
+                (more strategic and social) or a <span className="font-semibold text-white/80">random deal</span> where cards are shuffled
+                and dealt automatically (quick and easy).
+              </p>
+            </div>
+          </div>
+        </ScrollReveal>
       </section>
 
       {/* More features — alternating layout */}

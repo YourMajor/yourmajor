@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { Info, ChevronDown, Zap, Swords } from 'lucide-react'
 import { PowerupCard, type PowerupCardData } from '@/components/draft/PowerupCard'
 
-const EXAMPLE_BOOST: PowerupCardData = {
+export const EXAMPLE_BOOST: PowerupCardData = {
   id: 'example-boost',
   slug: 'iron-man',
   name: 'Iron Man',
@@ -18,7 +18,7 @@ const EXAMPLE_BOOST: PowerupCardData = {
   },
 }
 
-const EXAMPLE_ATTACK: PowerupCardData = {
+export const EXAMPLE_ATTACK: PowerupCardData = {
   id: 'example-attack',
   slug: 'club-roulette',
   name: 'Club Roulette',
