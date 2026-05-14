@@ -43,9 +43,10 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
 
   const isCount = confirmation.inputKind === 'count'
   const isAttack = isCount ? true : confirmation.modifierIfYes > 0
-  const promptWithName = confirmation.targetPlayerName
-    ? confirmation.prompt.replace('your target', confirmation.targetPlayerName)
-    : confirmation.prompt
+  // For attacks the responder is the target; the prompts are already in
+  // first-person ("Did you ...") so no name substitution is needed.
+  const promptWithName = confirmation.prompt
+  const attackerName = isAttack ? confirmation.targetPlayerName : null
 
   async function handleYesNo(answer: 'yes' | 'no') {
     if (!confirmation) return
@@ -93,7 +94,9 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
           </div>
           <div className="flex-1 min-w-0">
             <p className={`text-[11px] font-bold uppercase tracking-wider ${isAttack ? 'text-red-400' : 'text-emerald-400'}`}>
-              Confirm result · Hole {confirmation.contextHoleNumber}
+              {isAttack && attackerName
+                ? `${attackerName} attacked you · Hole ${confirmation.contextHoleNumber}`
+                : `Confirm result · Hole ${confirmation.contextHoleNumber}`}
             </p>
             <h2 className="text-lg font-heading font-bold text-white leading-snug mt-0.5">
               {confirmation.name}
@@ -130,7 +133,7 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
             <span className="font-bold">
               {confirmation.modifierIfYes > 0 ? '+' : ''}{confirmation.modifierIfYes}
             </span>{' '}
-            to {isAttack ? "the target's score" : 'your score'}. No → no change.
+            to your score. No → no change.
           </div>
         )}
 

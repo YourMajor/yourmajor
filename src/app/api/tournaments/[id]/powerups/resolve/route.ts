@@ -1,7 +1,11 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { validateResolutionModifier } from '@/lib/variable-powerup-evaluator'
+import {
+  CONFIRMATION_ATTACK_COUNT_SLUGS,
+  CONFIRMATION_ATTACK_SLUGS,
+  validateResolutionModifier,
+} from '@/lib/variable-powerup-evaluator'
 
 export async function POST(
   req: NextRequest,
@@ -30,9 +34,20 @@ export async function POST(
     include: { powerup: { select: { slug: true, effect: true } } },
   })
   if (!playerPowerup) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  if (playerPowerup.tournamentPlayerId !== player.id) {
-    return NextResponse.json({ error: 'Not your powerup' }, { status: 403 })
+
+  // Attacks are resolved by the target (who can see whether the criteria were
+  // met); boosts are resolved by the activator. Authorize accordingly.
+  const slug = playerPowerup.powerup.slug
+  const isAttack =
+    (CONFIRMATION_ATTACK_SLUGS as readonly string[]).includes(slug) ||
+    (CONFIRMATION_ATTACK_COUNT_SLUGS as readonly string[]).includes(slug)
+  const authorizedPlayerId = isAttack
+    ? playerPowerup.targetPlayerId
+    : playerPowerup.tournamentPlayerId
+  if (!authorizedPlayerId || authorizedPlayerId !== player.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
+
   if (playerPowerup.status !== 'USED') {
     return NextResponse.json({ error: 'Powerup must be used before resolving' }, { status: 400 })
   }

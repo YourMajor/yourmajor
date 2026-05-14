@@ -902,7 +902,7 @@ export interface PendingConfirmation {
   cap: number | null
 }
 
-const CONFIRMATION_BOOST_SLUGS = [
+export const CONFIRMATION_BOOST_SLUGS = [
   '1-vs-all',
   'albatross-aim',
   'big-brother',
@@ -921,9 +921,9 @@ const CONFIRMATION_BOOST_SLUGS = [
   'twinning',
   'up-and-down-artist',
 ] as const
-const CONFIRMATION_ATTACK_SLUGS = ['drink-up', 'the-long-and-winding-road'] as const
-/** ATTACK count cards — activator enters a per-occurrence count after target's hole posts. */
-const CONFIRMATION_ATTACK_COUNT_SLUGS = [
+export const CONFIRMATION_ATTACK_SLUGS = ['drink-up', 'the-long-and-winding-road'] as const
+/** ATTACK count cards — target enters a per-occurrence count after their own hole posts. */
+export const CONFIRMATION_ATTACK_COUNT_SLUGS = [
   'out-of-bounds',
   'proximity-mine',
   'the-cursed-club',
@@ -1017,32 +1017,48 @@ const CONFIRMATION_PROMPTS: Record<string, string> = {
   'the-tin-cup': 'Did you score par or better using only your 7-iron?',
   'twinning': 'Did you and your chosen partner score the same on this hole?',
   'up-and-down-artist': 'Did you get up-and-down from off the green?',
-  'drink-up': 'Did your target fail to finish their drink before the green?',
-  'the-long-and-winding-road': "Did your target's ball fail to visit both rough sides?",
-  'out-of-bounds': "How many OBs or lost balls did your target have on this hole?",
-  'proximity-mine': "How many of your target's shots landed within 2 club lengths of a bunker?",
-  'the-cursed-club': "How many times did your target use the cursed club on this hole?",
-  'the-fairway-is-lava': "How many times did your target's ball touch the fairway?",
-  'the-flop': "How many of your target's shots came from the rough? (max 3)",
-  'yipsy-daisy': "How many short putts (inside 5 ft) did your target miss?",
+  // Attack prompts are answered by the target, so they read in first person
+  // about the responder rather than third person about the target.
+  'drink-up': 'Did you fail to finish your drink before the green?',
+  'the-long-and-winding-road': "Did your ball fail to visit both rough sides?",
+  'out-of-bounds': 'How many OBs or lost balls did you have on this hole?',
+  'proximity-mine': 'How many of your shots landed within 2 club lengths of a bunker?',
+  'the-cursed-club': 'How many times did you use the cursed club on this hole?',
+  'the-fairway-is-lava': "How many times did your ball touch the fairway?",
+  'the-flop': 'How many of your shots came from the rough? (max 3)',
+  'yipsy-daisy': 'How many short putts (inside 5 ft) did you miss?',
 }
 
 export async function findPendingConfirmations(
   currentTournamentPlayerId: string,
   roundId: string,
 ): Promise<PendingConfirmation[]> {
-  const allSlugs: string[] = [
-    ...CONFIRMATION_BOOST_SLUGS,
-    ...CONFIRMATION_ATTACK_SLUGS,
-    ...CONFIRMATION_ATTACK_COUNT_SLUGS,
-  ]
+  // Boosts are answered by the activator; attacks are answered by the target —
+  // the criteria describe the target's play (e.g. "Did your ball touch the
+  // fairway?") which only the target can observe truthfully, especially when
+  // attacker and target are on different holes.
   const rows = await prisma.playerPowerup.findMany({
     where: {
       roundId,
       status: 'USED',
       scoreModifier: null,
-      tournamentPlayerId: currentTournamentPlayerId,
-      powerup: { slug: { in: allSlugs } },
+      OR: [
+        {
+          tournamentPlayerId: currentTournamentPlayerId,
+          powerup: { slug: { in: CONFIRMATION_BOOST_SLUGS as unknown as string[] } },
+        },
+        {
+          targetPlayerId: currentTournamentPlayerId,
+          powerup: {
+            slug: {
+              in: [
+                ...CONFIRMATION_ATTACK_SLUGS,
+                ...CONFIRMATION_ATTACK_COUNT_SLUGS,
+              ] as unknown as string[],
+            },
+          },
+        },
+      ],
     },
     include: {
       powerup: { select: { slug: true, name: true, effect: true } },
@@ -1051,57 +1067,50 @@ export async function findPendingConfirmations(
 
   if (rows.length === 0) return []
 
-  // Pre-fetch target names + score availability in two batched queries.
-  const targetIds = Array.from(new Set(rows.map((r) => r.targetPlayerId).filter((id): id is string => Boolean(id))))
-  const targets = targetIds.length > 0
+  // For attacks, the responder needs the *attacker's* name (the question
+  // arrives as "{Attacker} attacked you with ..."). For boosts there's no
+  // counterparty to name.
+  const attackerIds = Array.from(new Set(
+    rows
+      .filter((r) =>
+        CONFIRMATION_ATTACK_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_SLUGS[number]) ||
+        CONFIRMATION_ATTACK_COUNT_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_COUNT_SLUGS[number]),
+      )
+      .map((r) => r.tournamentPlayerId),
+  ))
+  const attackers = attackerIds.length > 0
     ? await prisma.tournamentPlayer.findMany({
-        where: { id: { in: targetIds } },
+        where: { id: { in: attackerIds } },
         select: { id: true, user: { select: { name: true } } },
       })
     : []
-  const nameById = new Map(targets.map((t) => [t.id, t.user.name]))
+  const attackerNameById = new Map(attackers.map((a) => [a.id, a.user.name]))
 
-  // For BOOST cards we need the activator's score on the activation hole.
-  // For ATTACK cards we need the target's score on the target hole.
-  const activatorScoreHoles = rows
-    .filter((r) => CONFIRMATION_BOOST_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_BOOST_SLUGS[number]))
-    .map((r) => r.holeNumber)
-    .filter((n): n is number => n !== null)
+  // Gate on the responder having entered a score for the relevant hole.
+  //   Boost  → activator (== current user) scored on r.holeNumber.
+  //   Attack → target    (== current user) scored on r.targetHoleNumber.
+  // The responder is the current user in both branches, so a single query keyed
+  // by `tournamentPlayerId: currentTournamentPlayerId` covers both cases.
+  const gatingHoles = new Set<number>()
+  for (const r of rows) {
+    const isBoost = CONFIRMATION_BOOST_SLUGS.includes(
+      r.powerup.slug as typeof CONFIRMATION_BOOST_SLUGS[number],
+    )
+    const hole = isBoost ? r.holeNumber : r.targetHoleNumber
+    if (hole !== null) gatingHoles.add(hole)
+  }
 
-  const activatorScores = activatorScoreHoles.length > 0
+  const gatingScores = gatingHoles.size > 0
     ? await prisma.score.findMany({
         where: {
           tournamentPlayerId: currentTournamentPlayerId,
           roundId,
-          hole: { number: { in: activatorScoreHoles } },
+          hole: { number: { in: Array.from(gatingHoles) } },
         },
         select: { hole: { select: { number: true } } },
       })
     : []
-  const scoredActivatorHoles = new Set(activatorScores.map((s) => s.hole.number))
-
-  // Group ATTACK target lookups by targetPlayerId (both yes/no and count variants).
-  const attackTargetPairs = rows
-    .filter((r) =>
-      CONFIRMATION_ATTACK_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_SLUGS[number]) ||
-      CONFIRMATION_ATTACK_COUNT_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_COUNT_SLUGS[number])
-    )
-    .filter((r) => r.targetPlayerId && r.targetHoleNumber !== null)
-    .map((r) => ({ tpId: r.targetPlayerId!, hole: r.targetHoleNumber! }))
-
-  const attackTargetScores = attackTargetPairs.length > 0
-    ? await prisma.score.findMany({
-        where: {
-          OR: attackTargetPairs.map((p) => ({
-            tournamentPlayerId: p.tpId,
-            roundId,
-            hole: { number: p.hole },
-          })),
-        },
-        select: { tournamentPlayerId: true, hole: { select: { number: true } } },
-      })
-    : []
-  const scoredTargetKey = new Set(attackTargetScores.map((s) => `${s.tournamentPlayerId}:${s.hole.number}`))
+  const scoredHoles = new Set(gatingScores.map((s) => s.hole.number))
 
   const pending: PendingConfirmation[] = []
 
@@ -1113,11 +1122,10 @@ export async function findPendingConfirmations(
 
     let contextHole: number | null = null
     if (isBoost) {
-      if (r.holeNumber === null || !scoredActivatorHoles.has(r.holeNumber)) continue
+      if (r.holeNumber === null || !scoredHoles.has(r.holeNumber)) continue
       contextHole = r.holeNumber
     } else {
-      if (!r.targetPlayerId || r.targetHoleNumber === null) continue
-      if (!scoredTargetKey.has(`${r.targetPlayerId}:${r.targetHoleNumber}`)) continue
+      if (r.targetHoleNumber === null || !scoredHoles.has(r.targetHoleNumber)) continue
       contextHole = r.targetHoleNumber
     }
 
@@ -1128,7 +1136,9 @@ export async function findPendingConfirmations(
       prompt: CONFIRMATION_PROMPTS[r.powerup.slug] ?? 'Did the trigger fire?',
       modifierIfYes: fullModifier,
       contextHoleNumber: contextHole,
-      targetPlayerName: r.targetPlayerId ? (nameById.get(r.targetPlayerId) ?? null) : null,
+      // For attacks, this now carries the attacker's name so the modal can
+      // render "{Attacker} attacked you with X". For boosts there's no name.
+      targetPlayerName: isBoost ? null : (attackerNameById.get(r.tournamentPlayerId) ?? null),
       inputKind: isCount ? 'count' : 'yes_no',
       cap: typeof effect.scoring.cap === 'number' ? effect.scoring.cap : null,
     })
