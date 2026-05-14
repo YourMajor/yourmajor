@@ -186,6 +186,14 @@ export function LiveScoring({
     return () => document.removeEventListener('visibilitychange', onVisible)
   }, [fetchPendingConfirmations])
 
+  // Refetch when the user navigates between holes. navigateToHole awaits
+  // flushSave before changing the index, so by the time this fires the
+  // previous hole's score is committed. Guards against flaky-network cases
+  // where the saveStatus → 'saved' transition gets missed.
+  useEffect(() => {
+    fetchPendingConfirmations()
+  }, [state.currentHoleIndex, fetchPendingConfirmations])
+
   const handleAnswerConfirmation = useCallback(
     async (playerPowerupId: string, modifier: number): Promise<boolean> => {
       if (!tournamentId) return false
@@ -333,6 +341,13 @@ export function LiveScoring({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []) // Run once on mount
 
+  // Activations route through the offline queue (`src/lib/offline-queue.ts`).
+  // We optimistically mark the card as used so the hand UI updates immediately;
+  // on terminal failure (validation error from the server, NOT "already used")
+  // we roll back. A retry that lands on HTTP 400 "Powerup already used" means
+  // a prior attempt succeeded server-side — treat as success.
+  // The returned promise resolves immediately after enqueue, matching the
+  // existing `onActivate: () => Promise<void>` contract used by callers.
   const handleActivatePowerup = useCallback(async (data: {
     playerPowerupId: string
     targetPlayerId?: string
@@ -341,32 +356,16 @@ export function LiveScoring({
   }) => {
     if (!state.currentHole || !tournamentId) return
 
-    const res = await fetch(`/api/tournaments/${tournamentId}/powerups/activate`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        playerPowerupId: data.playerPowerupId,
-        roundId,
-        holeNumber: state.currentHole.number,
-        targetPlayerId: data.targetPlayerId,
-        targetHoleNumber: data.targetHoleNumber,
-        metadata: data.metadata,
-      }),
-    })
-
-    if (!res.ok) {
-      const err = await res.json()
-      throw new Error(err.error || 'Failed to activate')
-    }
-
-    const result = await res.json()
+    const activationHole = state.currentHole
     const powerup = mappedPowerups.find((p) => p.playerPowerupId === data.playerPowerupId)
 
-    if (powerup) {
-      const effect = powerup.effect as PowerupEffect
+    // Optimistically remove from hand
+    setUsedPowerupIds((prev) => new Set(prev).add(data.playerPowerupId))
 
-      if (result.status === 'ACTIVE' && isVariablePowerup(effect)) {
-        // Variable powerup → add to active variable tracking
+    const applyServerResult = (result: { status?: string; scoreModifier?: number; metadata?: unknown } | null) => {
+      if (!powerup) return
+      const effect = powerup.effect as PowerupEffect
+      if (result?.status === 'ACTIVE' && isVariablePowerup(effect)) {
         state.addActiveVariablePowerup({
           playerPowerupId: data.playerPowerupId,
           slug: powerup.slug,
@@ -375,13 +374,12 @@ export function LiveScoring({
           status: 'ACTIVE',
         })
       } else {
-        // Regular powerup → add to per-hole active list
-        state.addActivePowerup(state.currentHole.id, {
+        state.addActivePowerup(activationHole.id, {
           playerPowerupId: data.playerPowerupId,
           powerupName: powerup.name,
           powerupSlug: powerup.slug,
           powerupType: powerup.type,
-          scoreModifier: result.scoreModifier ?? null,
+          scoreModifier: result?.scoreModifier ?? null,
           description: powerup.description,
           powerup: {
             id: powerup.powerupId,
@@ -393,9 +391,52 @@ export function LiveScoring({
           },
         })
       }
-      // Remove from hand by marking as used in local state
-      setUsedPowerupIds((prev) => new Set(prev).add(data.playerPowerupId))
     }
+
+    state.enqueuePowerupActivation(
+      tournamentId,
+      {
+        playerPowerupId: data.playerPowerupId,
+        roundId,
+        holeNumber: activationHole.number,
+        targetPlayerId: data.targetPlayerId,
+        targetHoleNumber: data.targetHoleNumber,
+        metadata: data.metadata,
+      },
+      {
+        onSuccess: (response) => {
+          applyServerResult(response as { status?: string; scoreModifier?: number; metadata?: unknown })
+        },
+        onAlreadyUsed: () => {
+          // The first attempt actually succeeded server-side but the response
+          // was lost. We don't have the original activation result, so refetch
+          // the active list — variable powerups will reappear there. Regular
+          // BOOST cards stay flagged as used (no rollback needed).
+          if (!tournamentId) return
+          fetch(`/api/tournaments/${tournamentId}/powerups/active`)
+            .then((res) => res.json())
+            .then((body) => {
+              if (!body.activePowerups) return
+              for (const ap of body.activePowerups) {
+                if (ap.id === data.playerPowerupId && ap.status === 'ACTIVE') {
+                  applyServerResult({ status: 'ACTIVE', metadata: ap.metadata })
+                  return
+                }
+              }
+            })
+            .catch(() => { /* non-critical */ })
+        },
+        onTerminalFailure: (error) => {
+          // Roll back the optimistic update — the activation never landed.
+          setUsedPowerupIds((prev) => {
+            const next = new Set(prev)
+            next.delete(data.playerPowerupId)
+            return next
+          })
+          console.error('[powerup] activation rejected:', error)
+        },
+      },
+    )
   }, [state, tournamentId, roundId, mappedPowerups])
 
   const handleFinishRound = useCallback(async () => {

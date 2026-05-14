@@ -9,6 +9,19 @@ import {
 } from './score-validation'
 import type { VariablePowerupState, PowerupMessage } from './VariablePowerupBanner'
 import type { PowerupEffect } from '@/lib/powerup-engine'
+import {
+  createOfflineQueue,
+  type OfflineQueue,
+  type PowerupActivatePayload,
+  type ScoreMutationPayload,
+  type ScoreSuccessResponse,
+} from '@/lib/offline-queue'
+
+export interface PowerupActivationCallbacks {
+  onSuccess?: (response: unknown) => void
+  onAlreadyUsed?: () => void
+  onTerminalFailure?: (error: string) => void
+}
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -77,7 +90,6 @@ interface UseLiveScoringOpts {
   roundId: string
   holes: HoleData[]
   existingScores: ExistingScore[]
-  apiEndpoint?: string // defaults to '/api/scores'
 }
 
 /** Extract progress fields from an in_progress evaluation result */
@@ -101,7 +113,6 @@ export function useLiveScoringState({
   roundId,
   holes,
   existingScores,
-  apiEndpoint = '/api/scores',
 }: UseLiveScoringOpts) {
   const sorted = [...holes].sort((a, b) => a.number - b.number)
 
@@ -195,10 +206,128 @@ export function useLiveScoringState({
   }, [currentHoleIndex, roundId])
 
   // ─── Save logic ───────────────────────────────────────────────────────────
+  //
+  // All mutating writes (score, concede, powerup activation) flow through the
+  // offline queue (`src/lib/offline-queue.ts`). The queue persists to
+  // localStorage and retries on `online` / visibility / a 10s interval, so a
+  // phone with spotty signal won't silently drop a save.
+
+  const handleScoreSuccess = useCallback(
+    (payload: ScoreMutationPayload, response: ScoreSuccessResponse) => {
+      const holeId = payload.holeId
+
+      // Process variable powerup evaluation results from the server response
+      const evals = response.powerupEvaluations
+      if (Array.isArray(evals)) {
+        for (const eval_ of evals as Array<{
+          playerPowerupId: string
+          slug: string
+          outcome: string
+          message: string
+        }>) {
+          if (eval_.outcome === 'success' || eval_.outcome === 'failed') {
+            setActiveVariablePowerups((prev) =>
+              prev.filter((vp) => vp.playerPowerupId !== eval_.playerPowerupId),
+            )
+            setPowerupMessage({
+              playerPowerupId: eval_.playerPowerupId,
+              slug: eval_.slug,
+              outcome: eval_.outcome as 'success' | 'failed',
+              message: eval_.message,
+            })
+            if (powerupMsgTimer.current) clearTimeout(powerupMsgTimer.current)
+            powerupMsgTimer.current = setTimeout(() => setPowerupMessage(null), 5000)
+          } else if (eval_.outcome === 'in_progress') {
+            setActiveVariablePowerups((prev) =>
+              prev.map((vp) =>
+                vp.playerPowerupId === eval_.playerPowerupId
+                  ? { ...vp, metadata: { ...vp.metadata, ...parseProgressMetadata(eval_) } }
+                  : vp,
+              ),
+            )
+          }
+        }
+      }
+
+      setScores((prev) => {
+        if (!prev[holeId]) return prev
+        return {
+          ...prev,
+          [holeId]: {
+            ...prev[holeId],
+            isDirty: false,
+            isSaving: false,
+            isExisting: true,
+          },
+        }
+      })
+      setSaveStatus('saved')
+      if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
+      saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+    },
+    [],
+  )
+
+  const handleScoreSettled = useCallback(
+    (payload: ScoreMutationPayload, result: { ok: boolean; queued: boolean }) => {
+      // For any failed attempt (whether queued for retry or terminal), clear
+      // the in-flight visual state. The queue keeps trying invisibly.
+      if (result.ok) return
+      const holeId = payload.holeId
+      setScores((prev) => {
+        if (!prev[holeId]) return prev
+        return {
+          ...prev,
+          [holeId]: { ...prev[holeId], isSaving: false },
+        }
+      })
+      setSaveStatus('idle')
+    },
+    [],
+  )
+
+  // Per-call callbacks for powerup activations, keyed by playerPowerupId.
+  // Set when the consumer enqueues an activation; cleared when the queue
+  // resolves the entry.
+  const powerupCallbacks = useRef(new Map<string, PowerupActivationCallbacks>())
+
+  // Queue lifecycle is managed in an effect so the queue's handler closures
+  // (which read `powerupCallbacks.current`) aren't constructed during render.
+  // Mutating callers route through `queueRef.current` — null only on the very
+  // first render before the effect mounts, which is fine because score input
+  // can't happen until the user interacts after mount.
+  const queueRef = useRef<OfflineQueue | null>(null)
+
+  useEffect(() => {
+    const q = createOfflineQueue(roundId, {
+      onScoreSuccess: handleScoreSuccess,
+      onScoreSettled: handleScoreSettled,
+      onPowerupSuccess: (payload, response) => {
+        const cb = powerupCallbacks.current.get(payload.playerPowerupId)
+        powerupCallbacks.current.delete(payload.playerPowerupId)
+        cb?.onSuccess?.(response)
+      },
+      onPowerupAlreadyUsed: (payload) => {
+        const cb = powerupCallbacks.current.get(payload.playerPowerupId)
+        powerupCallbacks.current.delete(payload.playerPowerupId)
+        cb?.onAlreadyUsed?.()
+      },
+      onPowerupTerminalFailure: (payload, error) => {
+        const cb = powerupCallbacks.current.get(payload.playerPowerupId)
+        powerupCallbacks.current.delete(payload.playerPowerupId)
+        cb?.onTerminalFailure?.(error)
+      },
+    })
+    queueRef.current = q
+    q.start()
+    return () => {
+      q.stop()
+      queueRef.current = null
+    }
+  }, [roundId, handleScoreSuccess, handleScoreSettled])
 
   const saveHole = useCallback(
     async (holeId: string) => {
-      // Read from ref to avoid stale closure
       const score = scoresRef.current[holeId]
       if (!score || score.strokes === null || score.strokes < 1) return
       if (!score.isDirty) return
@@ -209,73 +338,20 @@ export function useLiveScoringState({
       }))
       setSaveStatus('saving')
 
-      try {
-        const res = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tournamentPlayerId,
-            holeId,
-            roundId,
-            strokes: score.strokes,
-            fairwayHit: score.fairwayHit,
-            gir: score.gir,
-            putts: score.putts,
-          }),
-        })
-        const data = await res.json()
-
-        // Process variable powerup evaluation results
-        if (data.powerupEvaluations && Array.isArray(data.powerupEvaluations)) {
-          for (const eval_ of data.powerupEvaluations) {
-            if (eval_.outcome === 'success' || eval_.outcome === 'failed') {
-              // Remove from active list
-              setActiveVariablePowerups((prev) =>
-                prev.filter((vp) => vp.playerPowerupId !== eval_.playerPowerupId),
-              )
-              // Show toast message
-              setPowerupMessage({
-                playerPowerupId: eval_.playerPowerupId,
-                slug: eval_.slug,
-                outcome: eval_.outcome,
-                message: eval_.message,
-              })
-              if (powerupMsgTimer.current) clearTimeout(powerupMsgTimer.current)
-              powerupMsgTimer.current = setTimeout(() => setPowerupMessage(null), 5000)
-            } else if (eval_.outcome === 'in_progress') {
-              // Update metadata in active list
-              setActiveVariablePowerups((prev) =>
-                prev.map((vp) =>
-                  vp.playerPowerupId === eval_.playerPowerupId
-                    ? { ...vp, metadata: { ...vp.metadata, ...parseProgressMetadata(eval_) } }
-                    : vp,
-                ),
-              )
-            }
-          }
-        }
-
-        setScores((prev) => ({
-          ...prev,
-          [holeId]: {
-            ...prev[holeId],
-            isDirty: false,
-            isSaving: false,
-            isExisting: true,
-          },
-        }))
-        setSaveStatus('saved')
-        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
-        saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
-      } catch {
-        setScores((prev) => ({
-          ...prev,
-          [holeId]: { ...prev[holeId], isSaving: false },
-        }))
-        setSaveStatus('idle')
-      }
+      const q = queueRef.current
+      if (!q) return
+      q.enqueueScore({
+        tournamentPlayerId,
+        holeId,
+        roundId,
+        strokes: score.strokes,
+        fairwayHit: score.fairwayHit,
+        gir: score.gir,
+        putts: score.putts,
+      })
+      await q.drain()
     },
-    [tournamentPlayerId, roundId, apiEndpoint],
+    [tournamentPlayerId, roundId],
   )
 
   // Debounced auto-save. 600ms is the sweet spot — short enough that the
@@ -319,38 +395,36 @@ export function useLiveScoringState({
         },
       }))
       setSaveStatus('saving')
-      try {
-        const res = await fetch(apiEndpoint, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            tournamentPlayerId,
-            holeId,
-            roundId,
-            strokes: 0,
-            conceded: true,
-            fairwayHit: null,
-            gir: null,
-            putts: null,
-          }),
-        })
-        if (!res.ok) throw new Error(await res.text())
-        setScores((prev) => ({
-          ...prev,
-          [holeId]: { ...prev[holeId], isSaving: false, isExisting: true, isDirty: false },
-        }))
-        setSaveStatus('saved')
-        if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
-        saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
-      } catch {
-        setScores((prev) => ({
-          ...prev,
-          [holeId]: { ...prev[holeId], conceded: false, isSaving: false },
-        }))
-        setSaveStatus('idle')
-      }
+      const q = queueRef.current
+      if (!q) return
+      q.enqueueScore({
+        tournamentPlayerId,
+        holeId,
+        roundId,
+        strokes: 0,
+        conceded: true,
+        fairwayHit: null,
+        gir: null,
+        putts: null,
+      })
+      await q.drain()
     },
-    [tournamentPlayerId, roundId, apiEndpoint],
+    [tournamentPlayerId, roundId],
+  )
+
+  // ─── Powerup activation (routes through the offline queue) ───────────────
+  // The caller passes per-activation callbacks because the success branch
+  // needs to update component-level state (hand state, active variable list,
+  // per-hole active list) that the hook can't know about generically.
+  const enqueuePowerupActivation = useCallback(
+    (tournamentId: string, payload: PowerupActivatePayload, callbacks: PowerupActivationCallbacks) => {
+      const q = queueRef.current
+      if (!q) return
+      powerupCallbacks.current.set(payload.playerPowerupId, callbacks)
+      q.enqueuePowerupActivate(tournamentId, payload)
+      void q.drain()
+    },
+    [],
   )
 
   // ─── Rejection trigger ───────────────────────────────────────────────────
@@ -620,5 +694,6 @@ export function useLiveScoringState({
     // Save
     flushSave,
     concedeHole,
+    enqueuePowerupActivation,
   }
 }
