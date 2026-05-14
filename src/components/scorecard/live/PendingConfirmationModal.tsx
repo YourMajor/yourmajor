@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
 import { Loader2, Check, X } from 'lucide-react'
 
 export interface PendingConfirmation {
@@ -13,6 +14,8 @@ export interface PendingConfirmation {
   modifierIfYes: number
   contextHoleNumber: number
   targetPlayerName: string | null
+  inputKind: 'yes_no' | 'count'
+  cap: number | null
 }
 
 interface Props {
@@ -25,22 +28,50 @@ interface Props {
   onDefer: () => void
 }
 
+/** Clamp magnitude — positive cap → upper bound, negative cap → lower bound. */
+function clampToCap(value: number, cap: number | null): number {
+  if (cap === null) return value
+  return cap < 0 ? Math.max(cap, value) : Math.min(cap, value)
+}
+
 export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Props) {
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [countValue, setCountValue] = useState('')
 
   if (!confirmation) return null
 
-  const isAttack = confirmation.modifierIfYes > 0
+  const isCount = confirmation.inputKind === 'count'
+  const isAttack = isCount ? true : confirmation.modifierIfYes > 0
   const promptWithName = confirmation.targetPlayerName
     ? confirmation.prompt.replace('your target', confirmation.targetPlayerName)
     : confirmation.prompt
 
-  async function handle(answer: 'yes' | 'no') {
+  async function handleYesNo(answer: 'yes' | 'no') {
     if (!confirmation) return
     setSubmitting(true)
     setError(null)
     const modifier = answer === 'yes' ? confirmation.modifierIfYes : 0
+    try {
+      const ok = await onAnswer(confirmation.playerPowerupId, modifier)
+      if (!ok) setError('Failed to record answer. Try again.')
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to record answer.')
+    } finally {
+      setSubmitting(false)
+    }
+  }
+
+  async function handleCountSubmit() {
+    if (!confirmation) return
+    const parsed = parseInt(countValue, 10)
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      setError('Enter a non-negative number.')
+      return
+    }
+    setSubmitting(true)
+    setError(null)
+    const modifier = clampToCap(parsed * confirmation.modifierIfYes, confirmation.cap)
     try {
       const ok = await onAnswer(confirmation.playerPowerupId, modifier)
       if (!ok) setError('Failed to record answer. Try again.')
@@ -74,13 +105,34 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
           {promptWithName}
         </p>
 
-        <div className={`text-xs ${isAttack ? 'text-red-300' : 'text-emerald-300'}`}>
-          Answering <span className="font-bold">Yes</span> applies{' '}
-          <span className="font-bold">
-            {confirmation.modifierIfYes > 0 ? '+' : ''}{confirmation.modifierIfYes}
-          </span>{' '}
-          to {isAttack ? "the target's score" : 'your score'}. No → no change.
-        </div>
+        {isCount ? (
+          <>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                max={confirmation.cap !== null && confirmation.cap > 0 ? confirmation.cap : 20}
+                value={countValue}
+                onChange={(e) => setCountValue(e.target.value)}
+                placeholder="0"
+                className="w-24 bg-zinc-900 border-zinc-700 text-white"
+              />
+              <span className="text-xs text-red-300">
+                +{confirmation.modifierIfYes} each
+                {confirmation.cap !== null ? ` · max +${Math.abs(confirmation.cap)}` : ''}
+              </span>
+            </div>
+          </>
+        ) : (
+          <div className={`text-xs ${isAttack ? 'text-red-300' : 'text-emerald-300'}`}>
+            Answering <span className="font-bold">Yes</span> applies{' '}
+            <span className="font-bold">
+              {confirmation.modifierIfYes > 0 ? '+' : ''}{confirmation.modifierIfYes}
+            </span>{' '}
+            to {isAttack ? "the target's score" : 'your score'}. No → no change.
+          </div>
+        )}
 
         {error && (
           <p className="text-sm font-medium text-red-400 bg-red-950/50 border border-red-800/50 rounded-md px-3 py-2">
@@ -97,25 +149,38 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
           >
             Decide later
           </Button>
-          <Button
-            onClick={() => handle('no')}
-            disabled={submitting}
-            variant="outline"
-            className="border-zinc-700 text-zinc-200 hover:bg-zinc-800"
-          >
-            <X className="w-4 h-4 mr-2" /> No
-          </Button>
-          <Button
-            onClick={() => handle('yes')}
-            disabled={submitting}
-            className={isAttack
-              ? 'bg-red-600 hover:bg-red-700 text-white font-semibold'
-              : 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'
-            }
-          >
-            {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
-            Yes
-          </Button>
+          {isCount ? (
+            <Button
+              onClick={handleCountSubmit}
+              disabled={submitting || countValue === ''}
+              className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+            >
+              {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+              Apply
+            </Button>
+          ) : (
+            <>
+              <Button
+                onClick={() => handleYesNo('no')}
+                disabled={submitting}
+                variant="outline"
+                className="border-zinc-700 text-zinc-200 hover:bg-zinc-800"
+              >
+                <X className="w-4 h-4 mr-2" /> No
+              </Button>
+              <Button
+                onClick={() => handleYesNo('yes')}
+                disabled={submitting}
+                className={isAttack
+                  ? 'bg-red-600 hover:bg-red-700 text-white font-semibold'
+                  : 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'
+                }
+              >
+                {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
+                Yes
+              </Button>
+            </>
+          )}
         </DialogFooter>
       </DialogContent>
     </Dialog>

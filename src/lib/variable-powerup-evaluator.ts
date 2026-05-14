@@ -890,29 +890,152 @@ export interface PendingConfirmation {
   slug: string
   name: string
   prompt: string
+  /** Yes/No cards: full modifier applied on Yes. Count cards: per-occurrence modifier. */
   modifierIfYes: number
   /** Hole the prompt relates to (BOOST: activator's hole; ATTACK: target's hole). */
   contextHoleNumber: number
   targetPlayerName: string | null
+  /** 'yes_no' = binary outcome; 'count' = activator enters an occurrence count
+   *  and the final modifier is count × modifierIfYes, clamped by cap. */
+  inputKind: 'yes_no' | 'count'
+  /** Magnitude cap for count cards (same sign as modifierIfYes). null = uncapped. */
+  cap: number | null
 }
 
-const CONFIRMATION_BOOST_SLUGS = ['big-brother', 'caddys-pick', 'showdown', 'twinning'] as const
+const CONFIRMATION_BOOST_SLUGS = [
+  '1-vs-all',
+  'albatross-aim',
+  'big-brother',
+  'caddys-pick',
+  'chip-in-bonus',
+  'greenside-magic',
+  'liquid-lunch',
+  'long-bomb',
+  'pendulum',
+  'pin-seeker',
+  'sand-save',
+  'showdown',
+  'the-closer',
+  'the-comeback',
+  'the-tin-cup',
+  'twinning',
+  'up-and-down-artist',
+] as const
 const CONFIRMATION_ATTACK_SLUGS = ['drink-up', 'the-long-and-winding-road'] as const
+/** ATTACK count cards — activator enters a per-occurrence count after target's hole posts. */
+const CONFIRMATION_ATTACK_COUNT_SLUGS = [
+  'out-of-bounds',
+  'proximity-mine',
+  'the-cursed-club',
+  'the-fairway-is-lava',
+  'the-flop',
+  'yipsy-daisy',
+] as const
+
+/** Hard upper bound on the count input for count cards — defends the
+ *  resolution endpoint when an effect has cap=null. No realistic golf hole
+ *  produces more than 20 of any single trackable event. */
+const COUNT_INPUT_MAX = 20
+
+/** Validate a client-supplied scoreModifier against a powerup's slug + effect.
+ *  Used by /api/tournaments/[id]/powerups/resolve to prevent participants
+ *  from posting arbitrary modifier values to cheat the leaderboard. */
+export function validateResolutionModifier(
+  slug: string,
+  effect: { scoring?: { modifier?: number | null; cap?: number | null } } | null | undefined,
+  scoreModifier: number,
+): { ok: true } | { ok: false; error: string } {
+  if (!Number.isFinite(scoreModifier) || !Number.isInteger(scoreModifier)) {
+    return { ok: false, error: 'scoreModifier must be a finite integer' }
+  }
+
+  // 0 is always valid — represents "No" for yes/no cards or "0 occurrences"
+  // for count cards. Skips the slug-membership check intentionally so that
+  // a user defer/no on a borderline-typed card never errors.
+  if (scoreModifier === 0) return { ok: true }
+
+  const isYesNoBoost = (CONFIRMATION_BOOST_SLUGS as readonly string[]).includes(slug)
+  const isYesNoAttack = (CONFIRMATION_ATTACK_SLUGS as readonly string[]).includes(slug)
+  const isCountAttack = (CONFIRMATION_ATTACK_COUNT_SLUGS as readonly string[]).includes(slug)
+
+  if (!isYesNoBoost && !isYesNoAttack && !isCountAttack) {
+    return { ok: false, error: 'Powerup is not user-resolvable' }
+  }
+
+  const fullModifier = effect?.scoring?.modifier ?? 0
+  if (fullModifier === 0) {
+    return { ok: false, error: 'Powerup has no resolvable modifier' }
+  }
+
+  if (isYesNoBoost || isYesNoAttack) {
+    if (scoreModifier !== fullModifier) {
+      return { ok: false, error: `Yes/No powerup expects 0 or ${fullModifier}` }
+    }
+    return { ok: true }
+  }
+
+  // Count card path
+  if (Math.sign(scoreModifier) !== Math.sign(fullModifier)) {
+    return { ok: false, error: 'Modifier sign does not match powerup type' }
+  }
+  if (scoreModifier % fullModifier !== 0) {
+    return { ok: false, error: `Modifier must be a multiple of ${fullModifier}` }
+  }
+  const count = scoreModifier / fullModifier
+  if (count < 0 || count > COUNT_INPUT_MAX) {
+    return { ok: false, error: `Count must be between 0 and ${COUNT_INPUT_MAX}` }
+  }
+
+  const cap = effect?.scoring?.cap ?? null
+  if (cap !== null) {
+    if (cap >= 0 && scoreModifier > cap) {
+      return { ok: false, error: `Modifier exceeds cap of +${cap}` }
+    }
+    if (cap < 0 && scoreModifier < cap) {
+      return { ok: false, error: `Modifier exceeds cap of ${cap}` }
+    }
+  }
+
+  return { ok: true }
+}
 
 const CONFIRMATION_PROMPTS: Record<string, string> = {
+  '1-vs-all': 'Did you beat every partner outright on this hole?',
+  'albatross-aim': 'Did you reach the green in 2 shots?',
   'big-brother': 'Did you score lower than your chosen partner on this hole?',
   'caddys-pick': "Did you make par or better with your partner's club choice?",
+  'chip-in-bonus': 'Did you chip in from off the green?',
+  'greenside-magic': 'Did your first chip finish within 3 feet?',
+  'liquid-lunch': 'Did you take a shot AND make bogey or better?',
+  'long-bomb': 'Did your tee shot hit the fairway at 250+ yards?',
+  'pendulum': 'Did you sink a putt with your eyes closed?',
+  'pin-seeker': 'Did your tee shot land within 10 feet of the pin?',
+  'sand-save': 'Did you save par from a bunker?',
   'showdown': 'Did you outdrive AND beat your chosen partner on this hole?',
+  'the-closer': 'Did you sink a putt of 10 feet or longer?',
+  'the-comeback': 'Did you better your previous hole score?',
+  'the-tin-cup': 'Did you score par or better using only your 7-iron?',
   'twinning': 'Did you and your chosen partner score the same on this hole?',
+  'up-and-down-artist': 'Did you get up-and-down from off the green?',
   'drink-up': 'Did your target fail to finish their drink before the green?',
   'the-long-and-winding-road': "Did your target's ball fail to visit both rough sides?",
+  'out-of-bounds': "How many OBs or lost balls did your target have on this hole?",
+  'proximity-mine': "How many of your target's shots landed within 2 club lengths of a bunker?",
+  'the-cursed-club': "How many times did your target use the cursed club on this hole?",
+  'the-fairway-is-lava': "How many times did your target's ball touch the fairway?",
+  'the-flop': "How many of your target's shots came from the rough? (max 3)",
+  'yipsy-daisy': "How many short putts (inside 5 ft) did your target miss?",
 }
 
 export async function findPendingConfirmations(
   currentTournamentPlayerId: string,
   roundId: string,
 ): Promise<PendingConfirmation[]> {
-  const allSlugs: string[] = [...CONFIRMATION_BOOST_SLUGS, ...CONFIRMATION_ATTACK_SLUGS]
+  const allSlugs: string[] = [
+    ...CONFIRMATION_BOOST_SLUGS,
+    ...CONFIRMATION_ATTACK_SLUGS,
+    ...CONFIRMATION_ATTACK_COUNT_SLUGS,
+  ]
   const rows = await prisma.playerPowerup.findMany({
     where: {
       roundId,
@@ -957,9 +1080,12 @@ export async function findPendingConfirmations(
     : []
   const scoredActivatorHoles = new Set(activatorScores.map((s) => s.hole.number))
 
-  // Group ATTACK target lookups by targetPlayerId.
+  // Group ATTACK target lookups by targetPlayerId (both yes/no and count variants).
   const attackTargetPairs = rows
-    .filter((r) => CONFIRMATION_ATTACK_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_SLUGS[number]))
+    .filter((r) =>
+      CONFIRMATION_ATTACK_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_SLUGS[number]) ||
+      CONFIRMATION_ATTACK_COUNT_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_COUNT_SLUGS[number])
+    )
     .filter((r) => r.targetPlayerId && r.targetHoleNumber !== null)
     .map((r) => ({ tpId: r.targetPlayerId!, hole: r.targetHoleNumber! }))
 
@@ -980,9 +1106,10 @@ export async function findPendingConfirmations(
   const pending: PendingConfirmation[] = []
 
   for (const r of rows) {
-    const effect = r.powerup.effect as { scoring: { modifier: number | null } }
+    const effect = r.powerup.effect as { scoring: { modifier: number | null; cap?: number | null } }
     const fullModifier = effect.scoring.modifier ?? 0
     const isBoost = CONFIRMATION_BOOST_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_BOOST_SLUGS[number])
+    const isCount = CONFIRMATION_ATTACK_COUNT_SLUGS.includes(r.powerup.slug as typeof CONFIRMATION_ATTACK_COUNT_SLUGS[number])
 
     let contextHole: number | null = null
     if (isBoost) {
@@ -1002,6 +1129,8 @@ export async function findPendingConfirmations(
       modifierIfYes: fullModifier,
       contextHoleNumber: contextHole,
       targetPlayerName: r.targetPlayerId ? (nameById.get(r.targetPlayerId) ?? null) : null,
+      inputKind: isCount ? 'count' : 'yes_no',
+      cap: typeof effect.scoring.cap === 'number' ? effect.scoring.cap : null,
     })
   }
 

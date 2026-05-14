@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { validateResolutionModifier } from '@/lib/variable-powerup-evaluator'
 
 export async function POST(
   req: NextRequest,
@@ -26,6 +27,7 @@ export async function POST(
 
   const playerPowerup = await prisma.playerPowerup.findUnique({
     where: { id: playerPowerupId },
+    include: { powerup: { select: { slug: true, effect: true } } },
   })
   if (!playerPowerup) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   if (playerPowerup.tournamentPlayerId !== player.id) {
@@ -33,6 +35,19 @@ export async function POST(
   }
   if (playerPowerup.status !== 'USED') {
     return NextResponse.json({ error: 'Powerup must be used before resolving' }, { status: 400 })
+  }
+
+  // Server-authoritative validation — without this a participant could POST
+  // any scoreModifier and rewrite the leaderboard. Yes/no cards must equal
+  // 0 or the full effect modifier; count cards must be a non-negative
+  // multiple of the effect modifier within the cap.
+  const validation = validateResolutionModifier(
+    playerPowerup.powerup.slug,
+    playerPowerup.powerup.effect as { scoring?: { modifier?: number | null; cap?: number | null } },
+    scoreModifier,
+  )
+  if (!validation.ok) {
+    return NextResponse.json({ error: validation.error }, { status: 400 })
   }
 
   const updated = await prisma.playerPowerup.update({
