@@ -12,6 +12,7 @@ import { RegistrationBanner } from '@/components/RegistrationBanner'
 import { UpgradeSuccessBanner } from '@/components/UpgradeSuccessBanner'
 import { SponsorStrip } from '@/components/hub/SponsorStrip'
 import { TeeTimeTile } from '@/components/hub/TeeTimeTile'
+import { WatchersStrip } from '@/components/hub/WatchersStrip'
 
 export default async function TournamentPage({
   params,
@@ -155,6 +156,29 @@ export default async function TournamentPage({
     inviteToken = invitation?.token ?? null
   }
 
+  // Public watchers — anyone who looked up this tournament by code while logged
+  // in (and isn't a registered participant or admin). Shown as a small strip
+  // below the leaderboard so the room can see who's spectating.
+  const watcherRows = await prisma.tournamentPlayer.findMany({
+    where: {
+      tournamentId: tournament.id,
+      isWatching: true,
+      isParticipant: false,
+      isAdmin: false,
+    },
+    select: {
+      id: true,
+      user: { select: { id: true, name: true, image: true } },
+    },
+    orderBy: { createdAt: 'desc' },
+    take: 30,
+  })
+  const watchers = watcherRows.map((w) => ({
+    id: w.user.id,
+    name: w.user.name,
+    image: w.user.image,
+  }))
+
   // Look up defending champion (from most recent parent tournament)
   let defendingChampionPlayerId: string | null = null
   if (tournament.parentTournamentId) {
@@ -248,6 +272,8 @@ export default async function TournamentPage({
           totalHoles,
         } : undefined}
       />
+
+      <WatchersStrip watchers={watchers} />
 
       <TournamentStats
         standings={initialStandings}
