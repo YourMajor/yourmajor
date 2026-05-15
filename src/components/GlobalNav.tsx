@@ -41,7 +41,7 @@ export async function GlobalNav() {
         {/* Left: Logo + nav links */}
         <div className="flex items-center gap-5">
           <Link href="/" className="flex items-center gap-2.5 shrink-0">
-            <Image src="/logos/eagle-flags.svg" alt="" width={48} height={48} className="h-12 w-12" style={{ overflow: 'visible' }} />
+            <Image src="/logos/yourmajor-badge.svg" alt="" width={48} height={48} className="h-12 w-12" />
             <span className="font-heading leading-none text-left">
               <span className="block text-sm font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
               <span className="block text-2xl font-black -mt-1.5 text-accent">MAJOR</span>

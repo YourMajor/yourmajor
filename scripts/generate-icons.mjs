@@ -1,10 +1,12 @@
 import sharp from 'sharp';
-import { readFile } from 'node:fs/promises';
+import pngToIco from 'png-to-ico';
+import { readFile, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 
 const ROOT = process.cwd();
 const SRC = join(ROOT, 'public/icons/icon-master.svg');
 const OUT = join(ROOT, 'public/icons');
+const FAVICON = join(ROOT, 'src/app/favicon.ico');
 const NAVY = '#1A3260';
 
 const svg = await readFile(SRC);
@@ -40,4 +42,11 @@ for (const { name, size } of MASKABLE) {
   console.log(`✓ ${name} (${size}×${size}, maskable safe zone)`);
 }
 
-console.log(`\nGenerated ${ANY.length + MASKABLE.length} icons in ${OUT}`);
+const FAVICON_SIZES = [16, 32, 48];
+const faviconBuffers = await Promise.all(
+  FAVICON_SIZES.map((s) => sharp(svg, { density: 384 }).resize(s, s).png().toBuffer())
+);
+await writeFile(FAVICON, await pngToIco(faviconBuffers));
+console.log(`✓ src/app/favicon.ico (${FAVICON_SIZES.join(', ')})`);
+
+console.log(`\nGenerated ${ANY.length + MASKABLE.length} icons in ${OUT} + favicon.ico`);
