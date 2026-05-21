@@ -11,7 +11,6 @@ interface PowerupBrowseGridProps {
   powerups: PowerupCardData[]
   picks: PickInfo[]
   selectedId: string | null
-  isMyTurn: boolean
   hasFilters: boolean
   onSelect: (p: PowerupCardData) => void
   onClearFilters: () => void
@@ -24,7 +23,6 @@ export function PowerupBrowseGrid({
   powerups,
   picks,
   selectedId,
-  isMyTurn,
   hasFilters,
   onSelect,
   onClearFilters,
@@ -60,11 +58,8 @@ export function PowerupBrowseGrid({
 
   return (
     <div
-      className={`relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4 ${
-        isMyTurn ? '' : 'opacity-60'
-      }`}
-      aria-disabled={!isMyTurn}
-      aria-label={isMyTurn ? 'Available powerups' : 'Available powerups (waiting for your turn)'}
+      className="relative grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 sm:gap-4"
+      aria-label="Available powerups"
     >
       {powerups.map((powerup) => {
         const pickedBy = pickedMap.get(powerup.id) ?? null
@@ -74,6 +69,10 @@ export function PowerupBrowseGrid({
           : selectedId === powerup.id
             ? 'selected'
             : 'available'
+        // Cards are tappable for review/favourite at any time during the draft.
+        // The actual Pick action is turn-gated inside FlippableCardOverlay
+        // (DraftBoard.tsx), so non-turn players can read details but the
+        // Confirm Pick button stays disabled until their turn comes.
         return (
           <PowerupCard
             key={powerup.id}
@@ -81,10 +80,8 @@ export function PowerupBrowseGrid({
             state={state}
             pickedBy={pickedBy}
             size="browse"
-            onClick={() => {
-              if (!isPicked && isMyTurn) onSelect(powerup)
-            }}
-            disabled={!isMyTurn || isPicked}
+            onClick={() => { if (!isPicked) onSelect(powerup) }}
+            disabled={isPicked}
             isFavorite={favoriteIds?.has(powerup.id) ?? false}
             onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(powerup.id) : undefined}
           />

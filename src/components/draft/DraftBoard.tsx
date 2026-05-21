@@ -493,7 +493,6 @@ export function DraftBoard({
             .filter((x) => x.pickedBy !== null)
             .map((x) => ({ powerupId: x.powerup.id, pickedBy: x.pickedBy! }))}
           selectedId={selectedPowerup?.id ?? null}
-          isMyTurn={isMyTurn}
           hasFilters={hasFilters}
           onSelect={(p) => setSelectedPowerup(p)}
           onClearFilters={() => {

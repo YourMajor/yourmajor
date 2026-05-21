@@ -1,5 +1,7 @@
 'use client'
 
+import { useEffect, useState } from 'react'
+import { createPortal } from 'react-dom'
 import Image from 'next/image'
 import { Hand, ListOrdered } from 'lucide-react'
 
@@ -22,7 +24,18 @@ export function DraftPeekBar({
   onOpenHand,
   onOpenBoard,
 }: DraftPeekBarProps) {
-  return (
+  // Portal to document.body so `position: fixed` resolves against the
+  // viewport, not the nearest transformed/overflow-scrolled ancestor. On some
+  // iOS Safari configurations a transformed parent (e.g. Next.js layout root
+  // with a transform-applied animation) makes `fixed` behave like sticky,
+  // letting the bar scroll up into the middle of the screen. Same fix as
+  // BottomTabBar.tsx (commit ff125d2).
+  const [mounted, setMounted] = useState(false)
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMounted(true) }, [])
+  if (!mounted) return null
+
+  return createPortal(
     <div
       className="fixed left-0 right-0 z-40 lg:hidden bg-card/95 backdrop-blur-md border-t border-border shadow-[0_-4px_16px_rgba(0,0,0,0.06)]"
       style={{ bottom: 'calc(var(--nav-bottom-height, 64px) + env(safe-area-inset-bottom, 0px))' }}
@@ -96,6 +109,7 @@ export function DraftPeekBar({
           </button>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
