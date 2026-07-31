@@ -1,0 +1,8 @@
+# API Developer — Learning Log
+
+Role: server actions / route handlers — correctness, N+1s, error handling. Read this file in
+full plus `shared.md` before starting. Append a dated entry at the end of your pass: what you
+reviewed, what you found, what you changed (if SAFE-AUTOPUSH) or proposed (if NEEDS-PR), and
+why.
+
+---
