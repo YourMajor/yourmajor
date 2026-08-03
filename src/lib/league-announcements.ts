@@ -55,7 +55,7 @@ interface AudienceUser {
  * Resolve the audience filter into a list of users. Always scoped to the
  * league's root roster (members are stored against the root tournament).
  */
-export async function resolveAudience(
+async function resolveAudience(
   tournamentId: string,
   filter: AudienceFilter,
 ): Promise<AudienceUser[]> {
@@ -216,42 +216,45 @@ async function dispatchToAudience(args: {
   const { announcementId, audience, channels, subject, body } = args
 
   const deliveries: { userId: string; channel: AnnouncementChannel }[] = []
+  const deliveryRows: {
+    announcementId: string
+    userId: string
+    channel: AnnouncementChannel
+    status: DeliveryStatus
+    failureReason?: string
+  }[] = []
+
+  // Build every row first, then insert once — a per-recipient-per-channel
+  // create() is audience.length * channels.length round trips.
   for (const user of audience) {
     for (const channel of channels) {
       if (channel === 'SMS' && (!user.phone || !user.smsNotifications)) {
-        await prisma.leagueAnnouncementDelivery.create({
-          data: {
-            announcementId,
-            userId: user.id,
-            channel,
-            status: 'SKIPPED' satisfies DeliveryStatus,
-            failureReason: !user.phone ? 'no phone on file' : 'sms notifications opted out',
-          },
+        deliveryRows.push({
+          announcementId,
+          userId: user.id,
+          channel,
+          status: 'SKIPPED',
+          failureReason: !user.phone ? 'no phone on file' : 'sms notifications opted out',
         })
         continue
       }
       if (channel === 'EMAIL' && !user.email) {
-        await prisma.leagueAnnouncementDelivery.create({
-          data: {
-            announcementId,
-            userId: user.id,
-            channel,
-            status: 'SKIPPED' satisfies DeliveryStatus,
-            failureReason: 'no email on file',
-          },
+        deliveryRows.push({
+          announcementId,
+          userId: user.id,
+          channel,
+          status: 'SKIPPED',
+          failureReason: 'no email on file',
         })
         continue
       }
       deliveries.push({ userId: user.id, channel })
-      await prisma.leagueAnnouncementDelivery.create({
-        data: {
-          announcementId,
-          userId: user.id,
-          channel,
-          status: 'PENDING' satisfies DeliveryStatus,
-        },
-      })
+      deliveryRows.push({ announcementId, userId: user.id, channel, status: 'PENDING' })
     }
+  }
+
+  if (deliveryRows.length > 0) {
+    await prisma.leagueAnnouncementDelivery.createMany({ data: deliveryRows })
   }
 
   let successCount = 0

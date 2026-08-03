@@ -106,55 +106,76 @@ export async function getChampionHistory(tournamentId: string): Promise<PastCham
     (t) => t.status === 'COMPLETED' && t.championUserId && t.championName
   )
 
-  const champions: PastChampion[] = []
+  if (completed.length === 0) return []
 
-  for (const t of completed) {
-    // Fetch champion's avatar
-    const profile = await prisma.playerProfile.findUnique({
-      where: { userId: t.championUserId! },
-      select: { avatar: true },
-    })
-    const user = !profile
-      ? await prisma.user.findUnique({
-          where: { id: t.championUserId! },
-          select: { image: true },
-        })
-      : null
+  // Batch every lookup up front. This used to run 4 serial queries per
+  // ancestor (~80 round trips for a 20-event chain).
+  const championIds = [...new Set(completed.map((t) => t.championUserId!))]
 
-    // Fetch champion's scores for this tournament
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: t.id, userId: t.championUserId! } },
-      select: { id: true },
-    })
+  const [profiles, users, memberships] = await Promise.all([
+    prisma.playerProfile.findMany({
+      where: { userId: { in: championIds } },
+      select: { userId: true, avatar: true },
+    }),
+    prisma.user.findMany({
+      where: { id: { in: championIds } },
+      select: { id: true, image: true },
+    }),
+    prisma.tournamentPlayer.findMany({
+      where: {
+        tournamentId: { in: completed.map((t) => t.id) },
+        userId: { in: championIds },
+      },
+      select: { id: true, tournamentId: true, userId: true },
+    }),
+  ])
 
-    let grossTotal: number | null = null
-    let grossVsPar: number | null = null
-    let roundScores: number[] = []
+  const avatarByUserId = new Map(profiles.map((p) => [p.userId, p.avatar]))
+  const imageByUserId = new Map(users.map((u) => [u.id, u.image]))
+  // Keyed by tournament+user because the same champion can win several events.
+  const membershipByKey = new Map(memberships.map((m) => [`${m.tournamentId}:${m.userId}`, m.id]))
 
-    if (membership) {
-      const scores = await prisma.score.findMany({
-        where: { tournamentPlayerId: membership.id },
+  const scores = memberships.length > 0
+    ? await prisma.score.findMany({
+        where: { tournamentPlayerId: { in: memberships.map((m) => m.id) } },
         include: {
           hole: { select: { par: true } },
           round: { select: { roundNumber: true } },
         },
       })
+    : []
 
-      if (scores.length > 0) {
-        grossTotal = scores.reduce((sum, s) => sum + s.strokes, 0)
-        const totalPar = scores.reduce((sum, s) => sum + (s.hole?.par ?? 4), 0)
-        grossVsPar = grossTotal - totalPar
+  const scoresByPlayer = new Map<string, typeof scores>()
+  for (const s of scores) {
+    const list = scoresByPlayer.get(s.tournamentPlayerId)
+    if (list) list.push(s)
+    else scoresByPlayer.set(s.tournamentPlayerId, [s])
+  }
 
-        // Group by round
-        const byRound = new Map<number, number>()
-        for (const s of scores) {
-          const rn = s.round.roundNumber
-          byRound.set(rn, (byRound.get(rn) ?? 0) + s.strokes)
-        }
-        roundScores = Array.from(byRound.entries())
-          .sort(([a], [b]) => a - b)
-          .map(([, total]) => total)
+  const champions: PastChampion[] = []
+
+  for (const t of completed) {
+    const membershipId = membershipByKey.get(`${t.id}:${t.championUserId!}`)
+
+    let grossTotal: number | null = null
+    let grossVsPar: number | null = null
+    let roundScores: number[] = []
+
+    const playerScores = membershipId ? scoresByPlayer.get(membershipId) : undefined
+    if (playerScores && playerScores.length > 0) {
+      grossTotal = playerScores.reduce((sum, s) => sum + s.strokes, 0)
+      const totalPar = playerScores.reduce((sum, s) => sum + (s.hole?.par ?? 4), 0)
+      grossVsPar = grossTotal - totalPar
+
+      // Group by round
+      const byRound = new Map<number, number>()
+      for (const s of playerScores) {
+        const rn = s.round.roundNumber
+        byRound.set(rn, (byRound.get(rn) ?? 0) + s.strokes)
       }
+      roundScores = Array.from(byRound.entries())
+        .sort(([a], [b]) => a - b)
+        .map(([, total]) => total)
     }
 
     champions.push({
@@ -166,7 +187,11 @@ export async function getChampionHistory(tournamentId: string): Promise<PastCham
       endDate: t.endDate?.toISOString() ?? null,
       championName: t.championName!,
       championUserId: t.championUserId!,
-      championAvatarUrl: profile?.avatar ?? user?.image ?? null,
+      // `has` not `??`: the original only fell back to User.image when no
+      // PlayerProfile row existed at all, not when its avatar was null.
+      championAvatarUrl: avatarByUserId.has(t.championUserId!)
+        ? avatarByUserId.get(t.championUserId!) ?? null
+        : imageByUserId.get(t.championUserId!) ?? null,
       grossTotal,
       grossVsPar,
       roundScores,
