@@ -1,7 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getCourseById, getCanonicalTees } from '@/lib/golf-api'
+
+const importSchema = z.object({
+  // Accepts the numeric id or its string form; rejects NaN, which used to
+  // reach the external API as `Number(undefined)`.
+  golfApiCourseId: z.coerce.number().int().positive(),
+})
 
 /**
  * POST /api/courses/import
@@ -14,10 +21,21 @@ export async function POST(req: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const { golfApiCourseId } = await req.json()
-  if (!golfApiCourseId) {
-    return NextResponse.json({ error: 'golfApiCourseId is required' }, { status: 400 })
+  let body: unknown
+  try {
+    body = await req.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 })
   }
+
+  const parsed = importSchema.safeParse(body)
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: 'golfApiCourseId must be a positive integer' },
+      { status: 400 },
+    )
+  }
+  const { golfApiCourseId } = parsed.data
 
   const externalId = String(golfApiCourseId)
 
@@ -28,8 +46,15 @@ export async function POST(req: NextRequest) {
   })
   if (existing) return NextResponse.json(existing)
 
-  // Fetch from GolfCourseAPI
-  const apiCourse = await getCourseById(Number(golfApiCourseId))
+  // Fetch from GolfCourseAPI — external, so a failure here is a 502, not a 500.
+  let apiCourse: Awaited<ReturnType<typeof getCourseById>>
+  try {
+    apiCourse = await getCourseById(golfApiCourseId)
+  } catch (err) {
+    console.error('[courses/import] GolfCourseAPI lookup failed:', err)
+    return NextResponse.json({ error: 'Could not fetch course data.' }, { status: 502 })
+  }
+
   const allTees = [
     ...(apiCourse.tees.male ?? []),
     ...(apiCourse.tees.female ?? []),

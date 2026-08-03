@@ -180,7 +180,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
               <h3 className="text-base sm:text-sm font-heading font-bold text-white">{label ?? 'Tournament Chat'}</h3>
               <ChevronDown className="w-4 h-4 text-white/40 sm:hidden" />
             </div>
-            <button type="button" onClick={() => setOpen(false)} className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10">
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10">
               <X className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
           </div>

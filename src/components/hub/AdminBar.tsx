@@ -130,7 +130,7 @@ export function AdminBar({ slug, tournamentId, status, powerupsEnabled }: Props)
                   <Badge key={e.value} variant="secondary" className="gap-1 pr-1">
                     <Mail className="w-3 h-3" />
                     {e.value}
-                    <button type="button" onClick={() => setEntries(entries.filter((x) => x.value !== e.value))} className="ml-0.5 hover:text-destructive text-xs">×</button>
+                    <button type="button" onClick={() => setEntries(entries.filter((x) => x.value !== e.value))} aria-label={`Remove ${e.value}`} className="ml-0.5 hover:text-destructive text-xs">×</button>
                   </Badge>
                 ))}
               </div>

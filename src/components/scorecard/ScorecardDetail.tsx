@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Info, X } from 'lucide-react'
 import { allocateHandicapStrokes, callawayDeduction, getCallawayAdjustment, CALLAWAY_TABLE } from '@/lib/scoring-utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
@@ -247,13 +247,28 @@ function NetBreakdownModal({
   scoredHolesCount, playedPar, totalGross, powerupModifier, adjustedGross,
   handicap, isCallaway, callawayBreakdown, totalNet, diffNet, strokeHoles, sorted,
 }: NetBreakdownProps) {
+  // Hand-rolled modal, so Escape isn't handled for us the way ui/dialog does it.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+  }, [onClose])
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
       <div className="absolute inset-0 bg-black/40" />
-      <div className="relative bg-background rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden flex flex-col max-h-[90dvh]" onClick={(e) => e.stopPropagation()}>
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="net-breakdown-title"
+        className="relative bg-background rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden flex flex-col max-h-[90dvh]"
+        onClick={(e) => e.stopPropagation()}
+      >
         <div className="shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: 'var(--color-primary)' }}>
-          <h3 className="font-heading font-bold text-white text-lg">Net Score Breakdown</h3>
-          <button type="button" onClick={onClose} className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10">
+          <h3 id="net-breakdown-title" className="font-heading font-bold text-white text-lg">Net Score Breakdown</h3>
+          <button type="button" onClick={onClose} aria-label="Close" className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10">
             <X className="w-4 h-4" />
           </button>
         </div>

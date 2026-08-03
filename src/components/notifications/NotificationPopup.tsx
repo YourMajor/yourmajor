@@ -142,6 +142,19 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     setTimeout(() => setNotification(null), 300)
   }
 
+  // These modals are hand-rolled rather than built on ui/dialog, so Escape
+  // has to be wired up explicitly.
+  const open = !!notification && visible
+  useEffect(() => {
+    if (!open) return
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') void dismiss()
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => document.removeEventListener('keydown', onKeyDown)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
   if (!notification || !visible) return null
 
   if (notification.type === 'ATTACK_RECEIVED') {
@@ -150,10 +163,16 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
       <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
         <div className="absolute inset-0 bg-black/60" onClick={dismiss} />
 
-        <div className="relative z-10 w-full max-w-sm mx-4 mb-8 sm:mb-0 rounded-2xl border border-red-500/40 bg-gradient-to-b from-red-950 to-zinc-950 p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-label="You've been attacked"
+          className="relative z-10 w-full max-w-sm mx-4 mb-8 sm:mb-0 rounded-2xl border border-red-500/40 bg-gradient-to-b from-red-950 to-zinc-950 p-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
+        >
           <button
             type="button"
             onClick={dismiss}
+            aria-label="Close"
             className="absolute top-3 right-3 p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10"
           >
             <X className="w-5 h-5" />
@@ -200,10 +219,16 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center">
       <div className="absolute inset-0 bg-black/60" onClick={dismiss} />
 
-      <div className="relative z-10 w-full max-w-sm mx-4 mb-8 sm:mb-0 rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-950 to-zinc-950 p-6 shadow-2xl animate-in slide-in-from-bottom duration-300">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="It's your turn to draft"
+        className="relative z-10 w-full max-w-sm mx-4 mb-8 sm:mb-0 rounded-2xl border border-amber-400/40 bg-gradient-to-b from-amber-950 to-zinc-950 p-6 shadow-2xl animate-in slide-in-from-bottom duration-300"
+      >
         <button
           type="button"
           onClick={dismiss}
+          aria-label="Close"
           className="absolute top-3 right-3 p-1 text-white/40 hover:text-white rounded-full hover:bg-white/10"
         >
           <X className="w-5 h-5" />
