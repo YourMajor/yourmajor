@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useTransition } from 'react'
+import { useMemo, useState, useTransition } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   DndContext,
@@ -193,61 +193,95 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
     useSensor(KeyboardSensor),
   )
 
-  const unassigned = players.filter((p) => !p.groupId).sort((a, b) => a.name.localeCompare(b.name))
-  const draggedPlayer = activeDragId && !activeDragId.startsWith(TEAM_DRAG_PREFIX)
-    ? players.find((p) => p.id === activeDragId) ?? null
-    : null
+  // Every derivation below is memoized on players/teams. The whole builder is
+  // one render function, so a selection tap or an optimistic move re-runs all
+  // of it — with an 80-player roster that meant re-sorting and re-bucketing on
+  // every interaction, plus a full dnd-kit context churn mid-drag.
+  const unassigned = useMemo(
+    () => players.filter((p) => !p.groupId).sort((a, b) => a.name.localeCompare(b.name)),
+    [players],
+  )
+  const draggedPlayer = useMemo(
+    () =>
+      activeDragId && !activeDragId.startsWith(TEAM_DRAG_PREFIX)
+        ? players.find((p) => p.id === activeDragId) ?? null
+        : null,
+    [players, activeDragId],
+  )
 
   // ── Team-mode derivations ────────────────────────────────────────────────
   // When teamsEnabled is true and at least one team fits inside group capacity,
   // we render team chips instead of individual player pills. Server enforces
   // the same lock so a stale client can't split teammates.
-  const teamModeActive =
-    teamsEnabled
-    && teams.length > 0
-    && teams.some((t) => t.memberIds.length > 0 && t.memberIds.length <= GROUP_CAPACITY)
+  const teamModeActive = useMemo(
+    () =>
+      teamsEnabled
+      && teams.length > 0
+      && teams.some((t) => t.memberIds.length > 0 && t.memberIds.length <= GROUP_CAPACITY),
+    [teamsEnabled, teams],
+  )
 
   // playerId → team it belongs to (if any). Used to render team chips and to
   // resolve which team a player-anchored drag/click corresponds to.
-  const teamByPlayerId = new Map<string, Team>()
-  if (teamModeActive) {
-    for (const t of teams) {
-      for (const id of t.memberIds) teamByPlayerId.set(id, t)
+  const teamByPlayerId = useMemo(() => {
+    const map = new Map<string, Team>()
+    if (teamModeActive) {
+      for (const t of teams) {
+        for (const id of t.memberIds) map.set(id, t)
+      }
     }
-  }
+    return map
+  }, [teamModeActive, teams])
 
   // Each team's current group is wherever its members live. A "split" team
   // (members in different groups) shouldn't happen once team-lock is on, but
   // we surface it via takeFirst-defined location so the chip renders somewhere.
-  function teamGroupId(team: Team): string | null {
-    for (const memberId of team.memberIds) {
-      const p = players.find((pl) => pl.id === memberId)
-      if (p?.groupId) return p.groupId
-    }
-    return null
-  }
+  //
+  // Indexed by id first: this used to run players.find() per member inside a
+  // loop over every team, i.e. O(teams × players) on each render.
+  const teamLocations = useMemo(() => {
+    if (!teamModeActive) return []
+    const groupIdByPlayerId = new Map(players.map((p) => [p.id, p.groupId]))
+    return teams.map((t) => ({
+      team: t,
+      groupId: t.memberIds.map((id) => groupIdByPlayerId.get(id)).find((g) => g) ?? null,
+    }))
+  }, [teamModeActive, teams, players])
 
-  const teamLocations = teamModeActive
-    ? teams.map((t) => ({ team: t, groupId: teamGroupId(t) }))
-    : []
-  const unassignedTeams = teamLocations.filter((tl) => tl.groupId === null).map((tl) => tl.team)
-  const teamsByGroupId = new Map<string, Team[]>()
-  for (const tl of teamLocations) {
-    if (!tl.groupId) continue
-    const arr = teamsByGroupId.get(tl.groupId) ?? []
-    arr.push(tl.team)
-    teamsByGroupId.set(tl.groupId, arr)
-  }
+  const unassignedTeams = useMemo(
+    () => teamLocations.filter((tl) => tl.groupId === null).map((tl) => tl.team),
+    [teamLocations],
+  )
+
+  const teamsByGroupId = useMemo(() => {
+    const map = new Map<string, Team[]>()
+    for (const tl of teamLocations) {
+      if (!tl.groupId) continue
+      const arr = map.get(tl.groupId) ?? []
+      arr.push(tl.team)
+      map.set(tl.groupId, arr)
+    }
+    return map
+  }, [teamLocations])
+
   // Players who are registered but haven't been placed on any team. In team
   // mode they appear in the unassigned pool as non-draggable amber chips —
   // they must be put on a team via /admin/teams before they can be grouped.
-  const noTeamPlayers = teamModeActive
-    ? players.filter((p) => !teamByPlayerId.has(p.id)).sort((a, b) => a.name.localeCompare(b.name))
-    : []
+  const noTeamPlayers = useMemo(
+    () =>
+      teamModeActive
+        ? players.filter((p) => !teamByPlayerId.has(p.id)).sort((a, b) => a.name.localeCompare(b.name))
+        : [],
+    [teamModeActive, players, teamByPlayerId],
+  )
 
-  const draggedTeam = teamModeActive && activeDragId?.startsWith(TEAM_DRAG_PREFIX)
-    ? teams.find((t) => t.id === activeDragId.slice(TEAM_DRAG_PREFIX.length)) ?? null
-    : null
+  const draggedTeam = useMemo(
+    () =>
+      teamModeActive && activeDragId?.startsWith(TEAM_DRAG_PREFIX)
+        ? teams.find((t) => t.id === activeDragId.slice(TEAM_DRAG_PREFIX.length)) ?? null
+        : null,
+    [teamModeActive, teams, activeDragId],
+  )
 
   // ── Tap-to-select interaction (multi-select) ────────────────────────────
 
@@ -416,7 +450,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       const teamId = activeId.slice(TEAM_DRAG_PREFIX.length)
       const team = teams.find((t) => t.id === teamId)
       if (!team) return
-      const currentGroupId = teamGroupId(team)
+      const currentGroupId = teamLocations.find((tl) => tl.team.id === teamId)?.groupId ?? null
       if (currentGroupId === targetGroupId) return
       if (targetGroupId) {
         const target = groups.find((g) => g.id === targetGroupId)
