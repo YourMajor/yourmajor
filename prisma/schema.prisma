@@ -505,6 +505,9 @@ model TournamentPlayer {
   teamMembership  TournamentTeamMember?
 
   @@unique([tournamentId, userId])
+  // The composite unique above leads with tournamentId, so it can't serve
+  // the dashboard/profile/tournaments queries that filter on userId alone.
+  @@index([userId])
 }
 
 model Invitation {
@@ -520,6 +523,8 @@ model Invitation {
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User?      @relation(fields: [userId], references: [id])
+
+  @@index([tournamentId])
 }
 
 // ─── Tournament Groups (Foursomes) ────────────────────────────────────────
@@ -550,6 +555,8 @@ model TournamentGroupMember {
 
   group            TournamentGroup  @relation(fields: [groupId], references: [id], onDelete: Cascade)
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
+
+  @@index([groupId])
 }
 
 // Recorded when a player with an assigned tee-time slot unregisters from a
@@ -657,6 +664,10 @@ model PlayerPowerup {
   round            TournamentRound? @relation(fields: [roundId], references: [id])
 
   @@index([tournamentPlayerId])
+  // scoring.ts loads inbound attacks with a top-level
+  // `targetPlayerId IN (...) AND status = 'USED'` — not scoped by
+  // tournamentPlayerId, so the index above doesn't help it.
+  @@index([targetPlayerId, status])
 }
 
 // ─── Draft ────────────────────────────────────────────────────────────────────
@@ -884,6 +895,8 @@ model Purchase {
   tournament Tournament? @relation(fields: [tournamentId], references: [id], onDelete: SetNull)
 
   @@index([userId])
+  // stripe.ts entitlement checks all filter userId + type + status together.
+  @@index([userId, type, status])
 }
 
 // ─── League Communications ────────────────────────────────────────────────────
