@@ -182,6 +182,17 @@ async function requireTournamentAdmin(tournamentId: string) {
   return user
 }
 
+// Being an admin of tournament X doesn't authorize touching a row that belongs
+// to tournament Y. Every action taking a caller-supplied row id must scope it
+// to the tournament the admin check passed for.
+async function assertGroupInTournament(groupId: string, tournamentId: string) {
+  const group = await prisma.tournamentGroup.findUnique({
+    where: { id: groupId },
+    select: { tournamentId: true },
+  })
+  if (!group || group.tournamentId !== tournamentId) throw new Error('Group not found')
+}
+
 // ── Group CRUD ───────────────────────────────────────────────────────────────
 
 export async function createGroup(tournamentId: string, name: string) {
@@ -196,12 +207,14 @@ export async function createGroup(tournamentId: string, name: string) {
 
 export async function deleteGroup(tournamentId: string, groupId: string) {
   await requireTournamentAdmin(tournamentId)
+  await assertGroupInTournament(groupId, tournamentId)
 
   await prisma.tournamentGroup.delete({ where: { id: groupId } })
 }
 
 export async function renameGroup(tournamentId: string, groupId: string, name: string) {
   await requireTournamentAdmin(tournamentId)
+  await assertGroupInTournament(groupId, tournamentId)
 
   await prisma.tournamentGroup.update({ where: { id: groupId }, data: { name } })
 }
@@ -219,10 +232,6 @@ export async function movePlayerToGroup(
 ) {
   await requireTournamentAdmin(tournamentId)
 
-  // Block per-player moves when the player belongs to a team that should be
-  // grouped as a unit (team size fits inside the group capacity). Splitting
-  // teammates across tee times breaks team-format scoring, so callers must
-  // use moveTeamToGroup instead.
   const tp = await prisma.tournamentPlayer.findUnique({
     where: { id: tournamentPlayerId },
     select: {
@@ -236,7 +245,14 @@ export async function movePlayerToGroup(
       tournament: { select: { teamsEnabled: true } },
     },
   })
-  if (tp && tp.tournamentId === tournamentId && tp.tournament.teamsEnabled && tp.teamMembership) {
+  if (!tp || tp.tournamentId !== tournamentId) throw new Error('Player not found')
+  if (targetGroupId) await assertGroupInTournament(targetGroupId, tournamentId)
+
+  // Block per-player moves when the player belongs to a team that should be
+  // grouped as a unit (team size fits inside the group capacity). Splitting
+  // teammates across tee times breaks team-format scoring, so callers must
+  // use moveTeamToGroup instead.
+  if (tp.tournament.teamsEnabled && tp.teamMembership) {
     const teamSize = tp.teamMembership.team._count.members
     if (teamSize <= GROUP_CAPACITY) {
       throw new Error('This player is on a team — move the whole team instead.')
@@ -285,6 +301,7 @@ export async function moveTeamToGroup(
   if (!team || team.tournamentId !== tournamentId) {
     return { ok: false, error: 'Team not found' }
   }
+  if (targetGroupId) await assertGroupInTournament(targetGroupId, tournamentId)
   const memberIds = team.members.map((m) => m.tournamentPlayerId)
   if (memberIds.length === 0) return { ok: true }
 
@@ -548,10 +565,10 @@ export async function removePlayer(tournamentId: string, tournamentPlayerId: str
 
   const tp = await prisma.tournamentPlayer.findUnique({
     where: { id: tournamentPlayerId },
-    select: { isAdmin: true },
+    select: { isAdmin: true, tournamentId: true },
   })
 
-  if (!tp) throw new Error('Player not found')
+  if (!tp || tp.tournamentId !== tournamentId) throw new Error('Player not found')
 
   // Remove from group first
   await prisma.tournamentGroupMember.deleteMany({
@@ -575,6 +592,7 @@ export async function removePlayer(tournamentId: string, tournamentPlayerId: str
 
 export async function updateGroupTeeTime(tournamentId: string, groupId: string, teeTime: string | null) {
   await requireTournamentAdmin(tournamentId)
+  await assertGroupInTournament(groupId, tournamentId)
 
   // teeTime comes as "HH:mm" — combine with tournament start date for full DateTime
   if (!teeTime) {
@@ -603,6 +621,7 @@ export async function updateGroupTeeTime(tournamentId: string, groupId: string, 
 
 export async function updateGroupStartingHole(tournamentId: string, groupId: string, startingHole: number | null) {
   await requireTournamentAdmin(tournamentId)
+  await assertGroupInTournament(groupId, tournamentId)
 
   await prisma.tournamentGroup.update({ where: { id: groupId }, data: { startingHole } })
 }

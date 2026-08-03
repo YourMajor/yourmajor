@@ -1,3 +1,4 @@
+import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 import type { User } from '../generated/prisma/client'
@@ -33,6 +34,29 @@ export async function requireAuth(): Promise<User> {
 export async function requireAdmin(): Promise<User> {
   const user = await requireAuth()
   if (user.role !== 'ADMIN') throw new Error('Forbidden')
+  return user
+}
+
+/**
+ * Gate a server action on tournament-level admin. Sends unauthenticated
+ * callers to login; throws for authenticated non-admins.
+ *
+ * Note this is the *narrow* check — direct TournamentPlayer.isAdmin only.
+ * `isTournamentAdmin` below additionally honours account-level co-admins.
+ * The two are deliberately not merged: widening this one would grant
+ * co-admins access to every action that calls it.
+ */
+export async function requireTournamentAdmin(tournamentId: string): Promise<User> {
+  const user = await getUser()
+  if (!user) redirect('/auth/login')
+
+  if (user.role !== 'ADMIN') {
+    const membership = await prisma.tournamentPlayer.findUnique({
+      where: { tournamentId_userId: { tournamentId, userId: user.id } },
+      select: { isAdmin: true },
+    })
+    if (!membership?.isAdmin) throw new Error('Forbidden')
+  }
   return user
 }
 

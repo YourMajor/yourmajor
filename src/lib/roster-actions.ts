@@ -1,10 +1,9 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { requireTournamentAdmin } from '@/lib/auth'
 import { sendInvitations } from '@/lib/invite-sender'
 import { getRootTournamentId } from '@/lib/league-chain'
 
@@ -22,19 +21,6 @@ async function revalidateRosterScope(tournamentId: string, rootId: string) {
   if (root?.slug && root.slug !== self?.slug) revalidatePath(`/${root.slug}`, 'layout')
 }
 
-async function requireAdmin(tournamentId: string) {
-  const user = await getUser()
-  if (!user) redirect('/auth/login')
-
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) throw new Error('Forbidden')
-  }
-  return user
-}
 
 export async function getOrCreateRoster(tournamentId: string) {
   const rootId = await getRootTournamentId(tournamentId)
@@ -125,50 +111,39 @@ async function getAllChainIds(rootId: string): Promise<string[]> {
   return ids
 }
 
-export async function addRosterMember(tournamentId: string, email: string) {
-  await requireAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
-
-  const user = await prisma.user.findUnique({ where: { email }, select: { id: true } })
-  if (!user) throw new Error(`No user found with email ${email}`)
-
-  const roster = await prisma.leagueRoster.findUnique({ where: { rootTournamentId: rootId } })
-  if (!roster) throw new Error('Roster not found')
-
-  await prisma.leagueRosterMember.upsert({
-    where: { rosterId_userId: { rosterId: roster.id, userId: user.id } },
-    create: { rosterId: roster.id, userId: user.id },
-    update: { status: 'ACTIVE' },
-  })
-
-  await revalidateRosterScope(tournamentId, rootId)
-}
-
 export async function updateRosterMemberStatus(
   tournamentId: string,
   memberId: string,
   status: 'ACTIVE' | 'INACTIVE'
 ) {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
+  const rootId = await getRootTournamentId(tournamentId)
 
-  await prisma.leagueRosterMember.update({
-    where: { id: memberId },
+  // Scope the write to this league's roster — being an admin of one league
+  // must not let a caller pass a memberId belonging to another league.
+  const { count } = await prisma.leagueRosterMember.updateMany({
+    where: { id: memberId, roster: { rootTournamentId: rootId } },
     data: { status },
   })
+  if (count === 0) throw new Error('Roster member not found')
 
-  await revalidateRosterScope(tournamentId, await getRootTournamentId(tournamentId))
+  await revalidateRosterScope(tournamentId, rootId)
 }
 
 export async function removeRosterMember(tournamentId: string, memberId: string) {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
+  const rootId = await getRootTournamentId(tournamentId)
 
-  await prisma.leagueRosterMember.delete({ where: { id: memberId } })
+  const { count } = await prisma.leagueRosterMember.deleteMany({
+    where: { id: memberId, roster: { rootTournamentId: rootId } },
+  })
+  if (count === 0) throw new Error('Roster member not found')
 
-  await revalidateRosterScope(tournamentId, await getRootTournamentId(tournamentId))
+  await revalidateRosterScope(tournamentId, rootId)
 }
 
 export async function toggleAutoAddNew(tournamentId: string, autoAddNew: boolean) {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   await prisma.leagueRoster.update({
@@ -190,7 +165,7 @@ export async function updateSeasonConfig(
     seasonTiebreakers?: string[] | null
   },
 ) {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   await prisma.tournament.update({
@@ -250,7 +225,7 @@ export async function importRosterCsv(
   tournamentId: string,
   rows: CsvRosterRow[],
 ): Promise<CsvImportResult> {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   const result: CsvImportResult = {
@@ -325,52 +300,95 @@ export async function importRosterCsv(
 
   const expiresAt = new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
 
+  // Pre-generate ids for the users we're about to create so the whole import
+  // can run as a handful of batched statements. The old shape was up to 3
+  // sequential awaits per row inside the transaction, which risks the tx
+  // timeout on a large CSV.
+  const newUsers: { id: string; email: string; name?: string }[] = []
+  for (const row of cleanRows) {
+    if (!row.email || userIdByEmail.has(row.email)) continue
+    const id = crypto.randomUUID()
+    newUsers.push({ id, email: row.email, name: row.name })
+    userIdByEmail.set(row.email, id)
+  }
+
+  // Rows that resolve to a user, deduped — a CSV can list the same email twice.
+  const resolvedRows: { userId: string; row: (typeof cleanRows)[number] }[] = []
+  const seenUserIds = new Set<string>()
+  for (const row of cleanRows) {
+    const userId = row.email ? userIdByEmail.get(row.email) : undefined
+    // Phone-only rows can't create a User without an email — skip the
+    // PlayerProfile + LeagueRosterMember portion and just record the invite.
+    if (!userId || seenUserIds.has(userId)) continue
+    seenUserIds.add(userId)
+    resolvedRows.push({ userId, row })
+  }
+
+  const existingProfiles = resolvedRows.length > 0
+    ? await prisma.playerProfile.findMany({
+        where: { userId: { in: resolvedRows.map((r) => r.userId) } },
+        select: { userId: true },
+      })
+    : []
+  const hasProfile = new Set(existingProfiles.map((p) => p.userId))
+
+  // Partition roster work before opening the transaction.
+  const newMembers: { rosterId: string; userId: string }[] = []
+  const reactivateUserIds: string[] = []
+  for (const { userId, row } of resolvedRows) {
+    const existingStatus = memberStatusByUserId.get(userId)
+    if (existingStatus === undefined) {
+      newMembers.push({ rosterId: roster.id, userId })
+      result.added += 1
+    } else if (existingStatus === 'INACTIVE') {
+      reactivateUserIds.push(userId)
+      result.reactivated += 1
+    } else {
+      result.skipped += 1
+      if (row.email) result.duplicateEmails.push(row.email)
+    }
+  }
+
   await prisma.$transaction(async (tx) => {
-    // 1. Upsert users by email (no auth credentials — they verify via magic link).
-    for (const row of cleanRows) {
-      let userId: string | undefined = row.email ? userIdByEmail.get(row.email) : undefined
-      if (!userId && row.email) {
-        const created = await tx.user.create({
-          data: { email: row.email, name: row.name },
-          select: { id: true },
-        })
-        userId = created.id
-        userIdByEmail.set(row.email, userId)
-      }
-      // Phone-only rows can't create a User without an email — skip the
-      // PlayerProfile + LeagueRosterMember portion and just record the invite.
-      if (!userId) continue
+    // 1. Create users (no auth credentials — they verify via magic link).
+    if (newUsers.length > 0) {
+      await tx.user.createMany({
+        data: newUsers.map((u) => ({ id: u.id, email: u.email, name: u.name })),
+      })
+    }
 
-      // 2. PlayerProfile upsert with handicap if provided.
-      if (row.handicap !== null) {
-        await tx.playerProfile.upsert({
-          where: { userId },
-          create: { userId, displayName: row.name, handicap: row.handicap },
-          update: { handicap: row.handicap },
-        })
-      } else {
-        await tx.playerProfile.upsert({
-          where: { userId },
-          create: { userId, displayName: row.name },
-          update: {},
-        })
-      }
+    // 2. PlayerProfile: createMany for the misses, per-row update for the hits.
+    //    There's no bulk upsert, and handicap differs per row, so updates stay
+    //    individual — but only for users who already had a profile AND a
+    //    handicap in the CSV, which is the rare path.
+    const profileCreates = resolvedRows.filter(({ userId }) => !hasProfile.has(userId))
+    if (profileCreates.length > 0) {
+      await tx.playerProfile.createMany({
+        data: profileCreates.map(({ userId, row }) => ({
+          userId,
+          displayName: row.name,
+          ...(row.handicap !== null && row.handicap !== undefined ? { handicap: row.handicap } : {}),
+        })),
+      })
+    }
+    const profileUpdates = resolvedRows.flatMap(({ userId, row }) =>
+      hasProfile.has(userId) && row.handicap !== null && row.handicap !== undefined
+        ? [{ userId, handicap: row.handicap }]
+        : [],
+    )
+    for (const { userId, handicap } of profileUpdates) {
+      await tx.playerProfile.update({ where: { userId }, data: { handicap } })
+    }
 
-      // 3. LeagueRosterMember.
-      const existingStatus = memberStatusByUserId.get(userId)
-      if (existingStatus === undefined) {
-        await tx.leagueRosterMember.create({ data: { rosterId: roster.id, userId } })
-        result.added += 1
-      } else if (existingStatus === 'INACTIVE') {
-        await tx.leagueRosterMember.updateMany({
-          where: { rosterId: roster.id, userId },
-          data: { status: 'ACTIVE' },
-        })
-        result.reactivated += 1
-      } else {
-        result.skipped += 1
-        if (row.email) result.duplicateEmails.push(row.email)
-      }
+    // 3. LeagueRosterMember.
+    if (newMembers.length > 0) {
+      await tx.leagueRosterMember.createMany({ data: newMembers })
+    }
+    if (reactivateUserIds.length > 0) {
+      await tx.leagueRosterMember.updateMany({
+        where: { rosterId: roster.id, userId: { in: reactivateUserIds } },
+        data: { status: 'ACTIVE' },
+      })
     }
 
     // 4. Create new Invitations (email and/or phone) at the root tournament.
@@ -425,7 +443,7 @@ export async function importRosterCsv(
         tournamentName: root.name,
         slug: root.slug,
         invitations: newInvitations,
-      }).catch(() => {})
+      }).catch((err) => console.error('[importRosterCsv] invite send failed:', err))
     }
   }
 

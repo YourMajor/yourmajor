@@ -1,35 +1,11 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { requireTournamentAdmin } from '@/lib/auth'
+import { getRootTournamentId } from '@/lib/league-chain'
 
-async function getRootTournamentId(tournamentId: string): Promise<string> {
-  let currentId = tournamentId
-  for (let i = 0; i < 100; i++) {
-    const t = await prisma.tournament.findUnique({
-      where: { id: currentId },
-      select: { id: true, parentTournamentId: true },
-    })
-    if (!t || !t.parentTournamentId) return currentId
-    currentId = t.parentTournamentId
-  }
-  return currentId
-}
 
-async function requireAdmin(tournamentId: string) {
-  const user = await getUser()
-  if (!user) redirect('/auth/login')
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) throw new Error('Forbidden')
-  }
-  return user
-}
 
 export interface AdjustmentRow {
   id: string
@@ -43,7 +19,7 @@ export interface AdjustmentRow {
 }
 
 export async function listSeasonAdjustments(tournamentId: string): Promise<AdjustmentRow[]> {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   const rows = await prisma.seasonAdjustment.findMany({
@@ -85,7 +61,7 @@ export async function addSeasonAdjustment(
   tournamentId: string,
   payload: { userId: string; delta: number; reason: string },
 ) {
-  const user = await requireAdmin(tournamentId)
+  const user = await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   if (!Number.isFinite(payload.delta) || payload.delta === 0) {
@@ -123,7 +99,7 @@ export async function addSeasonAdjustment(
 }
 
 export async function deleteSeasonAdjustment(tournamentId: string, adjustmentId: string) {
-  await requireAdmin(tournamentId)
+  await requireTournamentAdmin(tournamentId)
   const rootId = await getRootTournamentId(tournamentId)
 
   // Confirm the adjustment belongs to this root before deleting.
