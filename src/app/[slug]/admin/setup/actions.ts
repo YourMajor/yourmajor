@@ -150,7 +150,8 @@ export async function updateTournament(
   let logoUrl = currentLogo
   let headerImageUrl = currentHeaderImage
 
-  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { getSupabaseAdmin } = await import('@/lib/supabase')
+  const supabaseAdmin = getSupabaseAdmin()
 
   // Use a content-hashed filename so each unique upload gets a fresh URL and
   // identical reuploads share an immutable cache entry. Avoids `?v=Date.now()`

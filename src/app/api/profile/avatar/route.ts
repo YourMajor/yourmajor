@@ -49,7 +49,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Image must be under 5 MB' }, { status: 400 })
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { getSupabaseAdmin } = await import('@/lib/supabase')
+  const supabaseAdmin = getSupabaseAdmin()
 
   try {
     await ensureBucket(supabaseAdmin)

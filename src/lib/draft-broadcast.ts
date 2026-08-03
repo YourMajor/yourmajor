@@ -1,4 +1,4 @@
-import { supabaseAdmin } from './supabase'
+import { getSupabaseAdmin } from './supabase'
 
 const BROADCAST_TIMEOUT_MS = 1500
 
@@ -11,6 +11,7 @@ const BROADCAST_TIMEOUT_MS = 1500
  */
 export async function broadcastDraftPick(draftId: string): Promise<void> {
   try {
+    const supabaseAdmin = getSupabaseAdmin()
     await new Promise<void>((resolve) => {
       const channel = supabaseAdmin.channel(`draft-${draftId}`)
       let settled = false

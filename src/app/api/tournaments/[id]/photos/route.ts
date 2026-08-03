@@ -112,7 +112,8 @@ export async function POST(
     )
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { getSupabaseAdmin } = await import('@/lib/supabase')
+  const supabaseAdmin = getSupabaseAdmin()
   // Derive the storage extension from the validated MIME type, not the
   // user-supplied filename — otherwise an attacker can upload an image with
   // contentType=image/jpeg but filename=evil.html and end up with an .html

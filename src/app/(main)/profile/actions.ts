@@ -49,7 +49,8 @@ export async function updateProfile(
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) return { error: 'Session expired. Please sign in again.' }
 
-      const { supabaseAdmin } = await import('@/lib/supabase')
+      const { getSupabaseAdmin } = await import('@/lib/supabase')
+      const supabaseAdmin = getSupabaseAdmin()
       const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
         authUser.id,
         { email }

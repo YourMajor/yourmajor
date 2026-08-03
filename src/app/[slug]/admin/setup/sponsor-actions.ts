@@ -38,7 +38,8 @@ async function uploadImage(
   const hash = createHash('sha256').update(buffer).digest('hex').slice(0, 12)
   const path = `${pathPrefix}-${hash}.${ext}`
 
-  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { getSupabaseAdmin } = await import('@/lib/supabase')
+  const supabaseAdmin = getSupabaseAdmin()
   const { error } = await supabaseAdmin.storage
     .from('logos')
     .upload(path, buffer, {

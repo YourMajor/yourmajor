@@ -15,7 +15,8 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { supabaseAdmin } = await import('@/lib/supabase')
+  const { getSupabaseAdmin } = await import('@/lib/supabase')
+  const supabaseAdmin = getSupabaseAdmin()
   const photo = await prisma.tournamentPhoto.findUnique({ where: { id: photoId } })
   if (!photo || photo.tournamentId !== id) {
     return NextResponse.json({ error: 'Photo not found' }, { status: 404 })
