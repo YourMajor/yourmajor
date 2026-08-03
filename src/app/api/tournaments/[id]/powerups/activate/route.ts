@@ -182,9 +182,12 @@ export async function POST(
     }
   }
 
-  // Update the powerup
-  const updated = await prisma.playerPowerup.update({
-    where: { id: playerPowerupId },
+  // Claim the card with a conditional write. The status pre-check above is
+  // only a fast path — two concurrent POSTs both pass it, so the AVAILABLE
+  // predicate has to live in the UPDATE itself or both would fire
+  // notifications and clobber scoreModifier. Same pattern as draft/pick.
+  const claimed = await prisma.playerPowerup.updateMany({
+    where: { id: playerPowerupId, status: 'AVAILABLE' },
     data: {
       status,
       usedAt: new Date(),
@@ -195,6 +198,14 @@ export async function POST(
       scoreModifier,
       metadata: structuredMetadata as Prisma.InputJsonValue | undefined,
     },
+  })
+  if (claimed.count === 0) {
+    return NextResponse.json({ error: 'Powerup already used' }, { status: 409 })
+  }
+
+  // updateMany can't `include`, so re-read for the relation the client needs.
+  const updated = await prisma.playerPowerup.findUnique({
+    where: { id: playerPowerupId },
     include: {
       powerup: { select: { id: true, slug: true, name: true, type: true, description: true, effect: true } },
     },
