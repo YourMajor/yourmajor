@@ -34,6 +34,30 @@ git commit -m "feat(schema): what you did"
 
 The build script (`prisma migrate deploy && prisma generate && next build`) applies pending migrations on every Vercel build — so as long as the migration is committed, prod gets it on the next merge to master.
 
+#### Never hand-write a `_prisma_migrations` footer
+
+A migration's `.sql` must contain **only** the schema change. Do not append a
+self-registering footer like this:
+
+```sql
+-- WRONG. Never do this.
+INSERT INTO _prisma_migrations (id, checksum, ..., migration_name, ...)
+VALUES (gen_random_uuid()::text, 'manual-resolve', ...) ON CONFLICT DO NOTHING;
+```
+
+`migrate deploy` inserts its own bookkeeping row *before* it runs your SQL, and
+the primary key is a random `id` — so `ON CONFLICT DO NOTHING` never fires and
+you get a **second row for the same migration** carrying a fake checksum.
+
+This is not theoretical. Measured against dev on 2026-08-03: 25 migration
+directories on disk, **48 rows** in `_prisma_migrations` — 23 surplus.
+`add_score_conceded` and `add_team_member_captain` had six rows each. Because
+Prisma matches on migration *name*, `migrate status` still reports "up to date",
+so the corruption accumulates silently.
+
+The footer is a leftover reflex from the pre-2026-04-25 manual-SQL era. If
+`migrate dev` generated the file, it is already correct — do not add to it.
+
 ### 2. The build always runs `prisma migrate deploy`
 
 `package.json`:
@@ -65,11 +89,27 @@ In Vercel dashboard → Project Settings → Environment Variables:
 
 **If Preview scope ever points at prod DATABASE_URL, every PR push migrates prod.** Verify scoping is correct before adding new env vars.
 
+Preview vars must be scoped to **all Preview branches**, never pinned to one
+git branch. Eleven of them were pinned to `develop`; when that branch was
+retired on 2026-04-25 every PR preview silently lost its Supabase config and
+failed with `Error: supabaseUrl is required`. Fixed 2026-08-03.
+
+Two gotchas when auditing these:
+
+- Vars marked **Sensitive** are write-only. `vercel env pull` returns them as
+  empty strings forever — that is expected, not a sign they are unset. Read
+  dev values from `.env.local` instead.
+- `vercel env add NAME preview --value X --yes` is broken in CLI v51.8.0: it
+  prints that exact command as the way to target all Preview branches, then
+  rejects it with `git_branch_required`. Use the REST API —
+  `POST /v10/projects/{projectId}/env?teamId={teamId}&upsert=true` with
+  `target:['preview']` and `gitBranch` omitted.
+
 ### 4. Branch model
 
 - **`master`** — production. Protected: merges only via PR.
 - **`feat/*`, `fix/*`** — short-lived feature branches off master. Vercel auto-creates preview URLs.
-- **`develop`** — deprecated as of 2026-04-25. We dropped the two-branch dance because it added churn without buying staging value (preview URLs do that already).
+- **`develop`** — deleted 2026-08-03, deprecated since 2026-04-25. We dropped the two-branch dance because it added churn without buying staging value (preview URLs do that already). CI no longer triggers on it and no env var is scoped to it.
 
 ## Recovery: if migrations get out of sync again
 

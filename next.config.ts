@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Pin the workspace root. A stray package-lock.json in the user's home dir made
+  // Turbopack infer C:\Users\Beast as the root and then fail to resolve next itself.
+  turbopack: {
+    root: __dirname,
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '20mb',

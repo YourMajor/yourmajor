@@ -30,25 +30,3 @@ CREATE INDEX IF NOT EXISTS "PlayerPowerup_targetPlayerId_status_idx"
 
 CREATE INDEX IF NOT EXISTS "Purchase_userId_type_status_idx"
   ON "Purchase"("userId", "type", "status");
-
--- ─── 2. Footer: record the migration in _prisma_migrations ───────────────────
-INSERT INTO _prisma_migrations
-  (id, checksum, finished_at, migration_name, logs, rolled_back_at, started_at, applied_steps_count)
-VALUES (
-  gen_random_uuid()::text,
-  'manual-resolve',
-  now(),
-  '20260803000000_add_missing_indexes',
-  NULL,
-  NULL,
-  now(),
-  1
-)
-ON CONFLICT DO NOTHING;
-
-UPDATE _prisma_migrations
-SET finished_at = COALESCE(finished_at, now()),
-    rolled_back_at = NULL,
-    logs = NULL,
-    applied_steps_count = GREATEST(applied_steps_count, 1)
-WHERE migration_name = '20260803000000_add_missing_indexes';
