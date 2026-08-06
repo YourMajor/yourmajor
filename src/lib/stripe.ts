@@ -354,10 +354,12 @@ export async function consumeProCredit(
 
   if (!credit) return false
 
-  await db.purchase.update({
-    where: { id: credit.id },
+  // Guard on tournamentId still being null so two concurrent calls can't both
+  // claim the same credit row (findFirst → update is a TOCTOU race).
+  const result = await db.purchase.updateMany({
+    where: { id: credit.id, tournamentId: null },
     data: { tournamentId },
   })
 
-  return true
+  return result.count > 0
 }
