@@ -1,24 +1,22 @@
 import Link from 'next/link'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
-import { buttonVariants } from '@/components/ui/button-variants'
 import { TIER_FEATURES, TIER_NEGATIVES, TIER_PRICES, COMPARISON_FEATURES } from '@/lib/tiers'
 import { Check, X, Zap, Trophy, Crown, Users } from 'lucide-react'
 import { PricingActions } from './PricingActions'
 
 export const metadata = {
-  title: 'Pricing — YourMajor',
+  title: 'Pricing - YourMajor',
   description: 'Simple pricing for casual golf tournaments. Free for up to 16 players.',
 }
 
 export default function PricingPage() {
   return (
-    <main className="landing-section-dark">
+    <main className="marketing overflow-x-clip">
       {/* Hero header */}
-      <section className="landing-hero landing-hero-pattern relative overflow-hidden pt-24 sm:pt-32 lg:pt-40 pb-12 sm:pb-16 lg:pb-20">
-        <div className="relative z-10 max-w-3xl lg:max-w-4xl mx-auto px-4 sm:px-6 text-center">
-          <p className="text-[10px] sm:text-xs uppercase tracking-[0.2em] font-semibold text-accent mb-3 sm:mb-4 hero-stagger-1">Pricing</p>
-          <h1 className="font-heading text-2xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold text-white tracking-tight leading-[1.08] hero-stagger-2">
+      <section className="relative mk-section pt-32">
+        <div className="relative z-10 mk-container max-w-3xl lg:max-w-4xl text-center">
+          <h1>
             Simple pricing for every tournament
           </h1>
           <p className="mt-3 sm:mt-4 text-sm sm:text-base lg:text-lg text-white/60 max-w-xl lg:max-w-2xl mx-auto hero-stagger-3">
@@ -26,7 +24,7 @@ export default function PricingPage() {
           </p>
         </div>
         <div className="absolute bottom-0 left-0 right-0 h-20 pointer-events-none"
-             style={{ background: 'linear-gradient(to bottom, transparent, oklch(0.20 0.06 255))' }} />
+             style={{ background: 'linear-gradient(to bottom, transparent, var(--mk-green-deep))' }} />
       </section>
 
       <div className="max-w-5xl lg:max-w-6xl xl:max-w-7xl mx-auto px-4 sm:px-6 py-10 lg:py-14 space-y-10 lg:space-y-14">
@@ -52,10 +50,7 @@ export default function PricingPage() {
             </div>
           </CardHeader>
           <CardContent className="flex flex-col flex-1 space-y-3">
-            <Link
-              href="/dashboard"
-              className={buttonVariants({ variant: 'outline', size: 'lg' }) + ' w-full'}
-            >
+            <Link href="/dashboard" className="mk-btn mk-btn-secondary-plate w-full">
               Get Started Free
             </Link>
             <ul className="space-y-1.5">
@@ -255,11 +250,11 @@ export default function PricingPage() {
         <div className="space-y-3">
           <FaqItem
             q="Can I try all features before paying?"
-            a="The free tier is fully functional for groups up to 16 players. Create a tournament right now — no credit card required."
+            a="The free tier is fully functional for groups up to 16 players. Create a tournament right now - no credit card required."
           />
           <FaqItem
             q="What happens if more than 16 people want to join my free tournament?"
-            a="Registration will pause at 16 players. You can upgrade to Pro ($29) at any time to unlock up to 72 players — no data is lost."
+            a="Registration will pause at 16 players. You can upgrade to Pro ($29) at any time to unlock up to 72 players - no data is lost."
           />
           <FaqItem
             q="Do my players have to pay anything?"
@@ -271,11 +266,11 @@ export default function PricingPage() {
           />
           <FaqItem
             q="What is the Club subscription?"
-            a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page — no long-term commitment."
+            a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page - no long-term commitment."
           />
           <FaqItem
             q="What does the Tour annual pass include?"
-            a="The $1,999 Tour pass unlocks everything for 365 days from purchase — up to 144 players per event, unlimited tournaments, all Club features (sponsor placements, season standings, season-over-season tracking, recurring rosters), 5 admin seats across your account, a custom subdomain (yourcrew.yourmajor.app), and priority email support. No per-tournament fees."
+            a="The $1,999 Tour pass unlocks everything for 365 days from purchase - up to 144 players per event, unlimited tournaments, all Club features (sponsor placements, season standings, season-over-season tracking, recurring rosters), 5 admin seats across your account, a custom subdomain (yourcrew.yourmajor.app), and priority email support. No per-tournament fees."
           />
           <FaqItem
             q="What payment methods do you accept?"

@@ -100,7 +100,7 @@ export default async function ForgotPasswordPage({
               Forgot your password?
             </h1>
             <p className="text-sm text-white/60">
-              Enter your email and we’ll send you a reset link — or a magic link to sign in
+              Enter your email and we’ll send you a reset link - or a magic link to sign in
               without a password.
             </p>
           </div>

@@ -110,6 +110,210 @@
   --nav-bottom-height: 64px;
 }
 
+/* ══════════════════════════════════════════════════════════════
+   MARKETING SURFACE — scoped visual world
+   ══════════════════════════════════════════════════════════════
+   Applies to the public routes only: /, /features, /pricing, /auth/*.
+   Everything here is scoped to `.marketing`; :root above is the
+   application's system and must not be touched from this block.
+   That containment is deliberate — it is what lets the public site
+   change completely while the logged-in app stays byte-identical.
+
+   See DESIGN.md for the committed world these tokens express.        */
+
+.marketing {
+  /* Ground — green owns the page at page scale */
+  --mk-green-deep:    oklch(0.21 0.045 155);
+  --mk-green-ground:  oklch(0.27 0.055 155);
+  --mk-green-raised:  oklch(0.32 0.060 155);
+
+  /* The two permitted brights */
+  --mk-gold:          oklch(0.72 0.11 78);
+  --mk-bone:          oklch(0.95 0.012 85);
+  --mk-bone-bright:   oklch(0.99 0.008 85);
+  --mk-ink:           oklch(0.22 0.02 150);
+
+  /* Functional score signals — red means under par, never error */
+  --mk-under-par:     oklch(0.50 0.20 25);
+  --mk-over-par:      oklch(0.45 0.02 150);
+
+  /* Text ladder on the green ground */
+  --mk-text:          oklch(0.98 0.005 85);
+  --mk-text-muted:    oklch(0.88 0.012 120);
+  --mk-text-subtle:   oklch(0.76 0.014 130);
+
+  /* Hairlines */
+  --mk-rule-gold:     oklch(0.72 0.11 78 / 0.38);
+  --mk-rule-light:    oklch(0.95 0.012 85 / 0.14);
+  --mk-rule-ink:      oklch(0.22 0.02 150 / 0.08);
+
+  /* Squared, formal */
+  --mk-radius-sm: 2px;
+  --mk-radius-md: 4px;
+  --mk-radius-lg: 6px;
+
+  /* Rhythm */
+  --mk-section: clamp(5rem, 10vw, 9rem);
+  --mk-container: 80rem;
+
+  /* Green-tinted elevation — never a black shadow on green */
+  --mk-shadow-plate: 0 24px 60px oklch(0.15 0.04 155 / 0.45);
+  --mk-shadow-plate-hover: 0 32px 80px oklch(0.15 0.04 155 / 0.55);
+
+  background-color: var(--mk-green-ground);
+  color: var(--mk-text);
+
+  /* ── Semantic remap ──────────────────────────────────────────
+     Rebinding the app's semantic tokens inside this scope is what
+     makes containment work: every shadcn/Tailwind utility
+     (bg-primary, text-muted-foreground, border-border) resolves to
+     the marketing world here, and to the application's navy system
+     everywhere else. :root is never touched.                       */
+  --background:           var(--mk-green-ground);
+  --foreground:           var(--mk-text);
+  --card:                 var(--mk-bone);
+  --card-foreground:      var(--mk-ink);
+  --popover:              var(--mk-bone);
+  --popover-foreground:   var(--mk-ink);
+  --primary:              var(--mk-bone);
+  --primary-foreground:   var(--mk-ink);
+  --secondary:            var(--mk-green-raised);
+  --secondary-foreground: var(--mk-text);
+  --muted:                oklch(0.95 0.012 85 / 0.10);
+  --muted-foreground:     var(--mk-text-subtle);
+  --accent:               var(--mk-gold);
+  --accent-foreground:    var(--mk-ink);
+  --border:               var(--mk-rule-light);
+  --input:                var(--mk-rule-light);
+  --ring:                 var(--mk-gold);
+  --radius:               var(--mk-radius-md);
+}
+
+/* Display serif is ceremonial and rare: it opens sections, and never
+   sets body copy, labels, buttons or UI text. */
+.marketing h1,
+.marketing h2,
+.marketing h3 {
+  font-family: var(--font-display), Georgia, serif;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+
+/* Capped at 4rem so the hero headline holds two lines in a half-width
+   column. A three-line hero headline is a font-scale error, not a copy one. */
+.marketing h1 { font-size: clamp(2.5rem, 4.5vw, 4rem); line-height: 1.05; }
+.marketing h2 { font-size: clamp(1.75rem, 3.5vw, 3rem); line-height: 1.15; }
+
+/* Every number a visitor might compare vertically. */
+.marketing .mk-data {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.marketing .mk-container {
+  max-width: var(--mk-container);
+  margin-inline: auto;
+  padding-inline: 1.5rem;
+}
+
+.marketing .mk-section { padding-block: var(--mk-section); }
+
+/* The system's primary container. Carries information meant to be read
+   closely; decorative content does not get a plate. */
+.marketing .mk-plate {
+  background-color: var(--mk-bone);
+  color: var(--mk-ink);
+  border: 1px solid var(--mk-rule-ink);
+  border-radius: var(--mk-radius-lg);
+  box-shadow: var(--mk-shadow-plate);
+}
+
+.marketing .mk-rule {
+  border: 0;
+  height: 1px;
+  background: var(--mk-rule-gold);
+}
+
+/* Buttons. Label stays on one line; the primary is the highest-contrast
+   object on the page, because it is the one thing a visitor must find. */
+.marketing .mk-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  height: 3rem;
+  padding-inline: 1.75rem;
+  border-radius: var(--mk-radius-md);
+  font-size: 1rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: background-color 120ms ease-out, border-color 120ms ease-out,
+              color 120ms ease-out, transform 120ms ease-out;
+}
+.marketing .mk-btn:focus-visible {
+  outline: 2px solid var(--mk-gold);
+  outline-offset: 3px;
+}
+.marketing .mk-btn:active { transform: translateY(1px); }
+
+/* `white-space: nowrap` means the button cannot shrink below its label, so on a
+   narrow phone it sets the width of its whole grid column and the heading and
+   copy beside it run off the edge (overflow-x-clip hides the scrollbar, which
+   makes that worse, not better). Below 380px the label is allowed to wrap
+   instead. DESIGN.md's one-line rule holds everywhere it physically can; the
+   type ramp is not bent to save it. */
+@media (max-width: 380px) {
+  .marketing .mk-btn {
+    width: 100%;
+    white-space: normal;
+    height: auto;
+    min-height: 3rem;
+    padding: 0.75rem 1rem;
+  }
+}
+
+.marketing .mk-btn-primary {
+  background-color: var(--mk-bone);
+  color: var(--mk-ink);
+  border: 1px solid var(--mk-bone);
+}
+.marketing .mk-btn-primary:hover {
+  background-color: var(--mk-bone-bright);
+  border-color: var(--mk-bone-bright);
+}
+
+.marketing .mk-btn-secondary {
+  background-color: transparent;
+  color: var(--mk-text);
+  border: 1px solid var(--mk-rule-light);
+}
+.marketing .mk-btn-secondary:hover {
+  background-color: oklch(0.95 0.012 85 / 0.08);
+  border-color: var(--mk-rule-gold);
+}
+
+/* On a bone plate the pair has to invert. Bone on bone is not a button, and
+   the plate is where the pricing tiers and any other in-plate action live. */
+.marketing .mk-btn-primary-plate {
+  background-color: var(--mk-green-deep);
+  color: var(--mk-bone);
+  border: 1px solid var(--mk-green-deep);
+}
+.marketing .mk-btn-primary-plate:hover {
+  background-color: var(--mk-green-ground);
+  border-color: var(--mk-green-ground);
+}
+
+.marketing .mk-btn-secondary-plate {
+  background-color: transparent;
+  color: var(--mk-ink);
+  border: 1px solid var(--mk-rule-ink);
+}
+.marketing .mk-btn-secondary-plate:hover {
+  background-color: oklch(0.22 0.02 150 / 0.05);
+  border-color: var(--mk-gold);
+}
 
 
 @layer base {
@@ -194,59 +398,6 @@
   text-shadow:
     0 1px 0 color-mix(in oklch, var(--color-primary, #1A3260), white 40%),
     0 -1px 0 color-mix(in oklch, var(--color-primary, #1A3260), black 30%);
-}
-
-/* ── Landing page hero ──────────────────────────────── */
-.landing-hero {
-  background-color: oklch(0.22 0.06 255);
-  background-image: linear-gradient(
-    175deg,
-    oklch(0.22 0.08 255) 0%,
-    oklch(0.26 0.08 255) 40%,
-    oklch(0.24 0.07 250) 70%,
-    oklch(0.20 0.06 255) 100%
-  );
-}
-
-.landing-hero-pattern {
-  background-image:
-    radial-gradient(circle at 20% 80%, oklch(0.72 0.11 78 / 0.10) 0%, transparent 50%),
-    radial-gradient(circle at 80% 20%, oklch(0.72 0.11 78 / 0.08) 0%, transparent 40%),
-    linear-gradient(
-      175deg,
-      oklch(0.22 0.08 255) 0%,
-      oklch(0.26 0.08 255) 40%,
-      oklch(0.24 0.07 250) 70%,
-      oklch(0.20 0.06 255) 100%
-    );
-}
-
-/* ── Tournament card placeholder images ─────────────── */
-.tournament-card-image {
-  background: linear-gradient(
-    135deg,
-    oklch(0.35 0.08 255),
-    oklch(0.28 0.06 250),
-    oklch(0.32 0.05 245)
-  );
-}
-
-.tournament-card-image-alt {
-  background: linear-gradient(
-    135deg,
-    oklch(0.30 0.07 258),
-    oklch(0.25 0.06 252),
-    oklch(0.35 0.06 248)
-  );
-}
-
-.tournament-card-image-gold {
-  background: linear-gradient(
-    135deg,
-    oklch(0.50 0.08 90),
-    oklch(0.42 0.09 85),
-    oklch(0.38 0.06 80)
-  );
 }
 
 /* ── Footer ─────────────────────────────────────────── */
@@ -357,13 +508,6 @@
 .hero-stagger-4 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
 .hero-stagger-5 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.1s both; }
 
-/* ── Scroll indicator bounce ────────────────────────── */
-@keyframes scrollBounce {
-  0%, 100% { transform: translateY(0); opacity: 0.6; }
-  50%      { transform: translateY(8px); opacity: 1; }
-}
-.animate-scroll-hint { animation: scrollBounce 2s ease-in-out infinite; }
-
 /* ── Hide scrollbar but keep scrolling ──────────────── */
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -395,12 +539,6 @@
   .animate-sheet-down,
   .animate-backdrop-in,
   .animate-turn-pulse { animation: none !important; }
-}
-
-/* ── Dark landing page sections ─────────────────────── */
-.landing-section-dark {
-  background-color: oklch(0.20 0.06 255);
-  color: white;
 }
 
 /* Native select dropdown with custom chevron */

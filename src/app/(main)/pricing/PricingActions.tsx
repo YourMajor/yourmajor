@@ -2,8 +2,6 @@
 
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { buttonVariants } from '@/components/ui/button-variants'
-import { cn } from '@/lib/utils'
 
 export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
   const router = useRouter()
@@ -34,17 +32,16 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
     LEAGUE: 'Get Annual Pass',
   }
 
+  // One button style across the tiers. The old per-tier fills (gold for Pro,
+  // emerald for Club, crimson for Tour) came from the application palette and
+  // broke two rules of the marketing world at once: gold is a rule and never a
+  // fill, and there is no second or third brand hue. The tier is told by the
+  // card, not by the button.
   return (
     <button
       onClick={handleCheckout}
       disabled={loading}
-      className={cn(
-        buttonVariants({ size: 'lg' }),
-        'w-full',
-        tier === 'PRO' && 'bg-accent text-accent-foreground hover:bg-accent/90',
-        tier === 'CLUB' && 'bg-club text-white hover:bg-club/90',
-        tier === 'LEAGUE' && 'bg-tour text-white hover:bg-tour/90',
-      )}
+      className="mk-btn mk-btn-primary-plate w-full"
     >
       {loading ? 'Redirecting...' : labels[tier]}
     </button>
