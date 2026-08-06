@@ -749,6 +749,8 @@ model TournamentPhoto {
 
   tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([tournamentId])
 }
 
 model ChatBan {
