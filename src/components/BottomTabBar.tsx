@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { LayoutDashboard, Trophy, User, MoreHorizontal, X, LogOut, CreditCard, Tag, Sparkles } from 'lucide-react'
+import { isMarketingRoute } from '@/lib/marketing-routes'
 
 const TABS = [
   { href: '/dashboard', label: 'Home', icon: LayoutDashboard },
@@ -39,6 +40,11 @@ export function BottomTabBar() {
   }, [moreOpen, closeMore])
 
   if (!mounted) return null
+
+  // Every tab here goes somewhere that requires an account. On the marketing
+  // surface the visitor has not signed in yet, so the bar is four links to a
+  // login redirect, overlapping the page it is sitting on.
+  if (isMarketingRoute(pathname)) return null
 
   return createPortal(
     <>

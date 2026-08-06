@@ -2,13 +2,16 @@
 
 import { useEffect, useState, type ReactNode } from 'react'
 import { usePathname } from 'next/navigation'
+import { isMarketingRoute } from '@/lib/marketing-routes'
 
 export function NavShell({ children }: { children: ReactNode }) {
   const [scrolled, setScrolled] = useState(false)
   const pathname = usePathname()
 
-  // Pages with dark backgrounds where nav should float transparent
-  const isDarkPage = pathname === '/' || pathname === '/auth/login' || pathname === '/pricing' || pathname === '/features'
+  // The marketing surface floats the nav transparent over the green ground.
+  // Previously this listed only /auth/login, so /auth/signup rendered the
+  // application's white nav on top of a green page.
+  const isDarkPage = isMarketingRoute(pathname)
 
   useEffect(() => {
     if (!isDarkPage) return
@@ -18,9 +21,12 @@ export function NavShell({ children }: { children: ReactNode }) {
     return () => window.removeEventListener('scroll', onScroll)
   }, [isDarkPage])
 
+  // The dark-page branch is exactly the marketing surface, so it carries the
+  // marketing world: deep green settling in behind a gold hairline, never the
+  // application's white glass. See DESIGN.md.
   const solidClass = 'pt-safe bg-white border-b border-border sticky top-0 z-50'
-  const glassScrolledClass = 'pt-safe sticky top-0 z-50 transition-all duration-300 bg-white/90 backdrop-blur-xl saturate-150 border-b border-black/8 shadow-sm'
-  const glassTransparentClass = 'pt-safe sticky top-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent'
+  const glassScrolledClass = 'marketing pt-safe sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-[var(--mk-green-deep)]/92 border-b border-[var(--mk-rule-gold)]'
+  const glassTransparentClass = 'marketing pt-safe sticky top-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent'
 
   const className = !isDarkPage
     ? solidClass
