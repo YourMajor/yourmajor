@@ -43,6 +43,15 @@ export function computeCurrentTurn(
 }
 
 /**
+ * Drop a player from the draft order (e.g. they left the tournament).
+ * computeCurrentTurn derives everything from draftOrder.length and the picks
+ * counter, so shrinking the array is all that's needed.
+ */
+export function removeFromDraftOrder(draftOrder: string[], tournamentPlayerId: string): string[] {
+  return draftOrder.filter((id) => id !== tournamentPlayerId)
+}
+
+/**
  * Count how many ATTACK cards a player has picked so far.
  */
 export function countPlayerAttacks(

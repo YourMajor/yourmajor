@@ -4,6 +4,7 @@ import {
   countPlayerAttacks,
   canPickPowerup,
   matchesDurationFilter,
+  removeFromDraftOrder,
 } from '@/lib/draft-utils'
 
 // ─── computeCurrentTurn ─────────────────────────────────────────────────────
@@ -112,6 +113,31 @@ describe('computeCurrentTurn', () => {
       expect(computeCurrentTurn(three, 'SNAKE', 4, 2)?.tournamentPlayerId).toBe('b')
       expect(computeCurrentTurn(three, 'SNAKE', 5, 2)?.tournamentPlayerId).toBe('a')
     })
+  })
+})
+
+// ─── removeFromDraftOrder ───────────────────────────────────────────────────
+
+describe('removeFromDraftOrder', () => {
+  const players = ['alice', 'bob', 'charlie', 'dave']
+
+  it('removes the matching id', () => {
+    expect(removeFromDraftOrder(players, 'charlie')).not.toContain('charlie')
+  })
+
+  it('leaves the remaining ids in order', () => {
+    expect(removeFromDraftOrder(players, 'bob')).toEqual(['alice', 'charlie', 'dave'])
+  })
+
+  it('no-ops if the id is not present', () => {
+    expect(removeFromDraftOrder(players, 'eve')).toEqual(players)
+    expect(removeFromDraftOrder([], 'alice')).toEqual([])
+  })
+
+  it('leaves the next turn on a real player after a mid-draft removal', () => {
+    // alice + bob have picked; charlie is up next, then leaves.
+    const after = removeFromDraftOrder(players, 'charlie')
+    expect(computeCurrentTurn(after, 'LINEAR', 2, 2)?.tournamentPlayerId).toBe('dave')
   })
 })
 

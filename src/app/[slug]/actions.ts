@@ -4,6 +4,7 @@ import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
+import { removeFromDraftOrder } from '@/lib/draft-utils'
 
 export async function leaveTournament(slug: string) {
   const user = await getUser()
@@ -69,9 +70,28 @@ export async function leaveTournament(slug: string) {
     })
   } else {
     // Regular players: delete the record entirely (cascades scores, powerups, etc.)
-    await prisma.tournamentPlayer.delete({
-      where: { id: membership.id },
+    // If a draft is running, drop them from draftOrder in the same transaction —
+    // a dangling id there makes computeCurrentTurn point at a row that no longer
+    // exists and every subsequent pick fails on the DraftPick FK.
+    const draft = await prisma.draft.findUnique({
+      where: { tournamentId: tournament.id },
+      select: { id: true, status: true, draftOrder: true },
     })
+    const draftOrder = (draft?.draftOrder as string[] | null) ?? []
+
+    if (draft?.status === 'ACTIVE' && draftOrder.includes(membership.id)) {
+      await prisma.$transaction([
+        prisma.draft.update({
+          where: { id: draft.id },
+          data: { draftOrder: removeFromDraftOrder(draftOrder, membership.id) },
+        }),
+        prisma.tournamentPlayer.delete({ where: { id: membership.id } }),
+      ])
+    } else {
+      await prisma.tournamentPlayer.delete({
+        where: { id: membership.id },
+      })
+    }
   }
 
   // Reset invitation so the user can re-register
