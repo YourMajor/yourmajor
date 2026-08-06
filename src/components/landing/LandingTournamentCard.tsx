@@ -7,18 +7,12 @@ const STATUS_LABEL: Record<string, string> = {
   COMPLETED: 'Completed',
 }
 
-const IMAGE_CLASSES: Record<string, string> = {
-  default: 'tournament-card-image',
-  alt: 'tournament-card-image-alt',
-  gold: 'tournament-card-image-gold',
-}
-
 function formatDateRange(start: string | null, end: string | null) {
   if (!start) return 'Date TBD'
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })
   if (!end) return fmt(start)
-  return `${fmt(start)} \u2013 ${fmt(end)}`
+  return `${fmt(start)} – ${fmt(end)}`
 }
 
 interface LandingTournamentCardProps {
@@ -30,9 +24,13 @@ interface LandingTournamentCardProps {
   startDate: string | null
   endDate: string | null
   playerCount: number
-  imageVariant?: 'default' | 'alt' | 'gold'
 }
 
+/**
+ * A real tournament, on a bone plate. The previous version filled half the card
+ * with a navy gradient and an outsized initial; DESIGN.md is explicit that a
+ * gradient never stands in for a picture, so the card carries information only.
+ */
 export function LandingTournamentCard({
   slug,
   name,
@@ -42,74 +40,65 @@ export function LandingTournamentCard({
   startDate,
   endDate,
   playerCount,
-  imageVariant = 'default',
 }: LandingTournamentCardProps) {
-  return (
-    <div className="relative">
-      <Link
-        href={`/${slug}`}
-        className="block rounded-lg bg-card text-sm text-card-foreground shadow-md hover:shadow-lg transition-shadow overflow-hidden"
-      >
-        {/* Status badge — top left */}
-        <div className="absolute top-0 left-0 z-10">
-          {status === 'ACTIVE' ? (
-            <span className="inline-flex items-center gap-1.5 rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
-              <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
-              Live
-            </span>
-          ) : (
-            <span
-              className={`inline-flex items-center rounded-br-lg rounded-tl-lg px-2.5 py-0.5 text-[11px] font-bold uppercase tracking-wide ${
-                status === 'REGISTRATION'
-                  ? 'bg-blue-100 text-blue-700'
-                  : 'bg-muted text-muted-foreground'
-              }`}
-            >
-              {STATUS_LABEL[status] ?? status}
-            </span>
-          )}
-        </div>
+  const isLive = status === 'ACTIVE'
 
-        <div className="flex flex-col sm:flex-row">
-          {/* Left: tournament info */}
-          <div className="w-full sm:w-1/2 min-w-0 px-4 sm:px-6 py-4 flex items-center">
-            <div className="flex items-center gap-3 min-w-0 pt-3">
-              {logo && (
-                <Image
-                  src={logo}
-                  alt=""
-                  width={40}
-                  height={40}
-                  className="h-10 w-10 rounded-full object-cover shrink-0"
+  return (
+    <Link
+      href={`/${slug}`}
+      className="mk-plate block p-5 transition-shadow hover:shadow-[var(--mk-shadow-plate-hover)]"
+    >
+      <div className="flex items-start gap-4">
+        {logo && (
+          <Image
+            src={logo}
+            alt=""
+            width={44}
+            height={44}
+            className="h-11 w-11 shrink-0 object-cover"
+            style={{ borderRadius: 'var(--mk-radius-md)' }}
+          />
+        )}
+
+        <div className="min-w-0 flex-1">
+          <div className="flex items-start justify-between gap-3">
+            <p className="min-w-0 truncate text-lg font-semibold" style={{ color: 'var(--mk-ink)' }}>
+              {name}
+            </p>
+
+            <span
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+              style={{
+                border: `1px solid ${isLive ? 'var(--mk-gold)' : 'var(--mk-rule-ink)'}`,
+                color: isLive ? 'var(--mk-ink)' : 'var(--mk-over-par)',
+              }}
+            >
+              {isLive && (
+                <span
+                  className="h-1.5 w-1.5 rounded-full animate-pulse motion-reduce:animate-none"
+                  style={{ background: 'var(--mk-gold)' }}
                 />
               )}
-              <div className="min-w-0">
-                <p className="text-lg lg:text-xl font-heading font-bold truncate">{name}</p>
-                <p className="text-xs lg:text-sm text-muted-foreground mt-0.5">
-                  {playerCount} player{playerCount !== 1 ? 's' : ''}
-                  {` \u00b7 ${formatDateRange(startDate, endDate)}`}
-                </p>
-                {description && (
-                  <p className="text-xs lg:text-sm text-muted-foreground mt-1 line-clamp-3 sm:line-clamp-2">
-                    {description}
-                  </p>
-                )}
-              </div>
-            </div>
+              {STATUS_LABEL[status] ?? status}
+            </span>
           </div>
 
-          {/* Right: gradient image */}
-          <div
-            className={`${IMAGE_CLASSES[imageVariant]} relative w-full sm:w-1/2 min-h-[120px] sm:min-h-[100px]`}
-          >
-            <div className="absolute inset-0 flex items-center justify-center">
-              <span className="text-white/15 text-5xl font-heading font-bold select-none">
-                {name.charAt(0).toUpperCase()}
-              </span>
-            </div>
-          </div>
+          <p className="mt-1.5 text-xs" style={{ color: 'var(--mk-over-par)' }}>
+            <span className="mk-data">{playerCount}</span> player
+            {playerCount !== 1 ? 's' : ''}
+            {` · ${formatDateRange(startDate, endDate)}`}
+          </p>
+
+          {description && (
+            <p
+              className="mt-2 line-clamp-2 text-sm leading-relaxed"
+              style={{ color: 'var(--mk-over-par)' }}
+            >
+              {description}
+            </p>
+          )}
         </div>
-      </Link>
-    </div>
+      </div>
+    </Link>
   )
 }

@@ -1,7 +1,5 @@
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
-import { Card, CardContent } from '@/components/ui/card'
-import { Trophy, PlusCircle } from 'lucide-react'
 import { TournamentCardGrid } from './TournamentCardGrid'
 
 async function fetchFeatured() {
@@ -46,49 +44,38 @@ export async function FeaturedTournaments() {
   const serialized = await fetchFeatured()
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <Trophy className="w-4 h-4 lg:w-5 lg:h-5 text-white/60" />
-        <h2 className="font-heading font-bold text-xl sm:text-2xl lg:text-4xl text-white">Featured Tournaments</h2>
-      </div>
-      <p className="text-xs sm:text-sm lg:text-lg text-white/50">
-        Featured public tournaments near you
+    <section className="mk-section">
+      <h2>Featured tournaments</h2>
+      <p className="mt-4 max-w-[65ch] text-base lg:text-lg" style={{ color: 'var(--mk-text-muted)' }}>
+        Public events taking entries right now.
       </p>
 
-      {serialized.length > 0 ? (
-        <TournamentCardGrid
-          tournaments={serialized}
-          emptyMessage="No featured tournaments right now."
-        />
-      ) : (
-        <Card className="border-dashed border-2 border-white/15 shadow-none bg-white/[0.03]">
-          <CardContent className="py-8 flex flex-col items-center text-center">
-            <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center mb-3">
-              <Trophy className="w-6 h-6 text-white/50" />
-            </div>
-            <p className="font-heading font-semibold text-base text-white">No featured tournaments</p>
-            <p className="text-sm text-white/50 mt-1 max-w-xs">
-              No featured tournaments right now. Sign in to create your own.
+      <div className="mt-10">
+        {serialized.length > 0 ? (
+          <TournamentCardGrid
+            tournaments={serialized}
+            emptyMessage="No featured tournaments in this month."
+          />
+        ) : (
+          /* An invitation, not a report of absence. Nothing here is invented:
+             the section is genuinely empty until someone opens an event. */
+          <div
+            className="flex flex-col items-start px-6 py-10"
+            style={{
+              border: '1px dashed var(--mk-rule-gold)',
+              borderRadius: 'var(--mk-radius-lg)',
+            }}
+          >
+            <p className="max-w-[52ch] text-base leading-relaxed" style={{ color: 'var(--mk-text-muted)' }}>
+              Public tournaments show up here as organisers open them. Start one and yours
+              is the first.
             </p>
-            <Link
-              href="/auth/login"
-              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm font-semibold transition-colors mt-4"
-              style={{ backgroundColor: 'var(--primary)', color: 'white' }}
-            >
-              <PlusCircle className="w-4 h-4" />
-              Create Tournament
+            <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-7">
+              Create a tournament
             </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      <p className="text-sm text-white/50 pt-4">
-        Have a tournament code?{' '}
-        <Link href="/auth/login" className="text-accent font-semibold hover:underline">
-          Sign in
-        </Link>{' '}
-        to see your tournaments.
-      </p>
+          </div>
+        )}
+      </div>
     </section>
   )
 }

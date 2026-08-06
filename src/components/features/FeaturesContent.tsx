@@ -1,7 +1,9 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
+import type { ReactNode } from 'react'
+import type { Timeline } from 'animejs'
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
+import { useTimelineInView } from '@/components/motion/useTimelineInView'
 import {
   BarChart3, ClipboardList, Zap, Users, Camera, Shield,
   MessageSquare, TrendingUp, Map, Smartphone, Settings,
@@ -11,227 +13,335 @@ import { PowerupCard } from '@/components/draft/PowerupCard'
 import { EXAMPLE_BOOST, EXAMPLE_ATTACK } from '@/components/wizard/PowerupsInfoPanel'
 
 /* ═══════════════════════════════════════════════════════
-   ANIMATED VISUAL MOCKUPS
+   VISUALS
+
+   Everything here is the product's own furniture rendered natively, on the
+   marketing token scope. No raw palette values: see DESIGN.md. The one
+   deliberate exception is BrandingVisual, where arbitrary colour is the
+   feature being demonstrated.
+
+   Player names and figures are a DEMONSTRATION, not records.
    ═══════════════════════════════════════════════════════ */
 
-/* ── Leaderboard with live row swap ────────────────── */
-function LeaderboardVisual() {
-  const [phase, setPhase] = useState(0)
-  useEffect(() => {
-    const go = () => { setTimeout(() => setPhase(1), 0); setTimeout(() => setPhase(0), 3000) }
-    const t = setTimeout(go, 2500)
-    const i = setInterval(go, 6000)
-    return () => { clearTimeout(t); clearInterval(i) }
-  }, [])
+/* Steps down on narrow phones for the same reason LeaderboardPlate's do: fixed
+   data columns set the min-content width of everything around them. */
+const BOARD_COLS =
+  'grid grid-cols-[2.25rem_1fr_2.5rem_2.25rem_2.5rem] sm:grid-cols-[2.5rem_1fr_3.25rem_2.75rem_3.25rem] px-3 sm:px-4'
+const LABEL = 'text-[0.6875rem] font-semibold uppercase tracking-[0.14em]'
 
-  const rows = phase === 0
-    ? [
-        { pos: '1', name: 'J. Palmer', score: '-4', hl: false },
-        { pos: '2', name: 'T. Watson', score: '-3', hl: false },
-        { pos: '3', name: 'B. Hogan', score: '-1', hl: false },
-        { pos: '4T', name: 'S. Snead', score: 'E', hl: false },
-        { pos: '4T', name: 'G. Player', score: 'E', hl: false },
-      ]
-    : [
-        { pos: '1', name: 'T. Watson', score: '-5', hl: true },
-        { pos: '2', name: 'J. Palmer', score: '-4', hl: false },
-        { pos: '3', name: 'B. Hogan', score: '-1', hl: false },
-        { pos: '4T', name: 'S. Snead', score: 'E', hl: false },
-        { pos: '4T', name: 'G. Player', score: 'E', hl: false },
-      ]
+/* ── The board, net of handicap ────────────────────────
+   Deliberately a different lens on the same event as the hero's
+   LeaderboardPlate: gross order there is Watson, Palmer, Hogan, Snead,
+   Player. Net of handicap it inverts, which is the whole point of scoring a
+   group where nobody carries an official index. */
+const NET_ROWS = [
+  { pos: '1', name: 'S. Snead', gross: '78', hcp: '14', net: '64' },
+  { pos: '2', name: 'G. Player', gross: '81', hcp: '16', net: '65' },
+  { pos: '3', name: 'T. Watson', gross: '71', hcp: '4', net: '67' },
+  { pos: 'T4', name: 'J. Palmer', gross: '72', hcp: '4', net: '68' },
+  { pos: 'T4', name: 'B. Hogan', gross: '75', hcp: '7', net: '68' },
+]
 
-  const sc = (s: string) => s.startsWith('-') ? 'oklch(0.50 0.20 25)' : s === 'E' ? 'oklch(0.17 0.03 250)' : 'oklch(0.50 0.02 250)'
+function NetBoardVisual() {
+  return (
+    <div className="mk-plate overflow-hidden">
+      <div
+        className={`${BOARD_COLS} items-center py-3`}
+        style={{
+          backgroundColor: 'var(--mk-green-deep)',
+          borderBottom: '2px solid var(--mk-gold)',
+        }}
+      >
+        {['Pos', 'Player', 'Gross', 'Hcp', 'Net'].map((label, i) => (
+          <span
+            key={label}
+            className={`${LABEL} ${i === 1 ? 'text-left' : 'text-center'}`}
+            style={{ color: 'var(--mk-gold)' }}
+          >
+            {label}
+          </span>
+        ))}
+      </div>
+
+      {NET_ROWS.map((row, i) => (
+        <div
+          key={row.name}
+          className={`${BOARD_COLS} items-center py-3`}
+          style={{
+            borderBottom: '1px solid var(--mk-rule-ink)',
+            borderLeft: i === 0 ? '2px solid var(--mk-gold)' : '2px solid transparent',
+          }}
+        >
+          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-ink)' }}>
+            {row.pos}
+          </span>
+          <span className="truncate text-sm font-medium" style={{ color: 'var(--mk-ink)' }}>
+            {row.name}
+          </span>
+          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-over-par)' }}>
+            {row.gross}
+          </span>
+          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-over-par)' }}>
+            {row.hcp}
+          </span>
+          <span className="mk-data text-center text-base" style={{ color: 'var(--mk-ink)' }}>
+            {row.net}
+          </span>
+        </div>
+      ))}
+
+      <p className="px-4 py-3 text-xs" style={{ color: 'var(--mk-over-par)' }}>
+        Example board, net of handicap
+      </p>
+    </div>
+  )
+}
+
+/* ── Live scoring ──────────────────────────────────────
+   The rest state below is the readable one: hole 7, par, four strokes. The
+   timeline moves it to a birdie and back. If the timeline never runs, the
+   plate still says everything it needs to. */
+
+function paintHole(root: HTMLElement, strokes: number) {
+  const under = strokes < 4
+  const q = (sel: string) => root.querySelector<HTMLElement>(sel)
+
+  const count = q('[data-strokes]')
+  if (count) count.textContent = String(strokes)
+
+  const badge = q('[data-badge]')
+  if (badge) {
+    badge.textContent = under ? 'Birdie' : 'Par'
+    badge.style.color = under ? 'var(--mk-under-par)' : 'var(--mk-over-par)'
+    badge.style.borderColor = under ? 'var(--mk-under-par)' : 'var(--mk-rule-ink)'
+  }
+
+  const total = q('[data-total]')
+  if (total) {
+    total.textContent = under ? '-1' : 'E'
+    total.style.color = under ? 'var(--mk-under-par)' : 'var(--mk-ink)'
+  }
+}
+
+function buildScoringTimeline(tl: Timeline, root: HTMLElement) {
+  const count = root.querySelector<HTMLElement>('[data-strokes]')
+  const badge = root.querySelector<HTMLElement>('[data-badge]')
+  const minus = root.querySelector<HTMLElement>('[data-step="minus"]')
+  const plus = root.querySelector<HTMLElement>('[data-step="plus"]')
+  if (!count || !badge || !minus || !plus) return
+
+  // Hole played in one under.
+  tl.add(minus, { scale: 0.88, duration: 110, ease: 'outQuad' }, 1600)
+    .add(minus, { scale: 1, duration: 200, ease: 'outCubic' }, 1710)
+    .call(() => paintHole(root, 3), 1720)
+    .add(count, { scale: 1.16, duration: 120, ease: 'outQuad' }, 1720)
+    .add(count, { scale: 1, duration: 260, ease: 'outCubic' }, 1840)
+    .add(badge, { opacity: [0, 1], y: [5, 0], duration: 280, ease: 'outCubic' }, 1720)
+
+  // And back, so the loop reads as a stroke being corrected rather than a
+  // score inventing itself.
+  tl.add(plus, { scale: 0.88, duration: 110, ease: 'outQuad' }, 4400)
+    .add(plus, { scale: 1, duration: 200, ease: 'outCubic' }, 4510)
+    .call(() => paintHole(root, 4), 4520)
+    .add(count, { scale: 1.16, duration: 120, ease: 'outQuad' }, 4520)
+    .add(count, { scale: 1, duration: 260, ease: 'outCubic' }, 4640)
+    .add(badge, { opacity: [0, 1], y: [5, 0], duration: 280, ease: 'outCubic' }, 4520)
+    .set(count, { scale: 1 }, 6600)
+}
+
+function ScoringVisual() {
+  const ref = useTimelineInView<HTMLDivElement>(buildScoringTimeline)
 
   return (
-    <div className="rounded-xl overflow-hidden" style={{ background: 'oklch(0.985 0.002 250)' }}>
-      <div className="grid grid-cols-[32px_1fr_40px] text-[9px] uppercase tracking-wider font-semibold text-white px-3 py-2"
-           style={{ background: 'oklch(0.30 0.08 255)', borderBottom: '2px solid oklch(0.72 0.11 78)' }}>
-        <span className="text-center">Pos</span><span>Player</span><span className="text-center">Tot</span>
+    <div ref={ref} className="mk-plate overflow-hidden">
+      <div
+        className="flex items-center justify-between px-4 py-3"
+        style={{
+          backgroundColor: 'var(--mk-green-deep)',
+          borderBottom: '2px solid var(--mk-gold)',
+        }}
+      >
+        <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
+          Hole 7 · Par 4
+        </span>
+        <span className="mk-data text-sm" style={{ color: 'var(--mk-bone)' }}>
+          Round 2
+        </span>
       </div>
-      {rows.map((r, i) => (
-        <div key={r.name} className="grid grid-cols-[32px_1fr_40px] items-center px-3 py-2 text-xs transition-all duration-[525ms]"
-          style={{ background: r.hl ? 'oklch(0.50 0.20 25 / 0.06)' : i % 2 === 1 ? 'oklch(0.97 0.003 95)' : 'white', borderBottom: '1px solid oklch(0.88 0.01 140)' }}>
-          <span className="text-center font-bold" style={{ color: 'oklch(0.30 0.08 255)' }}>{r.pos}</span>
-          <div className="flex items-center gap-2">
-            <div className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white shrink-0 ${r.hl ? 'ring-1 ring-amber-400/50' : ''}`}
-                 style={{ background: 'oklch(0.30 0.08 255)' }}>{r.name.split(' ').map(n => n[0]).join('')}</div>
-            <span className={`truncate ${r.hl ? 'font-semibold' : ''}`} style={{ color: 'oklch(0.17 0.03 250)' }}>{r.name}</span>
-          </div>
-          <span className="text-center font-bold font-mono" style={{ color: sc(r.score) }}>{r.score}</span>
+
+      <div className="flex items-center justify-center gap-7 px-4 py-7">
+        <span
+          data-step="minus"
+          aria-hidden
+          className="flex h-11 w-11 items-center justify-center text-xl font-semibold"
+          style={{
+            border: '1px solid var(--mk-rule-ink)',
+            borderRadius: 'var(--mk-radius-md)',
+            color: 'var(--mk-ink)',
+          }}
+        >
+          −
+        </span>
+        <span
+          data-strokes
+          className="mk-data inline-block text-5xl"
+          style={{ color: 'var(--mk-ink)' }}
+        >
+          4
+        </span>
+        <span
+          data-step="plus"
+          aria-hidden
+          className="flex h-11 w-11 items-center justify-center text-xl font-semibold"
+          style={{
+            border: '1px solid var(--mk-rule-ink)',
+            borderRadius: 'var(--mk-radius-md)',
+            color: 'var(--mk-ink)',
+          }}
+        >
+          +
+        </span>
+      </div>
+
+      <div className="flex items-center justify-center gap-3 pb-6">
+        <span
+          data-badge
+          className={`${LABEL} inline-block px-2.5 py-1`}
+          style={{
+            border: '1px solid var(--mk-rule-ink)',
+            borderRadius: 'var(--mk-radius-sm)',
+            color: 'var(--mk-over-par)',
+          }}
+        >
+          Par
+        </span>
+        <span data-total className="mk-data text-base" style={{ color: 'var(--mk-ink)' }}>
+          E
+        </span>
+      </div>
+
+      {[
+        { label: 'Fairway hit', value: 'Yes' },
+        { label: 'Green in regulation', value: 'Yes' },
+        { label: 'Putts', value: '2' },
+      ].map((stat) => (
+        <div
+          key={stat.label}
+          className="flex items-center justify-between px-4 py-3"
+          style={{ borderTop: '1px solid var(--mk-rule-ink)' }}
+        >
+          <span className="text-sm" style={{ color: 'var(--mk-over-par)' }}>
+            {stat.label}
+          </span>
+          <span className="mk-data text-sm" style={{ color: 'var(--mk-ink)' }}>
+            {stat.value}
+          </span>
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Live Scoring with animated stepper ────────────── */
-function ScoringVisual() {
-  const [strokes, setStrokes] = useState(4)
-  const [tapping, setTapping] = useState(false)
-  useEffect(() => {
-    const seq = () => {
-      setTimeout(() => setTapping(true), 2000)
-      setTimeout(() => { setStrokes(3); setTapping(false) }, 2300)
-      setTimeout(() => setTapping(true), 5000)
-      setTimeout(() => { setStrokes(4); setTapping(false) }, 5300)
-    }
-    seq(); const i = setInterval(seq, 7000)
-    return () => clearInterval(i)
-  }, [])
-
-  const diff = strokes - 4
-  const badge = diff < 0 ? { label: 'Birdie', bg: 'oklch(0.50 0.20 25 / 0.2)', color: 'oklch(0.50 0.20 25)' }
-    : diff === 0 ? { label: 'Par', bg: 'rgba(255,255,255,0.1)', color: 'rgba(255,255,255,0.8)' }
-    : { label: 'Bogey', bg: 'rgba(255,255,255,0.05)', color: 'rgba(255,255,255,0.6)' }
-
-  return (
-    <div className="rounded-xl overflow-hidden flex flex-col" style={{ background: 'oklch(0.28 0.07 255)' }}>
-      <div className="px-4 pt-4 pb-2 flex items-center justify-between">
-        <div>
-          <span className="text-xl font-bold font-heading text-white">Hole 7</span>
-          <span className="ml-2 px-1.5 py-0.5 rounded text-[9px] font-bold transition-all duration-[225ms]" style={{ background: badge.bg, color: badge.color }}>{badge.label}</span>
-        </div>
-        <span className="text-lg font-bold text-white">{diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff}</span>
-      </div>
-      <div className="h-px bg-white/10" />
-      <div className="flex items-center justify-center gap-6 py-6">
-        <div className={`w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white text-lg font-bold transition-transform duration-[120ms] ${tapping ? 'scale-90 bg-white/25' : ''}`}>−</div>
-        <span className="text-5xl font-heading font-bold text-white tabular-nums">{strokes}</span>
-        <div className="w-10 h-10 rounded-full bg-white/15 flex items-center justify-center text-white text-lg font-bold">+</div>
-      </div>
-      <div className="px-4 pb-3 space-y-1.5">
-        {[{ label: 'Fairway Hit', on: true }, { label: 'Green in Reg', on: strokes <= 4 }].map(s => (
-          <div key={s.label} className="flex items-center justify-between py-1">
-            <span className="text-xs font-semibold text-white/70">{s.label}</span>
-            <div className={`w-8 h-4 rounded-full relative transition-all duration-[225ms] ${s.on ? '' : 'bg-white/15'}`}
-                 style={s.on ? { background: 'oklch(0.72 0.11 78)' } : {}}>
-              <div className={`absolute top-0.5 w-3 h-3 rounded-full bg-white shadow transition-all duration-[225ms] ${s.on ? 'left-[16px]' : 'left-0.5'}`} />
-            </div>
-          </div>
-        ))}
-      </div>
-      <div className="flex justify-center gap-1.5 pb-3">
-        {['bg-red-500','bg-red-500','bg-white/25','bg-white/25','bg-gray-700','bg-white/25','ring-1 ring-accent','border border-white/30','border border-white/30'].map((c, i) => (
-          <div key={i} className={`w-5 h-5 rounded-full flex items-center justify-center text-[8px] font-bold text-white ${c}`}>{i+1}</div>
-        ))}
-      </div>
-    </div>
-  )
-}
-
-/* ── Powerup hand ──────────────────────────────────── */
-function PowerupsVisual() {
-  const cards = [
-    { name: 'Fairway Finder', type: 'BOOST' as const, icon: '🌲', dur: '3 Holes' },
-    { name: 'The Sandman', type: 'ATTACK' as const, icon: '⛏️', dur: '1 Hole' },
-    { name: 'Stroke Swap', type: 'ATTACK' as const, icon: '⚔️', dur: '1 Stroke' },
-    { name: 'Go For Glory', type: 'BOOST' as const, icon: '🏆', dur: '1 Hole · 2×' },
-    { name: 'Happy Gilmore', type: 'BOOST' as const, icon: '😄', dur: '3 Holes' },
-  ]
-  const spread = Math.min(cards.length * 7, 35)
-  return (
-    <div className="relative flex items-end justify-center" style={{ height: '200px' }}>
-      {cards.map((c, i) => {
-        const isB = c.type === 'BOOST'
-        const angle = -spread / 2 + (i / (cards.length - 1)) * spread
-        const yOff = Math.abs(i - (cards.length - 1) / 2) * 6
-        return (
-          <div key={i} className="absolute rounded-2xl border-[3px] shadow-md flex flex-col overflow-hidden select-none hover:!-translate-y-5 hover:!rotate-0 hover:z-50 hover:shadow-xl transition-all duration-[225ms]"
-            style={{
-              width: '100px', height: '148px', background: '#f5f0e8',
-              borderColor: isB ? 'rgb(6, 95, 70)' : 'rgb(185, 28, 28)',
-              left: `calc(50% + ${(i - (cards.length - 1) / 2) * 28}px - 50px)`,
-              bottom: `${yOff}px`, transform: `rotate(${angle}deg)`, transformOrigin: 'bottom center', zIndex: i + 1,
-              animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.2 + i * 0.08}s both`,
-            }}>
-            <div className="flex items-start justify-between px-2 pt-2">
-              <span className="text-base">{c.icon}</span>
-              <span className={`text-[6px] font-bold uppercase tracking-widest mt-0.5 ${isB ? 'text-emerald-800' : 'text-red-700'}`}>{c.type}</span>
-            </div>
-            <div className="flex-1 flex flex-col items-center justify-center px-2">
-              <div className={`w-full border-t border-b py-1.5 ${isB ? 'border-emerald-800/25' : 'border-red-700/25'}`}>
-                <p className={`font-heading font-bold text-center leading-tight text-[9px] ${isB ? 'text-emerald-900' : 'text-red-800'}`}>{c.name}</p>
-              </div>
-              <span className={`mt-0.5 text-[7px] font-semibold ${isB ? 'text-emerald-700/60' : 'text-red-600/60'}`}>{c.dur}</span>
-            </div>
-            <div className="flex items-end justify-between px-2 pb-2">
-              <span className={`text-[6px] font-bold uppercase tracking-widest ${isB ? 'text-emerald-800' : 'text-red-700'}`}>{c.type}</span>
-              <span className="text-base rotate-180">{c.icon}</span>
-            </div>
-          </div>
-        )
-      })}
-    </div>
-  )
-}
-
-/* ── Custom Branding ───────────────────────────────── */
+/* ── Custom branding ───────────────────────────────────
+   Deliberate token exception: arbitrary per-tournament colour is the feature.
+   Only the frame, type and radii answer to the marketing scope. */
 function BrandingVisual() {
-  const t = [
-    { name: 'The Masters Cup', primary: 'oklch(0.30 0.08 255)', accent: 'oklch(0.72 0.11 78)', initials: 'MC', date: 'May 10–12', pl: '24' },
-    { name: 'Sunset Scramble', primary: 'oklch(0.35 0.12 25)', accent: 'oklch(0.78 0.11 55)', initials: 'SS', date: 'Jun 1', pl: '16' },
-    { name: 'Pine Valley Open', primary: 'oklch(0.25 0.10 150)', accent: 'oklch(0.65 0.14 160)', initials: 'PV', date: 'Jul 15–16', pl: '48' },
+  const tournaments = [
+    { name: 'The Masters Cup', primary: 'oklch(0.30 0.08 255)', accent: 'oklch(0.72 0.11 78)', initials: 'MC', meta: 'May 10 to 12 · 24 players' },
+    { name: 'Sunset Scramble', primary: 'oklch(0.35 0.12 25)', accent: 'oklch(0.78 0.11 55)', initials: 'SS', meta: 'Jun 1 · 16 players' },
+    { name: 'Pine Valley Open', primary: 'oklch(0.25 0.10 150)', accent: 'oklch(0.65 0.14 160)', initials: 'PV', meta: 'Jul 15 to 16 · 48 players' },
   ]
+
   return (
     <div className="space-y-3">
-      {t.map((x, i) => (
-        <div key={i} className="rounded-xl overflow-hidden shadow-md" style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.12}s both` }}>
-          <div className="relative px-4 py-3 flex flex-col items-center text-center" style={{ background: x.primary }}>
-            <div className="w-12 h-12 rounded-full flex items-center justify-center text-xs font-heading font-bold text-white/90"
-                 style={{ border: `2px solid color-mix(in oklch, ${x.primary}, white 30%)`, boxShadow: '0 4px 16px rgba(0,0,0,0.18), inset 0 1px 0 rgba(255,255,255,0.2)', background: `linear-gradient(160deg, color-mix(in oklch, ${x.primary}, white 10%), color-mix(in oklch, ${x.primary}, black 8%))` }}>
-              {x.initials}
-            </div>
-            <h4 className="text-sm font-heading font-bold text-white mt-2">{x.name}</h4>
-            <div className="flex items-center gap-1.5 mt-1">
-              <span className="text-[9px] text-white/50">{x.date} · {x.pl} players</span>
-              <span className="inline-flex items-center gap-0.5 text-[8px] text-white font-bold uppercase bg-white/15 rounded-full px-1.5 py-0.5">
-                <span className="h-1 w-1 rounded-full bg-green-400 animate-pulse" />Live
-              </span>
-            </div>
-            <div className="w-10 h-0.5 rounded-full mt-2" style={{ background: x.accent }} />
-          </div>
+      {tournaments.map((t) => (
+        <div
+          key={t.name}
+          className="flex items-center gap-3 px-4 py-3"
+          style={{ background: t.primary, borderRadius: 'var(--mk-radius-md)' }}
+        >
+          <span
+            className="mk-data flex h-11 w-11 shrink-0 items-center justify-center text-xs text-white"
+            style={{
+              borderRadius: '50%',
+              border: `1px solid color-mix(in oklch, ${t.primary}, white 30%)`,
+              background: `color-mix(in oklch, ${t.primary}, white 8%)`,
+            }}
+          >
+            {t.initials}
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm font-semibold text-white">{t.name}</span>
+            <span className="block truncate text-xs text-white/70">{t.meta}</span>
+          </span>
+          <span className="h-8 w-1 shrink-0" style={{ background: t.accent }} />
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Stats grid ────────────────────────────────────── */
+/* ── Stats ─────────────────────────────────────────────
+   A hairline-ruled figure table, not six boxes. */
 function StatsVisual() {
   const stats = [
-    { label: 'Scoring Avg', value: '+2.4' }, { label: 'Fairways', value: '64%', accent: true },
-    { label: 'GIR', value: '44%' }, { label: 'Putts/Rnd', value: '31.2' },
-    { label: 'Best Round', value: '72', accent: true }, { label: 'Rounds', value: '18' },
+    { label: 'Scoring average', value: '+2.4' },
+    { label: 'Fairways hit', value: '64%' },
+    { label: 'Greens in regulation', value: '44%' },
+    { label: 'Putts per round', value: '31.2' },
+    { label: 'Best round', value: '72' },
+    { label: 'Rounds played', value: '18' },
   ]
+
   return (
-    <div className="grid grid-cols-2 gap-2">
-      {stats.map((s, i) => (
-        <div key={i} className="rounded-lg bg-white/5 border border-white/8 p-3 flex flex-col items-center justify-center"
-          style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.08}s both` }}>
-          <div className={`text-xl font-bold font-heading tabular-nums ${s.accent ? 'text-accent' : 'text-white'}`}>{s.value}</div>
-          <div className="text-[8px] text-white/40 uppercase tracking-wider mt-1">{s.label}</div>
+    <div>
+      {stats.map((stat) => (
+        <div
+          key={stat.label}
+          className="flex items-baseline justify-between py-2.5"
+          style={{ borderBottom: '1px solid var(--mk-rule-light)' }}
+        >
+          <span className="text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            {stat.label}
+          </span>
+          <span className="mk-data text-lg" style={{ color: 'var(--mk-text)' }}>
+            {stat.value}
+          </span>
         </div>
       ))}
     </div>
   )
 }
 
-/* ── Chat mockup ───────────────────────────────────── */
+/* ── Tournament chat ───────────────────────────────────── */
 function ChatVisual() {
-  const msgs = [
-    { name: 'JP', text: 'Just birdied 7! 🔥', right: false },
-    { name: 'TW', text: 'Nice one. Using my mulligan on 9', right: true },
-    { name: 'BH', text: 'Someone activated Stroke Swap on me 😤', right: false },
-    { name: 'SS', text: 'Lol get rekt', right: true },
+  const messages = [
+    { name: 'J. Palmer', text: 'Just birdied 7.', mine: false },
+    { name: 'T. Watson', text: 'Nice. Using my mulligan on 9.', mine: true },
+    { name: 'B. Hogan', text: 'Someone just played Stroke Swap on me.', mine: false },
+    { name: 'S. Snead', text: 'That was me. No notes.', mine: true },
   ]
+
   return (
-    <div className="space-y-2">
-      {msgs.map((m, i) => (
-        <div key={i} className={`flex ${m.right ? 'justify-end' : 'justify-start'}`}
-          style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.4 + i * 0.12}s both` }}>
-          <div className={`max-w-[85%] rounded-xl px-3 py-2 ${m.right ? 'bg-accent/20 rounded-br-sm' : 'bg-white/8 rounded-bl-sm'}`}>
-            <span className="text-[9px] font-bold text-white/50 block">{m.name}</span>
-            <span className="text-xs text-white/80">{m.text}</span>
+    <div className="space-y-2.5">
+      {messages.map((message) => (
+        <div key={message.text} className={`flex ${message.mine ? 'justify-end' : 'justify-start'}`}>
+          <div
+            className="max-w-[85%] px-3 py-2"
+            style={{
+              borderRadius: 'var(--mk-radius-md)',
+              background: message.mine ? 'var(--mk-bone)' : 'var(--mk-green-raised)',
+              border: message.mine ? 'none' : '1px solid var(--mk-rule-light)',
+              color: message.mine ? 'var(--mk-ink)' : 'var(--mk-text)',
+            }}
+          >
+            <span
+              className={`${LABEL} block`}
+              style={{ color: message.mine ? 'var(--mk-over-par)' : 'var(--mk-text-subtle)' }}
+            >
+              {message.name}
+            </span>
+            <span className="mt-0.5 block text-sm">{message.text}</span>
           </div>
         </div>
       ))}
@@ -239,88 +349,139 @@ function ChatVisual() {
   )
 }
 
-/* ── GPS yardages mockup ───────────────────────────── */
+/* ── GPS yardages ──────────────────────────────────────── */
 function GPSVisual() {
   const greens = [
     { label: 'Front', value: '258' },
     { label: 'Middle', value: '275' },
     { label: 'Back', value: '290' },
   ]
+
   return (
-    <div className="rounded-xl overflow-hidden border border-white/10" style={{ background: 'oklch(0.22 0.05 255)' }}>
-      <div className="px-3 py-2 flex items-center justify-between" style={{ background: 'oklch(0.30 0.08 255)' }}>
-        <span className="text-[10px] font-bold text-white/80">Hole 4 · Par 5</span>
-        <span className="text-[9px] text-accent font-bold">GPS</span>
+    <div>
+      <div
+        className="flex items-center justify-between pb-2.5"
+        style={{ borderBottom: '2px solid var(--mk-gold)' }}
+      >
+        <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
+          Hole 4 · Par 5
+        </span>
       </div>
-      <div className="p-3 space-y-2">
-        {greens.map((g, i) => (
-          <div key={g.label} className="flex items-center justify-between rounded-lg bg-white/5 border border-white/8 px-4 py-3"
-            style={{ animation: `heroFadeUp 0.375s cubic-bezier(0.16, 1, 0.3, 1) ${0.3 + i * 0.12}s both` }}>
-            <span className="text-[10px] text-white/40 uppercase tracking-wider font-semibold">{g.label}</span>
-            <div className="flex items-baseline gap-1">
-              <span className="text-2xl font-heading font-bold text-white tabular-nums">{g.value}</span>
-              <span className="text-[9px] text-white/40 uppercase tracking-wider">yds</span>
-            </div>
-          </div>
-        ))}
-      </div>
+      {greens.map((green) => (
+        <div
+          key={green.label}
+          className="flex items-baseline justify-between py-3"
+          style={{ borderBottom: '1px solid var(--mk-rule-light)' }}
+        >
+          <span className="text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            {green.label}
+          </span>
+          <span className="flex items-baseline gap-1.5">
+            <span className="mk-data text-2xl" style={{ color: 'var(--mk-text)' }}>
+              {green.value}
+            </span>
+            <span className={LABEL} style={{ color: 'var(--mk-text-subtle)' }}>
+              yds
+            </span>
+          </span>
+        </div>
+      ))}
     </div>
   )
 }
 
 /* ═══════════════════════════════════════════════════════
-   FEATURE SECTIONS
+   COMPOSITION
+
+   Two image/text splits, then the run breaks: a full-width band, a bento, and
+   a ruled list. Nothing alternates more than twice in a row.
    ═══════════════════════════════════════════════════════ */
 
-interface FeatureSection {
+const SPLIT_FEATURES = [
+  {
+    icon: BarChart3,
+    title: 'Gross and net, side by side',
+    description:
+      'Every board reads both ways at once. Scratch players see gross, everyone else sees net, and a group where nobody carries an official index still gets a result it can argue about honestly.',
+    visual: <NetBoardVisual />,
+  },
+  {
+    icon: ClipboardList,
+    title: 'Scoring from the tee box',
+    description:
+      'Tap strokes and putts, flag fairways and greens in regulation. It is built for one hand, bright sun and patchy signal, because that is where scoring actually happens.',
+    visual: <ScoringVisual />,
+  },
+]
+
+const BENTO_FEATURES = [
+  {
+    icon: Palette,
+    title: 'Custom branding',
+    description:
+      'Set primary and accent colours, upload a logo, and it carries through embossed badges, headers and the full player experience.',
+    visual: <BrandingVisual />,
+  },
+  {
+    icon: TrendingUp,
+    title: 'Stats and insights',
+    description:
+      'Scoring averages, fairways, greens in regulation and putting, calculated from scorecard data rather than entered by hand.',
+    visual: <StatsVisual />,
+  },
+  {
+    icon: MessageSquare,
+    title: 'Tournament chat',
+    description:
+      'The group thread lives next to the leaderboard, so the banter and the scores are in the same place.',
+    visual: <ChatVisual />,
+  },
+  {
+    icon: Map,
+    title: 'GPS and yardages',
+    description:
+      'Front, middle and back of every green. Pull the right club without opening a second app.',
+    visual: <GPSVisual />,
+  },
+]
+
+const LIST_FEATURES = [
+  { icon: Users, title: 'Player registration', desc: 'Share a join code or open public registration.' },
+  { icon: Trophy, title: 'Multiple formats', desc: 'Stroke play, match play and scrambles, over any number of rounds.' },
+  { icon: Shield, title: 'Handicap systems', desc: 'WHS, Stableford, Callaway and Peoria, calculated automatically.' },
+  { icon: Repeat, title: 'Seasons and leagues', desc: 'Link events into a season with cumulative standings.' },
+  { icon: Camera, title: 'Photo gallery', desc: 'A shared course gallery every player can post to.' },
+  { icon: Smartphone, title: 'Mobile first', desc: 'Score with one hand, check the board between holes.' },
+  { icon: Settings, title: 'Admin controls', desc: 'Manage scores, players, draft order and settings from one dashboard.' },
+  { icon: Globe, title: 'Public tournaments', desc: 'Open the event so players nearby can find and join it.' },
+  { icon: Timer, title: 'Registration deadlines', desc: 'Invite only, open, or closed on a date you set.' },
+  { icon: Crosshair, title: 'Flight management', desc: 'Group players by handicap, skill or your own grouping.' },
+]
+
+type SplitFeature = {
+  icon: typeof BarChart3
   title: string
   description: string
   visual: ReactNode
-  icon: typeof BarChart3
 }
 
-const CORE_FEATURES: FeatureSection[] = [
-  { icon: BarChart3, title: 'Live Leaderboards', description: 'Real-time scoring updates that keep every player connected. Watch positions change hole by hole with masters-style leaderboards — birdie red, bogey gray, tied positions, and live pulse indicators.', visual: <LeaderboardVisual /> },
-  { icon: ClipboardList, title: 'Live Scoring', description: 'Score from your phone with the stepper interface. Tap for strokes and putts, toggle fairway hits and greens in regulation. Color-coded hole navigation shows birdies, pars, and bogeys at a glance.', visual: <ScoringVisual /> },
-  { icon: Zap, title: 'Powerup Draft', description: 'A fantasy-golf twist. Before each round, players draft powerup cards from a shared pool. Boost cards help your game — mulligans, double downs. Attack cards target opponents — stroke swaps, pressure plays.', visual: <PowerupsVisual /> },
-]
-
-const MORE_FEATURES: FeatureSection[] = [
-  { icon: Palette, title: 'Custom Branding', description: 'Choose primary and accent colors, upload a logo, and watch it come to life across embossed badges, tournament headers, and the full player experience.', visual: <BrandingVisual /> },
-  { icon: TrendingUp, title: 'Stats & Insights', description: 'Scoring averages, fairway percentages, GIR, putting stats, and round-over-round trends — all calculated automatically from your scorecard data.', visual: <StatsVisual /> },
-  { icon: MessageSquare, title: 'Tournament Chat', description: 'Built-in group chat keeps the banter going. React to scores, trash talk powerup plays, and celebrate birdies in real time.', visual: <ChatVisual /> },
-  { icon: Map, title: 'GPS & Yardages', description: 'Yardage to the front, middle, and back of every green. Pull the right club without pulling up a separate app.', visual: <GPSVisual /> },
-]
-
-const GRID_FEATURES = [
-  { icon: Users, title: 'Player Registration', desc: 'Share a join code or open public registration. Players set handicaps and join in seconds.' },
-  { icon: Trophy, title: 'Multiple Formats', desc: 'Stroke play, match play, scrambles — with configurable round counts and tee selections.' },
-  { icon: Shield, title: 'Handicap Systems', desc: 'WHS, Stableford, Callaway, and Peoria — automatic calculation, zero manual math.' },
-  { icon: Repeat, title: 'Seasons & Leagues', desc: 'Link tournaments into a season with cumulative standings and recurring rosters.' },
-  { icon: Camera, title: 'Photo Gallery', desc: 'Players upload course photos to the shared tournament gallery.' },
-  { icon: Smartphone, title: 'Mobile-First', desc: 'Designed for on-course use. Score with one hand, check the leaderboard between holes.' },
-  { icon: Settings, title: 'Admin Controls', desc: 'Full admin dashboard for managing scores, players, draft orders, and settings.' },
-  { icon: Globe, title: 'Public Tournaments', desc: 'Open your tournament to the public. Players nearby can discover and join.' },
-  { icon: Timer, title: 'Registration Deadlines', desc: 'Set cutoffs for registration. Invite-only, open, or deadline-based.' },
-  { icon: Crosshair, title: 'Flight Management', desc: 'Organize players into flights by handicap, skill, or custom groupings.' },
-]
-
-function FeatureRow({ feature, reverse, delay }: { feature: FeatureSection; reverse?: boolean; delay?: number }) {
+function FeatureSplit({ feature, reverse }: { feature: SplitFeature; reverse?: boolean }) {
   return (
-    <ScrollReveal direction="up" delay={delay ?? 0} duration={600}>
-      <div className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} gap-6 sm:gap-8 lg:gap-14 items-center`}>
-        {/* Text */}
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <feature.icon className="w-4 sm:w-5 h-4 sm:h-5 text-accent" />
-            <h3 className="font-heading text-lg sm:text-xl lg:text-2xl font-bold text-white">{feature.title}</h3>
-          </div>
-          <p className="text-white/50 text-sm sm:text-base leading-relaxed">{feature.description}</p>
+    <ScrollReveal direction="up" duration={600}>
+      <div
+        className={`flex flex-col ${reverse ? 'lg:flex-row-reverse' : 'lg:flex-row'} items-center gap-10 lg:gap-16`}
+      >
+        <div className="min-w-0 flex-1">
+          <feature.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+          <h3 className="mt-4 text-2xl lg:text-3xl">{feature.title}</h3>
+          <p
+            className="mt-4 max-w-[52ch] text-base leading-relaxed"
+            style={{ color: 'var(--mk-text-muted)' }}
+          >
+            {feature.description}
+          </p>
         </div>
-        {/* Visual */}
-        <div className="w-full max-w-[320px] sm:max-w-none lg:w-[340px] shrink-0 mx-auto lg:mx-0">
-          {feature.visual}
-        </div>
+        <div className="w-full shrink-0 lg:w-[24rem]">{feature.visual}</div>
       </div>
     </ScrollReveal>
   )
@@ -329,92 +490,140 @@ function FeatureRow({ feature, reverse, delay }: { feature: FeatureSection; reve
 export function FeaturesContent() {
   return (
     <>
-      {/* Core features — alternating layout */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-16 lg:py-20 space-y-12 sm:space-y-16 lg:space-y-20">
-        {CORE_FEATURES.map((f, i) => (
-          <FeatureRow key={f.title} feature={f} reverse={i % 2 === 1} delay={i * 75} />
+      <div className="mk-container space-y-24 lg:space-y-32">
+        {SPLIT_FEATURES.map((feature, i) => (
+          <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
         ))}
+      </div>
 
-        {/* Extended powerups explainer — mirrors the wizard's "What are powerups?" panel */}
-        <ScrollReveal direction="up" duration={600}>
-          <div className="rounded-xl border border-white/8 bg-white/[0.02] p-5 sm:p-6 space-y-5">
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-              {/* Boost column */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Zap className="w-4 h-4 text-emerald-400" />
-                  <h4 className="text-sm font-heading font-bold text-emerald-400">Boost Cards</h4>
-                </div>
-                <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
-                  Boosts benefit you — reduce strokes, improve lies, or earn creative advantages.
-                  Play them on your own holes to gain an edge.
-                </p>
-                <div className="flex justify-center pt-1">
-                  <PowerupCard powerup={EXAMPLE_BOOST} size="sm" disabled />
-                </div>
-                <p className="text-[10px] sm:text-xs text-center text-white/40 italic leading-relaxed">
-                  Example: &ldquo;{EXAMPLE_BOOST.name}&rdquo; — {EXAMPLE_BOOST.description}
-                </p>
-              </div>
-
-              {/* Attack column */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <Swords className="w-4 h-4 text-red-400" />
-                  <h4 className="text-sm font-heading font-bold text-red-400">Attack Cards</h4>
-                </div>
-                <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
-                  Attacks target opponents — force handicaps, swap scores, or impose restrictions.
-                  Use them strategically to disrupt the competition.
-                </p>
-                <div className="flex justify-center pt-1">
-                  <PowerupCard powerup={EXAMPLE_ATTACK} size="sm" disabled />
-                </div>
-                <p className="text-[10px] sm:text-xs text-center text-white/40 italic leading-relaxed">
-                  Example: &ldquo;{EXAMPLE_ATTACK.name}&rdquo; — {EXAMPLE_ATTACK.description}
-                </p>
-              </div>
-            </div>
-
-            <div className="border-t border-white/8 pt-4">
-              <p className="text-xs sm:text-sm text-white/60 leading-relaxed">
-                <span className="font-semibold text-white">How are cards distributed?</span>{' '}
-                Choose between a <span className="font-semibold text-white/80">live draft</span> where players take turns picking cards
-                (more strategic and social) or a <span className="font-semibold text-white/80">random deal</span> where cards are shuffled
-                and dealt automatically (quick and easy).
+      {/* Full-width band. Breaks the split run, and carries the one capability a
+          neighbouring product could not copy without rebuilding around it. */}
+      <div className="mt-24 lg:mt-32" style={{ background: 'var(--mk-green-deep)' }}>
+        <div className="mk-container py-20 lg:py-28">
+          <ScrollReveal direction="up" duration={600}>
+            <div className="max-w-[60ch]">
+              <Zap className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+              <h3 className="mt-4 text-2xl lg:text-3xl">The powerup draft</h3>
+              <p
+                className="mt-4 text-base leading-relaxed"
+                style={{ color: 'var(--mk-text-muted)' }}
+              >
+                Before the round, players draft cards from a shared pool, then spend them
+                mid-play against each other. It is the reason a casual group formalises a
+                round at all: social first, competitive second.
               </p>
             </div>
-          </div>
-        </ScrollReveal>
-      </section>
 
-      {/* More features — alternating layout */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 lg:pb-20 space-y-10 sm:space-y-14 lg:space-y-16">
-        <ScrollReveal direction="up" duration={600}>
-          <h2 className="font-heading text-xl sm:text-2xl lg:text-3xl font-bold text-white">
-            And <span className="text-accent">so much</span> more
-          </h2>
-        </ScrollReveal>
+            <hr className="mk-rule my-12" />
 
-        {MORE_FEATURES.map((f, i) => (
-          <FeatureRow key={f.title} feature={f} reverse={i % 2 === 0} delay={0} />
-        ))}
-      </section>
+            <div className="grid gap-12 sm:grid-cols-2">
+              <div className="flex flex-col items-start gap-5 sm:flex-row">
+                <div className="shrink-0">
+                  <PowerupCard powerup={EXAMPLE_BOOST} size="sm" disabled />
+                </div>
+                <div className="min-w-0">
+                  <span className="flex items-center gap-2">
+                    <Zap className="h-4 w-4" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+                    <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
+                      Boost
+                    </span>
+                  </span>
+                  <p
+                    className="mt-3 text-sm leading-relaxed"
+                    style={{ color: 'var(--mk-text-muted)' }}
+                  >
+                    Boosts work in your favour. Drop a stroke, improve a lie, or take a
+                    swing at something you would not normally try.
+                  </p>
+                </div>
+              </div>
 
-      {/* Grid features — compact cards */}
-      <section className="max-w-5xl mx-auto px-4 sm:px-6 pb-10 sm:pb-16 lg:pb-24">
-        <div className="grid grid-cols-2 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 auto-rows-fr">
-          {GRID_FEATURES.map((f, i) => (
-            <ScrollReveal key={f.title} direction="up" delay={i * 40} duration={600} className="h-full">
-              <div className="h-full rounded-xl border border-white/8 bg-white/[0.02] p-3 sm:p-5 transition-all duration-[225ms] hover:border-white/15 hover:bg-white/[0.04]">
-                <f.icon className="w-4 sm:w-5 h-4 sm:h-5 text-white/30 mb-2 sm:mb-3" />
-                <h3 className="font-heading font-bold text-xs sm:text-sm text-white mb-0.5 sm:mb-1">{f.title}</h3>
-                <p className="text-white/40 text-[10px] sm:text-xs leading-relaxed">{f.desc}</p>
+              <div className="flex flex-col items-start gap-5 sm:flex-row">
+                <div className="shrink-0">
+                  <PowerupCard powerup={EXAMPLE_ATTACK} size="sm" disabled />
+                </div>
+                <div className="min-w-0">
+                  <span className="flex items-center gap-2">
+                    <Swords className="h-4 w-4" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+                    <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
+                      Attack
+                    </span>
+                  </span>
+                  <p
+                    className="mt-3 text-sm leading-relaxed"
+                    style={{ color: 'var(--mk-text-muted)' }}
+                  >
+                    Attacks point at someone else. Force a handicap, swap a score, or put a
+                    restriction on the next tee shot.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <p
+              className="mt-12 max-w-[65ch] text-sm leading-relaxed"
+              style={{ color: 'var(--mk-text-subtle)' }}
+            >
+              Cards reach players two ways. A live draft has everyone pick in turn, which is
+              slower and far more social. A random deal shuffles and hands them out, which
+              takes seconds.
+            </p>
+          </ScrollReveal>
+        </div>
+      </div>
+
+      {/* Bento. Four capabilities under gold hairlines, no cards, nothing nested. */}
+      <div className="mk-container mt-24 lg:mt-32">
+        <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
+          {BENTO_FEATURES.map((feature, i) => (
+            <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
+              <div style={{ borderTop: '1px solid var(--mk-rule-gold)' }} className="pt-6">
+                <feature.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+                <h3 className="mt-4 text-xl lg:text-2xl">{feature.title}</h3>
+                <p
+                  className="mt-3 max-w-[48ch] text-sm leading-relaxed"
+                  style={{ color: 'var(--mk-text-muted)' }}
+                >
+                  {feature.description}
+                </p>
+                <div className="mt-7">{feature.visual}</div>
               </div>
             </ScrollReveal>
           ))}
         </div>
-      </section>
+      </div>
+
+      {/* Ruled list. Ten capabilities that need naming, not illustrating. */}
+      <div className="mk-container mt-24 lg:mt-32">
+        <h3 className="text-2xl lg:text-3xl">Also included</h3>
+        <div className="mt-10 grid gap-x-16 sm:grid-cols-2">
+          {LIST_FEATURES.map((feature, i) => (
+            <ScrollReveal key={feature.title} direction="up" delay={i * 30} duration={500}>
+              <div
+                className="flex items-start gap-4 py-5"
+                style={{ borderTop: '1px solid var(--mk-rule-light)' }}
+              >
+                <feature.icon
+                  className="mt-0.5 h-4 w-4 shrink-0"
+                  style={{ color: 'var(--mk-gold)' }}
+                  aria-hidden
+                />
+                <div className="min-w-0">
+                  <span className="block text-base font-semibold" style={{ color: 'var(--mk-text)' }}>
+                    {feature.title}
+                  </span>
+                  <span
+                    className="mt-1 block text-sm leading-relaxed"
+                    style={{ color: 'var(--mk-text-subtle)' }}
+                  >
+                    {feature.desc}
+                  </span>
+                </div>
+              </div>
+            </ScrollReveal>
+          ))}
+        </div>
+      </div>
     </>
   )
 }

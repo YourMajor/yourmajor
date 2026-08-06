@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useState, useMemo } from 'react'
+import Link from 'next/link'
 import { MapPin, MapPinOff, Loader2 } from 'lucide-react'
 import { DateFilterTabs } from './DateFilterTabs'
 import { LandingTournamentCard } from './LandingTournamentCard'
@@ -19,8 +20,6 @@ type NearbyTournament = {
   courseName: string
   distanceKm: number
 }
-
-const IMAGE_VARIANTS = ['default', 'alt', 'gold'] as const
 
 type FetchState = 'idle' | 'loading' | 'done' | 'error'
 
@@ -80,92 +79,98 @@ export function NearbyTournamentsSection() {
     !coords && (status === 'idle' || status === 'prompt' || status === 'granted')
 
   return (
-    <section className="space-y-3">
-      <div className="flex items-center gap-2">
-        <MapPin className="w-4 h-4 lg:w-5 lg:h-5 text-white/60" />
-        <h2 className="font-heading font-bold text-xl sm:text-2xl lg:text-4xl text-white">Nearby Tournaments</h2>
-      </div>
-      <p className="text-xs sm:text-sm lg:text-lg text-white/50">
-        Open tournaments close to you
+    <section className="mk-section pt-0">
+      <h2>Tournaments near you</h2>
+      <p className="mt-4 max-w-[65ch] text-base lg:text-lg" style={{ color: 'var(--mk-text-muted)' }}>
+        Open events within 50 km, once you say where you are.
       </p>
 
-      {showButton && (
-        <button
-          type="button"
-          onClick={request}
-          className="inline-flex items-center gap-2 rounded-lg bg-white/10 hover:bg-white/15 active:bg-white/20 text-white text-sm font-medium px-4 py-2.5 transition-colors border border-white/15"
-        >
-          <MapPin className="w-4 h-4" />
-          Find tournaments near me
-        </button>
-      )}
+      <div className="mt-8 space-y-4">
+        {showButton && (
+          <button type="button" onClick={request} className="mk-btn mk-btn-secondary">
+            <MapPin className="h-4 w-4" aria-hidden />
+            Find tournaments near me
+          </button>
+        )}
 
-      {isLoading && (
-        <div className="flex items-center gap-2 text-sm text-white/50 py-2">
-          <Loader2 className="w-4 h-4 animate-spin" />
-          {fetchState === 'loading' ? 'Finding nearby tournaments…' : 'Getting your location…'}
-        </div>
-      )}
+        {isLoading && (
+          <div className="flex items-center gap-2 py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            <Loader2 className="h-4 w-4 animate-spin motion-reduce:animate-none" aria-hidden />
+            {fetchState === 'loading' ? 'Finding nearby tournaments…' : 'Getting your location…'}
+          </div>
+        )}
 
-      {(status === 'denied' || status === 'unsupported') && (
-        <div className="flex items-center gap-2 text-sm text-white/50 py-2">
-          <MapPinOff className="w-4 h-4" />
-          Enable location access to see tournaments near you.
-        </div>
-      )}
+        {(status === 'denied' || status === 'unsupported') && (
+          <div className="flex items-center gap-2 py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            <MapPinOff className="h-4 w-4" aria-hidden />
+            Location is switched off, so this list stays empty. Everything else works without it.
+          </div>
+        )}
 
-      {(status === 'error' || fetchState === 'error') && (
-        <p className="text-sm text-white/50 py-2">
-          Couldn&apos;t load nearby tournaments. Try again later.
-        </p>
-      )}
+        {(status === 'error' || fetchState === 'error') && (
+          <p className="py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            Couldn&apos;t load nearby tournaments. Try again later.
+          </p>
+        )}
 
-      {fetchState === 'done' && (
-        <>
-          {tournaments.length > 0 ? (
-            <div className="space-y-3">
-              {availableMonths.length > 2 && (
-                <DateFilterTabs
-                  availableMonths={availableMonths}
-                  activeMonth={activeMonth}
-                  onMonthChange={setActiveMonth}
-                />
-              )}
+        {fetchState === 'done' && (
+          <>
+            {tournaments.length > 0 ? (
+              <div className="space-y-4">
+                {availableMonths.length > 2 && (
+                  <DateFilterTabs
+                    availableMonths={availableMonths}
+                    activeMonth={activeMonth}
+                    onMonthChange={setActiveMonth}
+                  />
+                )}
 
-              {filtered.length > 0 ? (
-                <div className="space-y-3">
-                  {filtered.map((t, i) => (
-                    <LandingTournamentCard
-                      key={t.id}
-                      slug={t.slug}
-                      name={t.name}
-                      description={t.description}
-                      logo={t.logo}
-                      status={t.status}
-                      startDate={t.startDate}
-                      endDate={t.endDate}
-                      playerCount={t.playerCount}
-                      imageVariant={IMAGE_VARIANTS[i % 3]}
-                    />
-                  ))}
-                </div>
-              ) : (
-                <p className="text-sm text-white/50 py-2">
-                  No nearby tournaments in this month.
+                {filtered.length > 0 ? (
+                  <div className="space-y-3">
+                    {filtered.map((t) => (
+                      <LandingTournamentCard
+                        key={t.id}
+                        slug={t.slug}
+                        name={t.name}
+                        description={t.description}
+                        logo={t.logo}
+                        status={t.status}
+                        startDate={t.startDate}
+                        endDate={t.endDate}
+                        playerCount={t.playerCount}
+                      />
+                    ))}
+                  </div>
+                ) : (
+                  <p className="py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+                    Nothing near you in this month. Try another.
+                  </p>
+                )}
+              </div>
+            ) : (
+              /* An invitation, not a report of absence. */
+              <div
+                className="flex flex-col items-start px-6 py-10"
+                style={{
+                  border: '1px dashed var(--mk-rule-gold)',
+                  borderRadius: 'var(--mk-radius-lg)',
+                }}
+              >
+                <p
+                  className="max-w-[52ch] text-base leading-relaxed"
+                  style={{ color: 'var(--mk-text-muted)' }}
+                >
+                  Nobody has opened a public tournament within 50 km yet. Your group does
+                  not have to wait for one.
                 </p>
-              )}
-
-              <p className="text-xs text-white/40">
-                Showing open tournaments within 50 km
-              </p>
-            </div>
-          ) : (
-            <p className="text-sm text-white/50 py-2">
-              No open tournaments within 50 km of your location.
-            </p>
-          )}
-        </>
-      )}
+                <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-7">
+                  Create a tournament
+                </Link>
+              </div>
+            )}
+          </>
+        )}
+      </div>
     </section>
   )
 }

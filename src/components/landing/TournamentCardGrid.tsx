@@ -21,8 +21,6 @@ interface TournamentCardGridProps {
   emptyMessage?: string
 }
 
-const IMAGE_VARIANTS = ['default', 'alt', 'gold'] as const
-
 export function TournamentCardGrid({ tournaments, emptyMessage }: TournamentCardGridProps) {
   const [activeMonth, setActiveMonth] = useState('All')
 
@@ -62,7 +60,7 @@ export function TournamentCardGrid({ tournaments, emptyMessage }: TournamentCard
 
       {filtered.length > 0 ? (
         <div className="space-y-3 lg:grid lg:grid-cols-2 lg:gap-4 lg:space-y-0">
-          {filtered.map((t, i) => (
+          {filtered.map((t) => (
             <LandingTournamentCard
               key={t.id}
               slug={t.slug}
@@ -73,7 +71,6 @@ export function TournamentCardGrid({ tournaments, emptyMessage }: TournamentCard
               startDate={t.startDate}
               endDate={t.endDate}
               playerCount={t.playerCount}
-              imageVariant={IMAGE_VARIANTS[i % 3]}
             />
           ))}
         </div>
