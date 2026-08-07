@@ -1,7 +1,6 @@
 'use client'
 
 import { useCallback, useEffect, useState, useMemo } from 'react'
-import Link from 'next/link'
 import { MapPin, MapPinOff, Loader2 } from 'lucide-react'
 import { DateFilterTabs } from './DateFilterTabs'
 import { LandingTournamentCard } from './LandingTournamentCard'
@@ -108,9 +107,17 @@ export function NearbyTournamentsSection() {
         )}
 
         {(status === 'error' || fetchState === 'error') && (
-          <p className="py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
-            Couldn&apos;t load nearby tournaments. Try again later.
-          </p>
+          <div className="flex items-center gap-4 py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            <span>Couldn&apos;t load nearby tournaments.</span>
+            <button
+              type="button"
+              onClick={() => (coords ? loadTournaments(coords.lat, coords.lng) : request())}
+              className="underline underline-offset-4"
+              style={{ color: 'var(--mk-text-muted)' }}
+            >
+              Try again
+            </button>
+          </div>
         )}
 
         {fetchState === 'done' && (
@@ -148,25 +155,13 @@ export function NearbyTournamentsSection() {
                 )}
               </div>
             ) : (
-              /* An invitation, not a report of absence. */
-              <div
-                className="flex flex-col items-start px-6 py-10"
-                style={{
-                  border: '1px dashed var(--mk-rule-gold)',
-                  borderRadius: 'var(--mk-radius-lg)',
-                }}
-              >
-                <p
-                  className="max-w-[52ch] text-base leading-relaxed"
-                  style={{ color: 'var(--mk-text-muted)' }}
-                >
-                  Nobody has opened a public tournament within 50 km yet. Your group does
-                  not have to wait for one.
-                </p>
-                <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-7">
-                  Create a tournament
-                </Link>
-              </div>
+              /* Quiet by design: FeaturedTournaments directly above already
+                 carries the dashed invitation and its CTA; repeating the same
+                 box here made the page end on visible copy-paste. */
+              <p className="py-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+                Nothing public within 50 km yet. The clubhouse fills as
+                organisers open their events.
+              </p>
             )}
           </>
         )}

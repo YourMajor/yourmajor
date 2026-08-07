@@ -44,7 +44,9 @@ export async function FeaturedTournaments() {
   const serialized = await fetchFeatured()
 
   return (
-    <section className="mk-section">
+    // pt-0 for the same reason PricingSummary carries it: adjacent
+    // mk-sections double their padding into dead space.
+    <section className="mk-section pt-0">
       <h2>Featured tournaments</h2>
       <p className="mt-4 max-w-[65ch] text-base lg:text-lg" style={{ color: 'var(--mk-text-muted)' }}>
         Public events taking entries right now.

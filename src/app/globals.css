@@ -557,11 +557,11 @@
   }
 }
 
-/* Header: the gold rule that glides between nav links with a slight
-   overshoot. JS (NavUnderline) only sets transform and opacity. */
+/* Header: the gold rule that glides between nav links. JS (NavUnderline)
+   only sets transform and opacity. */
 .marketing nav [data-nav-rule] {
   transition:
-    transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    transform 340ms cubic-bezier(0.22, 1, 0.36, 1),
     opacity 200ms ease-out;
 }
 
@@ -573,7 +573,9 @@
   to   { transform: translate(3px, 3px); }
 }
 @supports (animation-timeline: view()) {
-  @media (prefers-reduced-motion: no-preference) {
+  /* Desktop only: on a slow thumb-scroll the mid-register state sat centered
+     in a phone viewport long enough to read as a rendering bug. */
+  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
     .marketing .mk-poster-ink {
       animation: mkPressRegister linear both;
       animation-timeline: view();
@@ -604,6 +606,25 @@
   .marketing nav [data-nav-rule] { transition: none; }
   .marketing [data-beat].is-on .mk-chip,
   .marketing .mk-row-flash { animation: none !important; }
+}
+
+/* Mobile thumb-zone CTA: slides up once the hero's own CTA has scrolled
+   away (MobileCta writes data-visible straight to the DOM). */
+.marketing .mk-mobile-cta {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 50;
+  padding: 0.75rem 1rem calc(0.75rem + env(safe-area-inset-bottom));
+  background: color-mix(in oklch, var(--mk-green-deep) 92%, transparent);
+  backdrop-filter: blur(12px);
+  border-top: 1px solid var(--mk-rule-gold);
+  transform: translateY(110%);
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.marketing .mk-mobile-cta[data-visible='true'] { transform: translateY(0); }
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-mobile-cta { transition: none; }
 }
 
 @keyframes mkCardReveal {

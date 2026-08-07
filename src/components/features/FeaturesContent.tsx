@@ -127,7 +127,15 @@ function NetBoardVisual() {
               className={`${LABEL} ${i === 1 ? 'text-left' : 'text-center'}`}
               style={{ color: 'var(--mk-gold)' }}
             >
-              {label}
+              {/* "Grs" below sm: the full word collided with Hcp at 390. */}
+              {label === 'Gross' ? (
+                <>
+                  <span className="sm:hidden">Grs</span>
+                  <span className="hidden sm:inline">Gross</span>
+                </>
+              ) : (
+                label
+              )}
             </span>
           ))}
         </div>

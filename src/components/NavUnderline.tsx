@@ -5,11 +5,10 @@ import { usePathname } from 'next/navigation'
 import { isMarketingRoute } from '@/lib/marketing-routes'
 
 /**
- * The gold rule that glides between nav links, overshooting slightly like a
- * needle finding its stop. Rendered inside the desktop nav; JS writes only
- * transform and opacity, the transition lives in globals.css and dies under
- * reduced motion. Pointer devices and marketing routes only; the rule is
- * flourish, the links are the affordance.
+ * The gold rule that glides between nav links. Rendered inside the desktop
+ * nav; JS writes only transform and opacity, the transition lives in
+ * globals.css and dies under reduced motion. Pointer devices and marketing
+ * routes only; the rule is flourish, the links are the affordance.
  */
 export function NavUnderline() {
   const ref = useRef<HTMLSpanElement>(null)

@@ -238,7 +238,14 @@ export function DraftChapter() {
     }
   }, [pool.length, draftCard])
 
-  // Overdrive: pool cards tilt in 3D under the pointer and spring flat on
+  // A full hand disarms the remaining pool drags entirely; before this,
+  // card four could be dragged to the hand and would spring back with no
+  // explanation anywhere on the page.
+  useEffect(() => {
+    draggables.current.forEach((d) => (handFull ? d.disable() : d.enable()))
+  }, [handFull])
+
+  // Overdrive: pool cards tilt in 3D under the pointer and settle flat on
   // leave. One delegated listener pair; inert on touch and reduced motion,
   // and it yields entirely while a card is being dragged.
   useEffect(() => {
@@ -272,7 +279,7 @@ export function DraftChapter() {
             { transform: from },
             { transform: 'perspective(600px) rotateX(0deg) rotateY(0deg)' },
           ],
-          { duration: 480, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+          { duration: 480, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
         )
       }
     }
@@ -391,6 +398,11 @@ export function DraftChapter() {
             </div>
 
             <div className="mt-6 flex items-center justify-center gap-6">
+              {handFull && (
+                <span className="text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+                  Hand full.
+                </span>
+              )}
               {drafted.length > 0 && (
                 <button
                   type="button"

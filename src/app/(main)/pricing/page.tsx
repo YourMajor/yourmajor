@@ -114,7 +114,7 @@ function TierPlate({ tier }: { tier: TierDef }) {
 
       <div className="mt-5">
         {tier.key === 'FREE' ? (
-          <Link href="/dashboard" className="mk-btn mk-btn-secondary-plate w-full">
+          <Link href="/auth/signup" className="mk-btn mk-btn-secondary-plate w-full">
             Start a free tournament
           </Link>
         ) : (
@@ -171,9 +171,13 @@ export default function PricingPage() {
       <div className="mx-auto max-w-5xl space-y-16 px-4 py-10 sm:px-6 lg:max-w-6xl lg:space-y-20 lg:py-14 xl:max-w-7xl">
         {/* Tier plates */}
         <section
-          aria-label="Plans"
+          aria-labelledby="plans-heading"
           className="grid grid-cols-1 items-stretch gap-4 pt-2 md:grid-cols-2 lg:grid-cols-4"
         >
+          {/* Keeps the heading outline intact (h1 -> h2 -> tier h3s). */}
+          <h2 id="plans-heading" className="sr-only">
+            Plans
+          </h2>
           {TIERS.map((tier, i) => (
             <ScrollReveal key={tier.key} direction="up" delay={i * 70} duration={600} className="h-full">
               <TierPlate tier={tier} />
@@ -245,11 +249,11 @@ export default function PricingPage() {
             />
             <FaqItem
               q="How do Major tournament credits work?"
-              a="Each $29 purchase of The Major gives you one tournament credit. Creating a tournament with Pro features (branding, powerups, multiple rounds) consumes one credit. Unused credits never expire."
+              a="Each $29 purchase of The Major gives you one tournament credit. Creating a tournament with Major features (branding, powerups, multiple rounds) consumes one credit. Unused credits never expire."
             />
             <FaqItem
               q="What is the Club subscription?"
-              a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page. There is no long-term commitment."
+              a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with every Major feature, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page. There is no long-term commitment."
             />
             <FaqItem
               q="What does the Tour annual pass include?"

@@ -30,7 +30,7 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
   // feature-set term, never a tier name.
   const labels: Record<string, string> = {
     PRO: 'Get The Major',
-    CLUB: 'Start a League',
+    CLUB: 'Get The Club',
     LEAGUE: 'Get the Tour pass',
   }
 

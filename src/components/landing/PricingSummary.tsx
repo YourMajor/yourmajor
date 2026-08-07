@@ -40,7 +40,9 @@ const TIERS = [
 
 export function PricingSummary() {
   return (
-    <section id="pricing" className="mk-section scroll-mt-24">
+    // pt-0: the features section's own bottom padding provides the gap;
+    // stacking both read as a dead viewport of empty green at 1440.
+    <section id="pricing" className="mk-section scroll-mt-24 pt-0">
       <div className="mk-container">
         <h2>Pay for the tournament, not the year</h2>
         <p

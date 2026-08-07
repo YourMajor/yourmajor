@@ -121,7 +121,7 @@ export const TIER_FEATURES: Record<PricingTier, string[]> = {
   ],
   CLUB: [
     '4 tournaments per month',
-    'All Pro features included',
+    'All Major features included',
     'Photo gallery (up to 250)',
     'Season-long standings & stats',
     'Recurring player roster',
