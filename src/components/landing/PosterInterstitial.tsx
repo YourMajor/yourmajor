@@ -22,7 +22,7 @@ const LINES = ['Built for', 'competitive', 'golfers']
 export function PosterInterstitial() {
   return (
     <div
-      className="relative flex min-h-[70vh] flex-col justify-center py-20"
+      className="relative flex min-h-[95vh] flex-col justify-center py-24"
       style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
     >
       {/* Media stage: same drop-in contract as the hero's. */}
@@ -40,8 +40,11 @@ export function PosterInterstitial() {
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
+          // The bottom fade starts just under the heading and reaches solid
+          // dusk before the photo's edge, so the hand-off into the next
+          // section has no hard line at all.
           background:
-            'linear-gradient(to bottom, var(--mk-green-ground), transparent 32%, transparent 68%, var(--mk-dusk)), color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
+            'linear-gradient(to bottom, var(--mk-green-ground), transparent 24%, transparent 48%, color-mix(in oklch, var(--mk-dusk) 55%, transparent) 72%, var(--mk-dusk) 94%), color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
         }}
       />
 
