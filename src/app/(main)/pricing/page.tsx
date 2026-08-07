@@ -116,7 +116,9 @@ function TierPlate({ tier }: { tier: TierDef }) {
 
       <div className="mt-5">
         {tier.key === 'FREE' ? (
-          <Link href="/auth/signup" className="mk-btn mk-btn-secondary-plate w-full">
+          // Primary, like the paid CTAs: free is the entry product, and the
+          // one secondary button in the row read as the one to skip.
+          <Link href="/auth/signup" className="mk-btn mk-btn-primary-plate w-full">
             Start a free tournament
           </Link>
         ) : (
