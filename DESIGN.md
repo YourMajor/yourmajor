@@ -152,9 +152,18 @@ document records it. Current sanctioned bends:
   drift, and dusk never carries plates, buttons, or data surfaces.
 - **Film grain and soft rules (user-directed, 2026-08-07).** The whole
   marketing surface carries the hero photograph's texture: a static grain
-  overlay at 3.5% (main.marketing::after) and full-width gold separators
+  overlay at 5.5% (main.marketing::after) and full-width gold separators
   that fade at both ends (.mk-rule-soft-*) instead of hitting the viewport
   edge as hard lines. Grain is a still image, exempt from motion gating.
+- **The page ends at night (user-directed, 2026-08-07).** The landing page
+  runs day to night: green ground, the dusk interlude, green again, then a
+  final descent (.mk-night-zone) through twilight into `--mk-night`
+  (`oklch(0.16 0.025 262)`) that lands on the footer end plate: a
+  poster-register close (dark painterly texture from the dusk photograph,
+  the wordmark as a film title with a slow projector sweep, links set as
+  the credits line). The night ground exists only in this descent and the
+  footer; the screenprint poster in the features run remains the page's
+  only screenprint moment.
 
 ## Colors
 

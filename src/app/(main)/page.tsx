@@ -1,5 +1,4 @@
 import { redirect } from 'next/navigation'
-import Link from 'next/link'
 import { getUser } from '@/lib/auth'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { LeadChangeChapter } from '@/components/landing/LeadChangeChapter'
@@ -16,6 +15,7 @@ import { StatsBand } from '@/components/landing/StatsBand'
 import { SeasonStrip } from '@/components/landing/SeasonStrip'
 import { FormatsMarquee } from '@/components/landing/FormatsMarquee'
 import { ScorecardRail } from '@/components/landing/ScorecardRail'
+import { ClosingChapter } from '@/components/landing/ClosingChapter'
 import { MobileCta } from '@/components/landing/MobileCta'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
@@ -53,28 +53,19 @@ export default async function Home() {
 
       <PricingSummary />
 
-      <div id="clubhouse" className="mk-container scroll-mt-24">
-        <FeaturedTournaments />
-        <NearbyTournamentsSection />
-      </div>
-
-      <SeasonStrip />
-
-      {/* The page ends on the action, not on an empty state: the last
-          memory of a full scroll is the invitation, per peak-end. */}
-      <section aria-label="Get started" className="mk-section pt-0 text-center">
-        <div className="mk-container">
-          <p
-            className="mx-auto max-w-[40ch] text-lg"
-            style={{ color: 'var(--mk-text-muted)' }}
-          >
-            The first round is free. The rivalry is forever.
-          </p>
-          <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-6">
-            Create a tournament
-          </Link>
+      {/* Nightfall: from here the evening comes down for good, ending in
+          the footer's end plate. The last memory of a full scroll is the
+          18th and the invitation, per peak-end. */}
+      <div className="mk-night-zone">
+        <div id="clubhouse" className="mk-container scroll-mt-24">
+          <FeaturedTournaments />
+          <NearbyTournamentsSection />
         </div>
-      </section>
+
+        <SeasonStrip />
+
+        <ClosingChapter />
+      </div>
 
       {/* The page as a front nine: desktop-only chapter rail. */}
       <ScorecardRail />

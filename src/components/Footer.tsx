@@ -1,9 +1,11 @@
 'use client'
 
 import Link from 'next/link'
+import Image from 'next/image'
 import { usePathname } from 'next/navigation'
 import { motion, useReducedMotion } from 'motion/react'
 import { isMarketingRoute } from '@/lib/marketing-routes'
+import posterCourse from '../../public/images/marketing/poster-course.webp'
 
 const LINKS = [
   { href: '/terms', label: 'Terms of Use' },
@@ -48,57 +50,51 @@ export function Footer() {
     )
   }
 
+  /* The end plate. The page's nightfall lands here: a near-black night
+     ground with the dusk course photograph crushed into a painterly
+     texture, a rising sunset ember, and the wordmark set as the film
+     title with a slow projector sweep. The links read as the credits
+     line under it. Poster register: dark, textured, typographic. */
   return (
     <footer
       className="marketing relative overflow-hidden"
-      style={{ background: 'var(--mk-green-deep)' }}
+      style={{ background: 'var(--mk-night)' }}
     >
-      {/* The sunset horizon rises behind the wordmark at page end. */}
+      {/* Painterly texture: the dusk photograph, crushed dark. */}
+      <div aria-hidden className="absolute inset-0 opacity-[0.16]">
+        <Image
+          src={posterCourse}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+          style={{ filter: 'saturate(0.85) brightness(0.8)' }}
+        />
+      </div>
+      {/* The sunset ember rises behind the title. */}
       <div aria-hidden className="mk-footer-horizon" />
-      {/* The hairline draws itself across the page, fading at both ends so
-          the section break never lands as a hard line. */}
-      <motion.div
-        aria-hidden
-        className="h-px w-full origin-left"
-        style={{
-          background:
-            'linear-gradient(90deg, transparent, var(--mk-gold) 18%, var(--mk-gold) 82%, transparent)',
-        }}
-        initial={{ scaleX: 0 }}
-        whileInView={{ scaleX: 1 }}
-        viewport={{ once: true, amount: 1 }}
-        transition={reduce ? { duration: 0 } : { duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
-      />
 
-      <div className="mk-container flex flex-col gap-10 pt-12 pb-6 lg:pt-16">
-        <nav className="flex flex-wrap items-center gap-x-8 gap-y-3" aria-label="Footer">
-          {MARKETING_LINKS.map((link) => (
-            <Link
-              key={link.href}
-              href={link.href}
-              className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] transition-colors hover:opacity-100 pointer-coarse:py-3"
-              style={{ color: 'var(--mk-text-subtle)' }}
-            >
-              {link.label}
-            </Link>
-          ))}
-        </nav>
+      <div className="mk-container relative flex flex-col items-center gap-9 pt-16 pb-10 text-center lg:pt-24">
+        <p
+          className="max-w-[40ch] text-base italic"
+          style={{
+            fontFamily: 'var(--font-display), Georgia, serif',
+            color: 'var(--mk-text-muted)',
+          }}
+        >
+          Every group has a major.
+        </p>
 
-        {/* The wordmark rises out of the ground letter by letter, like a
-            gallery board turning over. Ghost ink on deep green: texture, not
-            a heading, hence aria-hidden. Letters start visible (offset only)
-            per the animate-from-visible contract. */}
+        {/* The title. Letters rise once; a projector sweep crosses slowly.
+            Decorative duplicate of the brand name, hence aria-hidden. */}
         <p
           aria-hidden
-          className="select-none overflow-hidden text-center uppercase"
+          className="mk-endplate-title select-none uppercase"
           style={{
             fontFamily: 'var(--font-display), Georgia, serif',
             fontSize: 'clamp(3rem, 13vw, 11rem)',
-            lineHeight: 0.8,
-            letterSpacing: '0.02em',
-            color: 'var(--mk-bone)',
-            opacity: 0.13,
-            marginBottom: '-0.18em',
+            lineHeight: 0.9,
+            letterSpacing: '0.04em',
           }}
         >
           {'YourMajor'.split('').map((ch, i) => (
@@ -119,6 +115,31 @@ export function Footer() {
             </motion.span>
           ))}
         </p>
+
+        {/* The credits block: product facts, then the links. */}
+        <div className="flex flex-col items-center gap-4">
+          <p
+            className="text-[0.6875rem] font-semibold uppercase tracking-[0.22em]"
+            style={{ color: 'var(--mk-text-subtle)' }}
+          >
+            Live leaderboards · Digital scorecards · Powerup drafts
+          </p>
+          <nav
+            className="flex flex-wrap items-center justify-center gap-x-7 gap-y-3"
+            aria-label="Footer"
+          >
+            {MARKETING_LINKS.map((link) => (
+              <Link
+                key={link.href}
+                href={link.href}
+                className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] transition-colors hover:opacity-100 pointer-coarse:py-3"
+                style={{ color: 'var(--mk-text-subtle)' }}
+              >
+                {link.label}
+              </Link>
+            ))}
+          </nav>
+        </div>
       </div>
     </footer>
   )
