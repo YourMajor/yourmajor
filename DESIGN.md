@@ -27,6 +27,13 @@ typography:
     lineHeight: 0.98
     letterSpacing: "0.01em"
     note: "The single screenprint interstitial only; a second use is drift"
+  wordmark:
+    fontFamily: "Libre Caslon Display, Georgia, serif"
+    fontSize: "clamp(3rem, 13vw, 11rem)"
+    fontWeight: 400
+    lineHeight: 0.8
+    letterSpacing: "0.02em"
+    note: "The footer set piece only: ghost bone ink at ~13% on deep green"
   headline:
     fontFamily: "Libre Caslon Display, Georgia, serif"
     fontSize: "clamp(1.75rem, 3.5vw, 3rem)"
