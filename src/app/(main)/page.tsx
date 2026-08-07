@@ -10,6 +10,8 @@ import {
 } from '@/components/features/FeaturesContent'
 import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
 import { DraftChapter } from '@/components/landing/DraftChapter'
+import { StatsBand } from '@/components/landing/StatsBand'
+import { SeasonStrip } from '@/components/landing/SeasonStrip'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
 import { NearbyTournamentsSection } from '@/components/landing/NearbyTournamentsSection'
@@ -34,6 +36,7 @@ export default async function Home() {
         <ShotTracerChapter />
         <DraftChapter />
         <FeatureBento />
+        <StatsBand />
         <FeatureList />
       </section>
 
@@ -43,6 +46,8 @@ export default async function Home() {
         <FeaturedTournaments />
         <NearbyTournamentsSection />
       </div>
+
+      <SeasonStrip />
     </main>
   )
 }
