@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/auth'
 import { HeroSection } from '@/components/landing/HeroSection'
+import { LeadChangeChapter } from '@/components/landing/LeadChangeChapter'
 import { FeaturesContent } from '@/components/features/FeaturesContent'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
@@ -15,6 +16,8 @@ export default async function Home() {
     // on descendants, and the hero's scroll sequence depends on it.
     <main className="marketing overflow-x-clip">
       <HeroSection />
+
+      <LeadChangeChapter />
 
       {/* Features live here now rather than on their own route; /features
           redirects to this anchor. FeaturesContent is reused as-is. */}
