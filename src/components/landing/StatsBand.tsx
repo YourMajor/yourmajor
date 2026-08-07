@@ -134,12 +134,8 @@ export function StatsBand() {
   return (
     <section
       id="stats"
-      className="relative mt-24 overflow-hidden lg:mt-32"
-      style={{
-        borderTop: '1px solid var(--mk-rule-gold)',
-        borderBottom: '1px solid var(--mk-rule-gold)',
-        background: 'var(--mk-green-raised)',
-      }}
+      className="mk-rule-soft-t mk-rule-soft-b relative mt-24 overflow-hidden lg:mt-32"
+      style={{ background: 'var(--mk-green-raised)' }}
     >
       <div className="absolute inset-0 opacity-45" aria-hidden>
         <GrainGradient
@@ -147,7 +143,9 @@ export function StatsBand() {
           /* The DESIGN.md green tokens and gold-at-25%, converted to hex:
              the shader mount rejects oklch() strings. */
           colorBack="#041e0f"
-          colors={['#0b2e1a', '#153c25', '#ca9c4e40']}
+          /* The last stop is the sunset token at low alpha: the hero's
+             horizon warmth carried into the band's grass-in-wind field. */
+          colors={['#0b2e1a', '#153c25', '#ca9c4e40', '#c2591e26']}
           shape="wave"
           softness={0.9}
           intensity={0.18}

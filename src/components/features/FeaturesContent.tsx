@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
+import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Timeline } from 'animejs'
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import { useTimelineInView } from '@/components/motion/useTimelineInView'
@@ -617,46 +617,18 @@ export function FeatureSplits() {
 }
 
 /** Bento. Four capabilities under gold hairlines, no cards, nothing nested.
-    A soft gold spotlight tracks the pointer across the cells; it never
-    carries information and never exists on touch or under reduced motion. */
+    No hover treatment: the pointer spotlight showed hard edges over the
+    mockups and was removed at the user's direction. */
 export function FeatureBento() {
-  const gridRef = useRef<HTMLDivElement>(null)
-
-  useEffect(() => {
-    const grid = gridRef.current
-    if (!grid) return
-    if (!window.matchMedia('(hover: hover) and (pointer: fine)').matches) return
-
-    const cells = grid.querySelectorAll<HTMLElement>('[data-spot-cell]')
-    const onMove = (e: PointerEvent) => {
-      cells.forEach((cell) => {
-        const r = cell.getBoundingClientRect()
-        cell.style.setProperty('--spot-x', `${e.clientX - r.left}px`)
-        cell.style.setProperty('--spot-y', `${e.clientY - r.top}px`)
-        cell.style.setProperty('--spot-o', '1')
-      })
-    }
-    const onLeave = () => cells.forEach((c) => c.style.setProperty('--spot-o', '0'))
-
-    grid.addEventListener('pointermove', onMove)
-    grid.addEventListener('pointerleave', onLeave)
-    return () => {
-      grid.removeEventListener('pointermove', onMove)
-      grid.removeEventListener('pointerleave', onLeave)
-    }
-  }, [])
-
   return (
     <div id="bento" className="mk-container mt-24 lg:mt-32">
-      <div ref={gridRef} className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
+      <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
           {BENTO_FEATURES.map((feature, i) => (
             <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
               <div
-                data-spot-cell
                 className="relative pt-6"
                 style={{ borderTop: '1px solid var(--mk-rule-gold)' }}
               >
-                <div className="mk-spot" aria-hidden />
                 <feature.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
                 <h3 className="mt-4 text-xl lg:text-2xl">{feature.title}</h3>
                 <p

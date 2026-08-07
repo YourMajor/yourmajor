@@ -140,14 +140,21 @@ document records it. Current sanctioned bends:
 - **Cursor reactivity is part of the world.** Magnetic CTAs, plate sheen, the
   bento spotlight, and in-chapter custom-cursor moments are sanctioned on
   pointer devices, always inert on touch, never load-bearing.
-- **One dusk interlude (user-directed, 2026-08-07).** "Green owns the page at
-  page scale" relaxes for exactly one stretch of the landing page: the poster
-  photograph hands the ground to twilight slate (`--mk-dusk`,
-  `oklch(0.30 0.035 265)`) and it ramps back to green as the tracer chapter
-  ends (`.mk-dusk-zone`). The tone is sampled from the dusk photo's sky at
-  half the chroma of the retired navy world, so it reads as evening light,
-  never as a brand blue. One interlude exists; a second is drift, and dusk
-  never carries plates, buttons, or data surfaces of its own.
+- **One dusk interlude (user-directed, 2026-08-07; deepened same day).**
+  "Green owns the page at page scale" relaxes for exactly one stretch of the
+  landing page: the poster photograph hands the ground to the hero
+  photograph's own sky, a deep hazy slate (`--mk-dusk`,
+  `oklch(0.24 0.030 262)`) with a band of sunset haze low on the horizon
+  (`--mk-sunset`, `oklch(0.60 0.150 45)`), ramping back to green as the
+  tracer chapter ends (`.mk-dusk-zone`). Sunset orange is atmosphere only:
+  a radial haze, a shader stop, a glow behind display type. It is never a
+  UI color, a fill, a rule, or text. One interlude exists; a second is
+  drift, and dusk never carries plates, buttons, or data surfaces.
+- **Film grain and soft rules (user-directed, 2026-08-07).** The whole
+  marketing surface carries the hero photograph's texture: a static grain
+  overlay at 3.5% (main.marketing::after) and full-width gold separators
+  that fade at both ends (.mk-rule-soft-*) instead of hitting the viewport
+  edge as hard lines. Grain is a still image, exempt from motion gating.
 
 ## Colors
 

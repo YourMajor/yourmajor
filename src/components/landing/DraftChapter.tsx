@@ -178,8 +178,9 @@ export function DraftChapter() {
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
     Flip.from(state, {
       targets: stageRef.current?.querySelectorAll('[data-card]') ?? [],
-      duration: reduce ? 0 : 0.55,
-      ease: 'power3.inOut',
+      // Fast out-ease: the card should feel caught by the hand, not carried.
+      duration: reduce ? 0 : 0.38,
+      ease: 'power2.out',
       absolute: true,
     })
   }, [drafted])
@@ -225,6 +226,12 @@ export function DraftChapter() {
           if (overlaps) {
             self.stop()
             self.disable()
+            // Freeze the ghost: the snap-home spring starts after this
+            // callback returns, so without this the old node visibly springs
+            // back toward the pool for a few frames before React swaps the
+            // card into the hand and Flip takes over. Hidden, not removed:
+            // Flip still reads its dragged bounds for the flight's start.
+            el.style.visibility = 'hidden'
             draftCard(id)
           }
         },
