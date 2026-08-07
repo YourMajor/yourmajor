@@ -124,31 +124,49 @@ export function LeadChangeChapter() {
   return (
     <section ref={sectionRef} id="lead" className="relative flex min-h-[100dvh] items-center">
       <div className="mk-container w-full py-20">
-        <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
-          <div ref={railRef} className="lg:col-span-5">
-            <h2>Live to the last putt</h2>
-            <div className="mt-10 space-y-7">
-              {BEATS.map((beat) => (
-                <div key={beat.thru} data-beat>
-                  <span
-                    className="mk-data block text-sm"
-                    style={{ color: 'var(--mk-gold)' }}
-                  >
-                    {beat.thru}
-                  </span>
-                  <p
-                    className="mt-1 text-lg leading-relaxed lg:text-xl"
-                    style={{ color: 'var(--mk-text-muted)' }}
-                  >
-                    {beat.line}
-                  </p>
-                </div>
-              ))}
+        {/* The studio band: the chapter mounts on a deep-green panel framed by
+            a gold hairline. Live-accepted variant with params baked: deep
+            tone, gold at 45% (chip borders at 90%). */}
+        <div
+          style={{
+            background: 'var(--mk-green-deep)',
+            border: '1px solid color-mix(in oklch, var(--mk-gold) 45%, transparent)',
+            borderRadius: 'var(--mk-radius-lg)',
+            padding: 'clamp(1.75rem, 4vw, 3.5rem)',
+            boxShadow: 'var(--mk-shadow-plate)',
+          }}
+        >
+          <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
+            <div ref={railRef} className="lg:col-span-5">
+              <h2>Live to the last putt</h2>
+              <div className="mt-10 space-y-7">
+                {BEATS.map((beat) => (
+                  <div key={beat.thru} data-beat>
+                    <span
+                      className="mk-data inline-flex items-center text-sm"
+                      style={{
+                        padding: '0.2rem 0.65rem',
+                        border: '1px solid color-mix(in oklch, var(--mk-gold) 90%, transparent)',
+                        borderRadius: 'var(--mk-radius-sm)',
+                        color: 'var(--mk-gold)',
+                      }}
+                    >
+                      {beat.thru}
+                    </span>
+                    <p
+                      className="mt-2 text-lg leading-relaxed lg:text-xl"
+                      style={{ color: 'var(--mk-text)' }}
+                    >
+                      {beat.line}
+                    </p>
+                  </div>
+                ))}
+              </div>
             </div>
-          </div>
 
-          <div ref={plateRef} className="lg:col-span-7">
-            <LeaderboardPlate />
+            <div ref={plateRef} className="lg:col-span-7">
+              <LeaderboardPlate />
+            </div>
           </div>
         </div>
       </div>
