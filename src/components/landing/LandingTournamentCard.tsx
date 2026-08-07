@@ -46,7 +46,7 @@ export function LandingTournamentCard({
   return (
     <Link
       href={`/${slug}`}
-      className="mk-plate block p-5 transition-shadow hover:shadow-[var(--mk-shadow-plate-hover)]"
+      className="mk-plate mk-sheen block p-5 transition-shadow hover:shadow-[var(--mk-shadow-plate-hover)]"
     >
       <div className="flex items-start gap-4">
         {logo && (
