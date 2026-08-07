@@ -40,11 +40,15 @@ export async function GlobalNav() {
       <div className="max-w-5xl lg:max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
         {/* Left: Logo + nav links */}
         <div className="flex items-center gap-5">
-          <Link href="/" className="flex items-center gap-2.5 shrink-0">
+          {/* mk-logo classes are inert outside .marketing; NavShell adds the
+              scope on marketing routes, so the app nav renders exactly as
+              before while the marketing nav gets the photo-safe drop shadow
+              and hover flair (globals.css). */}
+          <Link href="/" className="mk-logo flex items-center gap-2.5 shrink-0">
             <Image src="/logos/yourmajor-badge.svg" alt="" width={48} height={48} className="h-12 w-12" />
-            <span className="font-heading leading-none text-left">
-              <span className="block text-sm font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
-              <span className="block text-2xl font-black -mt-1.5 text-accent">MAJOR</span>
+            <span className="mk-logo-word font-heading leading-none text-left">
+              <span className="mk-logo-your block text-sm font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
+              <span className="mk-logo-major block text-2xl font-black -mt-1.5 text-accent">MAJOR</span>
             </span>
           </Link>
 

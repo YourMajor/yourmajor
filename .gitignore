@@ -53,3 +53,4 @@ powerups-export.csv
 
 # local QA artifacts (screenshots, scratch output)
 /tmp/
+.impeccable/

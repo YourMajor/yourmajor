@@ -343,6 +343,30 @@
   transform-origin: left center;
   animation: mkRuleDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.75s both;
 }
+/* ── Nav logo (live-accepted) ────────────────────────────
+   Marketing routes only: a green-tinted drop shadow keeps the wordmark legible
+   when the transparent nav floats over photography, the badge tips like a ball
+   marker on hover, and MAJOR's tracking eases open. The classes are inert on
+   app routes, where the nav keeps its original look. */
+.marketing .mk-logo .mk-logo-word {
+  filter: drop-shadow(0 1px 6px oklch(0.15 0.04 155 / 0.6));
+}
+.marketing .mk-logo .mk-logo-your { color: var(--mk-text); }
+.marketing .mk-logo .mk-logo-major {
+  color: var(--mk-gold);
+  transition: letter-spacing 0.3s ease-out;
+}
+.marketing .mk-logo img {
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+.marketing .mk-logo:hover img { transform: rotate(-8deg) scale(1.05); }
+.marketing .mk-logo:hover .mk-logo-major { letter-spacing: 0.03em; }
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-logo img,
+  .marketing .mk-logo .mk-logo-major { transition: none; }
+  .marketing .mk-logo:hover img { transform: none; }
+}
+
 /* ── Cursor grammar ──────────────────────────────────────
    The bento spotlight: a soft gold radial that follows the pointer across
    the cells (JS writes --spot-x/--spot-y/--spot-o). The sheen: a gold sweep
