@@ -132,7 +132,7 @@ function CardModal({ card, onClose }: { card: PowerupCardData; onClose: () => vo
         >
           <X className="h-5 w-5" aria-hidden />
         </button>
-        <PowerupCard powerup={card} size="lg" disabled />
+        <PowerupCard powerup={card} size="lg" />
         <p
           className="max-w-[38ch] text-center text-sm leading-relaxed"
           style={{ color: 'var(--mk-text-muted)' }}
@@ -258,24 +258,27 @@ export function DraftChapter() {
             role="group"
             aria-label="Card pool"
           >
+            {/* PowerupCard renders its own <button>, so the Flip/drag wrapper
+                is a plain div; the card's button IS the draft control. */}
             {pool.map((card, i) => (
-              <button
+              <div
                 key={card.id}
-                type="button"
                 data-card
                 data-flip-id={card.id}
                 data-pool-card={card.id}
-                onClick={() => draftCard(card.id)}
-                disabled={handFull}
-                aria-label={`Draft ${card.name}`}
-                className="touch-none transition-opacity disabled:opacity-45"
+                className="touch-none"
                 style={{
                   rotate: `${(i - (pool.length - 1) / 2) * 3.5}deg`,
                   cursor: handFull ? 'default' : 'grab',
                 }}
               >
-                <PowerupCard powerup={card} size="sm" disabled />
-              </button>
+                <PowerupCard
+                  powerup={card}
+                  size="sm"
+                  disabled={handFull}
+                  onClick={() => draftCard(card.id)}
+                />
+              </div>
             ))}
           </div>
 
@@ -311,17 +314,14 @@ export function DraftChapter() {
               {Array.from({ length: HAND_SIZE }).map((_, i) => {
                 const card = DEMO_CARDS.find((c) => c.id === drafted[i])
                 return card ? (
-                  <button
+                  <div
                     key={card.id}
-                    type="button"
                     data-card
                     data-flip-id={card.id}
-                    onClick={() => setModalCard(card)}
-                    aria-label={`Reveal ${card.name}`}
                     className="transition-transform hover:-translate-y-1 motion-reduce:transition-none"
                   >
-                    <PowerupCard powerup={card} size="sm" disabled />
-                  </button>
+                    <PowerupCard powerup={card} size="sm" onClick={() => setModalCard(card)} />
+                  </div>
                 ) : (
                   <div
                     key={`slot-${i}`}

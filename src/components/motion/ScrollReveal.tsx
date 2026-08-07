@@ -42,19 +42,25 @@ export function ScrollReveal({
 }: ScrollRevealProps) {
   const reduce = useReducedMotion()
 
-  if (reduce) return <div className={className}>{children}</div>
-
+  // Reduced motion zeroes the transition rather than changing the markup:
+  // branching to a plain <div> here renders different HTML on the server
+  // (which cannot know the preference) and hydration then leaves the
+  // server's transform attribute stuck on the element.
   return (
     <motion.div
       className={className}
       initial={OFFSETS[direction]}
       whileInView={{ x: 0, y: 0 }}
       viewport={{ once: true, amount: threshold }}
-      transition={{
-        duration: duration / 1000,
-        delay: delay / 1000,
-        ease: [0.16, 1, 0.3, 1],
-      }}
+      transition={
+        reduce
+          ? { duration: 0 }
+          : {
+              duration: duration / 1000,
+              delay: delay / 1000,
+              ease: [0.16, 1, 0.3, 1],
+            }
+      }
     >
       {children}
     </motion.div>

@@ -41,8 +41,10 @@ export function StatsBand() {
       <div className="absolute inset-0 opacity-45" aria-hidden>
         <GrainGradient
           style={{ width: '100%', height: '100%' }}
-          colorBack="oklch(0.21 0.045 155)"
-          colors={['oklch(0.27 0.055 155)', 'oklch(0.32 0.06 155)', 'oklch(0.72 0.11 78 / 0.25)']}
+          /* The DESIGN.md green tokens and gold-at-25%, converted to hex:
+             the shader mount rejects oklch() strings. */
+          colorBack="#041e0f"
+          colors={['#0b2e1a', '#153c25', '#ca9c4e40']}
           shape="wave"
           softness={0.9}
           intensity={0.18}

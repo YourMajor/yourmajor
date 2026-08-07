@@ -51,10 +51,10 @@ export function Footer() {
         aria-hidden
         className="h-px w-full origin-left"
         style={{ background: 'var(--mk-gold)' }}
-        initial={reduce ? false : { scaleX: 0 }}
+        initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
         viewport={{ once: true, amount: 1 }}
-        transition={{ duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
+        transition={reduce ? { duration: 0 } : { duration: 1.1, ease: [0.16, 1, 0.3, 1] }}
       />
 
       <div className="mk-container flex flex-col gap-10 pt-12 pb-6 lg:pt-16">
@@ -85,10 +85,10 @@ export function Footer() {
             opacity: 0.13,
             marginBottom: '-0.18em',
           }}
-          initial={reduce ? false : { y: '0.35em' }}
+          initial={{ y: '0.35em' }}
           whileInView={{ y: '0em' }}
           viewport={{ once: true, amount: 0.4 }}
-          transition={{ duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
+          transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
         >
           YourMajor
         </motion.p>
