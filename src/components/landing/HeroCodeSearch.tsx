@@ -1,16 +1,25 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
-import { Search } from 'lucide-react'
-import { Input } from '@/components/ui/input'
-import { Button } from '@/components/ui/button'
 
-export function HeroCodeSearch() {
+/**
+ * Inline tournament-code lookup for the hero. Expands in place of the
+ * "Join with a code" CTA; Escape collapses back and the caller restores focus.
+ *
+ * Note the lookup-failure message is deliberately NOT red: on marketing
+ * surfaces red means under par, never error (DESIGN.md).
+ */
+export function HeroCodeSearch({ onDismiss }: { onDismiss: () => void }) {
   const router = useRouter()
+  const inputRef = useRef<HTMLInputElement>(null)
   const [code, setCode] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  useEffect(() => {
+    inputRef.current?.focus()
+  }, [])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -34,33 +43,51 @@ export function HeroCodeSearch() {
   }
 
   return (
-    <div className="mt-8 max-w-sm mx-auto">
-      <p className="text-xs text-white/50 uppercase tracking-wider font-semibold mb-2">
-        Have a code?
-      </p>
-      <form onSubmit={handleSubmit} className="flex gap-2">
-        <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-white/50" />
-          <Input
-            value={code}
-            onChange={(e) => { setCode(e.target.value.toUpperCase()); setError(null) }}
-            placeholder="Enter tournament code"
-            required
-            className="pl-9 bg-white/10 border-white/25 text-white placeholder:text-white/50
-              focus-visible:border-accent focus-visible:ring-accent/30"
-          />
-        </div>
-        <Button
+    <div>
+      <form
+        onSubmit={handleSubmit}
+        className="flex gap-2"
+        onKeyDown={(e) => {
+          if (e.key === 'Escape') onDismiss()
+        }}
+      >
+        <input
+          ref={inputRef}
+          value={code}
+          onChange={(e) => {
+            setCode(e.target.value.toUpperCase())
+            setError(null)
+          }}
+          placeholder="Tournament code"
+          aria-label="Tournament code"
+          required
+          className="h-12 w-44 px-4 text-base font-semibold uppercase tracking-[0.08em] outline-none transition-colors"
+          style={{
+            background: 'oklch(0.95 0.012 85 / 0.08)',
+            border: '1px solid var(--mk-rule-light)',
+            borderRadius: 'var(--mk-radius-md)',
+            color: 'var(--mk-text)',
+            caretColor: 'var(--mk-gold)',
+          }}
+          onFocus={(e) => {
+            e.currentTarget.style.borderColor = 'var(--mk-gold)'
+          }}
+          onBlur={(e) => {
+            e.currentTarget.style.borderColor = 'var(--mk-rule-light)'
+          }}
+        />
+        <button
           type="submit"
           disabled={loading || !code.trim()}
-          className="bg-accent text-accent-foreground
-            hover:bg-accent/90 font-semibold shrink-0"
+          className="mk-btn mk-btn-primary disabled:opacity-60"
         >
-          {loading ? '...' : 'Go'}
-        </Button>
+          {loading ? '…' : 'Go'}
+        </button>
       </form>
       {error && (
-        <p className="mt-2 text-sm text-red-300 text-center">{error}</p>
+        <p className="mt-2 text-sm" style={{ color: 'var(--mk-text-subtle)' }} role="status">
+          {error}
+        </p>
       )}
     </div>
   )

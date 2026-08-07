@@ -316,6 +316,35 @@
 }
 
 
+/* ── Hero title ceremony ─────────────────────────────────
+   Pure CSS on purpose: the reveal runs without JavaScript, and the
+   reduced-motion block below kills it dead. Words rise from slightly below;
+   the gold rule draws itself once the last word has landed. */
+@keyframes mkWordRise {
+  from { opacity: 0; transform: translateY(0.35em); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes mkRuleDraw {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+.marketing .mk-word {
+  display: inline-block;
+  animation: mkWordRise 0.7s cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation-delay: calc(0.15s + var(--mk-word-i, 0) * 0.12s);
+}
+.marketing .mk-rule-draw {
+  display: block;
+  height: 2px;
+  background: var(--mk-gold);
+  transform-origin: left center;
+  animation: mkRuleDraw 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.75s both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-word,
+  .marketing .mk-rule-draw { animation: none !important; }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;

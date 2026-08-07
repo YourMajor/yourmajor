@@ -1,155 +1,169 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { LeaderboardPlate, ROUND_STATES, scoreColor } from './LeaderboardPlate'
+import { HeroCodeSearch } from './HeroCodeSearch'
+import heroCourse from '../../../public/images/marketing/hero-course.webp'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 /**
- * Motion thesis for this page: prove the product is live. A leaderboard that
- * moves while you read it is the one claim a static page cannot make, so the
- * hero pins and plays the last six holes of a round as you scroll, ending on a
- * lead change.
+ * Chapter 1 — the cinematic hero. A full-bleed dusk course backdrop under a
+ * staged title reveal: Caslon words rise one by one (pure CSS, see .mk-word),
+ * then the gold rule draws itself under the last word. As the visitor scrolls
+ * away, GSAP scrubs a slow settle on the media (scale 1.06 -> 1 at ~0.25x
+ * parallax) while the green scrim deepens, handing the photo off to the green
+ * page ground without a visible seam.
  *
- * Two constraints this respects, both of which have cost time on this branch:
- *  - Nothing is gated behind the scroll. The plate renders the final board and
- *    stays fully readable; the sequence only winds it back and forward again.
- *  - The pin is desktop only. On a phone a pinned hero costs a screen of scroll
- *    for a board that is already legible, so there is no ScrollTrigger at all
- *    below 1024px, and none under reduced motion.
+ * VIDEO DROP-IN SLOT: to upgrade the backdrop to motion, replace the <Image>
+ * below with, inside the same absolutely-positioned media layer:
+ *
+ *   <video autoPlay muted loop playsInline preload="metadata"
+ *          poster={heroCourse.src}
+ *          className="absolute inset-0 h-full w-full object-cover">
+ *     <source src="/images/marketing/hero-course.webm" type="video/webm" />
+ *   </video>
+ *
+ * Same layer, same object-cover, poster = today's image: zero layout change.
+ * Keep the scrim divs; they carry headline contrast over any footage.
+ *
+ * The backdrop is generated scenery (sanctioned by DESIGN.md's v3 range):
+ * artifact-checked, never standing in for product proof.
  */
-function paintBoard(plate: HTMLElement, stateIndex: number) {
-  const state = ROUND_STATES[stateIndex]
-  const rows = plate.querySelectorAll<HTMLElement>('[data-row]')
-  if (!state || rows.length !== state.length) return
 
-  const step = rows.length > 1 ? rows[1].offsetTop - rows[0].offsetTop : 0
-
-  state.forEach((cell, i) => {
-    const row = rows[i]
-    const write = (name: string, value: string, color?: string) => {
-      const node = row.querySelector<HTMLElement>(`[data-cell="${name}"]`)
-      if (!node) return
-      node.textContent = value
-      if (color) node.style.color = color
-    }
-
-    write('pos', cell.pos)
-    write('today', cell.today, scoreColor(cell.today))
-    write('thru', cell.thru)
-    write('total', cell.total, scoreColor(cell.total))
-
-    gsap.to(row, {
-      y: (cell.slot - i) * step,
-      duration: 0.45,
-      ease: 'power2.inOut',
-      overwrite: 'auto',
-    })
-  })
-}
+const HEADLINE: Array<{ word: string; gold?: boolean }> = [
+  { word: 'Tournament' },
+  { word: 'Golf,' },
+  { word: 'Simplified.', gold: true },
+]
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
-  const plateRef = useRef<HTMLDivElement>(null)
-  const messageRef = useRef<HTMLDivElement>(null)
+  const mediaRef = useRef<HTMLDivElement>(null)
+  const [joining, setJoining] = useState(false)
+  const joinBtnRef = useRef<HTMLButtonElement>(null)
 
   useGSAP(
     () => {
       const media = gsap.matchMedia()
-
       media.add(
-        {
-          desktop: '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
-        },
+        '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
         () => {
-          const plate = plateRef.current
-          if (!plate) return
-
-          // Idempotent paint keyed off progress, rather than timeline callbacks:
-          // a fast scrub can skip a callback, and it can never skip this.
-          let painted = -1
-          const paint = (index: number) => {
-            if (index === painted) return
-            painted = index
-            paintBoard(plate, index)
-          }
-
-          const trigger = ScrollTrigger.create({
-            trigger: sectionRef.current,
-            start: 'top top',
-            end: '+=85%',
-            pin: true,
-            scrub: true,
-            onUpdate: (self) => {
-              paint(self.progress < 0.34 ? 0 : self.progress < 0.7 ? 1 : 2)
+          // The settle: the media arrives very slightly enlarged and relaxes
+          // to rest as the visitor scrolls off the hero, drifting slower than
+          // the page (0.25x) so the course reads as far away.
+          gsap.fromTo(
+            mediaRef.current,
+            { scale: 1.06, yPercent: 0 },
+            {
+              scale: 1,
+              yPercent: 12,
+              ease: 'none',
+              scrollTrigger: {
+                trigger: sectionRef.current,
+                start: 'top top',
+                end: 'bottom top',
+                scrub: true,
+              },
             },
-          })
-
-          gsap.to(messageRef.current, {
-            y: -48,
-            opacity: 0.65,
-            ease: 'none',
-            scrollTrigger: { trigger: sectionRef.current, start: 'top top', end: '+=85%', scrub: true },
-          })
-
-          return () => {
-            trigger.kill()
-            gsap.set(plate.querySelectorAll('[data-row]'), { clearProps: 'transform' })
-          }
+          )
         },
       )
-
       return () => media.revert()
     },
     { scope: sectionRef },
   )
 
   return (
-    <section ref={sectionRef} className="relative flex min-h-[100dvh] items-center pt-24 pb-16">
-      {/* Ground: the deep stop sits behind the fold so the page reads as one
-          field rather than a banded gradient. */}
+    <section
+      ref={sectionRef}
+      className="relative flex min-h-[100dvh] items-center overflow-hidden pt-24 pb-20"
+    >
+      {/* Media stage. See VIDEO DROP-IN SLOT above. */}
+      <div ref={mediaRef} className="absolute inset-0 will-change-transform">
+        <Image
+          src={heroCourse}
+          alt=""
+          fill
+          priority
+          placeholder="blur"
+          sizes="100vw"
+          className="object-cover"
+        />
+      </div>
+
+      {/* Scrims: headline contrast at the top left, and the handoff into the
+          green page ground at the bottom. Both tinted to the world, never
+          neutral black. */}
       <div
-        className="absolute inset-0 pointer-events-none"
+        className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'linear-gradient(175deg, var(--mk-green-ground) 0%, var(--mk-green-raised) 45%, var(--mk-green-deep) 100%)',
+            'linear-gradient(115deg, oklch(0.21 0.045 155 / 0.72) 0%, oklch(0.21 0.045 155 / 0.28) 45%, transparent 70%)',
+        }}
+      />
+      <div
+        className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%]"
+        style={{
+          background:
+            'linear-gradient(to bottom, transparent, var(--mk-green-ground))',
         }}
       />
 
       <div className="mk-container relative z-10 w-full">
-        <div className="grid items-center gap-14 lg:grid-cols-12 lg:gap-10">
-          {/* Message */}
-          <div ref={messageRef} className="lg:col-span-6 xl:col-span-5">
-            <h1 className="text-balance">
-              Tournament Golf,{' '}
-              <span style={{ color: 'var(--mk-gold)' }}>Simplified.</span>
-            </h1>
+        <div className="max-w-2xl">
+          <h1 className="text-balance">
+            {HEADLINE.map((part, i) => (
+              <span
+                key={part.word}
+                className="mk-word mr-[0.28em] last:mr-0"
+                style={
+                  {
+                    '--mk-word-i': i,
+                    color: part.gold ? 'var(--mk-gold)' : undefined,
+                  } as React.CSSProperties
+                }
+              >
+                {part.word}
+                {part.gold && <span className="mk-rule-draw mt-3" aria-hidden />}
+              </span>
+            ))}
+          </h1>
 
-            <p
-              className="mt-7 max-w-[46ch] text-lg leading-relaxed"
-              style={{ color: 'var(--mk-text-muted)' }}
-            >
-              Live leaderboards, digital scorecards, and powerup drafts.
-              Everything your golf group needs.
-            </p>
+          <p
+            className="mt-7 max-w-[46ch] text-lg leading-relaxed"
+            style={{ color: 'var(--mk-text-muted)' }}
+          >
+            Live leaderboards, digital scorecards, and powerup drafts.
+            Everything your golf group needs.
+          </p>
 
-            <div className="mt-10 flex flex-col gap-3 sm:flex-row">
-              <Link href="/auth/signup" className="mk-btn mk-btn-primary">
-                Create a tournament
-              </Link>
-              <Link href="/tournaments" className="mk-btn mk-btn-secondary">
+          <div className="mt-10 flex min-h-12 flex-col gap-3 sm:flex-row sm:items-start">
+            <Link href="/auth/signup" className="mk-btn mk-btn-primary">
+              Create a tournament
+            </Link>
+            {joining ? (
+              <HeroCodeSearch
+                onDismiss={() => {
+                  setJoining(false)
+                  // Focus returns to the control that opened the form.
+                  requestAnimationFrame(() => joinBtnRef.current?.focus())
+                }}
+              />
+            ) : (
+              <button
+                ref={joinBtnRef}
+                type="button"
+                className="mk-btn mk-btn-secondary"
+                onClick={() => setJoining(true)}
+              >
                 Join with a code
-              </Link>
-            </div>
-          </div>
-
-          {/* Proof: the product's own furniture, not a picture of it. */}
-          <div ref={plateRef} className="lg:col-span-6 xl:col-span-7">
-            <LeaderboardPlate />
+              </button>
+            )}
           </div>
         </div>
       </div>
