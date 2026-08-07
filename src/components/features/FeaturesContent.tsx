@@ -102,7 +102,7 @@ function NetBoardVisual() {
             role="tab"
             aria-selected={view === v}
             onClick={() => toggle(v)}
-            className={`${LABEL} px-3 py-2 transition-colors`}
+            className={`${LABEL} px-3 py-2 transition-colors pointer-coarse:min-h-11 pointer-coarse:px-4`}
             style={{
               color: view === v ? 'var(--mk-gold)' : 'var(--mk-text-subtle)',
               borderBottom: `2px solid ${view === v ? 'var(--mk-gold)' : 'transparent'}`,

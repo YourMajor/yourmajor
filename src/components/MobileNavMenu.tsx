@@ -6,6 +6,7 @@ import { Menu, X } from 'lucide-react'
 
 const LINKS = [
   { href: '/features', label: 'Features' },
+  { href: '/#clubhouse', label: 'Tournaments' },
   { href: '/pricing', label: 'Pricing' },
 ]
 
@@ -16,7 +17,7 @@ export function MobileNavMenu() {
     <div className="lg:hidden">
       <button
         onClick={() => setOpen(!open)}
-        className="p-2 -mr-2 rounded-lg text-muted-foreground hover:bg-black/5 transition-colors"
+        className="p-3 -mr-3 rounded-lg text-muted-foreground hover:bg-black/5 transition-colors"
         aria-label="Menu"
       >
         {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
