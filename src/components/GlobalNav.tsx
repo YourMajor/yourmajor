@@ -10,6 +10,7 @@ import { ProfileDropdown } from '@/components/ProfileDropdown'
 const NAV_LINKS: { label: string; href: string }[] = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Features', href: '/#features' },
+  { label: 'Tournaments', href: '/#clubhouse' },
   { label: 'Pricing', href: '/pricing' },
 ]
 

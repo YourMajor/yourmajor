@@ -18,7 +18,7 @@ const HOLES: Array<{ id: string; label: string }> = [
   { id: 'features', label: 'The game' },
   { id: 'tracer', label: 'Shot tracer' },
   { id: 'draft', label: 'The draft' },
-  { id: 'bento', label: 'More game' },
+  { id: 'admin', label: 'The committee' },
   { id: 'stats', label: 'By the numbers' },
   { id: 'pricing', label: 'Pricing' },
   { id: 'clubhouse', label: 'The clubhouse' },

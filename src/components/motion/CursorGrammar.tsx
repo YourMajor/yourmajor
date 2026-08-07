@@ -32,15 +32,23 @@ export function CursorGrammar() {
 
     let held: HTMLElement | null = null
 
+    // The pull is written as --mag-x/--mag-y custom properties, not an inline
+    // transform: the element's own CSS composes them (globals.css), so the
+    // :active press and any stylesheet transform still apply while magnetized.
     const release = () => {
       if (!held) return
       const el = held
       held = null
-      const from = el.style.transform
-      el.style.transform = ''
-      if (from) {
+      const x = el.style.getPropertyValue('--mag-x')
+      const y = el.style.getPropertyValue('--mag-y')
+      el.style.removeProperty('--mag-x')
+      el.style.removeProperty('--mag-y')
+      if (x || y) {
         el.animate(
-          [{ transform: from }, { transform: 'translate(0px, 0px)' }],
+          [
+            { transform: `translate(${x || '0px'}, ${y || '0px'})` },
+            { transform: 'translate(0px, 0px)' },
+          ],
           { duration: 380, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
         )
       }
@@ -63,7 +71,8 @@ export function CursorGrammar() {
       const r = held.getBoundingClientRect()
       const dx = e.clientX - (r.left + r.width / 2)
       const dy = e.clientY - (r.top + r.height / 2)
-      held.style.transform = `translate(${(dx * STRENGTH).toFixed(1)}px, ${(dy * STRENGTH).toFixed(1)}px)`
+      held.style.setProperty('--mag-x', `${(dx * STRENGTH).toFixed(1)}px`)
+      held.style.setProperty('--mag-y', `${(dy * STRENGTH).toFixed(1)}px`)
     }
 
     document.addEventListener('pointerover', onOver)

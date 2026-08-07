@@ -98,7 +98,7 @@ export function LeadChangeChapter() {
           const trigger = ScrollTrigger.create({
             trigger: sectionRef.current,
             start: 'top top',
-            end: '+=150%',
+            end: '+=70%',
             pin: true,
             scrub: true,
             onUpdate: (self) => {

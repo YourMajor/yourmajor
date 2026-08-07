@@ -7,8 +7,9 @@ import posterCourse from '../../../public/images/marketing/poster-course.webp'
  * params baked: scrim 0.5, photo anchored center). The features heading in
  * two flat inks, the gold layer a fixed 3px out of register, over a dusk
  * course photograph that breaks out of the container. Generated scenery,
- * artifact-checked, sanctioned by the v3 range; the green scrims at top and
- * bottom hand the photo off to the page ground with no visible seam.
+ * artifact-checked, sanctioned by the v3 range; the top scrim hands off from
+ * the green page ground and the bottom scrim hands into the dusk interlude
+ * (.mk-dusk-zone) with no visible seam.
  *
  * No JavaScript here at all; the misregister is the poster's charm and is
  * identical under reduced motion.
@@ -38,7 +39,7 @@ export function PosterInterstitial() {
         className="pointer-events-none absolute inset-0"
         style={{
           background:
-            'linear-gradient(to bottom, var(--mk-green-ground), transparent 32%, transparent 68%, var(--mk-green-ground)), color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
+            'linear-gradient(to bottom, var(--mk-green-ground), transparent 32%, transparent 68%, var(--mk-dusk)), color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
         }}
       />
 

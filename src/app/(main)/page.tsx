@@ -10,6 +10,7 @@ import {
 } from '@/components/features/FeaturesContent'
 import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
 import { DraftChapter } from '@/components/landing/DraftChapter'
+import { AdminChapter } from '@/components/landing/AdminChapter'
 import { StatsBand } from '@/components/landing/StatsBand'
 import { SeasonStrip } from '@/components/landing/SeasonStrip'
 import { FormatsMarquee } from '@/components/landing/FormatsMarquee'
@@ -33,19 +34,24 @@ export default async function Home() {
       {/* Features live here now rather than on their own route; /features
           redirects to this anchor. */}
       <section id="features" className="mk-section scroll-mt-24 pt-0">
-        <PosterInterstitial />
-        <FeatureSplits />
-        <ShotTracerChapter />
+        {/* The dusk interlude: poster photo through the shot tracer sit on
+            twilight slate, then the ground ramps back to green. */}
+        <div className="mk-dusk-zone">
+          <PosterInterstitial />
+          <FeatureSplits />
+          <FormatsMarquee />
+          <ShotTracerChapter />
+        </div>
         <DraftChapter />
         <FeatureBento />
+        <AdminChapter />
         <StatsBand />
         <FeatureList />
-        <FormatsMarquee />
       </section>
 
       <PricingSummary />
 
-      <div id="clubhouse" className="mk-container">
+      <div id="clubhouse" className="mk-container scroll-mt-24">
         <FeaturedTournaments />
         <NearbyTournamentsSection />
       </div>

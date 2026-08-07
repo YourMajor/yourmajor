@@ -140,6 +140,14 @@ document records it. Current sanctioned bends:
 - **Cursor reactivity is part of the world.** Magnetic CTAs, plate sheen, the
   bento spotlight, and in-chapter custom-cursor moments are sanctioned on
   pointer devices, always inert on touch, never load-bearing.
+- **One dusk interlude (user-directed, 2026-08-07).** "Green owns the page at
+  page scale" relaxes for exactly one stretch of the landing page: the poster
+  photograph hands the ground to twilight slate (`--mk-dusk`,
+  `oklch(0.30 0.035 265)`) and it ramps back to green as the tracer chapter
+  ends (`.mk-dusk-zone`). The tone is sampled from the dusk photo's sky at
+  half the chroma of the retired navy world, so it reads as evening light,
+  never as a brand blue. One interlude exists; a second is drift, and dusk
+  never carries plates, buttons, or data surfaces of its own.
 
 ## Colors
 

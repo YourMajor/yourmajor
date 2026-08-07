@@ -11,6 +11,10 @@ const LINKS = [
   { href: '/feedback', label: 'Feedback' },
 ]
 
+/* Marketing routes also point at the clubhouse: the live public-tournament
+   shelf is the one destination the legal links don't cover. */
+const MARKETING_LINKS = [{ href: '/#clubhouse', label: 'Tournaments' }, ...LINKS]
+
 /**
  * Route-aware for the same reason NavShell is: the footer sits outside the
  * `.marketing` root and would otherwise render the application's navy strip
@@ -59,7 +63,7 @@ export function Footer() {
 
       <div className="mk-container flex flex-col gap-10 pt-12 pb-6 lg:pt-16">
         <nav className="flex flex-wrap items-center gap-x-8 gap-y-3" aria-label="Footer">
-          {LINKS.map((link) => (
+          {MARKETING_LINKS.map((link) => (
             <Link
               key={link.href}
               href={link.href}

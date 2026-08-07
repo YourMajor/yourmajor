@@ -42,19 +42,18 @@ export function FormatsMarquee() {
   )
 
   return (
-    <div
+    <section
       className="mt-24 overflow-hidden py-5 lg:mt-32"
       style={{
         borderTop: '1px solid var(--mk-rule-gold)',
         borderBottom: '1px solid var(--mk-rule-gold)',
       }}
-      role="marquee"
       aria-label="Supported formats and handicap systems"
     >
       <div className="mk-marquee-track">
         {row(false)}
         {row(true)}
       </div>
-    </div>
+    </section>
   )
 }

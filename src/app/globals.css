@@ -137,6 +137,11 @@
   --mk-under-par:     oklch(0.50 0.20 25);
   --mk-over-par:      oklch(0.45 0.02 150);
 
+  /* The dusk interlude — twilight slate sampled from the poster photo's sky.
+     Half the chroma of the retired navy world on purpose: it reads as evening
+     light on the course, not as a brand blue. Sanctioned in DESIGN.md. */
+  --mk-dusk:          oklch(0.30 0.035 265);
+
   /* Text ladder on the green ground */
   --mk-text:          oklch(0.98 0.005 85);
   --mk-text-muted:    oklch(0.88 0.012 120);
@@ -239,8 +244,17 @@
 }
 
 /* Buttons. Label stays on one line; the primary is the highest-contrast
-   object on the page, because it is the one thing a visitor must find. */
+   object on the page, because it is the one thing a visitor must find.
+   Hover is an ink wipe: a ::before layer rises from the button's base and
+   inverts the pair (green fills the bone primary, bone fills the green one),
+   the way a leaderboard slot flips. Secondaries draw a gold underline rule
+   instead of filling. The base transform composes the magnetic offset
+   (CursorGrammar writes --mag-x/--mag-y) so :active's press is never
+   clobbered by an inline transform. */
 .marketing .mk-btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -251,14 +265,33 @@
   font-size: 1rem;
   font-weight: 600;
   white-space: nowrap;
-  transition: background-color 120ms ease-out, border-color 120ms ease-out,
-              color 120ms ease-out, transform 120ms ease-out;
+  transform: translate(var(--mag-x, 0px), var(--mag-y, 0px));
+  transition: border-color 200ms ease-out, color 200ms ease-out;
 }
+.marketing .mk-btn::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  transform: scaleY(0);
+  transform-origin: bottom;
+  transition: transform 240ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.marketing .mk-btn:hover::before { transform: scaleY(1); }
 .marketing .mk-btn:focus-visible {
   outline: 2px solid var(--mk-gold);
   outline-offset: 3px;
 }
-.marketing .mk-btn:active { transform: translateY(1px); }
+.marketing .mk-btn:active {
+  transform: translate(var(--mag-x, 0px), var(--mag-y, 0px)) translateY(1px);
+}
+
+/* Nav links share the magnetic grammar; inline anchors ignore transforms, so
+   they must be inline-block for the pull to exist at all. */
+.marketing nav a {
+  display: inline-block;
+  transform: translate(var(--mag-x, 0px), var(--mag-y, 0px));
+}
 
 /* `white-space: nowrap` means the button cannot shrink below its label, so on a
    narrow phone it sets the width of its whole grid column and the heading and
@@ -281,10 +314,8 @@
   color: var(--mk-ink);
   border: 1px solid var(--mk-bone);
 }
-.marketing .mk-btn-primary:hover {
-  background-color: var(--mk-bone-bright);
-  border-color: var(--mk-bone-bright);
-}
+.marketing .mk-btn-primary::before { background-color: var(--mk-green-deep); }
+.marketing .mk-btn-primary:hover { color: var(--mk-bone); }
 
 .marketing .mk-btn-secondary {
   background-color: transparent;
@@ -303,10 +334,8 @@
   color: var(--mk-bone);
   border: 1px solid var(--mk-green-deep);
 }
-.marketing .mk-btn-primary-plate:hover {
-  background-color: var(--mk-green-ground);
-  border-color: var(--mk-green-ground);
-}
+.marketing .mk-btn-primary-plate::before { background-color: var(--mk-bone); }
+.marketing .mk-btn-primary-plate:hover { color: var(--mk-ink); }
 
 .marketing .mk-btn-secondary-plate {
   background-color: transparent;
@@ -316,6 +345,30 @@
 .marketing .mk-btn-secondary-plate:hover {
   background-color: oklch(0.22 0.02 150 / 0.05);
   border-color: var(--mk-gold);
+}
+
+/* Secondaries draw a rule rather than filling: a gold underline scales in
+   from the left under the label. */
+.marketing .mk-btn-secondary::after,
+.marketing .mk-btn-secondary-plate::after {
+  content: '';
+  position: absolute;
+  left: 1.1rem;
+  right: 1.1rem;
+  bottom: 0.5rem;
+  height: 1px;
+  background: var(--mk-gold);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 300ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.marketing .mk-btn-secondary:hover::after,
+.marketing .mk-btn-secondary-plate:hover::after { transform: scaleX(1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-btn::before,
+  .marketing .mk-btn-secondary::after,
+  .marketing .mk-btn-secondary-plate::after { transition: none; }
 }
 
 
@@ -431,6 +484,53 @@
 @media (prefers-reduced-motion: reduce) {
   .marketing .mk-typing-dot { animation: none !important; }
   .marketing .mk-marquee-track { animation: none !important; }
+}
+
+/* ── Dusk interlude ──────────────────────────────────────
+   The middle of the features run leaves the green: the poster's dusk
+   photograph hands the ground to twilight slate, and it ramps back to green
+   as the tracer chapter ends. Pure CSS: the gradient IS the scroll
+   transition, so it needs no JS, survives GSAP pin spacers, and is identical
+   on mobile and under reduced motion. Sanctioned in DESIGN.md. */
+.marketing .mk-dusk-zone {
+  background: linear-gradient(
+    to bottom,
+    var(--mk-dusk) 0,
+    var(--mk-dusk) calc(100% - 26rem),
+    var(--mk-green-ground) 100%
+  );
+}
+
+/* ── Clubhouse arrival ───────────────────────────────────
+   Fires only on hash navigation to /#clubhouse: a gold rule draws under the
+   first heading and the tournament plates rise briefly, so arriving in the
+   clubhouse feels like being shown to a table. One shot, CSS only. */
+@keyframes mkClubRule {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+@keyframes mkClubPlate {
+  0%   { transform: none; }
+  35%  { transform: translateY(-6px); }
+  100% { transform: none; }
+}
+.marketing #clubhouse:target section:first-of-type h2::after {
+  content: '';
+  display: block;
+  height: 2px;
+  margin-top: 0.6rem;
+  background: var(--mk-gold);
+  transform-origin: left;
+  animation: mkClubRule 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.2s both;
+}
+.marketing #clubhouse:target .mk-plate {
+  animation: mkClubPlate 0.6s cubic-bezier(0.16, 1, 0.3, 1) 0.35s both;
+}
+.marketing #clubhouse:target .mk-plate:nth-child(2) { animation-delay: 0.45s; }
+.marketing #clubhouse:target .mk-plate:nth-child(3) { animation-delay: 0.55s; }
+@media (prefers-reduced-motion: reduce) {
+  .marketing #clubhouse:target section:first-of-type h2::after { animation: none; }
+  .marketing #clubhouse:target .mk-plate { animation: none !important; }
 }
 
 @keyframes mkCardReveal {
