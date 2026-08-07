@@ -226,7 +226,7 @@ export function ShotTracerChapter() {
                 ref={svgRef}
                 viewBox="0 0 1024 1536"
                 preserveAspectRatio="xMidYMid slice"
-                className="mk-cursor-marker absolute inset-0 h-full w-full"
+                className="absolute inset-0 h-full w-full"
                 role="img"
                 aria-label="Aerial view of a par five with five traced strokes: drive, long iron, pitch and two putts for par"
               >

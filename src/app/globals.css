@@ -854,15 +854,6 @@ main.marketing::after {
   .marketing .mk-card-reveal { animation: none !important; }
 }
 
-/* ── Ball-marker cursor for the hole map ─────────────────
-   Pointer devices only; the colors are the bone/gold tokens flattened into a
-   data URI, the same pattern the app's native-select chevron already uses. */
-@media (hover: hover) and (pointer: fine) {
-  .marketing .mk-cursor-marker {
-    cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='24' height='24'><circle cx='12' cy='12' r='7' fill='%23f1ede1' stroke='%23cda94e' stroke-width='2'/></svg>") 12 12, auto;
-  }
-}
-
 @layer base {
   * {
     @apply border-border outline-ring/50;
