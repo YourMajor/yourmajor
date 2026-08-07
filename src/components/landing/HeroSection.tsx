@@ -78,6 +78,48 @@ export function HeroSection() {
             ease: 'none',
             scrollTrigger: trigger,
           })
+
+          // The flight is scrubbed: the drive plays as the visitor starts
+          // to scroll and has landed by ~60% of the hero's departure. The
+          // static default (fully drawn) only ever winds back, so mobile,
+          // reduced motion and no-JS all show the finished shot.
+          const flight = sectionRef.current?.querySelector<SVGPathElement>('[data-hero-flight]')
+          const ball = sectionRef.current?.querySelector<SVGCircleElement>('[data-hero-ball]')
+          if (flight && ball) {
+            // A numeric proxy: GSAP string-swaps stroke-dashoffset on SVG
+            // instead of tweening it, and the inline style also has to win
+            // over the stylesheet's static drawn state.
+            const draw = { v: 1 }
+            flight.style.strokeDashoffset = '1'
+            gsap.to(draw, {
+              v: 0,
+              ease: 'none',
+              onUpdate: () => {
+                flight.style.strokeDashoffset = String(draw.v)
+              },
+              scrollTrigger: {
+                trigger: sectionRef.current,
+                start: 'top top',
+                end: '+=60%',
+                scrub: true,
+              },
+            })
+            gsap.fromTo(
+              ball,
+              { opacity: 0 },
+              // power4.in: the ball only fades up as the flight finishes.
+              {
+                opacity: 1,
+                ease: 'power4.in',
+                scrollTrigger: {
+                  trigger: sectionRef.current,
+                  start: 'top top',
+                  end: '+=60%',
+                  scrub: true,
+                },
+              },
+            )
+          }
         },
       )
       return () => media.revert()
@@ -122,43 +164,49 @@ export function HeroSection() {
         }}
       />
 
-      {/* One ball flight: struck from the fairway in the distance, it comes
-          toward the viewer, lands on the near green at the lower left, takes
-          two shrinking bounces and rolls to a stop. Pure CSS
-          (see .mk-hero-tracer); decoration, desktop only. */}
+      {/* One ball flight, scrubbed by scroll (see useGSAP above): struck
+          from the distant fairway, a tall wide climb that crosses in front
+          of the headline, a steep drop to the near green, its own bounce
+          parabola, a second hop, and the roll to a stop. Sits above the
+          copy (z-20 vs the container's z-10); a 1.5px line never costs
+          legibility. Static renditions show the finished flight. */}
       <svg
         aria-hidden
         viewBox="0 0 1440 900"
         preserveAspectRatio="xMidYMid slice"
-        className="mk-hero-tracer pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
+        className="mk-hero-tracer pointer-events-none absolute inset-0 z-20 hidden h-full w-full lg:block"
       >
         <defs>
           {/* Fades in at the strike point on the distant fairway. */}
           <linearGradient
             id="mk-tracer-fade"
             gradientUnits="userSpaceOnUse"
-            x1="740"
-            y1="505"
-            x2="330"
-            y2="780"
+            x1="880"
+            y1="470"
+            x2="370"
+            y2="750"
           >
             <stop offset="0" stopColor="var(--mk-gold)" stopOpacity="0.1" />
-            <stop offset="0.18" stopColor="var(--mk-gold)" stopOpacity="0.65" />
-            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.72" />
+            <stop offset="0.18" stopColor="var(--mk-gold)" stopOpacity="0.68" />
+            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.75" />
           </linearGradient>
         </defs>
-        {/* Real ball flight: struck from the distant fairway at screen
-            center, a tall climb to a high apex, a steep drop to the near
-            green, then the first bounce as its own smaller parabola, a tiny
-            second hop, and the roll to a stop. */}
         <path
-          d="M 740 505 C 680 240, 600 118, 540 124 C 482 130, 448 520, 431 754 C 425 706, 401 698, 392 748 C 388 768, 379 764, 372 774 L 332 784"
+          data-hero-flight
+          d="M 880 470 C 810 180, 705 78, 630 86 C 552 94, 505 460, 486 716 C 479 662, 450 654, 440 708 C 435 731, 424 727, 416 738 L 372 750"
           pathLength="1"
           fill="none"
           stroke="url(#mk-tracer-fade)"
           strokeWidth="1.5"
         />
-        <circle className="mk-tracer-ball" cx="332" cy="784" r="3.5" fill="var(--mk-bone)" />
+        <circle
+          data-hero-ball
+          className="mk-tracer-ball"
+          cx="372"
+          cy="750"
+          r="3.5"
+          fill="var(--mk-bone)"
+        />
       </svg>
 
       <div className="mk-container relative z-10 w-full">

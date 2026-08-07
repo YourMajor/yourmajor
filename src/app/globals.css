@@ -414,15 +414,30 @@
   color: var(--mk-gold);
   transition: letter-spacing 0.3s ease-out;
 }
-.marketing .mk-logo img {
-  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.marketing .mk-logo:hover img { transform: rotate(-8deg) scale(1.05); }
 .marketing .mk-logo:hover .mk-logo-major { letter-spacing: 0.03em; }
+
+/* The putt: on hover a ball rolls in from the left, slows across the rings,
+   sits on the lip for a beat, and drops in. Invisible at rest and on app
+   routes (the ball element only animates inside .marketing). */
+.mk-logo-ball {
+  opacity: 0;
+  transform-box: fill-box;
+  transform-origin: center;
+}
+@keyframes mkLogoPutt {
+  0%   { transform: translateX(-560px) scale(1); opacity: 0; }
+  10%  { opacity: 1; }
+  58%  { transform: translateX(6px) scale(1); opacity: 1; }
+  68%  { transform: translateX(0) scale(1); opacity: 1; }
+  76%  { transform: translateX(0) scale(0.92); opacity: 1; }
+  100% { transform: translateX(0) scale(0.05); opacity: 0; }
+}
+.marketing .mk-logo:hover .mk-logo-ball {
+  animation: mkLogoPutt 1.15s cubic-bezier(0.3, 0.9, 0.4, 1) forwards;
+}
 @media (prefers-reduced-motion: reduce) {
-  .marketing .mk-logo img,
   .marketing .mk-logo .mk-logo-major { transition: none; }
-  .marketing .mk-logo:hover img { transform: none; }
+  .marketing .mk-logo:hover .mk-logo-ball { animation: none; }
 }
 
 /* ── Cursor grammar ──────────────────────────────────────
@@ -512,8 +527,13 @@
     /* Sunset haze low in the sky, matching the hero's horizon band. */
     radial-gradient(
       130% 55% at 50% 22%,
-      color-mix(in oklch, var(--mk-sunset) 13%, transparent),
-      transparent 62%
+      color-mix(in oklch, var(--mk-sunset) 19%, transparent),
+      transparent 64%
+    ),
+    radial-gradient(
+      100% 30% at 50% 96%,
+      color-mix(in oklch, var(--mk-sunset) 8%, transparent),
+      transparent 70%
     ),
     linear-gradient(
       to bottom,
@@ -532,7 +552,7 @@ main.marketing::after {
   inset: 0;
   z-index: 60;
   pointer-events: none;
-  opacity: 0.055;
+  opacity: 0.075;
   mix-blend-mode: overlay;
   background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
 }
@@ -544,8 +564,13 @@ main.marketing::after {
   background:
     radial-gradient(
       120% 40% at 50% 78%,
-      color-mix(in oklch, var(--mk-sunset) 9%, transparent),
-      transparent 65%
+      color-mix(in oklch, var(--mk-sunset) 14%, transparent),
+      transparent 68%
+    ),
+    radial-gradient(
+      90% 24% at 50% 8%,
+      color-mix(in oklch, var(--mk-sunset) 7%, transparent),
+      transparent 70%
     ),
     linear-gradient(
       to bottom,
@@ -656,25 +681,10 @@ main.marketing::after {
    Each section owns exactly one authored moment; nothing here is
    load-bearing and all of it dies under reduced motion. */
 
-/* Hero: one gold ball flight drawn across the sky after the title lands.
-   pathLength=1 in the SVG makes the dash math unit-free. */
-@keyframes mkTracerFlight {
-  from { stroke-dashoffset: 1; }
-  to   { stroke-dashoffset: 0; }
-}
-@keyframes mkTracerBall {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
+/* Hero: the ball flight's static rest state is fully drawn; on desktop with
+   full motion, GSAP scrubs strokeDashoffset from 1 back to 0 as the visitor
+   scrolls (HeroSection). pathLength=1 makes the dash math unit-free. */
 .marketing .mk-hero-tracer path { stroke-dasharray: 1; stroke-dashoffset: 0; }
-@media (prefers-reduced-motion: no-preference) {
-  .marketing .mk-hero-tracer path {
-    animation: mkTracerFlight 1.7s cubic-bezier(0.4, 0, 0.2, 1) 1.15s both;
-  }
-  .marketing .mk-hero-tracer .mk-tracer-ball {
-    animation: mkTracerBall 0.35s ease-out 2.7s both;
-  }
-}
 
 /* Header: the gold rule that glides between nav links. JS (NavUnderline)
    only sets transform and opacity. */
