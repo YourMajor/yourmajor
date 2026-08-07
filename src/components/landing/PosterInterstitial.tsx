@@ -22,7 +22,7 @@ const LINES = ['Built for', 'competitive', 'golfers']
 export function PosterInterstitial() {
   return (
     <div
-      className="relative flex min-h-[95vh] flex-col justify-center py-24"
+      className="relative flex min-h-[75vh] flex-col justify-center py-14"
       style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
     >
       {/* Media stage: same drop-in contract as the hero's. The photo (and
