@@ -115,7 +115,7 @@ function TierPlate({ tier }: { tier: TierDef }) {
       <div className="mt-5">
         {tier.key === 'FREE' ? (
           <Link href="/dashboard" className="mk-btn mk-btn-secondary-plate w-full">
-            Get Started Free
+            Start a free tournament
           </Link>
         ) : (
           <PricingActions tier={tier.key} />
@@ -195,7 +195,9 @@ export default function PricingPage() {
                     borderBottom: '2px solid var(--mk-gold)',
                   }}
                 >
-                  {['Feature', 'Free', 'Pro', 'Club', 'Tour'].map((h, i) => (
+                  {/* Headers match the plate names above; "Pro" stays the
+                      feature-set term, not a tier name. */}
+                  {['Feature', 'Casual', 'Major', 'Club', 'Tour'].map((h, i) => (
                     <th
                       key={h}
                       className={`${LABEL} px-4 py-3 ${i === 0 ? 'text-left' : 'text-center'}`}
@@ -231,27 +233,27 @@ export default function PricingPage() {
           <div className="mt-8 space-y-3">
             <FaqItem
               q="Can I try all features before paying?"
-              a="The free tier is fully functional for groups up to 16 players. Create a tournament right now - no credit card required."
+              a="The free Casual Round tier is fully functional for groups up to 16 players. Create a tournament right now, no credit card required."
             />
             <FaqItem
               q="What happens if more than 16 people want to join my free tournament?"
-              a="Registration will pause at 16 players. You can upgrade to Pro ($29) at any time to unlock up to 72 players - no data is lost."
+              a="Registration pauses at 16 players. Upgrade to The Major ($29) at any time to unlock up to 72 players. Nothing is lost in the upgrade."
             />
             <FaqItem
               q="Do my players have to pay anything?"
               a="No. Only the tournament organizer pays. Players always join for free."
             />
             <FaqItem
-              q="How do Pro tournament credits work?"
-              a="Each $29 Pro purchase gives you one tournament credit. When you create a tournament with Pro features (branding, powerups, multi-round, etc.), a credit is consumed. Unused credits never expire."
+              q="How do Major tournament credits work?"
+              a="Each $29 purchase of The Major gives you one tournament credit. Creating a tournament with Pro features (branding, powerups, multiple rounds) consumes one credit. Unused credits never expire."
             />
             <FaqItem
               q="What is the Club subscription?"
-              a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page - no long-term commitment."
+              a="The Club is a $99/month subscription for organizers running ongoing leagues. You get up to 4 tournaments per month with all Pro features, plus season-long standings, a recurring player roster, sponsor placements on your tournaments, season-over-season player tracking, and 2 admin seats so a co-organizer can help run things. Cancel anytime from your billing page. There is no long-term commitment."
             />
             <FaqItem
               q="What does the Tour annual pass include?"
-              a="The $1,999 Tour pass unlocks everything for 365 days from purchase - up to 144 players per event, unlimited tournaments, all Club features (sponsor placements, season standings, season-over-season tracking, recurring rosters), 5 admin seats across your account, a custom subdomain (yourcrew.yourmajor.app), and priority email support. No per-tournament fees."
+              a="The $1,999 Tour pass unlocks everything for 365 days from purchase: up to 144 players per event, unlimited tournaments, all Club features (sponsor placements, season standings, season-over-season tracking, recurring rosters), 5 admin seats across your account, a custom subdomain (yourcrew.yourmajor.app), and priority email support. No per-tournament fees."
             />
             <FaqItem
               q="What payment methods do you accept?"

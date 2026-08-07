@@ -26,10 +26,12 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
     }
   }
 
+  // Labels use the tier names the plates establish; "Pro" stays a
+  // feature-set term, never a tier name.
   const labels: Record<string, string> = {
-    PRO: 'Create Pro Tournament',
+    PRO: 'Get The Major',
     CLUB: 'Start a League',
-    LEAGUE: 'Get Annual Pass',
+    LEAGUE: 'Get the Tour pass',
   }
 
   // One button style across the tiers. The old per-tier fills (gold for Pro,

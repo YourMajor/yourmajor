@@ -144,12 +144,12 @@ export const TIER_FEATURES: Record<PricingTier, string[]> = {
 /** What each tier does NOT include — shown on pricing page */
 export const TIER_NEGATIVES: Record<PricingTier, string[]> = {
   FREE: [
-    'Gross scoring only — no handicap systems',
+    'Gross scoring only, no handicap systems',
     'No powerups or draft',
     'No custom branding',
     'No GPS/yardages',
     'No photo gallery',
-    'Limited stats — no insights',
+    'Limited stats, no insights',
   ],
   PRO: [
     'No season-long standings',
