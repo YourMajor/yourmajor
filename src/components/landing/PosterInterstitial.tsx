@@ -25,8 +25,20 @@ export function PosterInterstitial() {
       className="relative flex min-h-[95vh] flex-col justify-center py-24"
       style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
     >
-      {/* Media stage: same drop-in contract as the hero's. */}
-      <div className="absolute inset-0" aria-hidden>
+      {/* Media stage: same drop-in contract as the hero's. The photo (and
+          its tint below) dissolve via mask instead of being painted over
+          with dusk: the zone's own background shows through the poster's
+          lower reach, so the boundary with the next section cannot exist,
+          haze and all. */}
+      <div
+        className="absolute inset-0"
+        aria-hidden
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to bottom, black 52%, transparent 90%)',
+          maskImage: 'linear-gradient(to bottom, black 52%, transparent 90%)',
+        }}
+      >
         <Image
           src={posterCourse}
           alt=""
@@ -35,16 +47,22 @@ export function PosterInterstitial() {
           className="object-cover"
           placeholder="blur"
         />
+        {/* Deep-green tint rides inside the masked layer so it fades with
+            the photo rather than staining the ground beneath. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
+          }}
+        />
       </div>
+      {/* Top handoff only: the page green dissolving into the photo. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          // The bottom fade starts just under the heading and reaches solid
-          // dusk before the photo's edge, so the hand-off into the next
-          // section has no hard line at all.
           background:
-            'linear-gradient(to bottom, var(--mk-green-ground), transparent 24%, transparent 48%, color-mix(in oklch, var(--mk-dusk) 55%, transparent) 72%, var(--mk-dusk) 94%), color-mix(in oklch, var(--mk-green-deep) 50%, transparent)',
+            'linear-gradient(to bottom, var(--mk-green-ground), transparent 26%)',
         }}
       />
 

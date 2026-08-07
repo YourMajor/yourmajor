@@ -60,8 +60,18 @@ export function Footer() {
       className="marketing relative overflow-hidden"
       style={{ background: 'var(--mk-night)' }}
     >
-      {/* Painterly texture: the dusk photograph, crushed dark. */}
-      <div aria-hidden className="absolute inset-0 opacity-[0.16]">
+      {/* Painterly texture: the dusk photograph, crushed dark, masked so it
+          fades up from nothing at the footer's top edge and dissolves into
+          the nightfall above, same treatment as every other image seam. */}
+      <div
+        aria-hidden
+        className="absolute inset-0 opacity-[0.16]"
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent, black 38%)',
+          maskImage: 'linear-gradient(to bottom, transparent, black 38%)',
+        }}
+      >
         <Image
           src={posterCourse}
           alt=""
@@ -93,7 +103,12 @@ export function Footer() {
           style={{
             fontFamily: 'var(--font-display), Georgia, serif',
             fontSize: 'clamp(3rem, 13vw, 11rem)',
-            lineHeight: 0.9,
+            // Caslon's J descends below the baseline even in caps, and
+            // background-clip: text only paints inside the box: a tight
+            // line height amputated the tail. Full line box + padding
+            // keeps every glyph inside the painted area.
+            lineHeight: 1.04,
+            paddingBottom: '0.06em',
             letterSpacing: '0.04em',
           }}
         >
