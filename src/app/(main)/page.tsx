@@ -3,7 +3,13 @@ import { getUser } from '@/lib/auth'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { LeadChangeChapter } from '@/components/landing/LeadChangeChapter'
 import { PosterInterstitial } from '@/components/landing/PosterInterstitial'
-import { FeaturesContent } from '@/components/features/FeaturesContent'
+import {
+  FeatureSplits,
+  PowerupBand,
+  FeatureBento,
+  FeatureList,
+} from '@/components/features/FeaturesContent'
+import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
 import { NearbyTournamentsSection } from '@/components/landing/NearbyTournamentsSection'
@@ -24,7 +30,11 @@ export default async function Home() {
           redirects to this anchor. */}
       <section id="features" className="mk-section scroll-mt-24 pt-0">
         <PosterInterstitial />
-        <FeaturesContent />
+        <FeatureSplits />
+        <ShotTracerChapter />
+        <PowerupBand />
+        <FeatureBento />
+        <FeatureList />
       </section>
 
       <PricingSummary />

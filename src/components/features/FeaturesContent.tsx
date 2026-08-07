@@ -487,17 +487,22 @@ function FeatureSplit({ feature, reverse }: { feature: SplitFeature; reverse?: b
   )
 }
 
-export function FeaturesContent() {
+/** The two image/text splits that open the features narrative. */
+export function FeatureSplits() {
+  return (
+    <div className="mk-container space-y-24 lg:space-y-32">
+      {SPLIT_FEATURES.map((feature, i) => (
+        <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
+      ))}
+    </div>
+  )
+}
+
+/** Full-width band carrying the one capability a neighbouring product could
+    not copy without rebuilding around it. */
+export function PowerupBand() {
   return (
     <>
-      <div className="mk-container space-y-24 lg:space-y-32">
-        {SPLIT_FEATURES.map((feature, i) => (
-          <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
-        ))}
-      </div>
-
-      {/* Full-width band. Breaks the split run, and carries the one capability a
-          neighbouring product could not copy without rebuilding around it. */}
       <div className="mt-24 lg:mt-32" style={{ background: 'var(--mk-green-deep)' }}>
         <div className="mk-container py-20 lg:py-28">
           <ScrollReveal direction="up" duration={600}>
@@ -571,10 +576,15 @@ export function FeaturesContent() {
           </ScrollReveal>
         </div>
       </div>
+    </>
+  )
+}
 
-      {/* Bento. Four capabilities under gold hairlines, no cards, nothing nested. */}
-      <div className="mk-container mt-24 lg:mt-32">
-        <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
+/** Bento. Four capabilities under gold hairlines, no cards, nothing nested. */
+export function FeatureBento() {
+  return (
+    <div className="mk-container mt-24 lg:mt-32">
+      <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
           {BENTO_FEATURES.map((feature, i) => (
             <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
               <div style={{ borderTop: '1px solid var(--mk-rule-gold)' }} className="pt-6">
@@ -590,40 +600,43 @@ export function FeaturesContent() {
               </div>
             </ScrollReveal>
           ))}
-        </div>
       </div>
+    </div>
+  )
+}
 
-      {/* Ruled list. Ten capabilities that need naming, not illustrating. */}
-      <div className="mk-container mt-24 lg:mt-32">
-        <h3 className="text-2xl lg:text-3xl">Also included</h3>
-        <div className="mt-10 grid gap-x-16 sm:grid-cols-2">
-          {LIST_FEATURES.map((feature, i) => (
-            <ScrollReveal key={feature.title} direction="up" delay={i * 30} duration={500}>
-              <div
-                className="flex items-start gap-4 py-5"
-                style={{ borderTop: '1px solid var(--mk-rule-light)' }}
-              >
-                <feature.icon
-                  className="mt-0.5 h-4 w-4 shrink-0"
-                  style={{ color: 'var(--mk-gold)' }}
-                  aria-hidden
-                />
-                <div className="min-w-0">
-                  <span className="block text-base font-semibold" style={{ color: 'var(--mk-text)' }}>
-                    {feature.title}
-                  </span>
-                  <span
-                    className="mt-1 block text-sm leading-relaxed"
-                    style={{ color: 'var(--mk-text-subtle)' }}
-                  >
-                    {feature.desc}
-                  </span>
-                </div>
+/** Ruled list. Ten capabilities that need naming, not illustrating. */
+export function FeatureList() {
+  return (
+    <div className="mk-container mt-24 lg:mt-32">
+      <h3 className="text-2xl lg:text-3xl">Also included</h3>
+      <div className="mt-10 grid gap-x-16 sm:grid-cols-2">
+        {LIST_FEATURES.map((feature, i) => (
+          <ScrollReveal key={feature.title} direction="up" delay={i * 30} duration={500}>
+            <div
+              className="flex items-start gap-4 py-5"
+              style={{ borderTop: '1px solid var(--mk-rule-light)' }}
+            >
+              <feature.icon
+                className="mt-0.5 h-4 w-4 shrink-0"
+                style={{ color: 'var(--mk-gold)' }}
+                aria-hidden
+              />
+              <div className="min-w-0">
+                <span className="block text-base font-semibold" style={{ color: 'var(--mk-text)' }}>
+                  {feature.title}
+                </span>
+                <span
+                  className="mt-1 block text-sm leading-relaxed"
+                  style={{ color: 'var(--mk-text-subtle)' }}
+                >
+                  {feature.desc}
+                </span>
               </div>
-            </ScrollReveal>
-          ))}
-        </div>
+            </div>
+          </ScrollReveal>
+        ))}
       </div>
-    </>
+    </div>
   )
 }
