@@ -98,16 +98,19 @@ export function HeroSection() {
               scrollTrigger: {
                 trigger: sectionRef.current,
                 start: 'top top',
-                end: '+=45%',
+                end: '+=90%',
                 pin: true,
                 anticipatePin: 1,
                 scrub: true,
               },
             })
+            // The flight is fully flown by ~65% of the runway; the last
+            // third of the pin is a settle beat with the ball at rest, so
+            // the shot always completes before the page moves on.
             flightTl.to(draw, {
               v: 0,
               ease: 'none',
-              duration: 1,
+              duration: 0.65,
               onUpdate: () => {
                 flight.style.strokeDashoffset = String(draw.v)
               },
@@ -116,9 +119,11 @@ export function HeroSection() {
             flightTl.fromTo(
               ball,
               { opacity: 0 },
-              { opacity: 1, ease: 'power2.in', duration: 0.35 },
-              0.62,
+              { opacity: 1, ease: 'power2.in', duration: 0.2 },
+              0.42,
             )
+            // Hold to the end of the pin.
+            flightTl.to({}, { duration: 0.35 })
           }
         },
       )
