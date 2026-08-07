@@ -26,30 +26,36 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
  * Names and figures are a demonstration, and the section says so.
  */
 
+/* Five strokes, read the way the user asked for: one real hit, two little
+   mounds, two putts. A par, told honestly. */
 const SHOTS = [
-  { n: '1', label: 'Drive', dist: '278 yds', left: '267 to the green' },
-  { n: '2', label: 'Layup', dist: '195 yds', left: '72 to the green' },
-  { n: '3', label: 'Approach', dist: '68 yds', left: '12 ft for birdie' },
-  { n: '4', label: 'Putt', dist: '12 ft', left: 'holed' },
+  { n: '1', label: 'Drive', dist: '282 yds', left: '263 to the green' },
+  { n: '2', label: 'Long iron', dist: '205 yds', left: '58 to the green' },
+  { n: '3', label: 'Pitch', dist: '58 yds', left: '28 ft for birdie' },
+  { n: '4', label: 'Putt', dist: '28 ft', left: 'to 2 ft' },
+  { n: '5', label: 'Putt', dist: '2 ft', left: 'holed' },
 ]
 
-/* Flight paths, tee to hole, in the aerial photograph's coordinate space
-   (1024x1536): tee box bottom-center, landing zones up the S-curve fairway,
-   hole at the flag on the upper green. */
+/* Trajectories in the aerial photograph's coordinate space (1024x1536),
+   tee box bottom-center to the flag top-center: the drive is one big
+   drawing arc, the two mid shots are smaller mounds bulging off the line,
+   and the putts are two short strokes across the green. */
 const FLIGHTS = [
-  'M 512 1210 C 470 1050, 460 900, 490 780',
-  'M 490 780 C 500 690, 530 590, 520 520',
-  'M 520 520 C 525 465, 540 410, 548 362',
-  'M 548 362 C 550 358, 552 355, 553 352',
+  'M 505 1300 C 560 1120, 560 985, 520 850',
+  'M 520 850 C 478 745, 468 655, 505 560',
+  'M 505 560 C 548 455, 556 320, 522 205',
+  'M 522 205 L 534 152',
+  'M 534 152 L 537 131',
 ]
 
-const HOLE = { x: 553, y: 352 }
+const HOLE = { x: 537, y: 131 }
 
 const SHOT_WINDOWS = [
   { at: 0, dur: 900 },
-  { at: 1100, dur: 700 },
-  { at: 2000, dur: 600 },
-  { at: 2800, dur: 450 },
+  { at: 1100, dur: 650 },
+  { at: 1950, dur: 600 },
+  { at: 2750, dur: 420 },
+  { at: 3350, dur: 280 },
 ]
 
 export function ShotTracerChapter() {
@@ -72,7 +78,7 @@ export function ShotTracerChapter() {
           const flights = svg.querySelectorAll<SVGPathElement>('[data-flight]')
           const rows = rail.querySelectorAll<HTMLElement>('[data-shot]')
           const result = rail.querySelector<HTMLElement>('[data-result]')
-          if (!ball || flights.length !== 4 || rows.length !== 4 || !result) return
+          if (!ball || flights.length !== FLIGHTS.length || rows.length !== SHOTS.length || !result) return
 
           const tl = createTimeline({ autoplay: false })
 
@@ -91,7 +97,7 @@ export function ShotTracerChapter() {
             tl.add(rows[i], { opacity: 1, translateX: [-6, 0], duration: 260, ease: 'outCubic' }, win.at)
           })
 
-          tl.add(result, { opacity: 1, translateY: 0, duration: 320, ease: 'outCubic' }, 3300)
+          tl.add(result, { opacity: 1, translateY: 0, duration: 320, ease: 'outCubic' }, 3800)
 
           // createMotionPath emits absolute path coordinates as transforms,
           // so the ball sits at the SVG origin while the paths carry it.
@@ -185,14 +191,11 @@ export function ShotTracerChapter() {
               ))}
 
               <div data-result className="flex items-baseline gap-4 pt-5">
-                <span
-                  className="mk-data text-2xl"
-                  style={{ color: 'var(--mk-under-par)' }}
-                >
-                  Birdie
+                <span className="mk-data text-2xl" style={{ color: 'var(--mk-text)' }}>
+                  Par
                 </span>
                 <span className="text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
-                  4 on the card, one under
+                  5 on the card, every stroke kept
                 </span>
               </div>
 
