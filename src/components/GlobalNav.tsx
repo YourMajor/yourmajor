@@ -1,5 +1,4 @@
 import Link from 'next/link'
-import Image from 'next/image'
 import { getUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { buttonVariants } from '@/components/ui/button-variants'
@@ -45,9 +44,18 @@ export async function GlobalNav() {
           {/* mk-logo classes are inert outside .marketing; NavShell adds the
               scope on marketing routes, so the app nav renders exactly as
               before while the marketing nav gets the photo-safe drop shadow
-              and hover flair (globals.css). */}
+              and hover flair (globals.css). The badge is inline (ink-gold
+              rings, user-adopted) so the hover delight can play: a ball
+              rolls in from the left and drops into the rings like a putt
+              into the cup. The ball is invisible at rest and everywhere
+              outside .marketing. */}
           <Link href="/" className="mk-logo flex items-center gap-2.5 shrink-0">
-            <Image src="/logos/yourmajor-badge.svg" alt="" width={48} height={48} className="h-12 w-12" />
+            <svg viewBox="0 0 512 512" className="h-12 w-12" aria-hidden>
+              <circle cx="256" cy="256" r="256" fill="#191f1b" />
+              <circle cx="256" cy="256" r="190" fill="none" stroke="#c99c56" strokeWidth="32" />
+              <circle cx="256" cy="256" r="148" fill="none" stroke="#c99c56" strokeWidth="32" />
+              <circle className="mk-logo-ball" cx="256" cy="256" r="58" fill="#f1ede2" />
+            </svg>
             <span className="mk-logo-word font-heading leading-none text-left">
               <span className="mk-logo-your block text-sm font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
               <span className="mk-logo-major block text-2xl font-black -mt-1.5 text-accent">MAJOR</span>
