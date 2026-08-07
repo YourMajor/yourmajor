@@ -155,9 +155,16 @@ export function DraftChapter() {
   const pool = DEMO_CARDS.filter((c) => !drafted.includes(c.id))
   const handFull = drafted.length >= HAND_SIZE
 
+  // Only the cards that actually change container go absolute during the
+  // Flip. absolute:true on everything briefly lifted the whole pool out of
+  // flow, so the fan collapsed for a frame on every draft: the "everything
+  // moves" glitch.
+  const travelers = useRef<string[]>([])
+
   const draftCard = useCallback((id: string) => {
     const stage = stageRef.current
     if (!stage) return
+    travelers.current = [id]
     flipState.current = Flip.getState(stage.querySelectorAll('[data-card]'))
     setDrafted((prev) => (prev.length >= HAND_SIZE || prev.includes(id) ? prev : [...prev, id]))
   }, [])
@@ -165,9 +172,10 @@ export function DraftChapter() {
   const resetHand = useCallback(() => {
     const stage = stageRef.current
     if (!stage) return
+    travelers.current = drafted
     flipState.current = Flip.getState(stage.querySelectorAll('[data-card]'))
     setDrafted([])
-  }, [])
+  }, [drafted])
 
   // The travel: after a draft or reset re-renders the card into its new home,
   // Flip animates it there from wherever it was, including mid-drag.
@@ -176,12 +184,16 @@ export function DraftChapter() {
     if (!state) return
     flipState.current = null
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+    const absolute = travelers.current
+      .map((id) => `[data-flip-id="${id}"]`)
+      .join(',')
     Flip.from(state, {
       targets: stageRef.current?.querySelectorAll('[data-card]') ?? [],
       // Fast out-ease: the card should feel caught by the hand, not carried.
       duration: reduce ? 0 : 0.38,
       ease: 'power2.out',
-      absolute: true,
+      // Cross-container travelers fly absolutely; siblings tween in flow.
+      absolute: absolute || false,
     })
   }, [drafted])
 

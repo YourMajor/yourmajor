@@ -122,9 +122,10 @@ export function HeroSection() {
         }}
       />
 
-      {/* One ball flight: launched from the fairway at the lower left, it
-          climbs over the headline and lands on the green at the right. Pure
-          CSS (see .mk-hero-tracer); decoration, desktop only. */}
+      {/* One ball flight: struck from the fairway in the distance, it comes
+          toward the viewer, lands on the near green at the lower left, takes
+          two shrinking bounces and rolls to a stop. Pure CSS
+          (see .mk-hero-tracer); decoration, desktop only. */}
       <svg
         aria-hidden
         viewBox="0 0 1440 900"
@@ -132,22 +133,32 @@ export function HeroSection() {
         className="mk-hero-tracer pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
       >
         <defs>
-          {/* The tail fades in from nothing so the launch reads as leaving
-              the turf, not a line starting mid-air. */}
-          <linearGradient id="mk-tracer-fade" x1="0" y1="1" x2="1" y2="0">
-            <stop offset="0" stopColor="var(--mk-gold)" stopOpacity="0" />
-            <stop offset="0.22" stopColor="var(--mk-gold)" stopOpacity="0.65" />
-            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.65" />
+          {/* Fades in at the strike point on the distant fairway. */}
+          <linearGradient
+            id="mk-tracer-fade"
+            gradientUnits="userSpaceOnUse"
+            x1="740"
+            y1="505"
+            x2="330"
+            y2="780"
+          >
+            <stop offset="0" stopColor="var(--mk-gold)" stopOpacity="0.1" />
+            <stop offset="0.18" stopColor="var(--mk-gold)" stopOpacity="0.65" />
+            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.72" />
           </linearGradient>
         </defs>
+        {/* Real ball flight: struck from the distant fairway at screen
+            center, a tall climb to a high apex, a steep drop to the near
+            green, then the first bounce as its own smaller parabola, a tiny
+            second hop, and the roll to a stop. */}
         <path
-          d="M 470 930 C 560 480, 660 170, 810 200 C 990 240, 1130 440, 1200 620"
+          d="M 740 505 C 680 240, 600 118, 540 124 C 482 130, 448 520, 431 754 C 425 706, 401 698, 392 748 C 388 768, 379 764, 372 774 L 332 784"
           pathLength="1"
           fill="none"
           stroke="url(#mk-tracer-fade)"
           strokeWidth="1.5"
         />
-        <circle className="mk-tracer-ball" cx="1200" cy="620" r="3.5" fill="var(--mk-bone)" />
+        <circle className="mk-tracer-ball" cx="332" cy="784" r="3.5" fill="var(--mk-bone)" />
       </svg>
 
       <div className="mk-container relative z-10 w-full">
