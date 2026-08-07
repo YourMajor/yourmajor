@@ -120,7 +120,7 @@ export function ShotTracerChapter() {
   )
 
   return (
-    <section ref={sectionRef} className="relative mt-24 flex min-h-[100dvh] items-center lg:mt-32">
+    <section ref={sectionRef} id="tracer" className="relative mt-24 flex min-h-[100dvh] items-center lg:mt-32">
       <div className="mk-container w-full py-16">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
           {/* Data rail */}

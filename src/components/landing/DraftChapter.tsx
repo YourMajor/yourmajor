@@ -235,6 +235,7 @@ export function DraftChapter() {
 
   return (
     <section
+      id="draft"
       className="mt-24 lg:mt-32"
       style={{ background: 'var(--mk-green-deep)' }}
       aria-label="Powerup draft demonstration"

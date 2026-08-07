@@ -122,7 +122,7 @@ export function LeadChangeChapter() {
   )
 
   return (
-    <section ref={sectionRef} className="relative flex min-h-[100dvh] items-center">
+    <section ref={sectionRef} id="lead" className="relative flex min-h-[100dvh] items-center">
       <div className="mk-container w-full py-20">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
           <div ref={railRef} className="lg:col-span-5">

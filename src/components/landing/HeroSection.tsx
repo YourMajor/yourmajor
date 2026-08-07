@@ -81,6 +81,7 @@ export function HeroSection() {
   return (
     <section
       ref={sectionRef}
+      id="hero"
       className="relative flex min-h-[100dvh] items-center overflow-hidden pt-24 pb-20"
     >
       {/* Media stage. See VIDEO DROP-IN SLOT above. */}

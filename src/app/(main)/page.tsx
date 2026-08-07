@@ -12,6 +12,8 @@ import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
 import { DraftChapter } from '@/components/landing/DraftChapter'
 import { StatsBand } from '@/components/landing/StatsBand'
 import { SeasonStrip } from '@/components/landing/SeasonStrip'
+import { FormatsMarquee } from '@/components/landing/FormatsMarquee'
+import { ScorecardRail } from '@/components/landing/ScorecardRail'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
 import { NearbyTournamentsSection } from '@/components/landing/NearbyTournamentsSection'
@@ -38,16 +40,20 @@ export default async function Home() {
         <FeatureBento />
         <StatsBand />
         <FeatureList />
+        <FormatsMarquee />
       </section>
 
       <PricingSummary />
 
-      <div className="mk-container">
+      <div id="clubhouse" className="mk-container">
         <FeaturedTournaments />
         <NearbyTournamentsSection />
       </div>
 
       <SeasonStrip />
+
+      {/* The page as a front nine: desktop-only chapter rail. */}
+      <ScorecardRail />
     </main>
   )
 }

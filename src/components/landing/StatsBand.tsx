@@ -30,6 +30,7 @@ export function StatsBand() {
 
   return (
     <section
+      id="stats"
       className="relative mt-24 overflow-hidden lg:mt-32"
       style={{
         borderTop: '1px solid var(--mk-rule-gold)',
