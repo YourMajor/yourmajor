@@ -46,6 +46,8 @@ export function PosterInterstitial() {
       />
 
       <div className="mk-container relative w-full">
+        {/* Sunset projection: a slow orange glow breathes behind the type. */}
+        <div aria-hidden className="mk-poster-glow" />
         <h2
           className="relative uppercase"
           style={{
@@ -66,8 +68,8 @@ export function PosterInterstitial() {
               </span>
             ))}
           </span>
-          {/* Bone ink, front. */}
-          <span className="relative" style={{ color: 'var(--mk-text)' }}>
+          {/* Front ink, filled with the dusk sky's own gradient. */}
+          <span className="mk-poster-sky relative">
             {LINES.map((line) => (
               <span key={line} className="block">
                 {line}

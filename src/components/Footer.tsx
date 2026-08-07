@@ -49,12 +49,21 @@ export function Footer() {
   }
 
   return (
-    <footer className="marketing overflow-hidden" style={{ background: 'var(--mk-green-deep)' }}>
-      {/* The hairline draws itself across the page. */}
+    <footer
+      className="marketing relative overflow-hidden"
+      style={{ background: 'var(--mk-green-deep)' }}
+    >
+      {/* The sunset horizon rises behind the wordmark at page end. */}
+      <div aria-hidden className="mk-footer-horizon" />
+      {/* The hairline draws itself across the page, fading at both ends so
+          the section break never lands as a hard line. */}
       <motion.div
         aria-hidden
         className="h-px w-full origin-left"
-        style={{ background: 'var(--mk-gold)' }}
+        style={{
+          background:
+            'linear-gradient(90deg, transparent, var(--mk-gold) 18%, var(--mk-gold) 82%, transparent)',
+        }}
         initial={{ scaleX: 0 }}
         whileInView={{ scaleX: 1 }}
         viewport={{ once: true, amount: 1 }}
@@ -98,6 +107,7 @@ export function Footer() {
               className="inline-block"
               initial={{ y: '0.4em' }}
               whileInView={{ y: '0em' }}
+              whileHover={reduce ? undefined : { y: '-0.06em' }}
               viewport={{ once: true, amount: 0.4 }}
               transition={
                 reduce

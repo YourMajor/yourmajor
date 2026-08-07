@@ -56,7 +56,7 @@ export function PricingSummary() {
           {TIERS.map((tier, i) => (
             <ScrollReveal key={tier.name} direction="up" delay={i * 70} duration={600}>
             <div
-              className="flex h-full flex-col p-6"
+              className="mk-sheen flex h-full flex-col p-6"
               style={{
                 background: tier.featured ? 'var(--mk-bone)' : 'var(--mk-green-raised)',
                 color: tier.featured ? 'var(--mk-ink)' : 'var(--mk-text)',

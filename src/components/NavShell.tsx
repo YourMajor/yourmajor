@@ -25,7 +25,7 @@ export function NavShell({ children }: { children: ReactNode }) {
   // marketing world: deep green settling in behind a gold hairline, never the
   // application's white glass. See DESIGN.md.
   const solidClass = 'pt-safe bg-white border-b border-border sticky top-0 z-50'
-  const glassScrolledClass = 'marketing pt-safe sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-[var(--mk-green-deep)]/92 border-b border-[var(--mk-rule-gold)]'
+  const glassScrolledClass = 'marketing pt-safe sticky top-0 z-50 transition-all duration-300 backdrop-blur-xl bg-[var(--mk-green-deep)]/92 mk-nav-hairline'
   const glassTransparentClass = 'marketing pt-safe sticky top-0 z-50 transition-all duration-300 bg-transparent border-b border-transparent'
 
   const className = !isDarkPage

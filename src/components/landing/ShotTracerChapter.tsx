@@ -4,17 +4,20 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
+import Image from 'next/image'
 import { createTimeline, createMotionPath, createDrawable } from 'animejs'
+import tracerHole from '../../../public/images/marketing/tracer-hole.webp'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 /**
- * Chapter 3 — the shot tracer. A broadcast-style par-5 hole map in crisp SVG,
- * drawn entirely from the marketing tokens. Scrolling through the pinned
- * section plays four ball flights along SVG paths (anime createMotionPath),
- * each leaving a thin bone tracer (createDrawable), while the data rail
- * brightens shot by shot and lands on a red Birdie. Scroll drives the anime
- * timeline through seek(); there are no timers anywhere in this chapter.
+ * Chapter 3 — the shot tracer. A dusk aerial photograph of a par 5
+ * (generated scenery, artifact-checked, swap-for-real list) with the four
+ * ball flights traced over it in the photo's own coordinate space.
+ * Scrolling through the pinned section plays the flights along SVG paths
+ * (anime createMotionPath), each leaving a bone tracer (createDrawable),
+ * while the data rail brightens shot by shot and lands on a red Birdie.
+ * Scroll drives the anime timeline through seek(); no timers anywhere.
  *
  * Static renditions (mobile, reduced motion, no JS) show the finished hole:
  * all four tracers drawn, ball at the hole, full data rail. The scrub only
@@ -30,14 +33,17 @@ const SHOTS = [
   { n: '4', label: 'Putt', dist: '12 ft', left: 'holed' },
 ]
 
-/* Flight paths, tee to hole. The fairway centreline and the yardage arcs are
-   scenery; these four are the story. */
+/* Flight paths, tee to hole, in the aerial photograph's coordinate space
+   (1024x1536): tee box bottom-center, landing zones up the S-curve fairway,
+   hole at the flag on the upper green. */
 const FLIGHTS = [
-  'M 205 600 C 190 520, 225 460, 208 350',
-  'M 208 350 C 200 300, 185 260, 192 174',
-  'M 192 174 C 195 150, 205 130, 201 112',
-  'M 201 112 C 204 108, 207 106, 210 103',
+  'M 512 1210 C 470 1050, 460 900, 490 780',
+  'M 490 780 C 500 690, 530 590, 520 520',
+  'M 520 520 C 525 465, 540 410, 548 362',
+  'M 548 362 C 550 358, 552 355, 553 352',
 ]
+
+const HOLE = { x: 553, y: 352 }
 
 const SHOT_WINDOWS = [
   { at: 0, dur: 900 },
@@ -108,8 +114,8 @@ export function ShotTracerChapter() {
           return () => {
             trigger.kill()
             tl.revert()
-            ball.setAttribute('cx', '210')
-            ball.setAttribute('cy', '103')
+            ball.setAttribute('cx', String(HOLE.x))
+            ball.setAttribute('cy', String(HOLE.y))
           }
         },
       )
@@ -196,97 +202,80 @@ export function ShotTracerChapter() {
             </div>
           </div>
 
-          {/* Hole map */}
-          <div className="mx-auto w-full max-w-[26rem] lg:col-span-7 lg:max-w-[30rem]">
-            <svg
-              ref={svgRef}
-              viewBox="0 0 400 640"
-              className="mk-cursor-marker h-auto w-full"
-              role="img"
-              aria-label="Hole map of a par five with four traced shots: drive, layup, approach and putt for birdie"
+          {/* Hole map: the aerial photograph (generated dusk scenery,
+              artifact-checked, on the swap-for-real list) with the four
+              flights traced over it in the photo's own coordinate space.
+              Height is capped so the pinned viewport never crops the tee
+              off the bottom. */}
+          <div className="mx-auto w-full lg:col-span-7">
+            <div
+              className="relative mx-auto overflow-hidden"
+              style={{
+                // Width derives from the height cap so the 2:3 frame always
+                // matches the SVG viewBox exactly and the tee is never
+                // cropped off the bottom of the pinned viewport.
+                width: 'min(100%, calc(min(74vh, 44rem) * 2 / 3))',
+                aspectRatio: '2 / 3',
+                borderRadius: 'var(--mk-radius-lg)',
+                border: '1px solid color-mix(in oklch, var(--mk-gold) 35%, transparent)',
+                boxShadow: 'var(--mk-shadow-plate)',
+              }}
             >
-              {/* First cut, then fairway, drawn as broadcast ribbons. */}
-              <path
-                d="M 205 600 C 175 500, 235 430, 205 340 C 185 275, 215 215, 200 150"
-                fill="none"
-                stroke="var(--mk-green-raised)"
-                strokeWidth="110"
-                strokeLinecap="round"
-                opacity="0.45"
+              <Image
+                src={tracerHole}
+                alt=""
+                fill
+                sizes="(min-width: 1024px) 40vw, 90vw"
+                className="object-cover"
+                placeholder="blur"
               />
-              <path
-                d="M 205 600 C 175 500, 235 430, 205 340 C 185 275, 215 215, 200 150"
-                fill="none"
-                stroke="var(--mk-green-raised)"
-                strokeWidth="86"
-                strokeLinecap="round"
+              {/* A whisper of the page's dusk over the photo so the bone
+                  tracers stay the brightest thing on it. */}
+              <div
+                aria-hidden
+                className="pointer-events-none absolute inset-0"
+                style={{
+                  background:
+                    'color-mix(in oklch, var(--mk-dusk) 18%, transparent)',
+                }}
               />
-
-              {/* Green and its bunkers. Bone reads as sand on this ground. */}
-              <ellipse
-                cx="200"
-                cy="112"
-                rx="58"
-                ry="42"
-                fill="color-mix(in oklch, var(--mk-green-raised), var(--mk-bone) 12%)"
-              />
-              <ellipse cx="150" cy="152" rx="17" ry="10" fill="var(--mk-bone)" opacity="0.72" />
-              <ellipse cx="254" cy="140" rx="14" ry="9" fill="var(--mk-bone)" opacity="0.72" />
-              <ellipse cx="262" cy="350" rx="18" ry="11" fill="var(--mk-bone)" opacity="0.72" />
-
-              {/* Yardage arcs, gold hairlines with mono labels. */}
-              {[
-                { y: 200, label: '100' },
-                { y: 245, label: '150' },
-                { y: 290, label: '200' },
-              ].map((arc) => (
-                <g key={arc.label}>
+              <svg
+                ref={svgRef}
+                viewBox="0 0 1024 1536"
+                preserveAspectRatio="xMidYMid slice"
+                className="mk-cursor-marker absolute inset-0 h-full w-full"
+                role="img"
+                aria-label="Aerial view of a par five with four traced shots: drive, layup, approach and putt for birdie"
+              >
+                {/* The four flights. Static default is fully drawn. */}
+                {FLIGHTS.map((d) => (
                   <path
-                    d={`M 120 ${arc.y} Q 200 ${arc.y - 12} 280 ${arc.y}`}
+                    key={d}
+                    data-flight
+                    d={d}
                     fill="none"
-                    stroke="var(--mk-gold)"
-                    strokeWidth="1"
-                    opacity="0.55"
-                    strokeDasharray="3 5"
+                    stroke="var(--mk-bone)"
+                    strokeWidth="4"
+                    strokeLinecap="round"
+                    opacity="0.95"
                   />
-                  <text
-                    x="292"
-                    y={arc.y + 4}
-                    fontSize="13"
-                    fill="var(--mk-gold)"
-                    opacity="0.8"
-                    style={{ fontFamily: 'var(--font-geist-mono), monospace' }}
-                  >
-                    {arc.label}
-                  </text>
-                </g>
-              ))}
+                ))}
 
-              {/* Tee */}
-              <rect x="197" y="606" width="16" height="5" rx="1.5" fill="var(--mk-bone)" opacity="0.9" />
-
-              {/* The four flights. Static default is fully drawn. */}
-              {FLIGHTS.map((d) => (
-                <path
-                  key={d}
-                  data-flight
-                  d={d}
+                {/* Hole ring at the flag. */}
+                <circle
+                  cx={HOLE.x}
+                  cy={HOLE.y}
+                  r="10"
                   fill="none"
-                  stroke="var(--mk-bone)"
-                  strokeWidth="2.5"
-                  strokeLinecap="round"
-                  opacity="0.92"
+                  stroke="var(--mk-gold)"
+                  strokeWidth="2"
+                  opacity="0.9"
                 />
-              ))}
 
-              {/* Hole and flag */}
-              <circle cx="210" cy="103" r="3" fill="var(--mk-green-deep)" />
-              <line x1="210" y1="103" x2="210" y2="80" stroke="var(--mk-gold)" strokeWidth="1.5" />
-              <path d="M 210 80 L 224 85 L 210 90 Z" fill="var(--mk-gold)" />
-
-              {/* The ball. Static rest position is at the hole. */}
-              <circle data-ball cx="210" cy="103" r="4.5" fill="var(--mk-bone)" />
-            </svg>
+                {/* The ball. Static rest position is at the hole. */}
+                <circle data-ball cx={HOLE.x} cy={HOLE.y} r="7" fill="var(--mk-bone)" />
+              </svg>
+            </div>
           </div>
         </div>
       </div>
