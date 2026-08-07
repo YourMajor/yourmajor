@@ -96,7 +96,9 @@ export function Footer() {
         </p>
 
         {/* The title. Letters rise once; a projector sweep crosses slowly.
-            Decorative duplicate of the brand name, hence aria-hidden. */}
+            Hovering a letter flushes it gold (CSS, color only: a transform
+            here would drop the glyph out of the background-clip and make it
+            vanish). Decorative duplicate of the brand name, hence aria-hidden. */}
         <p
           aria-hidden
           className="mk-endplate-title select-none uppercase"
@@ -118,7 +120,6 @@ export function Footer() {
               className="inline-block"
               initial={{ y: '0.4em' }}
               whileInView={{ y: '0em' }}
-              whileHover={reduce ? undefined : { y: '-0.06em' }}
               viewport={{ once: true, amount: 0.4 }}
               transition={
                 reduce

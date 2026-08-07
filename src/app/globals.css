@@ -637,6 +637,15 @@ main.marketing::after {
 @supports not ((-webkit-background-clip: text) or (background-clip: text)) {
   .marketing .mk-endplate-title { color: var(--mk-bone); animation: none; }
 }
+/* Hovering a letter flushes it gold: color only, painted over the clipped
+   background. Never a transform here — a transformed child falls out of the
+   parent's background-clip and the glyph disappears. Quick in, slow bleed
+   back out, like ink lifting off a press. */
+.marketing .mk-endplate-title span { transition: color 0.7s ease; }
+.marketing .mk-endplate-title span:hover {
+  color: var(--mk-gold);
+  transition-duration: 0.12s;
+}
 
 @media (prefers-reduced-motion: reduce) {
   .marketing .mk-ch-rings::after { animation: none; }
