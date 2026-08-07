@@ -78,7 +78,10 @@ export function ScorecardRail() {
     <nav
       ref={railRef}
       aria-label="Page holes"
-      className="fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 lg:flex"
+      // 1440 floor, not lg: below that the fixed rail overlaps the
+      // container's right edge and steals clicks from real controls
+      // (verified at 1280 wide laptops).
+      className="fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 min-[1440px]:flex"
     >
       <span
         aria-hidden

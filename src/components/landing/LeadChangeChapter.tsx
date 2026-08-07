@@ -25,7 +25,11 @@ const BEATS = [
   { thru: 'Final', line: 'Watson takes it by one.' },
 ]
 
-function paintBoard(plate: HTMLElement, stateIndex: number) {
+/* `instant` restores a state synchronously with no tweens: the breakpoint
+   cleanup uses it to put the rest-state figures back, since clearing
+   transforms alone would leave the final round's text in rest-state row
+   order and mis-sort the board. */
+function paintBoard(plate: HTMLElement, stateIndex: number, instant = false) {
   const state = ROUND_STATES[stateIndex]
   const rows = plate.querySelectorAll<HTMLElement>('[data-row]')
   if (!state || rows.length !== state.length) return
@@ -37,6 +41,13 @@ function paintBoard(plate: HTMLElement, stateIndex: number) {
     const write = (name: string, value: string, color?: string) => {
       const node = row.querySelector<HTMLElement>(`[data-cell="${name}"]`)
       if (!node) return
+      if (instant) {
+        gsap.killTweensOf(node)
+        gsap.set(node, { clearProps: 'transform,opacity' })
+        node.textContent = value
+        if (color) node.style.color = color
+        return
+      }
       if (node.textContent !== value) {
         node.textContent = value
         if (color) node.style.color = color
@@ -50,6 +61,11 @@ function paintBoard(plate: HTMLElement, stateIndex: number) {
     write('thru', cell.thru)
     write('total', cell.total, scoreColor(cell.total))
 
+    if (instant) {
+      gsap.killTweensOf(row)
+      gsap.set(row, { clearProps: 'transform' })
+      return
+    }
     gsap.to(row, {
       y: (cell.slot - i) * step,
       duration: 0.45,
@@ -124,7 +140,10 @@ export function LeadChangeChapter() {
               .querySelectorAll('[data-row]')
               .forEach((row) => row.classList.remove('mk-row-flash'))
             beats.forEach((beat) => beat.classList.remove('is-on'))
-            gsap.set(plate.querySelectorAll('[data-row]'), { clearProps: 'transform' })
+            // Repaint the rest state instantly: text and colors, not just
+            // transforms, or the static board below the breakpoint keeps the
+            // final round's figures in rest-state order.
+            paintBoard(plate, 0, true)
             gsap.set(beats, { clearProps: 'all' })
           }
         },

@@ -217,20 +217,25 @@ export function HeroSection() {
 
       <div className="mk-container relative z-10 w-full">
         <div ref={copyRef} className="max-w-2xl">
+          {/* Real spaces between the word spans: inline-block spans with
+              margin gaps alone read as one run-on token to screen readers,
+              find-in-page and copy-paste. */}
           <h1 className="text-balance">
             {HEADLINE.map((part, i) => (
-              <span
-                key={part.word}
-                className="mk-word mr-[0.28em] last:mr-0"
-                style={
-                  {
-                    '--mk-word-i': i,
-                    color: part.gold ? 'var(--mk-gold)' : undefined,
-                  } as React.CSSProperties
-                }
-              >
-                {part.word}
-                {part.gold && <span className="mk-rule-draw mt-3" aria-hidden />}
+              <span key={part.word}>
+                <span
+                  className="mk-word"
+                  style={
+                    {
+                      '--mk-word-i': i,
+                      color: part.gold ? 'var(--mk-gold)' : undefined,
+                    } as React.CSSProperties
+                  }
+                >
+                  {part.word}
+                  {part.gold && <span className="mk-rule-draw mt-3" aria-hidden />}
+                </span>
+                {i < HEADLINE.length - 1 ? ' ' : null}
               </span>
             ))}
           </h1>
@@ -266,6 +271,13 @@ export function HeroSection() {
               </button>
             )}
           </div>
+
+          {/* The price of entry, stated where the decision happens: the
+              first "free" signal otherwise sits several thousand pixels
+              down the page. Facts match the pricing tiers. */}
+          <p className="mt-4 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
+            Free for groups up to 16. No card required.
+          </p>
         </div>
       </div>
     </section>

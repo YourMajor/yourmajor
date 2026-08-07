@@ -132,6 +132,12 @@
   --mk-bone:          oklch(0.95 0.012 85);
   --mk-bone-bright:   oklch(0.99 0.008 85);
   --mk-ink:           oklch(0.22 0.02 150);
+  /* Gold legible on bone: the same hue, darkened until it passes AA on
+     light plates (bright gold on bone is 2.2:1). A tonal ramp of the
+     accent, not a new hue: use it wherever gold text or icons sit on bone.
+     Not a color-mix with ink; oklch interpolation drags hue 78 toward
+     ink's 150 and lands on olive. */
+  --mk-gold-on-bone:  oklch(0.45 0.10 78);
 
   /* Functional score signals — red means under par, never error */
   --mk-under-par:     oklch(0.50 0.20 25);

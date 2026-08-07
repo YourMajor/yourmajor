@@ -6,9 +6,11 @@ import { useRouter } from 'next/navigation'
 export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
   const router = useRouter()
   const [loading, setLoading] = useState(false)
+  const [error, setError] = useState(false)
 
   async function handleCheckout() {
     setLoading(true)
+    setError(false)
     try {
       const res = await fetch('/api/billing/checkout', {
         method: 'POST',
@@ -20,7 +22,12 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
         window.location.href = data.url
       } else if (res.status === 401) {
         router.push('/auth/login?next=/pricing')
+      } else {
+        // The money button must never fail silently.
+        setError(true)
       }
+    } catch {
+      setError(true)
     } finally {
       setLoading(false)
     }
@@ -40,12 +47,17 @@ export function PricingActions({ tier }: { tier: 'PRO' | 'CLUB' | 'LEAGUE' }) {
   // fill, and there is no second or third brand hue. The tier is told by the
   // card, not by the button.
   return (
-    <button
-      onClick={handleCheckout}
-      disabled={loading}
-      className="mk-btn mk-btn-primary-plate w-full"
-    >
-      {loading ? 'Redirecting...' : labels[tier]}
-    </button>
+    <div>
+      <button
+        onClick={handleCheckout}
+        disabled={loading}
+        className="mk-btn mk-btn-primary-plate w-full"
+      >
+        {loading ? 'Redirecting...' : labels[tier]}
+      </button>
+      <p role="status" className="text-xs" style={{ color: 'var(--mk-over-par)' }}>
+        {error ? 'Couldn’t start checkout. Please try again.' : ''}
+      </p>
+    </div>
   )
 }

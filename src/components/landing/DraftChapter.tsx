@@ -151,6 +151,9 @@ export function DraftChapter() {
   const flipState = useRef<Flip.FlipState | null>(null)
   const [drafted, setDrafted] = useState<string[]>([])
   const [modalCard, setModalCard] = useState<PowerupCardData | null>(null)
+  // The hand card that opened the reveal, so closing it restores focus
+  // there instead of dropping to <body> (same contract as HeroCodeSearch).
+  const modalTrigger = useRef<HTMLElement | null>(null)
 
   const pool = DEMO_CARDS.filter((c) => !drafted.includes(c.id))
   const handFull = drafted.length >= HAND_SIZE
@@ -195,6 +198,19 @@ export function DraftChapter() {
       // Cross-container travelers fly absolutely; siblings tween in flow.
       absolute: absolute || false,
     })
+    // Drafting or resetting unmounts the focused button and drops keyboard
+    // focus to <body>. Re-seat it: onto the drafted card in the hand, or
+    // back into the pool after a reset. Pointer users are unaffected
+    // (focus only moved if it actually fell to body).
+    if (document.activeElement === document.body) {
+      const target =
+        travelers.current.length === 1
+          ? stageRef.current?.querySelector<HTMLElement>(
+              `[data-flip-id="${travelers.current[0]}"] button`,
+            )
+          : stageRef.current?.querySelector<HTMLElement>('[data-pool-card] button')
+      target?.focus({ preventScroll: true })
+    }
   }, [drafted])
 
   // Pointer-device drag. Anything else drafts by tap or keyboard.
@@ -405,7 +421,14 @@ export function DraftChapter() {
                     data-flip-id={card.id}
                     className="transition-transform hover:-translate-y-1 motion-reduce:transition-none"
                   >
-                    <PowerupCard powerup={card} size="sm" onClick={() => setModalCard(card)} />
+                    <PowerupCard
+                      powerup={card}
+                      size="sm"
+                      onClick={() => {
+                        modalTrigger.current = document.activeElement as HTMLElement
+                        setModalCard(card)
+                      }}
+                    />
                   </div>
                 ) : (
                   <div
@@ -447,7 +470,15 @@ export function DraftChapter() {
         </p>
       </div>
 
-      {modalCard && <CardModal card={modalCard} onClose={() => setModalCard(null)} />}
+      {modalCard && (
+        <CardModal
+          card={modalCard}
+          onClose={() => {
+            setModalCard(null)
+            requestAnimationFrame(() => modalTrigger.current?.focus())
+          }}
+        />
+      )}
     </section>
   )
 }

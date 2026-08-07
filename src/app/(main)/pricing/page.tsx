@@ -81,7 +81,9 @@ function TierPlate({ tier }: { tier: TierDef }) {
         <span
           className={`${LABEL} absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5`}
           style={{
-            color: 'var(--mk-gold)',
+            // Gold-on-bone variant: bright gold text on the bone chip is
+            // 2.2:1, well under AA.
+            color: 'var(--mk-gold-on-bone)',
             background: 'var(--mk-bone)',
             border: '1px solid var(--mk-gold)',
             borderRadius: 'var(--mk-radius-sm)',
@@ -91,7 +93,7 @@ function TierPlate({ tier }: { tier: TierDef }) {
         </span>
       )}
       <div className="flex items-center gap-2.5">
-        <tier.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+        <tier.icon className="h-5 w-5" style={{ color: 'var(--mk-gold-on-bone)' }} aria-hidden />
         <h3 className="text-xl" style={{ color: 'var(--mk-ink)' }}>
           {tier.name}
         </h3>
@@ -125,7 +127,7 @@ function TierPlate({ tier }: { tier: TierDef }) {
       <ul className="mt-5 space-y-2">
         {features.map((f) => (
           <li key={f} className="flex items-start gap-2 text-sm" style={{ color: 'var(--mk-ink)' }}>
-            <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--mk-gold)' }} aria-hidden />
+            <Check className="mt-0.5 h-4 w-4 shrink-0" style={{ color: 'var(--mk-gold-on-bone)' }} aria-hidden />
             <span>{f}</span>
           </li>
         ))}
@@ -288,7 +290,7 @@ function ComparisonCell({ value }: { value: string | boolean }) {
     return (
       <td className="px-4 py-2.5 text-center">
         {value ? (
-          <Check className="mx-auto h-4 w-4" style={{ color: 'var(--mk-gold)' }} aria-label="Included" />
+          <Check className="mx-auto h-4 w-4" style={{ color: 'var(--mk-gold-on-bone)' }} aria-label="Included" />
         ) : (
           <X className="mx-auto h-4 w-4 opacity-40" style={{ color: 'var(--mk-over-par)' }} aria-label="Not included" />
         )}
