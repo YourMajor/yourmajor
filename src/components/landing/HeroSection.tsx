@@ -36,9 +36,11 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
  */
 
 const HEADLINE: Array<{ word: string; gold?: boolean }> = [
-  { word: 'Tournament' },
-  { word: 'Golf,' },
-  { word: 'Simplified.', gold: true },
+  { word: 'Every' },
+  { word: 'group' },
+  { word: 'has' },
+  { word: 'a' },
+  { word: 'major.', gold: true },
 ]
 
 export function HeroSection() {
@@ -120,30 +122,32 @@ export function HeroSection() {
         }}
       />
 
-      {/* One ball flight drawn across the sky after the title lands. Pure
+      {/* One ball flight: launched from the fairway at the lower left, it
+          climbs over the headline and lands on the green at the right. Pure
           CSS (see .mk-hero-tracer); decoration, desktop only. */}
       <svg
         aria-hidden
-        viewBox="0 0 600 400"
-        className="mk-hero-tracer pointer-events-none absolute right-0 top-[8%] hidden w-1/2 max-w-[640px] lg:block"
+        viewBox="0 0 1440 900"
+        preserveAspectRatio="xMidYMid slice"
+        className="mk-hero-tracer pointer-events-none absolute inset-0 hidden h-full w-full lg:block"
       >
         <defs>
-          {/* The tail fades in from nothing so the flight reads as entering
-              the frame, not starting mid-air. */}
+          {/* The tail fades in from nothing so the launch reads as leaving
+              the turf, not a line starting mid-air. */}
           <linearGradient id="mk-tracer-fade" x1="0" y1="1" x2="1" y2="0">
             <stop offset="0" stopColor="var(--mk-gold)" stopOpacity="0" />
-            <stop offset="0.35" stopColor="var(--mk-gold)" stopOpacity="0.7" />
-            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.7" />
+            <stop offset="0.22" stopColor="var(--mk-gold)" stopOpacity="0.65" />
+            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.65" />
           </linearGradient>
         </defs>
         <path
-          d="M 30 370 C 190 90, 400 55, 565 175"
+          d="M 470 930 C 560 480, 660 170, 810 200 C 990 240, 1130 440, 1200 620"
           pathLength="1"
           fill="none"
           stroke="url(#mk-tracer-fade)"
           strokeWidth="1.5"
         />
-        <circle className="mk-tracer-ball" cx="565" cy="175" r="3" fill="var(--mk-bone)" />
+        <circle className="mk-tracer-ball" cx="1200" cy="620" r="3.5" fill="var(--mk-bone)" />
       </svg>
 
       <div className="mk-container relative z-10 w-full">

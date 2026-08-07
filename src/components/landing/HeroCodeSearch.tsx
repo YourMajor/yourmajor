@@ -58,7 +58,7 @@ export function HeroCodeSearch({ onDismiss }: { onDismiss: () => void }) {
             setCode(e.target.value.toUpperCase())
             setError(null)
           }}
-          placeholder="Tournament code"
+          placeholder="Code"
           aria-label="Tournament code"
           required
           className="h-12 w-44 px-4 text-base font-semibold uppercase tracking-[0.08em] outline-none transition-colors"
