@@ -44,6 +44,7 @@ const HEADLINE: Array<{ word: string; gold?: boolean }> = [
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const mediaRef = useRef<HTMLDivElement>(null)
+  const copyRef = useRef<HTMLDivElement>(null)
   const [joining, setJoining] = useState(false)
   const joinBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -55,22 +56,26 @@ export function HeroSection() {
         () => {
           // The settle: the media arrives very slightly enlarged and relaxes
           // to rest as the visitor scrolls off the hero, drifting slower than
-          // the page (0.25x) so the course reads as far away.
+          // the page (0.25x) so the course reads as far away. The copy block
+          // drifts the other way, slightly faster, so leaving the hero reads
+          // as a camera move rather than a page scroll.
+          const trigger = {
+            trigger: sectionRef.current,
+            start: 'top top',
+            end: 'bottom top',
+            scrub: true,
+          }
           gsap.fromTo(
             mediaRef.current,
             { scale: 1.06, yPercent: 0 },
-            {
-              scale: 1,
-              yPercent: 12,
-              ease: 'none',
-              scrollTrigger: {
-                trigger: sectionRef.current,
-                start: 'top top',
-                end: 'bottom top',
-                scrub: true,
-              },
-            },
+            { scale: 1, yPercent: 12, ease: 'none', scrollTrigger: trigger },
           )
+          gsap.to(copyRef.current, {
+            yPercent: -10,
+            opacity: 0.35,
+            ease: 'none',
+            scrollTrigger: trigger,
+          })
         },
       )
       return () => media.revert()
@@ -115,8 +120,34 @@ export function HeroSection() {
         }}
       />
 
+      {/* One ball flight drawn across the sky after the title lands. Pure
+          CSS (see .mk-hero-tracer); decoration, desktop only. */}
+      <svg
+        aria-hidden
+        viewBox="0 0 600 400"
+        className="mk-hero-tracer pointer-events-none absolute right-0 top-[8%] hidden w-1/2 max-w-[640px] lg:block"
+      >
+        <defs>
+          {/* The tail fades in from nothing so the flight reads as entering
+              the frame, not starting mid-air. */}
+          <linearGradient id="mk-tracer-fade" x1="0" y1="1" x2="1" y2="0">
+            <stop offset="0" stopColor="var(--mk-gold)" stopOpacity="0" />
+            <stop offset="0.35" stopColor="var(--mk-gold)" stopOpacity="0.7" />
+            <stop offset="1" stopColor="var(--mk-gold)" stopOpacity="0.7" />
+          </linearGradient>
+        </defs>
+        <path
+          d="M 30 370 C 190 90, 400 55, 565 175"
+          pathLength="1"
+          fill="none"
+          stroke="url(#mk-tracer-fade)"
+          strokeWidth="1.5"
+        />
+        <circle className="mk-tracer-ball" cx="565" cy="175" r="3" fill="var(--mk-bone)" />
+      </svg>
+
       <div className="mk-container relative z-10 w-full">
-        <div className="max-w-2xl">
+        <div ref={copyRef} className="max-w-2xl">
           <h1 className="text-balance">
             {HEADLINE.map((part, i) => (
               <span

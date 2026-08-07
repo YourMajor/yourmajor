@@ -75,11 +75,13 @@ export function Footer() {
           ))}
         </nav>
 
-        {/* The wordmark rises out of the ground. Ghost ink on deep green:
-            texture, not a heading, hence aria-hidden. */}
-        <motion.p
+        {/* The wordmark rises out of the ground letter by letter, like a
+            gallery board turning over. Ghost ink on deep green: texture, not
+            a heading, hence aria-hidden. Letters start visible (offset only)
+            per the animate-from-visible contract. */}
+        <p
           aria-hidden
-          className="select-none text-center uppercase"
+          className="select-none overflow-hidden text-center uppercase"
           style={{
             fontFamily: 'var(--font-display), Georgia, serif',
             fontSize: 'clamp(3rem, 13vw, 11rem)',
@@ -89,13 +91,24 @@ export function Footer() {
             opacity: 0.13,
             marginBottom: '-0.18em',
           }}
-          initial={{ y: '0.35em' }}
-          whileInView={{ y: '0em' }}
-          viewport={{ once: true, amount: 0.4 }}
-          transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.16, 1, 0.3, 1] }}
         >
-          YourMajor
-        </motion.p>
+          {'YourMajor'.split('').map((ch, i) => (
+            <motion.span
+              key={i}
+              className="inline-block"
+              initial={{ y: '0.4em' }}
+              whileInView={{ y: '0em' }}
+              viewport={{ once: true, amount: 0.4 }}
+              transition={
+                reduce
+                  ? { duration: 0 }
+                  : { duration: 0.8, delay: i * 0.05, ease: [0.16, 1, 0.3, 1] }
+              }
+            >
+              {ch}
+            </motion.span>
+          ))}
+        </p>
       </div>
     </footer>
   )

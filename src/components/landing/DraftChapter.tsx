@@ -206,9 +206,14 @@ export function DraftChapter() {
         releaseDamping: 15,
         onGrab: () => {
           el.style.zIndex = '30'
+          // Tilt yields while the card is in hand.
+          el.classList.add('is-dragging')
+          const tilt = el.querySelector<HTMLElement>('[data-tilt]')
+          if (tilt) tilt.style.transform = ''
         },
         onRelease: (self) => {
           el.style.zIndex = ''
+          el.classList.remove('is-dragging')
           const cardRect = el.getBoundingClientRect()
           const zoneRect = zone?.getBoundingClientRect()
           const overlaps =
@@ -232,6 +237,53 @@ export function DraftChapter() {
       instances.clear()
     }
   }, [pool.length, draftCard])
+
+  // Overdrive: pool cards tilt in 3D under the pointer and spring flat on
+  // leave. One delegated listener pair; inert on touch and reduced motion,
+  // and it yields entirely while a card is being dragged.
+  useEffect(() => {
+    const stage = stageRef.current
+    if (!stage) return
+    const wants = window.matchMedia(
+      '(hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference)',
+    ).matches
+    if (!wants) return
+
+    const onMove = (e: PointerEvent) => {
+      const wrap = (e.target as Element).closest?.('[data-pool-card]')
+      if (!(wrap instanceof HTMLElement) || wrap.classList.contains('is-dragging')) return
+      const tilt = wrap.querySelector<HTMLElement>('[data-tilt]')
+      if (!tilt) return
+      const r = wrap.getBoundingClientRect()
+      const rx = ((e.clientY - r.top) / r.height - 0.5) * -14
+      const ry = ((e.clientX - r.left) / r.width - 0.5) * 14
+      tilt.style.transform = `perspective(600px) rotateX(${rx.toFixed(1)}deg) rotateY(${ry.toFixed(1)}deg)`
+    }
+    const onOut = (e: PointerEvent) => {
+      const wrap = (e.target as Element).closest?.('[data-pool-card]')
+      if (!(wrap instanceof HTMLElement) || wrap.contains(e.relatedTarget as Node)) return
+      const tilt = wrap.querySelector<HTMLElement>('[data-tilt]')
+      if (!tilt) return
+      const from = tilt.style.transform
+      tilt.style.transform = ''
+      if (from) {
+        tilt.animate(
+          [
+            { transform: from },
+            { transform: 'perspective(600px) rotateX(0deg) rotateY(0deg)' },
+          ],
+          { duration: 480, easing: 'cubic-bezier(0.34, 1.56, 0.64, 1)' },
+        )
+      }
+    }
+
+    stage.addEventListener('pointermove', onMove)
+    stage.addEventListener('pointerout', onOut)
+    return () => {
+      stage.removeEventListener('pointermove', onMove)
+      stage.removeEventListener('pointerout', onOut)
+    }
+  }, [])
 
   return (
     <section
@@ -272,12 +324,14 @@ export function DraftChapter() {
                   cursor: handFull ? 'default' : 'grab',
                 }}
               >
-                <PowerupCard
-                  powerup={card}
-                  size="sm"
-                  disabled={handFull}
-                  onClick={() => draftCard(card.id)}
-                />
+                <div data-tilt className="will-change-transform">
+                  <PowerupCard
+                    powerup={card}
+                    size="sm"
+                    disabled={handFull}
+                    onClick={() => draftCard(card.id)}
+                  />
+                </div>
               </div>
             ))}
           </div>

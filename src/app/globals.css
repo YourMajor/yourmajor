@@ -533,6 +533,79 @@
   .marketing #clubhouse:target .mk-plate { animation: none !important; }
 }
 
+/* ── Overdrive layer ─────────────────────────────────────
+   Each section owns exactly one authored moment; nothing here is
+   load-bearing and all of it dies under reduced motion. */
+
+/* Hero: one gold ball flight drawn across the sky after the title lands.
+   pathLength=1 in the SVG makes the dash math unit-free. */
+@keyframes mkTracerFlight {
+  from { stroke-dashoffset: 1; }
+  to   { stroke-dashoffset: 0; }
+}
+@keyframes mkTracerBall {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+.marketing .mk-hero-tracer path { stroke-dasharray: 1; stroke-dashoffset: 0; }
+@media (prefers-reduced-motion: no-preference) {
+  .marketing .mk-hero-tracer path {
+    animation: mkTracerFlight 1.7s cubic-bezier(0.4, 0, 0.2, 1) 1.15s both;
+  }
+  .marketing .mk-hero-tracer .mk-tracer-ball {
+    animation: mkTracerBall 0.35s ease-out 2.7s both;
+  }
+}
+
+/* Header: the gold rule that glides between nav links with a slight
+   overshoot. JS (NavUnderline) only sets transform and opacity. */
+.marketing nav [data-nav-rule] {
+  transition:
+    transform 340ms cubic-bezier(0.34, 1.56, 0.64, 1),
+    opacity 200ms ease-out;
+}
+
+/* Poster: the gold ink starts a full press-stroke out of register and pulls
+   into print as the sheet scrolls through. Scroll-driven CSS only where the
+   browser has it; everywhere else the static 3px misregister stands. */
+@keyframes mkPressRegister {
+  from { transform: translate(18px, 18px); }
+  to   { transform: translate(3px, 3px); }
+}
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .marketing .mk-poster-ink {
+      animation: mkPressRegister linear both;
+      animation-timeline: view();
+      animation-range: entry 20% cover 55%;
+    }
+  }
+}
+
+/* Lead change: the active commentary chip types itself in, and the row that
+   takes the lead flashes gold as it lands. Classes are toggled by the
+   chapter's scrub paint, which only runs on desktop with full motion. */
+@keyframes mkChipType {
+  from { clip-path: inset(0 100% 0 0); }
+  to   { clip-path: inset(0 -2% 0 0); }
+}
+.marketing [data-beat].is-on .mk-chip {
+  animation: mkChipType 0.5s steps(14, end) both;
+}
+@keyframes mkRowFlash {
+  from { background-color: color-mix(in oklch, var(--mk-gold) 26%, transparent); }
+  to   { background-color: transparent; }
+}
+.marketing .mk-row-flash {
+  animation: mkRowFlash 1s ease-out both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .marketing nav [data-nav-rule] { transition: none; }
+  .marketing [data-beat].is-on .mk-chip,
+  .marketing .mk-row-flash { animation: none !important; }
+}
+
 @keyframes mkCardReveal {
   from { opacity: 0; transform: perspective(900px) rotateY(70deg) scale(0.92); }
   to   { opacity: 1; transform: none; }

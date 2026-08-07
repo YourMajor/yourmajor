@@ -4,6 +4,7 @@ import { getUser } from '@/lib/auth'
 import { prisma } from '@/lib/prisma'
 import { buttonVariants } from '@/components/ui/button-variants'
 import { NavShell } from '@/components/NavShell'
+import { NavUnderline } from '@/components/NavUnderline'
 import { MobileNavMenu } from '@/components/MobileNavMenu'
 import { ProfileDropdown } from '@/components/ProfileDropdown'
 
@@ -54,7 +55,8 @@ export async function GlobalNav() {
           </Link>
 
           {/* Desktop nav links */}
-          <nav className="hidden lg:flex items-center gap-1 text-sm lg:text-base">
+          <nav className="relative hidden lg:flex items-center gap-1 text-sm lg:text-base">
+            <NavUnderline />
             {(user ? NAV_LINKS : NAV_LINKS.filter(l => l.href !== '/dashboard')).map((link) => (
               <Link
                 key={link.href}

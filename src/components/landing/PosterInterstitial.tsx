@@ -11,8 +11,10 @@ import posterCourse from '../../../public/images/marketing/poster-course.webp'
  * the green page ground and the bottom scrim hands into the dusk interlude
  * (.mk-dusk-zone) with no visible seam.
  *
- * No JavaScript here at all; the misregister is the poster's charm and is
- * identical under reduced motion.
+ * No JavaScript here at all. Where the browser supports scroll-driven CSS
+ * animation, the gold ink starts a full press-stroke out of register and
+ * pulls into print as the sheet scrolls through (.mk-poster-ink); everywhere
+ * else, and under reduced motion, the static 3px misregister stands.
  */
 
 const LINES = ['Built for', 'competitive', 'golfers']
@@ -55,7 +57,7 @@ export function PosterInterstitial() {
           {/* Gold ink, misregistered. */}
           <span
             aria-hidden
-            className="absolute inset-0 select-none"
+            className="mk-poster-ink absolute inset-0 select-none"
             style={{ color: 'var(--mk-gold)', transform: 'translate(3px, 3px)' }}
           >
             {LINES.map((line) => (

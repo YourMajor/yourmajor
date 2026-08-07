@@ -85,6 +85,8 @@ export function LeadChangeChapter() {
             painted = index
             paintBoard(plate, index)
             beats.forEach((beat, i) => {
+              // is-on retypes the active chip (see .mk-chip in globals.css).
+              beat.classList.toggle('is-on', i === index)
               gsap.to(beat, {
                 opacity: i === index ? 1 : 0.32,
                 x: i === index ? 0 : -6,
@@ -93,6 +95,14 @@ export function LeadChangeChapter() {
                 overwrite: 'auto',
               })
             })
+            // The overtake: when the final state lands, the row that takes
+            // the lead flashes gold as it settles into the top slot.
+            const rows = plate.querySelectorAll<HTMLElement>('[data-row]')
+            rows.forEach((row) => row.classList.remove('mk-row-flash'))
+            if (index === 2) {
+              const winner = ROUND_STATES[2].findIndex((cell) => cell.slot === 0)
+              rows[winner]?.classList.add('mk-row-flash')
+            }
           }
 
           const trigger = ScrollTrigger.create({
@@ -110,6 +120,10 @@ export function LeadChangeChapter() {
 
           return () => {
             trigger.kill()
+            plate
+              .querySelectorAll('[data-row]')
+              .forEach((row) => row.classList.remove('mk-row-flash'))
+            beats.forEach((beat) => beat.classList.remove('is-on'))
             gsap.set(plate.querySelectorAll('[data-row]'), { clearProps: 'transform' })
             gsap.set(beats, { clearProps: 'all' })
           }
@@ -143,7 +157,7 @@ export function LeadChangeChapter() {
                 {BEATS.map((beat) => (
                   <div key={beat.thru} data-beat>
                     <span
-                      className="mk-data inline-flex items-center text-sm"
+                      className="mk-chip mk-data inline-flex items-center text-sm"
                       style={{
                         padding: '0.2rem 0.65rem',
                         border: '1px solid color-mix(in oklch, var(--mk-gold) 90%, transparent)',
