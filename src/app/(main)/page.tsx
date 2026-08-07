@@ -28,7 +28,7 @@ export default async function Home() {
   return (
     // overflow-x-clip, never -hidden: -hidden silently kills position:sticky
     // on descendants, and the hero's scroll sequence depends on it.
-    <main className="marketing overflow-x-clip">
+    <main id="content" className="marketing overflow-x-clip">
       <HeroSection />
 
       <LeadChangeChapter />

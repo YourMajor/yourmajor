@@ -37,7 +37,10 @@ export function ClosingChapter() {
           >
             Final
           </span>
+          {/* AT hears the full phrase, not a heading named "eighteen";
+              the flanking labels stay decorative. */}
           <h2
+            aria-label="The final hole"
             className="relative"
             style={{
               fontFamily: 'var(--font-display), Georgia, serif',

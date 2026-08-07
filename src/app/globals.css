@@ -653,6 +653,24 @@ main.marketing::after {
   transition-duration: 0.12s;
 }
 
+/* ── Skip link ────────────────────────────────────────────
+   Visually hidden until keyboard focus, then a bone plate under the nav. */
+.marketing .mk-skip-link {
+  position: absolute;
+  left: 1rem;
+  top: -100%;
+  z-index: 60;
+  padding: 0.5rem 1rem;
+  background: var(--mk-bone);
+  color: var(--mk-ink);
+  border-radius: var(--mk-radius-sm);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+.marketing .mk-skip-link:focus-visible {
+  top: 0.75rem;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .marketing .mk-ch-rings::after { animation: none; }
   .marketing .mk-endplate-title { animation: none; }

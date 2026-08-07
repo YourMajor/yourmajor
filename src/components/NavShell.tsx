@@ -34,6 +34,13 @@ export function NavShell({ children }: { children: ReactNode }) {
 
   return (
     <header className={className} suppressHydrationWarning>
+      {/* Marketing routes only, so the app's markup stays byte-identical.
+          Targets the <main> both marketing pages carry as id="content". */}
+      {isDarkPage && (
+        <a href="#content" className="mk-skip-link">
+          Skip to content
+        </a>
+      )}
       {children}
     </header>
   )

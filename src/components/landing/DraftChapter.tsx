@@ -342,7 +342,9 @@ export function DraftChapter() {
       <div className="mk-container py-20 lg:py-28">
         <div className="max-w-[60ch]">
           <Zap className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
-          <h3 className="mt-4 text-2xl lg:text-3xl">Draft your powerups</h3>
+          {/* h2: this is a chapter between h2 siblings; it was an h3, which
+              broke the document outline. Visual scale unchanged. */}
+          <h2 className="mt-4 text-2xl lg:text-3xl">Draft your powerups</h2>
           <p className="mt-4 text-base leading-relaxed" style={{ color: 'var(--mk-text-muted)' }}>
             Before the round, players take turns pulling cards from a shared
             pool, then spend them mid-play against each other. Try it: drag a

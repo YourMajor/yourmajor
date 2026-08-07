@@ -151,7 +151,7 @@ function TierPlate({ tier }: { tier: TierDef }) {
 
 export default function PricingPage() {
   return (
-    <main className="marketing overflow-x-clip">
+    <main id="content" className="marketing overflow-x-clip">
       {/* Hero header */}
       <section className="mk-section relative pt-32">
         <div className="mk-container relative z-10 max-w-3xl text-center lg:max-w-4xl">
