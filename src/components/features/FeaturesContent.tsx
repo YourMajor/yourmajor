@@ -5,12 +5,10 @@ import type { Timeline } from 'animejs'
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import { useTimelineInView } from '@/components/motion/useTimelineInView'
 import {
-  BarChart3, ClipboardList, Zap, Users, Camera, Shield,
+  BarChart3, ClipboardList, Users, Camera, Shield,
   MessageSquare, TrendingUp, Map, Smartphone, Settings,
-  Repeat, Timer, Globe, Crosshair, Palette, Trophy, Swords,
+  Repeat, Timer, Globe, Crosshair, Palette, Trophy,
 } from 'lucide-react'
-import { PowerupCard } from '@/components/draft/PowerupCard'
-import { EXAMPLE_BOOST, EXAMPLE_ATTACK } from '@/components/wizard/PowerupsInfoPanel'
 
 /* ═══════════════════════════════════════════════════════
    VISUALS
@@ -495,88 +493,6 @@ export function FeatureSplits() {
         <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
       ))}
     </div>
-  )
-}
-
-/** Full-width band carrying the one capability a neighbouring product could
-    not copy without rebuilding around it. */
-export function PowerupBand() {
-  return (
-    <>
-      <div className="mt-24 lg:mt-32" style={{ background: 'var(--mk-green-deep)' }}>
-        <div className="mk-container py-20 lg:py-28">
-          <ScrollReveal direction="up" duration={600}>
-            <div className="max-w-[60ch]">
-              <Zap className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
-              <h3 className="mt-4 text-2xl lg:text-3xl">The powerup draft</h3>
-              <p
-                className="mt-4 text-base leading-relaxed"
-                style={{ color: 'var(--mk-text-muted)' }}
-              >
-                Before the round, players draft cards from a shared pool, then spend them
-                mid-play against each other. It is the reason a casual group formalises a
-                round at all: social first, competitive second.
-              </p>
-            </div>
-
-            <hr className="mk-rule my-12" />
-
-            <div className="grid gap-12 sm:grid-cols-2">
-              <div className="flex flex-col items-start gap-5 sm:flex-row">
-                <div className="shrink-0">
-                  <PowerupCard powerup={EXAMPLE_BOOST} size="sm" disabled />
-                </div>
-                <div className="min-w-0">
-                  <span className="flex items-center gap-2">
-                    <Zap className="h-4 w-4" style={{ color: 'var(--mk-gold)' }} aria-hidden />
-                    <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
-                      Boost
-                    </span>
-                  </span>
-                  <p
-                    className="mt-3 text-sm leading-relaxed"
-                    style={{ color: 'var(--mk-text-muted)' }}
-                  >
-                    Boosts work in your favour. Drop a stroke, improve a lie, or take a
-                    swing at something you would not normally try.
-                  </p>
-                </div>
-              </div>
-
-              <div className="flex flex-col items-start gap-5 sm:flex-row">
-                <div className="shrink-0">
-                  <PowerupCard powerup={EXAMPLE_ATTACK} size="sm" disabled />
-                </div>
-                <div className="min-w-0">
-                  <span className="flex items-center gap-2">
-                    <Swords className="h-4 w-4" style={{ color: 'var(--mk-gold)' }} aria-hidden />
-                    <span className={LABEL} style={{ color: 'var(--mk-gold)' }}>
-                      Attack
-                    </span>
-                  </span>
-                  <p
-                    className="mt-3 text-sm leading-relaxed"
-                    style={{ color: 'var(--mk-text-muted)' }}
-                  >
-                    Attacks point at someone else. Force a handicap, swap a score, or put a
-                    restriction on the next tee shot.
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <p
-              className="mt-12 max-w-[65ch] text-sm leading-relaxed"
-              style={{ color: 'var(--mk-text-subtle)' }}
-            >
-              Cards reach players two ways. A live draft has everyone pick in turn, which is
-              slower and far more social. A random deal shuffles and hands them out, which
-              takes seconds.
-            </p>
-          </ScrollReveal>
-        </div>
-      </div>
-    </>
   )
 }
 

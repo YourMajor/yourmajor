@@ -5,11 +5,11 @@ import { LeadChangeChapter } from '@/components/landing/LeadChangeChapter'
 import { PosterInterstitial } from '@/components/landing/PosterInterstitial'
 import {
   FeatureSplits,
-  PowerupBand,
   FeatureBento,
   FeatureList,
 } from '@/components/features/FeaturesContent'
 import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
+import { DraftChapter } from '@/components/landing/DraftChapter'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
 import { NearbyTournamentsSection } from '@/components/landing/NearbyTournamentsSection'
@@ -32,7 +32,7 @@ export default async function Home() {
         <PosterInterstitial />
         <FeatureSplits />
         <ShotTracerChapter />
-        <PowerupBand />
+        <DraftChapter />
         <FeatureBento />
         <FeatureList />
       </section>
