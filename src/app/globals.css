@@ -524,16 +524,14 @@
   position: relative;
   isolation: isolate;
   background:
-    /* Sunset haze low in the sky, matching the hero's horizon band. */
+    /* Sunset haze low in the sky, matching the hero's horizon band. No
+       ember near the bottom edge: anything tinting the zone's last pixels
+       cannot match the plain green below it, and reads as a hard line
+       between the tracer and the draft. */
     radial-gradient(
       130% 55% at 50% 22%,
       color-mix(in oklch, var(--mk-sunset) 19%, transparent),
       transparent 64%
-    ),
-    radial-gradient(
-      100% 30% at 50% 96%,
-      color-mix(in oklch, var(--mk-sunset) 8%, transparent),
-      transparent 70%
     ),
     linear-gradient(
       to bottom,
