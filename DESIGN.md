@@ -101,7 +101,31 @@ repurposed as an error state on marketing surfaces.
 - Gold appears only as a rule, a hairline, or a single highlighted word
 - Bone plates carry real information; the page ground never turns pale
 - Squared corners (2-6px), because the category reads formal, not friendly
-- Real photography or no photography; gradients never stand in for a picture
+- Photography-grade imagery or none; gradients never stand in for a picture
+
+**v3 expressive range (user-directed, 2026-08-06).** The world's truth rules
+are inviolable: the palette and token layer, Red Means Good, Tabular, exact
+pricing, no invented stats or testimonials, no fake product screenshots built
+from divs. But the strict-canon posture is deliberately widened for the
+cinematic landing sequence, in four directions held in rough balance: the
+Championship Board foundation; expressive editorial and illustrated type
+moments; Apple-product-page scroll craft with living shader fields as motion
+texture (never as fake photography); and one screenprint-poster register.
+Where a chapter bends a stylistic rule (Rare Serif, no-eyebrows,
+photography-or-nothing), the bend is flagged in that chapter's code and this
+document records it. Current sanctioned bends:
+
+- **Generated scenery is allowed.** "Real photography or no photography"
+  relaxes to: photography-grade imagery, generated or captured, for scenery
+  only, never standing in for product proof, always analyzed for AI artifacts
+  before shipping, and labeled a demonstration when it depicts anything
+  product-shaped.
+- **One poster moment.** The features interstitial may set oversized display
+  serif with registration-offset ink layers and halftone texture. Exactly one
+  such moment exists on the page; a second one is drift.
+- **Cursor reactivity is part of the world.** Magnetic CTAs, plate sheen, the
+  bento spotlight, and in-chapter custom-cursor moments are sanctioned on
+  pointer devices, always inert on touch, never load-bearing.
 
 ## Colors
 
