@@ -165,7 +165,7 @@ export function StatsBand() {
             <div className="text-center">
               <Odometer value={stat.to} prefix={stat.prefix ?? ''} />
               <p
-                className="mt-3 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+                className="mt-3 mk-label"
                 style={{ color: 'var(--mk-text-subtle)' }}
               >
                 {stat.label}

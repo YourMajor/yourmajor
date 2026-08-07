@@ -93,7 +93,7 @@ export function LeaderboardPlate() {
         {['Pos', 'Player', 'Today', 'Thru', 'Total'].map((label, i) => (
           <span
             key={label}
-            className={`text-[0.6875rem] font-semibold uppercase tracking-[0.14em] ${
+            className={`mk-label ${
               i === 1 ? 'text-left' : 'text-center'
             }`}
             style={{ color: 'var(--mk-gold)' }}

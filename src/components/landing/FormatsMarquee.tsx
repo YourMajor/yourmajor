@@ -26,7 +26,7 @@ export function FormatsMarquee() {
       {TERMS.map((term) => (
         <span key={term} className="flex items-center">
           <span
-            className="whitespace-nowrap px-6 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] lg:px-8"
+            className="whitespace-nowrap px-6 mk-label lg:px-8"
             style={{ color: 'var(--mk-text-subtle)' }}
           >
             {term}

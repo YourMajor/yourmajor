@@ -148,7 +148,7 @@ export function Footer() {
               <Link
                 key={link.href}
                 href={link.href}
-                className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] transition-colors hover:opacity-100 pointer-coarse:py-3"
+                className="mk-label transition-colors hover:opacity-100 pointer-coarse:py-3"
                 style={{ color: 'var(--mk-text-subtle)' }}
               >
                 {link.label}

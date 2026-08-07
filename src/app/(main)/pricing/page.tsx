@@ -16,7 +16,7 @@ export const metadata = {
  * copy, never by a per-tier hue; the marketing world has one accent.
  */
 
-const LABEL = 'text-[0.6875rem] font-semibold uppercase tracking-[0.14em]'
+const LABEL = 'mk-label'
 
 type TierDef = {
   key: 'FREE' | 'PRO' | 'CLUB' | 'LEAGUE'

@@ -653,6 +653,17 @@ main.marketing::after {
   transition-duration: 0.12s;
 }
 
+/* ── Micro-label ──────────────────────────────────────────
+   The world's one label voice: chip captions, flank labels, credits,
+   column heads. Extracted from 13 literal repeats of the same four
+   utilities; color stays with the call site. */
+.marketing .mk-label {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+}
+
 /* ── Skip link ────────────────────────────────────────────
    Visually hidden until keyboard focus, then a bone plate under the nav. */
 .marketing .mk-skip-link {

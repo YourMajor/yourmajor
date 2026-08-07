@@ -25,7 +25,7 @@ import {
    data columns set the min-content width of everything around them. */
 const BOARD_COLS =
   'grid grid-cols-[2.25rem_1fr_2.5rem_2.25rem_2.5rem] sm:grid-cols-[2.5rem_1fr_3.25rem_2.75rem_3.25rem] px-3 sm:px-4'
-const LABEL = 'text-[0.6875rem] font-semibold uppercase tracking-[0.14em]'
+const LABEL = 'mk-label'
 
 /* ── The board, gross and net ──────────────────────────
    Deliberately a different lens on the same event as the hero's

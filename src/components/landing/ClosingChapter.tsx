@@ -32,7 +32,7 @@ export function ClosingChapter() {
           <span aria-hidden className="mk-ch-rings" />
           <span
             aria-hidden
-            className="absolute right-[calc(50%+clamp(6.5rem,13vw,9rem))] text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+            className="absolute right-[calc(50%+clamp(6.5rem,13vw,9rem))] mk-label"
             style={{ color: 'var(--mk-text-subtle)' }}
           >
             Final
@@ -53,7 +53,7 @@ export function ClosingChapter() {
           </h2>
           <span
             aria-hidden
-            className="absolute left-[calc(50%+clamp(6.5rem,13vw,9rem))] text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+            className="absolute left-[calc(50%+clamp(6.5rem,13vw,9rem))] mk-label"
             style={{ color: 'var(--mk-text-subtle)' }}
           >
             Hole

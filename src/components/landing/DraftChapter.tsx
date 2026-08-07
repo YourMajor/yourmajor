@@ -400,7 +400,7 @@ export function DraftChapter() {
               style={{ borderBottom: '2px solid var(--mk-gold)' }}
             >
               <span
-                className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+                className="mk-label"
                 style={{ color: 'var(--mk-gold)' }}
               >
                 Your hand

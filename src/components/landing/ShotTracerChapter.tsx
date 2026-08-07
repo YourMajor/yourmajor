@@ -150,7 +150,7 @@ export function ShotTracerChapter() {
                 style={{ borderBottom: '2px solid var(--mk-gold)' }}
               >
                 <span
-                  className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+                  className="mk-label"
                   style={{ color: 'var(--mk-gold)' }}
                 >
                   Hole 14 · Par 5

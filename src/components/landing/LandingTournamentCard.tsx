@@ -67,7 +67,7 @@ export function LandingTournamentCard({
             </p>
 
             <span
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 mk-label"
               style={{
                 border: `1px solid ${isLive ? 'var(--mk-gold)' : 'var(--mk-rule-ink)'}`,
                 color: isLive ? 'var(--mk-ink)' : 'var(--mk-over-par)',

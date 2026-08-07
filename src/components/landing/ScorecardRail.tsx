@@ -85,7 +85,7 @@ export function ScorecardRail() {
     >
       <span
         aria-hidden
-        className="mb-2 text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+        className="mb-2 mk-label"
         style={{ color: 'var(--mk-text-subtle)', writingMode: 'vertical-rl' }}
       >
         Front nine
