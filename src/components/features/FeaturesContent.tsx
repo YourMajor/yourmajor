@@ -1,12 +1,12 @@
 'use client'
 
-import { useEffect, useRef, type ReactNode } from 'react'
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Timeline } from 'animejs'
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import { useTimelineInView } from '@/components/motion/useTimelineInView'
 import {
   BarChart3, ClipboardList, Users, Camera, Shield,
-  MessageSquare, TrendingUp, Map, Smartphone, Settings,
+  MessageSquare, TrendingUp, Map as MapIcon, Smartphone, Settings,
   Repeat, Timer, Globe, Crosshair, Palette, Trophy,
 } from 'lucide-react'
 
@@ -27,70 +27,158 @@ const BOARD_COLS =
   'grid grid-cols-[2.25rem_1fr_2.5rem_2.25rem_2.5rem] sm:grid-cols-[2.5rem_1fr_3.25rem_2.75rem_3.25rem] px-3 sm:px-4'
 const LABEL = 'text-[0.6875rem] font-semibold uppercase tracking-[0.14em]'
 
-/* ── The board, net of handicap ────────────────────────
+/* ── The board, gross and net ──────────────────────────
    Deliberately a different lens on the same event as the hero's
-   LeaderboardPlate: gross order there is Watson, Palmer, Hogan, Snead,
-   Player. Net of handicap it inverts, which is the whole point of scoring a
-   group where nobody carries an official index. */
-const NET_ROWS = [
-  { pos: '1', name: 'S. Snead', gross: '78', hcp: '14', net: '64' },
-  { pos: '2', name: 'G. Player', gross: '81', hcp: '16', net: '65' },
-  { pos: '3', name: 'T. Watson', gross: '71', hcp: '4', net: '67' },
-  { pos: 'T4', name: 'J. Palmer', gross: '72', hcp: '4', net: '68' },
-  { pos: 'T4', name: 'B. Hogan', gross: '75', hcp: '7', net: '68' },
+   LeaderboardPlate. Net of handicap the running order inverts, which is the
+   whole point of scoring a group where nobody carries an official index,
+   and the toggle demonstrates it live: rows FLIP to their new positions by
+   hand (WAAPI + measured tops), because layout animation on table-shaped
+   rows is unreliable. */
+const BOARD_PLAYERS = [
+  { name: 'S. Snead', gross: 78, hcp: 14, net: 64 },
+  { name: 'G. Player', gross: 81, hcp: 16, net: 65 },
+  { name: 'T. Watson', gross: 71, hcp: 4, net: 67 },
+  { name: 'J. Palmer', gross: 72, hcp: 4, net: 68 },
+  { name: 'B. Hogan', gross: 75, hcp: 7, net: 68 },
 ]
 
+function boardOrder(view: 'net' | 'gross') {
+  const sorted = [...BOARD_PLAYERS].sort((a, b) => a[view] - b[view])
+  return sorted.map((p) => {
+    const tied = sorted.filter((q) => q[view] === p[view]).length > 1
+    const rank = sorted.findIndex((q) => q[view] === p[view]) + 1
+    return { ...p, pos: tied ? `T${rank}` : String(rank) }
+  })
+}
+
 function NetBoardVisual() {
+  const [view, setView] = useState<'net' | 'gross'>('net')
+  const listRef = useRef<HTMLDivElement>(null)
+  const prevTops = useRef<Map<string, number> | null>(null)
+  const rows = boardOrder(view)
+
+  const toggle = (next: 'net' | 'gross') => {
+    if (next === view) return
+    const list = listRef.current
+    if (list) {
+      const tops = new Map<string, number>()
+      list.querySelectorAll<HTMLElement>('[data-board-row]').forEach((el) => {
+        tops.set(el.dataset.boardRow!, el.getBoundingClientRect().top)
+      })
+      prevTops.current = tops
+    }
+    setView(next)
+  }
+
+  useLayoutEffect(() => {
+    const tops = prevTops.current
+    const list = listRef.current
+    prevTops.current = null
+    if (!tops || !list) return
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
+    list.querySelectorAll<HTMLElement>('[data-board-row]').forEach((el) => {
+      const prev = tops.get(el.dataset.boardRow!)
+      if (prev === undefined) return
+      const delta = prev - el.getBoundingClientRect().top
+      if (!delta) return
+      el.animate(
+        [{ transform: `translateY(${delta}px)` }, { transform: 'translateY(0)' }],
+        { duration: 480, easing: 'cubic-bezier(0.22, 1, 0.36, 1)' },
+      )
+    })
+  }, [view])
+
   return (
-    <div className="mk-plate overflow-hidden">
+    <div>
       <div
-        className={`${BOARD_COLS} items-center py-3`}
-        style={{
-          backgroundColor: 'var(--mk-green-deep)',
-          borderBottom: '2px solid var(--mk-gold)',
-        }}
+        className="mb-3 flex justify-end gap-1"
+        role="tablist"
+        aria-label="Board scoring view"
       >
-        {['Pos', 'Player', 'Gross', 'Hcp', 'Net'].map((label, i) => (
-          <span
-            key={label}
-            className={`${LABEL} ${i === 1 ? 'text-left' : 'text-center'}`}
-            style={{ color: 'var(--mk-gold)' }}
+        {(['gross', 'net'] as const).map((v) => (
+          <button
+            key={v}
+            type="button"
+            role="tab"
+            aria-selected={view === v}
+            onClick={() => toggle(v)}
+            className={`${LABEL} px-3 py-2 transition-colors`}
+            style={{
+              color: view === v ? 'var(--mk-gold)' : 'var(--mk-text-subtle)',
+              borderBottom: `2px solid ${view === v ? 'var(--mk-gold)' : 'transparent'}`,
+            }}
           >
-            {label}
-          </span>
+            {v}
+          </button>
         ))}
       </div>
 
-      {NET_ROWS.map((row, i) => (
+      <div className="mk-plate overflow-hidden">
         <div
-          key={row.name}
           className={`${BOARD_COLS} items-center py-3`}
           style={{
-            borderBottom: '1px solid var(--mk-rule-ink)',
-            borderLeft: i === 0 ? '2px solid var(--mk-gold)' : '2px solid transparent',
+            backgroundColor: 'var(--mk-green-deep)',
+            borderBottom: '2px solid var(--mk-gold)',
           }}
         >
-          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-ink)' }}>
-            {row.pos}
-          </span>
-          <span className="truncate text-sm font-medium" style={{ color: 'var(--mk-ink)' }}>
-            {row.name}
-          </span>
-          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-over-par)' }}>
-            {row.gross}
-          </span>
-          <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-over-par)' }}>
-            {row.hcp}
-          </span>
-          <span className="mk-data text-center text-base" style={{ color: 'var(--mk-ink)' }}>
-            {row.net}
-          </span>
+          {['Pos', 'Player', 'Gross', 'Hcp', 'Net'].map((label, i) => (
+            <span
+              key={label}
+              className={`${LABEL} ${i === 1 ? 'text-left' : 'text-center'}`}
+              style={{ color: 'var(--mk-gold)' }}
+            >
+              {label}
+            </span>
+          ))}
         </div>
-      ))}
 
-      <p className="px-4 py-3 text-xs" style={{ color: 'var(--mk-over-par)' }}>
-        Example board, net of handicap
-      </p>
+        <div ref={listRef}>
+          {rows.map((row, i) => (
+            <div
+              key={row.name}
+              data-board-row={row.name}
+              className={`${BOARD_COLS} items-center py-3`}
+              style={{
+                borderBottom: '1px solid var(--mk-rule-ink)',
+                borderLeft: i === 0 ? '2px solid var(--mk-gold)' : '2px solid transparent',
+                backgroundColor: 'var(--mk-bone)',
+              }}
+            >
+              <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-ink)' }}>
+                {row.pos}
+              </span>
+              <span className="truncate text-sm font-medium" style={{ color: 'var(--mk-ink)' }}>
+                {row.name}
+              </span>
+              <span
+                className="mk-data text-center text-sm"
+                style={{
+                  color: view === 'gross' ? 'var(--mk-ink)' : 'var(--mk-over-par)',
+                  fontSize: view === 'gross' ? '1rem' : undefined,
+                }}
+              >
+                {row.gross}
+              </span>
+              <span className="mk-data text-center text-sm" style={{ color: 'var(--mk-over-par)' }}>
+                {row.hcp}
+              </span>
+              <span
+                className="mk-data text-center"
+                style={{
+                  color: view === 'net' ? 'var(--mk-ink)' : 'var(--mk-over-par)',
+                  fontSize: view === 'net' ? '1rem' : '0.875rem',
+                }}
+              >
+                {row.net}
+              </span>
+            </div>
+          ))}
+        </div>
+
+        <p className="px-4 py-3 text-xs" style={{ color: 'var(--mk-over-par)' }}>
+          Example board. Flip it: the order changes with the lens.
+        </p>
+      </div>
     </div>
   )
 }
@@ -343,6 +431,30 @@ function ChatVisual() {
           </div>
         </div>
       ))}
+
+      {/* The thread is alive: a pure-CSS typing indicator, additive only, so
+          no message is ever gated behind it. Still under reduced motion. */}
+      <div className="flex justify-start" aria-hidden>
+        <div
+          className="flex items-center gap-1.5 px-3 py-2.5"
+          style={{
+            borderRadius: 'var(--mk-radius-md)',
+            background: 'var(--mk-green-raised)',
+            border: '1px solid var(--mk-rule-light)',
+          }}
+        >
+          {[0, 1, 2].map((i) => (
+            <span
+              key={i}
+              className="mk-typing-dot h-1.5 w-1.5 rounded-full"
+              style={{
+                background: 'var(--mk-text-subtle)',
+                animationDelay: `${i * 0.18}s`,
+              }}
+            />
+          ))}
+        </div>
+      </div>
     </div>
   )
 }
@@ -435,7 +547,7 @@ const BENTO_FEATURES = [
     visual: <ChatVisual />,
   },
   {
-    icon: Map,
+    icon: MapIcon,
     title: 'GPS and yardages',
     description:
       'Front, middle and back of every green. Pull the right club without opening a second app.',
@@ -527,7 +639,7 @@ export function FeatureBento() {
   }, [])
 
   return (
-    <div className="mk-container mt-24 lg:mt-32">
+    <div id="bento" className="mk-container mt-24 lg:mt-32">
       <div ref={gridRef} className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
           {BENTO_FEATURES.map((feature, i) => (
             <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
