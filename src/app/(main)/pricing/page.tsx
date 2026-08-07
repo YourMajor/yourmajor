@@ -73,11 +73,20 @@ function TierPlate({ tier }: { tier: TierDef }) {
 
   return (
     <div
-      className="mk-plate flex flex-col p-6"
+      className="mk-plate relative flex h-full flex-col p-6"
       style={tier.featured ? { border: '1px solid var(--mk-gold)' } : undefined}
     >
+      {/* Out of flow so all four plates keep their CTAs on one line. */}
       {tier.featured && (
-        <span className={`${LABEL} mb-3`} style={{ color: 'var(--mk-gold)' }}>
+        <span
+          className={`${LABEL} absolute -top-3 left-1/2 -translate-x-1/2 whitespace-nowrap px-2.5 py-0.5`}
+          style={{
+            color: 'var(--mk-gold)',
+            background: 'var(--mk-bone)',
+            border: '1px solid var(--mk-gold)',
+            borderRadius: 'var(--mk-radius-sm)',
+          }}
+        >
           Most popular
         </span>
       )}
@@ -161,18 +170,21 @@ export default function PricingPage() {
 
       <div className="mx-auto max-w-5xl space-y-16 px-4 py-10 sm:px-6 lg:max-w-6xl lg:space-y-20 lg:py-14 xl:max-w-7xl">
         {/* Tier plates */}
-        <div className="grid grid-cols-1 items-stretch gap-4 pt-2 md:grid-cols-2 lg:grid-cols-4">
+        <section
+          aria-label="Plans"
+          className="grid grid-cols-1 items-stretch gap-4 pt-2 md:grid-cols-2 lg:grid-cols-4"
+        >
           {TIERS.map((tier, i) => (
             <ScrollReveal key={tier.key} direction="up" delay={i * 70} duration={600} className="h-full">
               <TierPlate tier={tier} />
             </ScrollReveal>
           ))}
-        </div>
+        </section>
 
         {/* Comparison table, set as broadcast furniture. */}
-        <div>
+        <section aria-labelledby="compare-heading">
           <ScrollReveal direction="up" duration={600}>
-            <h2 className="text-center">Compare plans</h2>
+            <h2 id="compare-heading" className="text-center">Compare plans</h2>
           </ScrollReveal>
           <div className="mk-plate mt-8 overflow-x-auto">
             <table className="w-full text-sm lg:text-base">
@@ -209,12 +221,12 @@ export default function PricingPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </section>
 
         {/* FAQ */}
-        <div className="mx-auto max-w-2xl lg:max-w-3xl">
+        <section aria-labelledby="faq-heading" className="mx-auto max-w-2xl lg:max-w-3xl">
           <ScrollReveal direction="up" duration={600}>
-            <h2 className="text-center">Frequently asked questions</h2>
+            <h2 id="faq-heading" className="text-center">Frequently asked questions</h2>
           </ScrollReveal>
           <div className="mt-8 space-y-3">
             <FaqItem
@@ -246,7 +258,20 @@ export default function PricingPage() {
               a="All major credit cards, Apple Pay, and Google Pay via Stripe."
             />
           </div>
-        </div>
+        </section>
+
+        {/* Closing beat: the page ends on the action, not on a payment FAQ. */}
+        <section aria-label="Get started" className="pb-8 text-center">
+          <p
+            className="mx-auto max-w-[40ch] text-lg"
+            style={{ color: 'var(--mk-text-muted)' }}
+          >
+            Start with a free round. Upgrade when the field outgrows it.
+          </p>
+          <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-6">
+            Create a tournament
+          </Link>
+        </section>
       </div>
     </main>
   )
