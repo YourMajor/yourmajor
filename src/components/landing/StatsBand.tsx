@@ -130,9 +130,18 @@ function Odometer({ value, prefix = '' }: { value: number; prefix?: string }) {
 export function StatsBand() {
   const reduce = useReducedMotion()
   const stirring = useSyncExternalStore(subscribeScroll, isScrolling, serverIsScrolling)
+  // The shader is a WebGL rAF loop: mount it only while the band is near
+  // the viewport, instead of paying for it across the whole page visit.
+  // rootMargin pre-mounts it a screen early so entering never pops.
+  const [bandRef, bandNear] = useInView<HTMLElement>({
+    threshold: 0,
+    rootMargin: '100% 0px',
+    once: false,
+  })
 
   return (
     <section
+      ref={bandRef}
       id="stats"
       className="mk-rule-soft-t mk-rule-soft-b relative mt-24 overflow-hidden lg:mt-32"
       style={{
@@ -143,6 +152,7 @@ export function StatsBand() {
       }}
     >
       <div className="absolute inset-0 opacity-45" aria-hidden>
+        {bandNear && (
         <GrainGradient
           style={{ width: '100%', height: '100%' }}
           /* The DESIGN.md green tokens and gold-at-25%, converted to hex:
@@ -157,6 +167,7 @@ export function StatsBand() {
           noise={0.3}
           speed={reduce ? 0 : stirring ? 1.15 : 0.35}
         />
+        )}
       </div>
 
       <div className="mk-container relative grid grid-cols-2 gap-y-12 py-16 lg:grid-cols-4 lg:py-20">

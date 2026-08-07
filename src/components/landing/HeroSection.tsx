@@ -45,7 +45,6 @@ const HEADLINE: Array<{ word: string; gold?: boolean }> = [
 
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
-  const mediaRef = useRef<HTMLDivElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
   const [joining, setJoining] = useState(false)
   const joinBtnRef = useRef<HTMLButtonElement>(null)
@@ -139,8 +138,9 @@ export function HeroSection() {
       id="hero"
       className="relative flex min-h-[100dvh] items-center overflow-hidden pt-24 pb-20"
     >
-      {/* Media stage. See VIDEO DROP-IN SLOT above. */}
-      <div ref={mediaRef} className="absolute inset-0 will-change-transform">
+      {/* Media stage. See VIDEO DROP-IN SLOT above. Static since the zoom
+          was removed: no will-change, no compositor layer held for nothing. */}
+      <div className="absolute inset-0">
         <Image
           src={heroCourse}
           alt=""
