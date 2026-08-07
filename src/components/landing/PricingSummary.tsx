@@ -1,5 +1,6 @@
 import Link from 'next/link'
 import { TIER_PRICES } from '@/lib/tiers'
+import { ScrollReveal } from '@/components/motion/ScrollReveal'
 
 /**
  * Tier summary for the landing page. Deliberately a summary, not the pricing
@@ -50,10 +51,10 @@ export function PricingSummary() {
         </p>
 
         <div className="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {TIERS.map((tier) => (
+          {TIERS.map((tier, i) => (
+            <ScrollReveal key={tier.name} direction="up" delay={i * 70} duration={600}>
             <div
-              key={tier.name}
-              className="flex flex-col p-6"
+              className="flex h-full flex-col p-6"
               style={{
                 background: tier.featured ? 'var(--mk-bone)' : 'var(--mk-green-raised)',
                 color: tier.featured ? 'var(--mk-ink)' : 'var(--mk-text)',
@@ -84,6 +85,7 @@ export function PricingSummary() {
                 {tier.line}
               </p>
             </div>
+            </ScrollReveal>
           ))}
         </div>
 
