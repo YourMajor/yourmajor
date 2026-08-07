@@ -2,6 +2,7 @@ import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/auth'
 import { HeroSection } from '@/components/landing/HeroSection'
 import { LeadChangeChapter } from '@/components/landing/LeadChangeChapter'
+import { PosterInterstitial } from '@/components/landing/PosterInterstitial'
 import { FeaturesContent } from '@/components/features/FeaturesContent'
 import { PricingSummary } from '@/components/landing/PricingSummary'
 import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
@@ -20,17 +21,9 @@ export default async function Home() {
       <LeadChangeChapter />
 
       {/* Features live here now rather than on their own route; /features
-          redirects to this anchor. FeaturesContent is reused as-is. */}
-      <section id="features" className="mk-section scroll-mt-24">
-        <div className="mk-container mb-12">
-          <h2>
-            Built for <span style={{ color: 'var(--mk-gold)' }}>competitive</span> golfers
-          </h2>
-          <p className="mt-4 max-w-[65ch] text-base lg:text-lg" style={{ color: 'var(--mk-text-muted)' }}>
-            Everything you need to run tournament golf, from casual weekend events
-            to season-long leagues.
-          </p>
-        </div>
+          redirects to this anchor. */}
+      <section id="features" className="mk-section scroll-mt-24 pt-0">
+        <PosterInterstitial />
         <FeaturesContent />
       </section>
 

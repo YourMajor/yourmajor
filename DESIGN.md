@@ -20,6 +20,13 @@ typography:
     fontWeight: 400
     lineHeight: 1.05
     letterSpacing: "-0.015em"
+  poster:
+    fontFamily: "Libre Caslon Display, Georgia, serif"
+    fontSize: "clamp(2.75rem, 7.5vw, 6.5rem)"
+    fontWeight: 400
+    lineHeight: 0.98
+    letterSpacing: "0.01em"
+    note: "The single screenprint interstitial only; a second use is drift"
   headline:
     fontFamily: "Libre Caslon Display, Georgia, serif"
     fontSize: "clamp(1.75rem, 3.5vw, 3rem)"
