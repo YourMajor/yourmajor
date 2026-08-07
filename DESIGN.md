@@ -10,6 +10,10 @@ colors:
   ink: "oklch(0.22 0.02 150)"
   under-par: "oklch(0.50 0.20 25)"
   over-par: "oklch(0.45 0.02 150)"
+  gold-on-bone: "oklch(0.45 0.10 78)"
+  dusk-slate: "oklch(0.24 0.030 262)"
+  night: "oklch(0.16 0.025 262)"
+  sunset-ember: "oklch(0.60 0.150 45)"
   text-primary: "oklch(0.98 0.005 85)"
   text-muted: "oklch(0.88 0.012 120)"
   text-subtle: "oklch(0.76 0.014 130)"
@@ -31,9 +35,9 @@ typography:
     fontFamily: "Libre Caslon Display, Georgia, serif"
     fontSize: "clamp(3rem, 13vw, 11rem)"
     fontWeight: 400
-    lineHeight: 0.8
-    letterSpacing: "0.02em"
-    note: "The footer set piece only: ghost bone ink at ~13% on deep green"
+    lineHeight: 1.04
+    letterSpacing: "0.04em"
+    note: "The footer end plate only: gradient-clipped bone with the projector sweep; full line box so Caslon's descending cap J is never clipped"
   headline:
     fontFamily: "Libre Caslon Display, Georgia, serif"
     fontSize: "clamp(1.75rem, 3.5vw, 3rem)"
@@ -49,6 +53,7 @@ typography:
     fontSize: "0.6875rem"
     fontWeight: 600
     letterSpacing: "0.14em"
+    note: "Implemented as the .mk-label class; uppercase; color stays with the call site"
   data:
     fontFamily: "Geist Mono, ui-monospace, monospace"
     fontSize: "1rem"
@@ -188,6 +193,10 @@ signal.
 - **Gold Rule** (`oklch(0.72 0.11 78)`): hairlines, eyebrow labels, small icons,
   and single emphasized words. Carried over from the incumbent identity, which
   keeps the logo mark's surroundings continuous.
+- **Gold on Bone** (`oklch(0.45 0.10 78)`): the accent's dark tonal step for
+  gold text or icons sitting on bone plates, where bright gold is 2.2:1 and
+  fails AA. Same hue, dropped lightness; measured 6.5:1 on bone. Never used on
+  green grounds, where bright gold already passes.
 
 ### Neutral
 Text on the green ground runs a three-step ladder, each step tinted from the
@@ -203,6 +212,16 @@ ground's own hue rather than desaturated to grey.
   error anywhere on these surfaces.
 - **Over Par** (`oklch(0.45 0.02 150)`): a desaturated green-grey for scores over
   par, so the leaderboard reads without a second hue.
+
+### Atmosphere
+The page's time-of-day arc, never UI colors: no text, border, icon, or control
+may be set in these.
+- **Dusk Slate** (`oklch(0.24 0.030 262)`): the dusk interlude's ground
+  (`.mk-dusk-zone`, poster through shot tracer).
+- **Night** (`oklch(0.16 0.025 262)`): the nightfall ending and the footer end
+  plate (`.mk-night-zone`).
+- **Sunset Ember** (`oklch(0.60 0.150 45)`): radial glows and horizon washes
+  inside the dusk and night zones only.
 
 ### Named Rules
 
