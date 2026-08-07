@@ -91,33 +91,33 @@ export function HeroSection() {
             // over the stylesheet's static drawn state.
             const draw = { v: 1 }
             flight.style.strokeDashoffset = '1'
-            gsap.to(draw, {
-              v: 0,
-              ease: 'none',
-              onUpdate: () => {
-                flight.style.strokeDashoffset = String(draw.v)
-              },
+            // The hero holds still (pin) for a short runway while the
+            // scrub plays the flight, so the shot is watched, not missed
+            // behind the scroll. The page releases once the ball drops.
+            const flightTl = gsap.timeline({
               scrollTrigger: {
                 trigger: sectionRef.current,
                 start: 'top top',
-                end: '+=60%',
+                end: '+=45%',
+                pin: true,
+                anticipatePin: 1,
                 scrub: true,
               },
             })
-            gsap.fromTo(
+            flightTl.to(draw, {
+              v: 0,
+              ease: 'none',
+              duration: 1,
+              onUpdate: () => {
+                flight.style.strokeDashoffset = String(draw.v)
+              },
+            })
+            // The ball only fades up as the flight finishes.
+            flightTl.fromTo(
               ball,
               { opacity: 0 },
-              // power4.in: the ball only fades up as the flight finishes.
-              {
-                opacity: 1,
-                ease: 'power4.in',
-                scrollTrigger: {
-                  trigger: sectionRef.current,
-                  start: 'top top',
-                  end: '+=60%',
-                  scrub: true,
-                },
-              },
+              { opacity: 1, ease: 'power2.in', duration: 0.35 },
+              0.62,
             )
           }
         },
