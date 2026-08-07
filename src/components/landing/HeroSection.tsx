@@ -14,10 +14,10 @@ gsap.registerPlugin(ScrollTrigger, useGSAP)
 /**
  * Chapter 1 — the cinematic hero. A full-bleed dusk course backdrop under a
  * staged title reveal: Caslon words rise one by one (pure CSS, see .mk-word),
- * then the gold rule draws itself under the last word. As the visitor scrolls
- * away, GSAP scrubs a slow settle on the media (scale 1.06 -> 1 at ~0.25x
- * parallax) while the green scrim deepens, handing the photo off to the green
- * page ground without a visible seam.
+ * then the gold rule draws itself under the last word. The photograph holds
+ * perfectly still: the scrubbed ball flight lands on the green in the
+ * picture, so any zoom or parallax would unregister the trail. The hero
+ * pins briefly while scrolling plays the flight, then releases.
  *
  * VIDEO DROP-IN SLOT: to upgrade the backdrop to motion, replace the <Image>
  * below with, inside the same absolutely-positioned media layer:
@@ -56,27 +56,19 @@ export function HeroSection() {
       media.add(
         '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
         () => {
-          // The settle: the media arrives very slightly enlarged and relaxes
-          // to rest as the visitor scrolls off the hero, drifting slower than
-          // the page (0.25x) so the course reads as far away. The copy block
-          // drifts the other way, slightly faster, so leaving the hero reads
-          // as a camera move rather than a page scroll.
-          const trigger = {
-            trigger: sectionRef.current,
-            start: 'top top',
-            end: 'bottom top',
-            scrub: true,
-          }
-          gsap.fromTo(
-            mediaRef.current,
-            { scale: 1.06, yPercent: 0 },
-            { scale: 1, yPercent: 12, ease: 'none', scrollTrigger: trigger },
-          )
+          // No media zoom or drift: the photograph must hold still so the
+          // shot trail stays registered to the course (the flight lands on
+          // the green in the picture). Only the copy drifts on departure.
           gsap.to(copyRef.current, {
             yPercent: -10,
             opacity: 0.35,
             ease: 'none',
-            scrollTrigger: trigger,
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: 'top top',
+              end: 'bottom top',
+              scrub: true,
+            },
           })
 
           // The flight is scrubbed: the drive plays as the visitor starts
