@@ -89,7 +89,16 @@ export function HeroSection() {
             const flightTl = gsap.timeline({
               scrollTrigger: {
                 trigger: sectionRef.current,
-                start: 'top top',
+                // Anchor to the hero's resting offset (the nav's height):
+                // waiting for 'top top' costs one nav-height of dead scroll
+                // before the flight begins. This way the very first scrolled
+                // pixel starts the shot.
+                start: () => {
+                  const el = sectionRef.current
+                  if (!el) return 'top top'
+                  const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY)
+                  return `top ${top}px`
+                },
                 end: '+=90%',
                 pin: true,
                 anticipatePin: 1,
