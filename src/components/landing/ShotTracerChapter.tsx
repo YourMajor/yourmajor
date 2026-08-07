@@ -4,19 +4,17 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import Image from 'next/image'
 import { createTimeline, createMotionPath, createDrawable } from 'animejs'
-import tracerHole from '../../../public/images/marketing/tracer-hole.webp'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 /**
- * Chapter 3 — the shot tracer. A dusk aerial photograph of a par 5
- * (generated scenery, artifact-checked, swap-for-real list) with the four
- * ball flights traced over it in the photo's own coordinate space.
- * Scrolling through the pinned section plays the flights along SVG paths
- * (anime createMotionPath), each leaving a bone tracer (createDrawable),
- * while the data rail brightens shot by shot and lands on a red Birdie.
+ * Chapter 3 — the shot tracer. A textured vector aerial of a par 5 at
+ * dusk, drawn entirely from the marketing tokens (every color is a
+ * color-mix of tokens; the grain is SVG turbulence), with the five
+ * strokes traced over it. Scrolling through the pinned section plays the
+ * strokes along SVG paths (anime createMotionPath), each leaving a bone
+ * tracer (createDrawable), while the data rail brightens shot by shot.
  * Scroll drives the anime timeline through seek(); no timers anywhere.
  *
  * Static renditions (mobile, reduced motion, no JS) show the finished hole:
@@ -224,33 +222,109 @@ export function ShotTracerChapter() {
                 boxShadow: 'var(--mk-shadow-plate)',
               }}
             >
-              <Image
-                src={tracerHole}
-                alt=""
-                fill
-                sizes="(min-width: 1024px) 40vw, 90vw"
-                className="object-cover"
-                placeholder="blur"
-              />
-              {/* A whisper of the page's dusk over the photo so the bone
-                  tracers stay the brightest thing on it. */}
-              <div
-                aria-hidden
-                className="pointer-events-none absolute inset-0"
-                style={{
-                  background:
-                    'color-mix(in oklch, var(--mk-dusk) 18%, transparent)',
-                }}
-              />
               <svg
                 ref={svgRef}
                 viewBox="0 0 1024 1536"
                 preserveAspectRatio="xMidYMid slice"
                 className="mk-cursor-marker absolute inset-0 h-full w-full"
                 role="img"
-                aria-label="Aerial view of a par five with four traced shots: drive, layup, approach and putt for birdie"
+                aria-label="Aerial view of a par five with five traced strokes: drive, long iron, pitch and two putts for par"
               >
-                {/* The four flights. Static default is fully drawn. */}
+                <defs>
+                  {/* Film grain: SVG turbulence, bone-tinted, static. */}
+                  <filter id="tr-grain">
+                    <feTurbulence type="fractalNoise" baseFrequency="0.8" numOctaves="2" />
+                    <feColorMatrix
+                      type="matrix"
+                      values="0 0 0 0 0.95  0 0 0 0 0.93  0 0 0 0 0.88  0 0 0 0.09 0"
+                    />
+                  </filter>
+                  <radialGradient id="tr-sunset" cx="0.5" cy="0.04" r="0.9">
+                    <stop offset="0" stopColor="color-mix(in oklch, var(--mk-sunset) 30%, transparent)" />
+                    <stop offset="0.55" stopColor="transparent" />
+                  </radialGradient>
+                  <radialGradient id="tr-vignette" cx="0.5" cy="0.5" r="0.75">
+                    <stop offset="0.62" stopColor="transparent" />
+                    <stop offset="1" stopColor="color-mix(in oklch, var(--mk-night) 55%, transparent)" />
+                  </radialGradient>
+                </defs>
+
+                {/* Dusky ground. */}
+                <rect
+                  width="1024"
+                  height="1536"
+                  fill="color-mix(in oklch, var(--mk-dusk) 32%, var(--mk-green-deep))"
+                />
+
+                {/* Rough and heather: warm dune blobs flanking the hole,
+                    catching the low light. */}
+                <path
+                  d="M 0 0 H 1024 V 1536 H 0 Z M 505 1330 C 400 1180, 430 1000, 520 850 C 590 730, 560 640, 505 560 C 430 450, 460 300, 532 180 C 560 130, 600 120, 640 160 L 700 260 C 740 380, 690 520, 640 640 C 600 760, 640 900, 680 1020 C 710 1140, 660 1280, 560 1360 Z"
+                  fill="color-mix(in oklch, var(--mk-sunset) 22%, var(--mk-green-deep))"
+                  opacity="0.5"
+                  fillRule="evenodd"
+                />
+                <ellipse cx="180" cy="420" rx="190" ry="300" fill="color-mix(in oklch, var(--mk-sunset) 34%, var(--mk-green-raised))" opacity="0.28" />
+                <ellipse cx="850" cy="700" rx="200" ry="340" fill="color-mix(in oklch, var(--mk-sunset) 30%, var(--mk-green-raised))" opacity="0.24" />
+                <ellipse cx="230" cy="1150" rx="220" ry="280" fill="color-mix(in oklch, var(--mk-sunset) 36%, var(--mk-green-deep))" opacity="0.3" />
+                <ellipse cx="820" cy="1300" rx="190" ry="240" fill="color-mix(in oklch, var(--mk-sunset) 28%, var(--mk-green-deep))" opacity="0.26" />
+
+                {/* First cut, then the fairway ribbon. */}
+                <path
+                  d="M 505 1330 C 470 1100, 560 960, 520 850 C 470 730, 468 660, 505 560 C 545 450, 556 320, 528 210"
+                  fill="none"
+                  stroke="color-mix(in oklch, var(--mk-green-raised) 70%, var(--mk-green-deep))"
+                  strokeWidth="230"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M 505 1330 C 470 1100, 560 960, 520 850 C 470 730, 468 660, 505 560 C 545 450, 556 320, 528 210"
+                  fill="none"
+                  stroke="var(--mk-green-raised)"
+                  strokeWidth="172"
+                  strokeLinecap="round"
+                />
+                {/* Mown crossbands: dashes along the centreline read as
+                    stripes across the fairway. */}
+                <path
+                  d="M 505 1330 C 470 1100, 560 960, 520 850 C 470 730, 468 660, 505 560 C 545 450, 556 320, 528 210"
+                  fill="none"
+                  stroke="color-mix(in oklch, var(--mk-bone) 10%, var(--mk-green-raised))"
+                  strokeWidth="172"
+                  strokeDasharray="46 52"
+                  opacity="0.35"
+                />
+
+                {/* Bunkers with a shadowed lip on the light's far side. */}
+                <ellipse cx="612" cy="808" rx="36" ry="21" fill="color-mix(in oklch, var(--mk-bone) 82%, var(--mk-sunset))" />
+                <ellipse cx="616" cy="812" rx="36" ry="21" fill="none" stroke="color-mix(in oklch, var(--mk-green-deep) 60%, transparent)" strokeWidth="5" opacity="0.5" />
+                <ellipse cx="430" cy="596" rx="29" ry="17" fill="color-mix(in oklch, var(--mk-bone) 82%, var(--mk-sunset))" />
+                <ellipse cx="404" cy="238" rx="31" ry="18" fill="color-mix(in oklch, var(--mk-bone) 84%, var(--mk-sunset))" />
+                <ellipse cx="662" cy="262" rx="24" ry="15" fill="color-mix(in oklch, var(--mk-bone) 84%, var(--mk-sunset))" />
+
+                {/* The green, its fringe, and the tee box. */}
+                <ellipse cx="532" cy="180" rx="132" ry="95" fill="none" stroke="color-mix(in oklch, var(--mk-green-raised) 80%, var(--mk-bone))" strokeWidth="16" opacity="0.55" />
+                <ellipse cx="532" cy="180" rx="124" ry="88" fill="color-mix(in oklch, var(--mk-bone) 13%, var(--mk-green-raised))" />
+                <rect x="468" y="1286" width="76" height="46" rx="6" fill="color-mix(in oklch, var(--mk-bone) 8%, var(--mk-green-raised))" />
+
+                {/* Long dusk shadows falling from the left. */}
+                <path
+                  d="M 0 300 L 380 520 L 300 700 L 0 560 Z"
+                  fill="var(--mk-green-deep)"
+                  opacity="0.2"
+                />
+                <path
+                  d="M 60 900 L 430 1030 L 360 1200 L 0 1100 Z"
+                  fill="var(--mk-green-deep)"
+                  opacity="0.22"
+                />
+
+                {/* Sunset wash, vignette, then grain over everything. */}
+                <rect width="1024" height="1536" fill="url(#tr-sunset)" />
+                <rect width="1024" height="1536" fill="url(#tr-vignette)" />
+                <rect width="1024" height="1536" filter="url(#tr-grain)" opacity="0.55" />
+
+                {/* The five strokes. Static default is fully drawn. */}
                 {FLIGHTS.map((d) => (
                   <path
                     key={d}
