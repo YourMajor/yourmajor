@@ -63,7 +63,7 @@ export function ClosingChapter() {
             className="text-lg sm:text-right"
             style={{ color: 'var(--mk-text-muted)' }}
           >
-            The first round is free.
+            Every round is free.
           </motion.p>
           <motion.p
             {...drift(32)}

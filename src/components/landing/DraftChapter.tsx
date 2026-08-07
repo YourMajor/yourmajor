@@ -315,7 +315,12 @@ export function DraftChapter() {
     <section
       id="draft"
       className="mt-24 lg:mt-32"
-      style={{ background: 'var(--mk-green-deep)' }}
+      style={{
+        // Deep ground blends in from and back out to the page green: no
+        // hard background line at either edge of the chapter.
+        background:
+          'linear-gradient(to bottom, var(--mk-green-ground), var(--mk-green-deep) 12%, var(--mk-green-deep) 88%, var(--mk-green-ground))',
+      }}
       aria-label="Powerup draft demonstration"
     >
       <div className="mk-container py-20 lg:py-28">

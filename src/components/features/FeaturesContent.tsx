@@ -605,10 +605,11 @@ function FeatureSplit({ feature, reverse }: { feature: SplitFeature; reverse?: b
   )
 }
 
-/** The two image/text splits that open the features narrative. */
+/** The two image/text splits that open the features narrative. Top padding
+    gives the poster's photo fade room to finish before the first split. */
 export function FeatureSplits() {
   return (
-    <div className="mk-container space-y-24 lg:space-y-32">
+    <div className="mk-container space-y-24 pt-24 lg:space-y-32 lg:pt-36">
       {SPLIT_FEATURES.map((feature, i) => (
         <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
       ))}

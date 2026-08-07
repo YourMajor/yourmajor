@@ -135,7 +135,12 @@ export function StatsBand() {
     <section
       id="stats"
       className="mk-rule-soft-t mk-rule-soft-b relative mt-24 overflow-hidden lg:mt-32"
-      style={{ background: 'var(--mk-green-raised)' }}
+      style={{
+        // The raised ground blends in and out of the page green so the band
+        // never starts or ends as a hard background line.
+        background:
+          'linear-gradient(to bottom, var(--mk-green-ground), var(--mk-green-raised) 22%, var(--mk-green-raised) 78%, var(--mk-green-ground))',
+      }}
     >
       <div className="absolute inset-0 opacity-45" aria-hidden>
         <GrainGradient
