@@ -417,20 +417,21 @@ export function DraftChapter() {
               {Array.from({ length: HAND_SIZE }).map((_, i) => {
                 const card = DEMO_CARDS.find((c) => c.id === drafted[i])
                 return card ? (
-                  <div
-                    key={card.id}
-                    data-card
-                    data-flip-id={card.id}
-                    className="transition-transform hover:-translate-y-1 motion-reduce:transition-none"
-                  >
-                    <PowerupCard
-                      powerup={card}
-                      size="sm"
-                      onClick={() => {
-                        modalTrigger.current = document.activeElement as HTMLElement
-                        setModalCard(card)
-                      }}
-                    />
+                  <div key={card.id} data-card data-flip-id={card.id}>
+                    {/* Hover lift lives on an inner div: a CSS transform
+                        transition on the [data-card] element itself races the
+                        Flip flight's per-frame transforms and made the card
+                        flash at its slot before flying in. */}
+                    <div className="transition-transform hover:-translate-y-1 motion-reduce:transition-none">
+                      <PowerupCard
+                        powerup={card}
+                        size="sm"
+                        onClick={() => {
+                          modalTrigger.current = document.activeElement as HTMLElement
+                          setModalCard(card)
+                        }}
+                      />
+                    </div>
                   </div>
                 ) : (
                   <div
