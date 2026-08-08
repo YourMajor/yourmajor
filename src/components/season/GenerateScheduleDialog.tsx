@@ -189,11 +189,11 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
         )}
 
         {done && (
-          <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3 space-y-1">
-            <p className="text-sm font-semibold text-green-800 dark:text-green-200">
+          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 space-y-1">
+            <p className="text-sm font-semibold text-green-800">
               {done.generated} event{done.generated === 1 ? '' : 's'} created.
             </p>
-            <p className="text-xs text-green-700 dark:text-green-300">
+            <p className="text-xs text-green-700">
               Each event has the active roster auto-registered. Open Events tab to fine-tune individual events.
             </p>
           </div>

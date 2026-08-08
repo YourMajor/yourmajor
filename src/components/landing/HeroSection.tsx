@@ -12,12 +12,15 @@ import heroCourse from '../../../public/images/marketing/hero-course.webp'
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 /**
- * Chapter 1 — the cinematic hero. A full-bleed dusk course backdrop under a
- * staged title reveal: Caslon words rise one by one (pure CSS, see .mk-word),
- * then the gold rule draws itself under the last word. The photograph holds
- * perfectly still: the scrubbed ball flight lands on the green in the
- * picture, so any zoom or parallax would unregister the trail. The hero
- * pins briefly while scrolling plays the flight, then releases.
+ * Chapter 1 — the cinematic hero. At desktop rest the photograph is a
+ * squared window on the right of the green ground (clip-path inset), the
+ * headline and CTAs beside it. The first scrolled pixel expands the window
+ * to full bleed (scroll-expand: clip inset -> 0 while the image settles
+ * from a 1.12 zoom to exactly 1), and only once the photograph is at rest
+ * does the scrubbed ball flight play — the trail is registered to the
+ * course in the picture, so the flight never overlaps the zoom. The hero
+ * pins through both beats, then releases. Mobile, reduced motion and no-JS
+ * all keep the static full-bleed photograph with the finished flight.
  *
  * VIDEO DROP-IN SLOT: to upgrade the backdrop to motion, replace the <Image>
  * below with, inside the same absolutely-positioned media layer:
@@ -46,6 +49,8 @@ const HEADLINE: Array<{ word: string; gold?: boolean }> = [
 export function HeroSection() {
   const sectionRef = useRef<HTMLElement>(null)
   const copyRef = useRef<HTMLDivElement>(null)
+  const frameRef = useRef<HTMLDivElement>(null)
+  const zoomRef = useRef<HTMLDivElement>(null)
   const [joining, setJoining] = useState(false)
   const joinBtnRef = useRef<HTMLButtonElement>(null)
 
@@ -76,54 +81,77 @@ export function HeroSection() {
           // reduced motion and no-JS all show the finished shot.
           const flight = sectionRef.current?.querySelector<SVGPathElement>('[data-hero-flight]')
           const ball = sectionRef.current?.querySelector<SVGCircleElement>('[data-hero-ball]')
-          if (flight && ball) {
+          if (flight && ball && frameRef.current && zoomRef.current) {
             // A numeric proxy: GSAP string-swaps stroke-dashoffset on SVG
             // instead of tweening it, and the inline style also has to win
             // over the stylesheet's static drawn state.
             const draw = { v: 1 }
             flight.style.strokeDashoffset = '1'
-            // The hero holds still (pin) for a short runway while the
-            // scrub plays the flight, so the shot is watched, not missed
-            // behind the scroll. The page releases once the ball drops.
-            const flightTl = gsap.timeline({
+            // The hero holds still (pin) for a runway that plays two beats:
+            // the window expands to full bleed, then the scrub plays the
+            // flight. The page releases once the ball drops.
+            const heroTl = gsap.timeline({
               scrollTrigger: {
                 trigger: sectionRef.current,
                 // Anchor to the hero's resting offset (the nav's height):
                 // waiting for 'top top' costs one nav-height of dead scroll
-                // before the flight begins. This way the very first scrolled
-                // pixel starts the shot.
+                // before the expand begins. This way the very first scrolled
+                // pixel starts opening the window.
                 start: () => {
                   const el = sectionRef.current
                   if (!el) return 'top top'
                   const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY)
                   return `top ${top}px`
                 },
-                end: '+=90%',
+                end: '+=150%',
                 pin: true,
                 anticipatePin: 1,
                 scrub: true,
               },
             })
-            // The flight is fully flown by ~65% of the runway; the last
-            // third of the pin is a settle beat with the ball at rest, so
-            // the shot always completes before the page moves on.
-            flightTl.to(draw, {
-              v: 0,
-              ease: 'none',
-              duration: 0.65,
-              onUpdate: () => {
-                flight.style.strokeDashoffset = String(draw.v)
+            // Beat one — scroll-expand. The resting crop frames the sunset
+            // band and fairway on the right of the photograph; the window
+            // opens to full bleed while the image settles from a gentle
+            // zoom to exactly scale 1, so the tracer that follows stays
+            // registered to the course. Radius 6px -> 0 per the world's
+            // squared shapes. fromTo keeps the CSS default (full bleed)
+            // as the static state for every non-animated rendition.
+            heroTl.fromTo(
+              frameRef.current,
+              { clipPath: 'inset(18% 6% 22% 50% round 6px)' },
+              { clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'power2.inOut', duration: 0.34 },
+              0,
+            )
+            heroTl.fromTo(
+              zoomRef.current,
+              { scale: 1.12 },
+              { scale: 1, ease: 'power2.inOut', duration: 0.34 },
+              0,
+            )
+            // Beat two — the shot. Flown by ~80% of the runway; the rest
+            // of the pin is a settle beat with the ball at rest, so the
+            // shot always completes before the page moves on.
+            heroTl.to(
+              draw,
+              {
+                v: 0,
+                ease: 'none',
+                duration: 0.4,
+                onUpdate: () => {
+                  flight.style.strokeDashoffset = String(draw.v)
+                },
               },
-            })
-            // The ball only fades up as the flight finishes.
-            flightTl.fromTo(
-              ball,
-              { opacity: 0 },
-              { opacity: 1, ease: 'power2.in', duration: 0.2 },
               0.42,
             )
+            // The ball only fades up as the flight finishes.
+            heroTl.fromTo(
+              ball,
+              { opacity: 0 },
+              { opacity: 1, ease: 'power2.in', duration: 0.12 },
+              0.68,
+            )
             // Hold to the end of the pin.
-            flightTl.to({}, { duration: 0.35 })
+            heroTl.to({}, { duration: 0.18 })
           }
         },
       )
@@ -138,18 +166,22 @@ export function HeroSection() {
       id="hero"
       className="relative flex min-h-[100dvh] items-center overflow-hidden pt-24 pb-20"
     >
-      {/* Media stage. See VIDEO DROP-IN SLOT above. Static since the zoom
-          was removed: no will-change, no compositor layer held for nothing. */}
-      <div className="absolute inset-0">
-        <Image
-          src={heroCourse}
-          alt=""
-          fill
-          priority
-          placeholder="blur"
-          sizes="100vw"
-          className="object-cover"
-        />
+      {/* Media stage. See VIDEO DROP-IN SLOT above. The outer div is the
+          scroll-expand clip target, the inner div the zoom target: clip and
+          scale cannot share an element (the transform would scale the clip
+          window with it). CSS default is unclipped full bleed. */}
+      <div ref={frameRef} className="absolute inset-0">
+        <div ref={zoomRef} className="absolute inset-0">
+          <Image
+            src={heroCourse}
+            alt=""
+            fill
+            priority
+            placeholder="blur"
+            sizes="100vw"
+            className="object-cover"
+          />
+        </div>
       </div>
 
       {/* Scrims: headline contrast at the top left, and the handoff into the

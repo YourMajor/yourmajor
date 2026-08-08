@@ -39,8 +39,8 @@ async function toggleRegistration(tournamentId: string) {
 }
 
 const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  REGISTRATION: { label: 'Registration', bg: 'bg-blue-100 dark:bg-blue-900/40', text: 'text-blue-800 dark:text-blue-200' },
-  ACTIVE: { label: 'Live', bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-800 dark:text-green-200' },
+  REGISTRATION: { label: 'Registration', bg: 'bg-blue-100', text: 'text-blue-800' },
+  ACTIVE: { label: 'Live', bg: 'bg-green-100', text: 'text-green-800' },
   COMPLETED: { label: 'Completed', bg: 'text-muted-foreground bg-muted', text: 'text-foreground' },
 }
 
@@ -418,7 +418,7 @@ function MetricCard({
   tone: 'muted' | 'green'
 }) {
   const toneCls = tone === 'green'
-    ? 'bg-green-50 border-green-200 dark:bg-green-900/20 dark:border-green-800'
+    ? 'bg-green-50 border-green-200'
     : 'border-border'
   return (
     <div className={`rounded-xl border ${toneCls} p-4`}>

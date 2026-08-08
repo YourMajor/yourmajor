@@ -1,18 +1,21 @@
-'use client'
-
-import MuiDivider from '@mui/material/Divider'
 import { cn } from '@/lib/utils'
 
 function Separator({
   className,
   orientation = 'horizontal',
   ...props
-}: React.ComponentProps<'hr'> & { orientation?: 'horizontal' | 'vertical' }) {
+}: React.ComponentProps<'div'> & { orientation?: 'horizontal' | 'vertical' }) {
   return (
-    <MuiDivider
-      orientation={orientation}
-      className={cn(className)}
-      {...(props as Record<string, unknown>)}
+    <div
+      role="separator"
+      aria-orientation={orientation}
+      data-slot="separator"
+      className={cn(
+        'shrink-0 bg-border',
+        orientation === 'horizontal' ? 'h-px w-full' : 'h-full w-px',
+        className
+      )}
+      {...props}
     />
   )
 }

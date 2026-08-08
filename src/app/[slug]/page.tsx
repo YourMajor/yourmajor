@@ -235,7 +235,7 @@ export default async function TournamentPage({
         && !membership?.teamMembership
         && currentPlayerHolesPlayed === 0
         && effectiveStatus !== 'COMPLETED' && (
-          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-900/20 dark:text-amber-100">
+          <div className="mb-6 rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900">
             <p>
               <span className="font-semibold">You&rsquo;re registered but haven&rsquo;t been placed on a team yet.</span>{' '}
               Your tournament admin will assign you before play begins.

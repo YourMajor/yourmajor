@@ -19,15 +19,15 @@ const SYSTEM_STYLES: Record<SystemCategory, {
   dark: { bg: string; border: string; text: string }
 }> = {
   attack: {
-    light: { bg: 'bg-red-50 dark:bg-red-950/40', border: 'border-red-200 dark:border-red-800/50', text: 'text-red-800 dark:text-red-200', icon: '⚔️' },
+    light: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: '⚔️' },
     dark: { bg: 'bg-red-900/30', border: 'border-red-700/40', text: 'text-red-100' },
   },
   powerup: {
-    light: { bg: 'bg-purple-50 dark:bg-purple-950/40', border: 'border-purple-200 dark:border-purple-800/50', text: 'text-purple-800 dark:text-purple-200', icon: '⚡' },
+    light: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: '⚡' },
     dark: { bg: 'bg-purple-900/30', border: 'border-purple-700/40', text: 'text-purple-100' },
   },
   announcement: {
-    light: { bg: 'bg-amber-50 dark:bg-amber-950/40', border: 'border-amber-200 dark:border-amber-800/50', text: 'text-amber-900 dark:text-amber-200', icon: '📢' },
+    light: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-900', icon: '📢' },
     dark: { bg: 'bg-amber-900/20', border: 'border-amber-600/30', text: 'text-amber-100' },
   },
 }
@@ -98,12 +98,12 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
           return (
             <div key={m.id} className={`group flex items-start gap-2 py-2 px-3 rounded-md border ${styles.bg} ${styles.border}`}>
               <p className={`text-xs font-semibold flex-1 ${styles.text} whitespace-pre-line`}>{m.content}</p>
-              <span className={`text-[10px] shrink-0 mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500 dark:text-gray-400'}`}>{time}</span>
+              <span className={`text-[10px] shrink-0 mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{time}</span>
               {isAdmin && onDeleteMessage && (
                 <button
                   type="button"
                   onClick={() => onDeleteMessage(m.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-black/10"
                   title="Delete message"
                 >
                   <Trash2 className="w-3 h-3 text-muted-foreground" />
@@ -139,7 +139,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
                       <button
                         type="button"
                         onClick={() => onDeleteMessage(m.id)}
-                        className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                        className="p-0.5 rounded hover:bg-black/10"
                         title="Delete message"
                       >
                         <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
@@ -149,7 +149,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
                       <button
                         type="button"
                         onClick={() => setConfirmBan({ userId: m.userId, name: m.user.name ?? 'this user' })}
-                        className="p-0.5 rounded hover:bg-black/10 dark:hover:bg-white/10"
+                        className="p-0.5 rounded hover:bg-black/10"
                         title="Ban user from chat"
                       >
                         <Ban className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />

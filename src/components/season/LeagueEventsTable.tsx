@@ -25,8 +25,8 @@ export interface LeagueEventRow {
 }
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
-  REGISTRATION: { label: 'Upcoming', cls: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300' },
-  ACTIVE: { label: 'Live', cls: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' },
+  REGISTRATION: { label: 'Upcoming', cls: 'bg-blue-100 text-blue-700' },
+  ACTIVE: { label: 'Live', cls: 'bg-green-100 text-green-700' },
   COMPLETED: { label: 'Completed', cls: 'bg-muted text-muted-foreground' },
 }
 
@@ -183,7 +183,7 @@ export function LeagueEventsTable({ events }: Props) {
                     {event.participantCount === 0 && event.status !== 'REGISTRATION' ? (
                       <Link
                         href={`/${event.slug}/admin/setup`}
-                        className="inline-flex items-center justify-end gap-1 text-amber-600 dark:text-amber-400 hover:underline"
+                        className="inline-flex items-center justify-end gap-1 text-amber-600 hover:underline"
                         title="No players registered for an active event"
                       >
                         <AlertTriangle className="w-3 h-3" /> 0
@@ -208,7 +208,7 @@ export function LeagueEventsTable({ events }: Props) {
                   </td>
                   <td className="px-4 py-3 text-right tabular-nums">
                     {event.status === 'COMPLETED' || event.scoreCount > 0 ? (
-                      <span className={event.scoreCompletionPct === 100 ? 'text-green-600 dark:text-green-400' : 'text-foreground'}>
+                      <span className={event.scoreCompletionPct === 100 ? 'text-green-600' : 'text-foreground'}>
                         {event.scoreCompletionPct}%
                       </span>
                     ) : event.status === 'ACTIVE' ? (
@@ -302,7 +302,7 @@ export function LeagueEventsTable({ events }: Props) {
                 {event.participantCount === 0 && event.status !== 'REGISTRATION' ? (
                   <Link
                     href={`/${event.slug}/admin/setup`}
-                    className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400 hover:underline"
+                    className="inline-flex items-center gap-1 text-amber-600 hover:underline"
                   >
                     <AlertTriangle className="w-3 h-3" /> 0 players
                   </Link>

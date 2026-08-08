@@ -150,7 +150,7 @@ export function ProfileEditForm({ initialName, initialEmail, initialHandicap, in
           </div>
 
           {message && (
-            <p className={`text-sm ${message.type === 'error' ? 'text-destructive' : 'text-green-600 dark:text-green-400'}`}>
+            <p className={`text-sm ${message.type === 'error' ? 'text-destructive' : 'text-green-600'}`}>
               {message.text}
             </p>
           )}

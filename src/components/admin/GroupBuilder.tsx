@@ -98,9 +98,9 @@ function DroppableArea({
 
 // Color tier for the handicap badge — lower = greener.
 function handicapTier(h: number): { bg: string; text: string } {
-  if (h < 5) return { bg: 'bg-green-100 dark:bg-green-900/40', text: 'text-green-700 dark:text-green-300' }
-  if (h < 15) return { bg: 'bg-amber-100 dark:bg-amber-900/40', text: 'text-amber-700 dark:text-amber-300' }
-  return { bg: 'bg-slate-100 dark:bg-slate-800', text: 'text-slate-600 dark:text-slate-300' }
+  if (h < 5) return { bg: 'bg-green-100', text: 'text-green-700' }
+  if (h < 15) return { bg: 'bg-amber-100', text: 'text-amber-700' }
+  return { bg: 'bg-slate-100', text: 'text-slate-600' }
 }
 
 // ── Types ────────────────────────────────────────────────────────────────────
@@ -772,11 +772,11 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
     <div className="space-y-6">
       {/* Vacancy alerts — players with assigned tee times who unregistered */}
       {vacancies.length > 0 && (
-        <div className="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-900/20 overflow-hidden">
-          <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-amber-200 dark:border-amber-800/60">
+        <div className="rounded-xl border border-amber-300 bg-amber-50 overflow-hidden">
+          <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-amber-200">
             <div className="flex items-center gap-2 min-w-0">
-              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600 dark:text-amber-400" />
-              <p className="text-sm font-semibold text-amber-900 dark:text-amber-100">
+              <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
+              <p className="text-sm font-semibold text-amber-900">
                 {vacancies.length} player{vacancies.length === 1 ? '' : 's'} dropped from an assigned group
               </p>
             </div>
@@ -785,13 +785,13 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                 type="button"
                 onClick={handleDismissAllVacancies}
                 disabled={isPending}
-                className="text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors shrink-0"
+                className="text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors shrink-0"
               >
                 Dismiss all
               </button>
             )}
           </div>
-          <ul className="divide-y divide-amber-200 dark:divide-amber-800/60">
+          <ul className="divide-y divide-amber-200">
             {vacancies.map((v) => {
               const teeTimeStr = v.teeTime
                 ? new Date(v.teeTime).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
@@ -799,17 +799,17 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
               const meta = [teeTimeStr, v.startingHole ? `Hole ${v.startingHole}` : null].filter(Boolean).join(' · ')
               return (
                 <li key={v.id} className="px-4 py-2.5 flex items-center justify-between gap-4">
-                  <p className="text-sm text-amber-900 dark:text-amber-100 min-w-0">
+                  <p className="text-sm text-amber-900 min-w-0">
                     <span className="font-semibold">{v.playerName}</span>
-                    <span className="text-amber-700 dark:text-amber-300"> unregistered from </span>
+                    <span className="text-amber-700"> unregistered from </span>
                     <span className="font-semibold">{v.groupName}</span>
-                    {meta && <span className="text-amber-700 dark:text-amber-300"> ({meta})</span>}
+                    {meta && <span className="text-amber-700"> ({meta})</span>}
                   </p>
                   <button
                     type="button"
                     onClick={() => handleDismissVacancy(v.id)}
                     disabled={isPending}
-                    className="text-xs font-medium text-amber-700 dark:text-amber-300 hover:text-amber-900 dark:hover:text-amber-100 transition-colors shrink-0"
+                    className="text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors shrink-0"
                   >
                     Dismiss
                   </button>
@@ -841,15 +841,15 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
           {teamModeActive ? (
             <>
               {unassignedTeams.length > 0 && (
-                <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassignedTeams.length} team{unassignedTeams.length === 1 ? '' : 's'} unassigned</span></span>
+                <span> &middot; <span className="text-amber-600">{unassignedTeams.length} team{unassignedTeams.length === 1 ? '' : 's'} unassigned</span></span>
               )}
               {noTeamPlayers.length > 0 && (
-                <span> &middot; <span className="text-amber-600 dark:text-amber-400">{noTeamPlayers.length} without a team</span></span>
+                <span> &middot; <span className="text-amber-600">{noTeamPlayers.length} without a team</span></span>
               )}
             </>
           ) : (
             unassigned.length > 0 && (
-              <span> &middot; <span className="text-amber-600 dark:text-amber-400">{unassigned.length} unassigned</span></span>
+              <span> &middot; <span className="text-amber-600">{unassigned.length} unassigned</span></span>
             )
           )}
         </p>
@@ -915,7 +915,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
               )}
               {noTeamPlayers.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t border-border">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700 dark:text-amber-400">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
                     Players without a team ({noTeamPlayers.length})
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -925,7 +925,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     {noTeamPlayers.map((p) => (
                       <span
                         key={p.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-amber-300 bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:border-amber-700 dark:text-amber-200"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-amber-300 bg-amber-50 text-amber-800"
                       >
                         <span className="font-medium">{p.name}</span>
                         <span className="text-[10px]">No team</span>
@@ -1022,7 +1022,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                     group.members.length >= 4
-                      ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'
+                      ? 'bg-green-100 text-green-700'
                       : 'bg-muted text-muted-foreground'
                   }`}>
                     {group.members.length}/4
@@ -1032,7 +1032,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
                     const hasUnsent = group.members.some((m) => !m.notifiedAt || teeTimeChanged || startHoleChanged)
                     return hasUnsent && group.members.length > 0 ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-300">
+                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                         unsent
                       </span>
                     ) : null
@@ -1238,7 +1238,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
             )
           })()}
           {message && (
-            <p className={`text-sm text-center ${message.type === 'success' ? 'text-green-600 dark:text-green-400' : 'text-destructive'}`}>
+            <p className={`text-sm text-center ${message.type === 'success' ? 'text-green-600' : 'text-destructive'}`}>
               {message.text}
             </p>
           )}
@@ -1283,7 +1283,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
               />
             </div>
             {addError && <p className="text-sm text-destructive">{addError}</p>}
-            {addSuccess && <p className="text-sm text-green-600 dark:text-green-400">{addSuccess}</p>}
+            {addSuccess && <p className="text-sm text-green-600">{addSuccess}</p>}
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setAddDialogOpen(false)}>Cancel</Button>

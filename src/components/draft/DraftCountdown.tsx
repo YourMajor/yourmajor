@@ -46,10 +46,10 @@ export function DraftCountdown({
     <div
       className={`flex items-center gap-3 rounded-lg border px-3 py-2 text-sm font-semibold ${
         isExpired
-          ? 'border-zinc-300 bg-zinc-100 text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400'
+          ? 'border-zinc-300 bg-zinc-100 text-zinc-600'
           : isUrgent
-          ? 'border-red-300 bg-red-50 text-red-700 animate-pulse dark:border-red-700/60 dark:bg-red-950/40 dark:text-red-200'
-          : 'border-emerald-300 bg-emerald-50 text-emerald-800 dark:border-emerald-700/60 dark:bg-emerald-950/40 dark:text-emerald-200'
+          ? 'border-red-300 bg-red-50 text-red-700 animate-pulse'
+          : 'border-emerald-300 bg-emerald-50 text-emerald-800'
       }`}
       role="timer"
       aria-live={isUrgent ? 'assertive' : 'polite'}
@@ -63,7 +63,7 @@ export function DraftCountdown({
             {seconds}s to pick
           </span>
         )}
-        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-black/10 dark:bg-white/10">
+        <div className="mt-1 h-1 w-full overflow-hidden rounded-full bg-black/10">
           <div
             className={`h-full transition-[width] duration-200 ease-linear ${
               isExpired

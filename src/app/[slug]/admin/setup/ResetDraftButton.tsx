@@ -58,13 +58,13 @@ export function ResetDraftButton({ tournamentId }: Props) {
       <Dialog open={open} onOpenChange={(v) => { setOpen(v); setError('') }}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle className="text-red-600 dark:text-red-400">Reset Draft</DialogTitle>
+            <DialogTitle className="text-red-600">Reset Draft</DialogTitle>
             <DialogDescription>
               This will delete all picks and return the draft to setup. Players will lose any undrafted cards. This cannot be undone.
             </DialogDescription>
           </DialogHeader>
           {error && (
-            <p className="text-sm text-red-600 dark:text-red-400">{error}</p>
+            <p className="text-sm text-red-600">{error}</p>
           )}
           <DialogFooter className="gap-2">
             <Button variant="outline" onClick={() => setOpen(false)} disabled={loading}>

@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Dialog, DialogContent, DialogFooter } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogFooter, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Loader2, Check, X } from 'lucide-react'
@@ -98,9 +98,9 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
                 ? `${attackerName} attacked you · Hole ${confirmation.contextHoleNumber}`
                 : `Confirm result · Hole ${confirmation.contextHoleNumber}`}
             </p>
-            <h2 className="text-lg font-heading font-bold text-white leading-snug mt-0.5">
+            <DialogTitle className="text-lg font-heading font-bold text-white leading-snug mt-0.5">
               {confirmation.name}
-            </h2>
+            </DialogTitle>
           </div>
         </div>
 

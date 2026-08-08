@@ -1,6 +1,5 @@
 import type { Metadata, Viewport } from 'next'
 import { Geist, Geist_Mono, Playfair_Display, Libre_Caslon_Display } from 'next/font/google'
-import { ThemeRegistry } from '@/components/ThemeRegistry'
 import { PwaRegister } from '@/components/pwa/PwaRegister'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import './globals.css'
@@ -49,7 +48,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   return (
     <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${libreCaslon.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
-        <ThemeRegistry>{children}</ThemeRegistry>
+        {children}
         <PwaRegister />
         <InstallPrompt />
       </body>

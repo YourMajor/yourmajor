@@ -293,7 +293,7 @@ export function CommunicationsPanel({
           <div
             className={`rounded-lg border px-3 py-2 text-sm flex items-start gap-2 ${
               result.type === 'success'
-                ? 'border-green-300 bg-green-50 text-green-800 dark:border-green-800 dark:bg-green-900/20 dark:text-green-200'
+                ? 'border-green-300 bg-green-50 text-green-800'
                 : 'border-destructive/40 bg-destructive/10 text-destructive'
             }`}
           >
@@ -433,7 +433,7 @@ function HistoryRow({ item, slug }: { item: AnnouncementHistoryItem; slug: strin
 function StatusChip({ item }: { item: AnnouncementHistoryItem }) {
   if (item.status === 'PENDING') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 dark:bg-amber-900/20 dark:text-amber-200">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800">
         <CalendarClock className="w-3 h-3" />
         Scheduled
       </span>
@@ -461,8 +461,8 @@ function StatusChip({ item }: { item: AnnouncementHistoryItem }) {
     <span
       className={
         allDelivered
-          ? 'text-green-600 dark:text-green-400'
-          : 'text-amber-600 dark:text-amber-400'
+          ? 'text-green-600'
+          : 'text-amber-600'
       }
     >
       {item.successCount}/{item.deliveryCount} delivered

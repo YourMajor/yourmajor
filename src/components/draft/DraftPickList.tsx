@@ -214,13 +214,13 @@ export function DraftPickList({
                           onClick={() => setSelectedPick(pick)}
                           className={`w-full h-10 sm:h-12 rounded-md sm:rounded-lg border-2 flex flex-col sm:flex-row items-center sm:gap-1 px-1 sm:px-1.5 justify-center sm:justify-start text-center sm:text-left cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 overflow-hidden ${
                             isAttack
-                              ? 'bg-red-50 border-red-300 dark:bg-red-950/40 dark:border-red-700/60'
-                              : 'bg-emerald-50 border-emerald-300 dark:bg-emerald-950/40 dark:border-emerald-700/60'
+                              ? 'bg-red-50 border-red-300'
+                              : 'bg-emerald-50 border-emerald-300'
                           }`}
                         >
                           <SlugIcon slug={slug} isAttack={isAttack} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isAttack ? 'text-red-700' : 'text-emerald-800'}`} />
                           <span className={`text-[8px] sm:text-[11px] font-bold truncate max-w-full leading-tight ${
-                            isAttack ? 'text-red-800 dark:text-red-200' : 'text-emerald-800 dark:text-emerald-200'
+                            isAttack ? 'text-red-800' : 'text-emerald-800'
                           }`}>
                             {pick.powerup.name}
                           </span>

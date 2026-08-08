@@ -1,8 +1,6 @@
 'use client'
 
 import * as React from 'react'
-import MuiTabs from '@mui/material/Tabs'
-import MuiTab from '@mui/material/Tab'
 import { cva, type VariantProps } from 'class-variance-authority'
 import { cn } from '@/lib/utils'
 
@@ -57,7 +55,7 @@ function Tabs({
 }
 
 const tabsListVariants = cva(
-  'inline-flex w-fit items-center justify-start text-muted-foreground',
+  'inline-flex w-fit max-w-full items-center justify-start overflow-x-auto text-muted-foreground',
   {
     variants: {
       variant: {
@@ -71,32 +69,47 @@ const tabsListVariants = cva(
   }
 )
 
+const TabsListContext = React.createContext<'default' | 'line'>('default')
+
 function TabsList({
   className,
   variant = 'default',
   children,
   ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof tabsListVariants>) {
-  const { value, onValueChange } = React.useContext(TabsContext)
+  const listRef = React.useRef<HTMLDivElement>(null)
+
+  // Roving arrow-key navigation between the tab buttons.
+  function onKeyDown(e: React.KeyboardEvent) {
+    if (!['ArrowLeft', 'ArrowRight', 'Home', 'End'].includes(e.key)) return
+    const tabs = Array.from(
+      listRef.current?.querySelectorAll<HTMLButtonElement>('[role="tab"]:not(:disabled)') ?? []
+    )
+    if (tabs.length === 0) return
+    const current = tabs.indexOf(document.activeElement as HTMLButtonElement)
+    let next = current
+    if (e.key === 'ArrowLeft') next = current <= 0 ? tabs.length - 1 : current - 1
+    if (e.key === 'ArrowRight') next = current === tabs.length - 1 ? 0 : current + 1
+    if (e.key === 'Home') next = 0
+    if (e.key === 'End') next = tabs.length - 1
+    tabs[next]?.focus()
+    tabs[next]?.click()
+    e.preventDefault()
+  }
 
   return (
-    <MuiTabs
-      value={value}
-      onChange={(_, newVal) => onValueChange(newVal)}
-      variant="scrollable"
-      scrollButtons={false}
-      className={cn(tabsListVariants({ variant }), className)}
-      sx={{
-        minHeight: 'unset',
-        '& .MuiTabs-indicator': {
-          backgroundColor: variant === 'line' ? 'var(--color-primary, #006747)' : 'transparent',
-          height: variant === 'line' ? 2 : 0,
-        },
-      }}
-      {...(props as Record<string, unknown>)}
-    >
-      {children}
-    </MuiTabs>
+    <TabsListContext.Provider value={variant ?? 'default'}>
+      <div
+        ref={listRef}
+        role="tablist"
+        data-slot="tabs-list"
+        onKeyDown={onKeyDown}
+        className={cn(tabsListVariants({ variant }), className)}
+        {...props}
+      >
+        {children}
+      </div>
+    </TabsListContext.Provider>
   )
 }
 
@@ -111,23 +124,41 @@ function TabsTrigger({
   children: React.ReactNode
   [key: string]: unknown
 }) {
+  const { value: activeValue, onValueChange } = React.useContext(TabsContext)
+  const variant = React.useContext(TabsListContext)
+  const selected = activeValue === value
+
   return (
-    <MuiTab
-      value={value}
-      label={children}
+    <button
+      type="button"
+      role="tab"
+      aria-selected={selected}
+      tabIndex={selected ? 0 : -1}
+      data-slot="tabs-trigger"
+      data-state={selected ? 'active' : 'inactive'}
+      onClick={() => onValueChange(value)}
       className={cn(
-        '!text-sm !font-medium !normal-case !min-w-0 !min-h-0 !px-3 !py-1.5',
+        'shrink-0 whitespace-nowrap px-3 py-1.5 text-sm font-medium transition-colors duration-150',
+        'focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring',
+        variant === 'line'
+          ? cn(
+              '-mb-px border-b-2',
+              selected
+                ? 'border-primary font-semibold text-foreground'
+                : 'border-transparent text-muted-foreground hover:text-foreground'
+            )
+          : cn(
+              'h-full rounded-md',
+              selected
+                ? 'bg-background font-semibold text-foreground shadow-sm'
+                : 'text-muted-foreground hover:text-foreground'
+            ),
         className
       )}
-      sx={{
-        color: 'var(--muted-foreground, #6b7c6b)',
-        '&.Mui-selected': {
-          color: 'var(--foreground, #1a2e1a)',
-          fontWeight: 600,
-        },
-      }}
       {...props}
-    />
+    >
+      {children}
+    </button>
   )
 }
 
@@ -146,7 +177,12 @@ function TabsContent({
   if (activeValue !== value) return null
 
   return (
-    <div data-slot="tabs-content" className={cn('flex-1 text-sm outline-none', className)} {...props}>
+    <div
+      role="tabpanel"
+      data-slot="tabs-content"
+      className={cn('flex-1 text-sm outline-none', className)}
+      {...props}
+    >
       {children}
     </div>
   )

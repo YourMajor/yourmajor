@@ -23,8 +23,8 @@ const STATUS_LABEL: Record<string, string> = {
 }
 
 const STATUS_TONE: Record<string, string> = {
-  REGISTRATION: 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-300',
-  ACTIVE: 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300',
+  REGISTRATION: 'bg-blue-100 text-blue-700',
+  ACTIVE: 'bg-green-100 text-green-700',
   COMPLETED: 'bg-muted text-muted-foreground',
 }
 

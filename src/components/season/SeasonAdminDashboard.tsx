@@ -673,13 +673,13 @@ function ScheduleEventsPanel({
             {error && <p className="text-xs text-red-500">{error}</p>}
 
             {createdSlug && (
-              <div className="rounded-lg border border-green-200 bg-green-50 dark:bg-green-900/20 dark:border-green-800 px-4 py-3">
-                <p className="text-sm font-medium text-green-800 dark:text-green-200">
+              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
+                <p className="text-sm font-medium text-green-800">
                   Event created! All active roster members have been registered.
                 </p>
                 <a
                   href={`/${createdSlug}/admin`}
-                  className="text-xs font-semibold underline text-green-700 dark:text-green-300 mt-1 inline-block"
+                  className="text-xs font-semibold underline text-green-700 mt-1 inline-block"
                 >
                   View event admin &rarr;
                 </a>

@@ -2,7 +2,6 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Cropper, { type Area } from 'react-easy-crop'
-import MuiSlider from '@mui/material/Slider'
 import { ZoomIn, ZoomOut } from 'lucide-react'
 import {
   Dialog,
@@ -85,13 +84,15 @@ export function AvatarCropDialog({ file, onConfirm, onCancel }: AvatarCropDialog
 
         <div className="flex items-center gap-3 px-2">
           <ZoomOut className="w-4 h-4 shrink-0 text-muted-foreground" />
-          <MuiSlider
+          <input
+            type="range"
+            aria-label="Zoom"
             value={zoom}
             min={1}
             max={3}
             step={0.05}
-            onChange={(_, v) => setZoom(v as number)}
-            size="small"
+            onChange={(e) => setZoom(Number(e.target.value))}
+            className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-muted accent-primary"
           />
           <ZoomIn className="w-4 h-4 shrink-0 text-muted-foreground" />
         </div>

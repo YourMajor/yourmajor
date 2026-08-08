@@ -65,7 +65,7 @@ export function PowerupsInfoPanel() {
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <Zap className="w-4 h-4 text-emerald-600" />
-                  <h4 className="text-sm font-semibold text-emerald-800 dark:text-emerald-400">Boost Cards</h4>
+                  <h4 className="text-sm font-semibold text-emerald-800">Boost Cards</h4>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Boosts benefit you — reduce strokes, improve lies, or earn creative advantages.
@@ -83,7 +83,7 @@ export function PowerupsInfoPanel() {
               <div className="space-y-2">
                 <div className="flex items-center gap-1.5">
                   <Swords className="w-4 h-4 text-red-600" />
-                  <h4 className="text-sm font-semibold text-red-800 dark:text-red-400">Attack Cards</h4>
+                  <h4 className="text-sm font-semibold text-red-800">Attack Cards</h4>
                 </div>
                 <p className="text-xs text-muted-foreground">
                   Attacks target opponents — force handicaps, swap scores, or impose restrictions.
