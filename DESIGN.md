@@ -48,6 +48,12 @@ typography:
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.6
+  body-sm:
+    fontFamily: "Geist, system-ui, sans-serif"
+    fontSize: "0.875rem"
+    fontWeight: 400
+    lineHeight: 1.5
+    note: "Secondary copy: captions, FAQ answers, plate feature lists, the skip link. Tailwind text-sm; already ubiquitous on the surface"
   label:
     fontFamily: "Geist, system-ui, sans-serif"
     fontSize: "0.6875rem"
