@@ -303,30 +303,30 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
         <table className="w-full text-sm border-collapse" style={{ minWidth: '560px' }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-              <th className="px-4 py-4 text-left text-xs font-bold text-white uppercase tracking-widest w-20">Hole</th>
+              <th className="px-4 py-4 text-left text-xs font-bold text-primary-foreground uppercase tracking-widest w-20">Hole</th>
               {front.map((h) => {
                 const scored = getScoreType(scores[h.id], h.par) !== 'empty'
                 return (
                   <th key={h.id}
-                    className={`py-4 text-center text-sm font-extrabold min-w-[2.75rem] transition-colors ${scored ? 'bg-white/20 text-white' : 'text-white/80'}`}>
+                    className={`py-4 text-center text-sm font-extrabold min-w-[2.75rem] transition-colors ${scored ? 'bg-primary-foreground/20 text-primary-foreground' : 'text-primary-foreground/80'}`}>
                     {h.number}
                   </th>
                 )
               })}
-              <th className="px-3 py-4 text-center text-xs font-bold text-white/70 border-l border-white/20 w-14 uppercase tracking-wider">Out</th>
+              <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/70 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">Out</th>
               {back.map((h) => {
                 const scored = getScoreType(scores[h.id], h.par) !== 'empty'
                 return (
                   <th key={h.id}
-                    className={`py-4 text-center text-sm font-extrabold min-w-[2.75rem] transition-colors ${scored ? 'bg-white/20 text-white' : 'text-white/80'}`}>
+                    className={`py-4 text-center text-sm font-extrabold min-w-[2.75rem] transition-colors ${scored ? 'bg-primary-foreground/20 text-primary-foreground' : 'text-primary-foreground/80'}`}>
                     {h.number}
                   </th>
                 )
               })}
               {back.length > 0 && (
-                <th className="px-3 py-4 text-center text-xs font-bold text-white/70 border-l border-white/20 w-14 uppercase tracking-wider">In</th>
+                <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/70 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">In</th>
               )}
-              <th className="px-3 py-4 text-center text-xs font-bold text-white border-l border-white/20 w-16 uppercase tracking-wider">Total</th>
+              <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground border-l border-primary-foreground/20 w-16 uppercase tracking-wider">Total</th>
             </tr>
           </thead>
           <tbody>
@@ -376,7 +376,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
       <Button
         onClick={saveAll}
         disabled={saveStatus === 'saving'}
-        className="w-full text-white font-semibold py-5"
+        className="w-full text-primary-foreground font-semibold py-5"
         style={{ backgroundColor: 'var(--color-primary)' }}
       >
         {saveStatus === 'saving' ? 'Saving…' : 'Save Scorecard'}

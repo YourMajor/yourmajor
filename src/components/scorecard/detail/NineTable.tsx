@@ -30,15 +30,15 @@ export function NineTable({
       <table className="w-full text-sm border-collapse table-fixed">
         <thead>
           <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-            <th className="px-1 sm:px-2 py-2 sm:py-3 text-left text-[9px] sm:text-[11px] font-bold text-white uppercase tracking-wider sm:tracking-widest w-[13%]">
+            <th className="px-1 sm:px-2 py-2 sm:py-3 text-left text-[9px] sm:text-[11px] font-bold text-primary-foreground uppercase tracking-wider sm:tracking-widest w-[13%]">
               Hole
             </th>
             {holes.map((s) => (
-              <th key={s.holeNumber} className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-white font-mono tabular-nums">
+              <th key={s.holeNumber} className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-primary-foreground font-mono tabular-nums">
                 {s.holeNumber}
               </th>
             ))}
-            <th className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[9px] sm:text-[11px] font-bold text-white/70 border-l border-white/20 uppercase tracking-wider w-[11%]">
+            <th className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[9px] sm:text-[11px] font-bold text-primary-foreground/70 border-l border-primary-foreground/20 uppercase tracking-wider w-[11%]">
               {label}
             </th>
           </tr>

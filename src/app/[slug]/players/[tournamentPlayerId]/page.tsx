@@ -116,7 +116,7 @@ export default async function PlayerScorecardPage({
       <div className="flex items-end gap-5 mb-8">
         <Avatar className="size-28 sm:size-36 shrink-0 border-4" style={{ borderColor: 'var(--color-primary)' }}>
           {avatarUrl && <AvatarImage src={avatarUrl} alt={playerName} />}
-          <AvatarFallback className="text-5xl sm:text-6xl font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+          <AvatarFallback className="text-5xl sm:text-6xl font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
             {playerName.charAt(0).toUpperCase()}
           </AvatarFallback>
         </Avatar>

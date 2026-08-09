@@ -87,7 +87,7 @@ export function TournamentBottomBar({
               <button
                 key={tab.label}
                 onClick={onMenuOpen}
-                className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] text-white/60 hover:text-white transition-colors"
+                className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] text-primary-foreground/60 hover:text-primary-foreground transition-colors"
                 aria-label={tab.label}
               >
                 <Icon className="w-5 h-5" />
@@ -101,7 +101,7 @@ export function TournamentBottomBar({
               key={tab.href}
               href={tab.href}
               className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] transition-colors ${
-                isCurrent ? 'text-white' : 'text-white/60 hover:text-white'
+                isCurrent ? 'text-primary-foreground' : 'text-primary-foreground/60 hover:text-primary-foreground'
               }`}
               aria-label={tab.label}
             >

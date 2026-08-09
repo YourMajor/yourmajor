@@ -136,14 +136,14 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         onClick={() => setOpen((o) => !o)}
         className="fixed md:bottom-5 right-5 z-[80] w-14 h-14 rounded-full shadow-lg flex items-center justify-center transition-transform hover:scale-105 active:scale-95"
         style={{
-          backgroundColor: 'var(--color-primary, #006747)',
+          backgroundColor: 'var(--color-primary)',
           bottom: isLiveScoring
             ? 'calc(11rem + env(safe-area-inset-bottom, 0px))'
             : 'calc(6rem + env(safe-area-inset-bottom, 0px))',
         }}
         aria-label={open ? 'Close chat' : 'Open chat'}
       >
-        {open ? <X className="w-6 h-6 text-white" /> : <MessageCircle className="w-6 h-6 text-white" />}
+        {open ? <X className="w-6 h-6 text-primary-foreground" /> : <MessageCircle className="w-6 h-6 text-primary-foreground" />}
         {!open && unreadCount > 0 && (
           <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 ${
             hasAttack ? 'bg-red-500 animate-pulse' : 'bg-red-500'
@@ -171,16 +171,16 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
           {/* Header */}
           <div
             className="shrink-0 px-4 sm:px-5 py-3.5 sm:py-3 pt-[calc(0.875rem+env(safe-area-inset-top,0px))] sm:pt-3 flex items-center justify-between touch-pan-y"
-            style={{ backgroundColor: 'var(--color-primary, #006747)' }}
+            style={{ backgroundColor: 'var(--color-primary)' }}
             onTouchStart={onHeaderTouchStart}
             onTouchMove={onHeaderTouchMove}
             onTouchEnd={onHeaderTouchEnd}
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-sm font-heading font-bold text-white">{label ?? 'Tournament Chat'}</h3>
-              <ChevronDown className="w-4 h-4 text-white/40 sm:hidden" />
+              <h3 className="text-base sm:text-sm font-heading font-bold text-primary-foreground">{label ?? 'Tournament Chat'}</h3>
+              <ChevronDown className="w-4 h-4 text-primary-foreground/40 sm:hidden" />
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-white/60 hover:text-white hover:bg-white/10">
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10">
               <X className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
           </div>
@@ -234,7 +234,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
                 onClick={() => sendMessage()}
                 disabled={sending || !input.trim()}
                 className="shrink-0 p-2.5 sm:p-2 rounded-lg disabled:opacity-30 transition-colors"
-                style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
                 aria-label="Send"
               >
                 <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />

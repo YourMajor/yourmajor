@@ -157,7 +157,7 @@ export function IdentityHero({
                       <AvatarImage src={avatarUrl ?? undefined} sizes="(min-width: 640px) 176px, 144px" className="object-cover" />
                       <AvatarFallback
                         className="text-4xl sm:text-5xl font-heading font-bold"
-                        style={{ backgroundColor: 'var(--primary)', color: 'white' }}
+                        style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                       >
                         {initials}
                       </AvatarFallback>

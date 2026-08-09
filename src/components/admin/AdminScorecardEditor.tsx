@@ -76,7 +76,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
               onClick={() => setSelectedRoundId(r.id)}
               className={`px-4 py-1.5 text-sm rounded-full border font-medium transition-colors ${
                 r.id === selectedRoundId
-                  ? 'text-white border-transparent'
+                  ? 'text-primary-foreground border-transparent'
                   : 'border-border hover:bg-muted'
               }`}
               style={r.id === selectedRoundId ? { backgroundColor: 'var(--color-primary)' } : {}}
@@ -107,16 +107,16 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
         <table className="w-full text-sm border-collapse" style={{ minWidth: `${120 + round.holes.length * 44 + 80}px` }}>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-              <th className="px-3 py-3 text-left text-xs font-bold text-white uppercase tracking-widest sticky left-0 z-10 min-w-[140px]"
+              <th className="px-3 py-3 text-left text-xs font-bold text-primary-foreground uppercase tracking-widest sticky left-0 z-10 min-w-[140px]"
                 style={{ backgroundColor: 'var(--color-primary)' }}>
                 Player
               </th>
-              <th className="px-2 py-3 text-center text-xs font-bold text-white/60 w-10">HCP</th>
+              <th className="px-2 py-3 text-center text-xs font-bold text-primary-foreground/60 w-10">HCP</th>
               {round.holes.map((h) => (
-                <th key={h.id} className="py-3 text-center text-xs font-bold text-white min-w-[2.5rem]">{h.number}</th>
+                <th key={h.id} className="py-3 text-center text-xs font-bold text-primary-foreground min-w-[2.5rem]">{h.number}</th>
               ))}
-              <th className="px-3 py-3 text-center text-xs font-bold text-white/80 w-16">Total</th>
-              <th className="px-3 py-3 text-center text-xs font-bold text-white/80 w-16">+/-</th>
+              <th className="px-3 py-3 text-center text-xs font-bold text-primary-foreground/80 w-16">Total</th>
+              <th className="px-3 py-3 text-center text-xs font-bold text-primary-foreground/80 w-16">+/-</th>
             </tr>
             {/* Par row */}
             <tr className="bg-muted/30 border-b border-border">

@@ -7,6 +7,7 @@ import { usePathname } from 'next/navigation'
 import { Menu, X, Trophy, Swords, ImageIcon, Pencil, User, Clock, Crown, BarChart3, History } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { useTournament } from '@/components/TournamentContext'
+import { isLightColor } from '@/lib/utils'
 import type { PastChampion } from '@/lib/tournament-chain'
 
 interface TournamentNavBarProps {
@@ -31,26 +32,6 @@ interface TournamentNavBarProps {
   hasVault?: boolean
   externalMenuOpen?: boolean
   onExternalMenuChange?: (open: boolean) => void
-}
-
-function isLightColor(color: string): boolean {
-  const hex = color.match(/^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i)
-  if (hex) {
-    const r = parseInt(hex[1], 16) / 255
-    const g = parseInt(hex[2], 16) / 255
-    const b = parseInt(hex[3], 16) / 255
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45
-  }
-  const rgb = color.match(/rgb\(\s*(\d+)\s*,\s*(\d+)\s*,\s*(\d+)\s*\)/)
-  if (rgb) {
-    const r = parseInt(rgb[1]) / 255
-    const g = parseInt(rgb[2]) / 255
-    const b = parseInt(rgb[3]) / 255
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.45
-  }
-  const oklch = color.match(/oklch\(\s*([\d.]+)/)
-  if (oklch) return parseFloat(oklch[1]) > 0.6
-  return false
 }
 
 const STATUS_LABELS: Record<string, string> = {
@@ -118,15 +99,16 @@ export function TournamentNavBar({
   const pathname = usePathname()
   const isAdminRoute = pathname?.startsWith(`/${slug}/admin`) ?? false
 
-  const light = isLightColor(primaryColor)
-  const menuText = light ? 'text-gray-900' : 'text-white'
-  const menuTextMuted = light ? 'text-gray-600' : 'text-white/60'
-  const menuHover = light ? 'hover:text-gray-900' : 'hover:text-white'
-  const menuBorder = light ? 'border-black/15' : 'border-white/15'
+  // Foregrounds ride the contrast-guarded vars injected by brandVars()
+  // on the [slug] layout wrapper — no per-component luminance flips.
+  const light = isLightColor(primaryColor) // only the champion-ring gradient still flips shade
+  const menuText = 'text-primary-foreground'
+  const menuTextMuted = 'text-primary-foreground/60'
+  const menuHover = 'hover:text-primary-foreground'
+  const menuBorder = 'border-primary-foreground/15'
 
-  const lightAccent = isLightColor(accentColor)
-  const accentText = lightAccent ? 'text-gray-900' : 'text-white'
-  const accentTextMuted = lightAccent ? 'text-gray-600' : 'text-white/70'
+  const accentText = 'text-accent-foreground'
+  const accentTextMuted = 'text-accent-foreground/70'
 
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -193,7 +175,7 @@ export function TournamentNavBar({
               <button
                 type="button"
                 onClick={() => setMenuOpen(true)}
-                className="flex items-center gap-1.5 px-3 py-2.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors text-xs sm:text-sm font-medium"
+                className="flex items-center gap-1.5 px-3 py-2.5 rounded text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors text-xs sm:text-sm font-medium"
                 aria-label="Open menu"
               >
                 <Menu className="w-4 h-4 sm:w-5 sm:h-5" />
@@ -204,15 +186,15 @@ export function TournamentNavBar({
             {/* RIGHT */}
             <div className="flex items-center justify-end gap-2 flex-1 min-w-0">
               {isLoggedIn ? (
-                <Link href={`/profile?ref=${slug}`} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors">
+                <Link href={`/profile?ref=${slug}`} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors">
                   <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                     {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile" />}
-                    <AvatarFallback className="text-[9px] sm:text-xs font-bold bg-white/20 text-white">{initials}</AvatarFallback>
+                    <AvatarFallback className="text-[9px] sm:text-xs font-bold bg-primary-foreground/20 text-primary-foreground">{initials}</AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-xs font-medium">Profile</span>
                 </Link>
               ) : (
-                <Link href="/auth/login" className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-white/80 hover:text-white hover:bg-white/10 transition-colors text-xs sm:text-sm font-medium">
+                <Link href="/auth/login" className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors text-xs sm:text-sm font-medium">
                   <User className="w-4 h-4" />
                   <span className="hidden sm:inline">Sign In</span>
                 </Link>
@@ -253,7 +235,7 @@ export function TournamentNavBar({
             <div className="mb-8 sm:mb-10">
               <div className="flex items-center gap-3">
                 {logo && (
-                  <Image src={logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover border border-white/20" />
+                  <Image src={logo} alt="" width={32} height={32} className="w-8 h-8 rounded-full object-cover border border-primary-foreground/20" />
                 )}
                 <div>
                   {!isLeague && (
@@ -298,7 +280,7 @@ export function TournamentNavBar({
                     href={`/${slug}/register`}
                     onClick={() => setMenuOpen(false)}
                     className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors ${
-                      light ? 'bg-gray-900 text-white hover:bg-gray-800' : 'bg-white text-gray-900 hover:bg-white/90'
+                      'bg-primary-foreground text-primary hover:bg-primary-foreground/90'
                     }`}
                   >
                     Register for Tournament
@@ -320,7 +302,7 @@ export function TournamentNavBar({
                         href={`/${c.slug}`}
                         onClick={() => setMenuOpen(false)}
                         onMouseEnter={() => { setHoveredChampionIdx(i); setHoveredIndex(null) }}
-                        className={`flex items-center gap-3 rounded-lg px-2 py-2 -mx-2 transition-colors ${light ? 'hover:bg-black/5' : 'hover:bg-white/10'}`}
+                        className="flex items-center gap-3 rounded-lg px-2 py-2 -mx-2 transition-colors hover:bg-primary-foreground/10"
                       >
                         <div className="relative shrink-0">
                           <div className={`rounded-full p-[2px] ${light ? 'bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600' : 'bg-gradient-to-br from-yellow-300 via-yellow-400 to-amber-500'}`}>
@@ -361,7 +343,7 @@ export function TournamentNavBar({
                     href={`/${latestTournament.slug}`}
                     onClick={() => setMenuOpen(false)}
                     className={`inline-flex items-center gap-2 px-5 py-2.5 rounded-lg text-sm font-semibold transition-colors`}
-                    style={{ backgroundColor: accentColor, color: lightAccent ? '#111' : '#fff' }}
+                    style={{ backgroundColor: accentColor, color: 'var(--accent-foreground)' }}
                   >
                     {latestTournament.name} &rarr;
                   </Link>

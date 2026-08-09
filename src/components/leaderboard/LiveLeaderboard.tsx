@@ -280,7 +280,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                             <div className="rounded-full p-[2px] bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600">
                               <Avatar className="h-7 w-7 ring-1 ring-background">
                                 <AvatarImage src={p.avatarUrl ?? undefined} />
-                                <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                   {p.playerName.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
@@ -288,7 +288,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                           ) : (
                             <Avatar className="h-7 w-7">
                               <AvatarImage src={p.avatarUrl ?? undefined} />
-                              <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                              <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                 {p.playerName.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>
@@ -353,11 +353,11 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
         {scoringCta && (
           <Link
             href={scoringCta.href}
-            className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-white transition-colors whitespace-nowrap min-h-[40px] sm:min-h-[44px]"
+            className="ml-auto shrink-0 inline-flex items-center gap-1.5 rounded-lg px-3 sm:px-4 py-2 text-xs sm:text-sm font-semibold text-primary-foreground transition-colors whitespace-nowrap min-h-[40px] sm:min-h-[44px]"
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {scoringCta.label}
-            <span className="text-white/70 text-[11px] sm:text-xs font-normal hidden sm:inline">
+            <span className="text-primary-foreground/70 text-[11px] sm:text-xs font-normal hidden sm:inline">
               {scoringCta.holesPlayed}/{scoringCta.totalHoles}
             </span>
           </Link>
@@ -505,7 +505,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                                 <div className="rounded-full p-[2px] bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600">
                                   <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-background">
                                     <AvatarImage src={p.avatarUrl ?? undefined} />
-                                    <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                    <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                       {p.playerName.charAt(0).toUpperCase()}
                                     </AvatarFallback>
                                   </Avatar>
@@ -513,7 +513,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                               ) : (
                                 <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                                   <AvatarImage src={p.avatarUrl ?? undefined} />
-                                  <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                  <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                     {p.playerName.charAt(0).toUpperCase()}
                                   </AvatarFallback>
                                 </Avatar>

@@ -173,7 +173,7 @@ export default async function TeamDetailPage({
               <div className="relative">
                 <Avatar className="h-10 w-10">
                   <AvatarImage src={m.avatarUrl ?? undefined} />
-                  <AvatarFallback className="text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                  <AvatarFallback className="text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                     {m.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 </Avatar>

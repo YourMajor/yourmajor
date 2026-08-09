@@ -87,7 +87,7 @@ export function NassauLeaderboardTable({ rows, slug, loading, defendingChampionP
                         <div className="rounded-full p-[2px] bg-gradient-to-br from-yellow-400 via-yellow-500 to-amber-600">
                           <Avatar className="h-8 w-8 sm:h-10 sm:w-10 ring-2 ring-background">
                             <AvatarImage src={p.avatarUrl ?? undefined} />
-                            <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                            <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                               {p.playerName.charAt(0).toUpperCase()}
                             </AvatarFallback>
                           </Avatar>
@@ -95,7 +95,7 @@ export function NassauLeaderboardTable({ rows, slug, loading, defendingChampionP
                       ) : (
                         <Avatar className="h-8 w-8 sm:h-10 sm:w-10">
                           <AvatarImage src={p.avatarUrl ?? undefined} />
-                          <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                          <AvatarFallback className="text-xs sm:text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                             {p.playerName.charAt(0).toUpperCase()}
                           </AvatarFallback>
                         </Avatar>

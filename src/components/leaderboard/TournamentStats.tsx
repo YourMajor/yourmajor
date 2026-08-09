@@ -139,7 +139,7 @@ export function TournamentStats({ standings, roundNumbers, powerupsEnabled, atta
             >
               <div
                 className="w-8 h-8 rounded-full flex items-center justify-center shrink-0"
-                style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}
+                style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
               >
                 <Icon className="w-4 h-4" />
               </div>

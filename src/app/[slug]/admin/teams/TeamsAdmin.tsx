@@ -103,7 +103,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                   <div className="flex items-center gap-3">
                     <Avatar className="h-7 w-7">
                       <AvatarImage src={p.avatarUrl ?? undefined} />
-                      <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                      <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                         {p.name.charAt(0).toUpperCase()}
                       </AvatarFallback>
                     </Avatar>
@@ -291,7 +291,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                       />
                       <Avatar className="h-7 w-7">
                         <AvatarImage src={m.avatarUrl ?? undefined} />
-                        <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                        <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                           {m.name.charAt(0).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>
@@ -358,7 +358,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                           >
                             <Avatar className="h-6 w-6">
                               <AvatarImage src={p.avatarUrl ?? undefined} />
-                              <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                              <AvatarFallback className="text-xs font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                 {p.name.charAt(0).toUpperCase()}
                               </AvatarFallback>
                             </Avatar>

@@ -90,7 +90,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
                             <div key={m.tournamentPlayerId} className="relative">
                               <Avatar className="h-6 w-6 ring-2 ring-background">
                                 <AvatarImage src={m.avatarUrl ?? undefined} />
-                                <AvatarFallback className="text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+                                <AvatarFallback className="text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                   {m.name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>

@@ -175,7 +175,7 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
               type="button"
               onClick={() => fileRef.current?.click()}
               disabled={uploading}
-              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-3 sm:py-1.5 text-sm font-semibold text-white transition-opacity disabled:opacity-60 min-h-[48px] sm:min-h-0"
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-1.5 rounded-lg px-4 py-3 sm:py-1.5 text-sm font-semibold text-primary-foreground transition-opacity disabled:opacity-60 min-h-[48px] sm:min-h-0"
               style={{ backgroundColor: 'var(--color-primary)' }}
             >
               + Add Photo
@@ -208,7 +208,7 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
                 type="button"
                 onClick={handleUpload}
                 disabled={uploading}
-                className="shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-white disabled:opacity-60"
+                className="shrink-0 inline-flex items-center gap-1 rounded-md px-3 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                 style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 {uploading ? 'Uploading…' : 'Upload'}
