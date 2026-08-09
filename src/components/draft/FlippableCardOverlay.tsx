@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback, type ReactNode } from 'react'
 import type { PowerupCardData } from './PowerupCard'
-import { CardFront } from './CardHand'
+import { CardFront, powerupStyles } from './CardHand'
 import type { PowerupEffect } from '@/lib/powerup-engine'
 
 interface FlippableCardOverlayProps {
@@ -77,8 +77,8 @@ export function FlippableCardOverlay({
         <div
           className={`
             absolute inset-0 rounded-2xl flex flex-col overflow-hidden select-none
-            bg-[#f5f0e8] border-[3px]
-            ${isAttack ? 'border-red-700' : 'border-emerald-800'}
+            bg-powerup-stock border-[3px]
+            ${powerupStyles(isAttack).frame}
             shadow-2xl shadow-black/50
           `}
           style={{
@@ -106,8 +106,8 @@ export function FlippableCardOverlay({
         <div
           className={`
             absolute inset-0 rounded-2xl flex flex-col overflow-hidden select-none
-            bg-[#f5f0e8] border-[3px]
-            ${isAttack ? 'border-red-700' : 'border-emerald-800'}
+            bg-powerup-stock border-[3px]
+            ${powerupStyles(isAttack).frame}
             shadow-2xl shadow-black/50
           `}
           style={{

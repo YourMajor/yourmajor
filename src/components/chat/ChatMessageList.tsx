@@ -19,16 +19,16 @@ const SYSTEM_STYLES: Record<SystemCategory, {
   dark: { bg: string; border: string; text: string }
 }> = {
   attack: {
-    light: { bg: 'bg-red-50', border: 'border-red-200', text: 'text-red-800', icon: '⚔️' },
-    dark: { bg: 'bg-red-900/30', border: 'border-red-700/40', text: 'text-red-100' },
+    light: { bg: 'bg-powerup-attack/10', border: 'border-powerup-attack/25', text: 'text-powerup-attack-deep', icon: '⚔️' },
+    dark: { bg: 'bg-powerup-attack/25', border: 'border-powerup-attack/40', text: 'text-powerup-stock' },
   },
   powerup: {
-    light: { bg: 'bg-purple-50', border: 'border-purple-200', text: 'text-purple-800', icon: '⚡' },
-    dark: { bg: 'bg-purple-900/30', border: 'border-purple-700/40', text: 'text-purple-100' },
+    light: { bg: 'bg-powerup-active/10', border: 'border-powerup-active/25', text: 'text-powerup-active', icon: '⚡' },
+    dark: { bg: 'bg-powerup-active/25', border: 'border-powerup-active/40', text: 'text-powerup-stock' },
   },
   announcement: {
-    light: { bg: 'bg-amber-50', border: 'border-amber-200', text: 'text-amber-900', icon: '📢' },
-    dark: { bg: 'bg-amber-900/20', border: 'border-amber-600/30', text: 'text-amber-100' },
+    light: { bg: 'bg-warning/10', border: 'border-warning/30', text: 'text-gold-ink', icon: '📢' },
+    dark: { bg: 'bg-warning/15', border: 'border-warning/30', text: 'text-warning' },
   },
 }
 
@@ -76,7 +76,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
                   onBanUser?.(confirmBan.userId, confirmBan.name)
                   setConfirmBan(null)
                 }}
-                className="px-3 py-1.5 text-xs rounded-md bg-red-600 text-white hover:bg-red-700"
+                className="px-3 py-1.5 text-xs rounded-md bg-destructive text-white hover:bg-destructive/90"
               >
                 Ban User
               </button>

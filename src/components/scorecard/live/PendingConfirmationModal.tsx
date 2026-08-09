@@ -85,15 +85,15 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
 
   return (
     <Dialog open onOpenChange={(v) => { if (!v && !submitting) onDefer() }}>
-      <DialogContent className={`max-w-sm border-2 bg-zinc-950 ${isAttack ? 'border-red-600/60' : 'border-emerald-600/60'}`}>
+      <DialogContent className={`max-w-sm border-2 bg-zinc-950 ${isAttack ? 'border-destructive/60' : 'border-success/60'}`}>
         <div className="flex items-start gap-3 pt-1">
           <div className={`shrink-0 w-11 h-11 rounded-full flex items-center justify-center text-2xl ${
-            isAttack ? 'bg-red-600/20 border-2 border-red-500/50' : 'bg-emerald-600/20 border-2 border-emerald-500/50'
+            isAttack ? 'bg-destructive/20 border-2 border-destructive/50' : 'bg-success/20 border-2 border-success/50'
           }`}>
             {isAttack ? '⚔️' : '⚡'}
           </div>
           <div className="flex-1 min-w-0">
-            <p className={`text-[11px] font-bold uppercase tracking-wider ${isAttack ? 'text-red-400' : 'text-emerald-400'}`}>
+            <p className={`text-[11px] font-bold uppercase tracking-wider ${isAttack ? 'text-destructive' : 'text-success'}`}>
               {isAttack && attackerName
                 ? `${attackerName} attacked you · Hole ${confirmation.contextHoleNumber}`
                 : `Confirm result · Hole ${confirmation.contextHoleNumber}`}
@@ -121,14 +121,14 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
                 placeholder="0"
                 className="w-24 bg-zinc-900 border-zinc-700 text-white"
               />
-              <span className="text-xs text-red-300">
+              <span className="text-xs text-destructive/80">
                 +{confirmation.modifierIfYes} each
                 {confirmation.cap !== null ? ` · max +${Math.abs(confirmation.cap)}` : ''}
               </span>
             </div>
           </>
         ) : (
-          <div className={`text-xs ${isAttack ? 'text-red-300' : 'text-emerald-300'}`}>
+          <div className={`text-xs ${isAttack ? 'text-destructive/80' : 'text-success/80'}`}>
             Answering <span className="font-bold">Yes</span> applies{' '}
             <span className="font-bold">
               {confirmation.modifierIfYes > 0 ? '+' : ''}{confirmation.modifierIfYes}
@@ -138,7 +138,7 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
         )}
 
         {error && (
-          <p className="text-sm font-medium text-red-400 bg-red-950/50 border border-red-800/50 rounded-md px-3 py-2">
+          <p className="text-sm font-medium text-destructive bg-destructive/15 border border-destructive/40 rounded-md px-3 py-2">
             {error}
           </p>
         )}
@@ -156,7 +156,7 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
             <Button
               onClick={handleCountSubmit}
               disabled={submitting || countValue === ''}
-              className="bg-red-600 hover:bg-red-700 text-white font-semibold"
+              className="bg-destructive hover:bg-destructive/90 text-white font-semibold"
             >
               {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}
               Apply
@@ -175,8 +175,8 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
                 onClick={() => handleYesNo('yes')}
                 disabled={submitting}
                 className={isAttack
-                  ? 'bg-red-600 hover:bg-red-700 text-white font-semibold'
-                  : 'bg-emerald-600 hover:bg-emerald-700 text-white font-semibold'
+                  ? 'bg-destructive hover:bg-destructive/90 text-white font-semibold'
+                  : 'bg-success hover:bg-success/90 text-white font-semibold'
                 }
               >
                 {submitting ? <Loader2 className="w-4 h-4 mr-2 animate-spin" /> : <Check className="w-4 h-4 mr-2" />}

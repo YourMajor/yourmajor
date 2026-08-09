@@ -98,15 +98,15 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       <table className="w-full border-collapse text-sm table-fixed">
         <thead>
           <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-            <th className="py-2.5 px-1.5 text-left text-[11px] font-bold text-white uppercase tracking-widest w-12">
+            <th className="py-2.5 px-1.5 text-left text-[11px] font-bold text-primary-foreground uppercase tracking-widest w-12">
               Hole
             </th>
             {nineHoles.map((h) => (
-              <th key={h.id} className="py-2.5 px-0 text-center text-xs font-extrabold text-white w-7">
+              <th key={h.id} className="py-2.5 px-0 text-center text-xs font-extrabold text-primary-foreground w-7">
                 {h.number}
               </th>
             ))}
-            <th className="py-2.5 px-1.5 text-center text-[11px] font-bold text-white/80 uppercase tracking-widest w-11 border-l border-white/20">
+            <th className="py-2.5 px-1.5 text-center text-[11px] font-bold text-primary-foreground/80 uppercase tracking-widest w-11 border-l border-primary-foreground/20">
               {label}
             </th>
           </tr>
@@ -146,10 +146,10 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
                   >
                     {strokes ?? '-'}
                     {hasPowerup && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-purple-600">&#9733;</span>
+                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-active">&#9733;</span>
                     )}
                     {hasAttack && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-red-600">&#9733;</span>
+                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-attack">&#9733;</span>
                     )}
                   </button>
                 </td>
@@ -236,29 +236,29 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       {/* Totals */}
       <div className="mx-4 mt-4 flex items-center justify-between rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-white/70 uppercase tracking-wider">Gross</p>
-          <p className="text-2xl font-heading font-bold text-white">
+          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Gross</p>
+          <p className="text-2xl font-heading font-bold text-primary-foreground">
             {totalPlayed > 0 ? totalStrokes : '-'}
           </p>
         </div>
-        <div className="w-px h-10 bg-white/20" />
+        <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-white/70 uppercase tracking-wider">Par</p>
-          <p className="text-2xl font-heading font-bold text-white">{coursePar}</p>
+          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Par</p>
+          <p className="text-2xl font-heading font-bold text-primary-foreground">{coursePar}</p>
         </div>
-        <div className="w-px h-10 bg-white/20" />
+        <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-white/70 uppercase tracking-wider">vs Par</p>
+          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">vs Par</p>
           <p className={`text-2xl font-heading font-bold ${
-            diff !== null && diff < 0 ? 'text-red-300' : 'text-white'
+            diff !== null && diff < 0 ? 'text-red-300' : 'text-primary-foreground'
           }`}>
             {formatVsPar(diff)}
           </p>
         </div>
-        <div className="w-px h-10 bg-white/20" />
+        <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-white/70 uppercase tracking-wider">Holes</p>
-          <p className="text-2xl font-heading font-bold text-white">{totalPlayed}</p>
+          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Holes</p>
+          <p className="text-2xl font-heading font-bold text-primary-foreground">{totalPlayed}</p>
         </div>
       </div>
 

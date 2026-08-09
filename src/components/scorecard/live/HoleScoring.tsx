@@ -9,7 +9,7 @@ import type { HoleData, HoleScore, RejectionField, ActivePowerup } from './useLi
 import type { PlayerPowerupData } from './PowerupTray'
 import { PowerupTray } from './PowerupTray'
 import { VariablePowerupBanner, type VariablePowerupState, type PowerupMessage } from './VariablePowerupBanner'
-import { SlugIcon, CardBack } from '@/components/draft/CardHand'
+import { SlugIcon, CardBack, powerupStyles, POWERUP_STYLES } from '@/components/draft/CardHand'
 import { FlippableCardOverlay } from '@/components/draft/FlippableCardOverlay'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
 import type { PowerupEffect } from '@/lib/powerup-engine'
@@ -240,15 +240,15 @@ export function HoleScoring({
                 onClick={() => inspectable && setInspectedCard(inspectable)}
                 disabled={!inspectable}
                 aria-label={`View ${ap.powerupName} card details`}
-                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-purple-500 shadow-[0_0_8px_rgba(168,85,247,0.25)] transition-transform active:scale-[0.98] ${
-                  isAtk ? 'bg-red-50' : 'bg-emerald-50'
+                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-powerup-active shadow-[0_0_8px] shadow-powerup-active/25 transition-transform active:scale-[0.98] ${
+                  powerupStyles(isAtk).soft
                 } ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
               >
-                <SlugIcon slug={ap.powerupSlug} isAttack={isAtk} className={`w-5 h-5 shrink-0 ${isAtk ? 'text-red-700' : 'text-emerald-800'}`} />
+                <SlugIcon slug={ap.powerupSlug} isAttack={isAtk} className={`w-5 h-5 shrink-0 ${powerupStyles(isAtk).ink}`} />
                 <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold truncate ${isAtk ? 'text-red-800' : 'text-emerald-900'}`}>{ap.powerupName}</p>
+                  <p className={`text-sm font-semibold truncate ${powerupStyles(isAtk).name}`}>{ap.powerupName}</p>
                   {ap.scoreModifier !== null && (
-                    <p className={`text-[11px] ${isAtk ? 'text-red-600/70' : 'text-emerald-700/70'}`}>
+                    <p className={`text-[11px] ${powerupStyles(isAtk).caption}`}>
                       {ap.scoreModifier > 0 ? '+' : ''}{ap.scoreModifier} strokes
                     </p>
                   )}
@@ -274,12 +274,12 @@ export function HoleScoring({
                 onClick={() => inspectable && setInspectedCard(inspectable)}
                 disabled={!inspectable}
                 aria-label={`View ${ar.powerupName} card details`}
-                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 bg-red-50 border-red-700 transition-transform active:scale-[0.98] ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
+                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 ${POWERUP_STYLES.ATTACK.soft} ${POWERUP_STYLES.ATTACK.frame} transition-transform active:scale-[0.98] ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
               >
-                <SlugIcon slug={ar.powerupSlug} isAttack className="w-5 h-5 shrink-0 text-red-700" />
+                <SlugIcon slug={ar.powerupSlug} isAttack className={`w-5 h-5 shrink-0 ${POWERUP_STYLES.ATTACK.ink}`} />
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-red-800 truncate">{ar.powerupName}</p>
-                  <p className="text-[11px] text-red-600/70">{ar.description}</p>
+                  <p className={`text-sm font-semibold truncate ${POWERUP_STYLES.ATTACK.name}`}>{ar.powerupName}</p>
+                  <p className={`text-[11px] ${POWERUP_STYLES.ATTACK.caption}`}>{ar.description}</p>
                 </div>
               </button>
             )

@@ -250,7 +250,7 @@ export function DraftAdmin({
               of the {players.length} registered player{players.length !== 1 ? 's' : ''}.
               Each player will receive up to {maxAttacksPerPlayer} attack card{maxAttacksPerPlayer !== 1 ? 's' : ''}.
             </p>
-            {error && <p className="text-sm text-red-400">{error}</p>}
+            {error && <p className="text-sm text-destructive">{error}</p>}
             <Button onClick={handleRandomDeal} disabled={loading === 'random'} className="w-full">
               {loading === 'random' ? (
                 <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Dealing...</>
@@ -335,7 +335,7 @@ export function DraftAdmin({
             </p>
           </div>
 
-          {error && <p className="text-sm text-red-400">{error}</p>}
+          {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex gap-3">
             <Button

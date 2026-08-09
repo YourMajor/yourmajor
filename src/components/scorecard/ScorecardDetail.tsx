@@ -126,7 +126,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
         <div className="flex items-center gap-3">
           <Avatar className="size-10 shrink-0">
             {avatarUrl && <AvatarImage src={avatarUrl} alt={playerName} />}
-            <AvatarFallback className="text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+            <AvatarFallback className="text-sm font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
               {playerName.charAt(0).toUpperCase()}
             </AvatarFallback>
           </Avatar>
@@ -145,7 +145,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       <NineTable holes={back} label="In" totalPar={backPar} totalGross={backGross} strokeHoles={strokeHoles} />
 
       {/* Totals bar */}
-      <div className="flex items-center justify-between rounded-xl border border-border p-3" style={{ backgroundColor: 'var(--color-primary)', color: 'white' }}>
+      <div className="flex items-center justify-between rounded-xl border border-border p-3" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
         <div className="text-center flex-1">
           <p className="text-[11px] uppercase tracking-wider text-white/70">Gross</p>
           <p className="text-2xl font-heading font-bold">{totalGross}</p>
@@ -310,7 +310,7 @@ function NetBreakdownModal({
               <>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Powerup Modifier</span>
-                  <span className="font-bold text-purple-600">{powerupModifier > 0 ? '+' : ''}{powerupModifier}</span>
+                  <span className="font-bold text-powerup-active">{powerupModifier > 0 ? '+' : ''}{powerupModifier}</span>
                 </div>
                 <div className="flex justify-between text-sm">
                   <span className="text-muted-foreground">Adjusted Gross</span>

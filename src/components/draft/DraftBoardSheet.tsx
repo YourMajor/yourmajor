@@ -3,7 +3,7 @@
 import { useState, useMemo } from 'react'
 import Image from 'next/image'
 import { DraftBottomSheet } from './DraftBottomSheet'
-import { SlugIcon } from './CardHand'
+import { SlugIcon, powerupStyles } from './CardHand'
 import type { PowerupCardData } from './PowerupCard'
 
 interface Player {
@@ -182,10 +182,10 @@ export function DraftBoardSheet({
                     <SlugIcon
                       slug={pick.powerup.slug}
                       isAttack={pick.powerup.type === 'ATTACK'}
-                      className={`w-4 h-4 ${pick.powerup.type === 'ATTACK' ? 'text-red-700' : 'text-emerald-800'}`}
+                      className={`w-4 h-4 ${powerupStyles(pick.powerup.type === 'ATTACK').ink}`}
                     />
                     <span className={`text-xs font-bold leading-tight truncate ${
-                      pick.powerup.type === 'ATTACK' ? 'text-red-800' : 'text-emerald-900'
+                      powerupStyles(pick.powerup.type === 'ATTACK').name
                     }`}>
                       {pick.powerup.name}
                     </span>

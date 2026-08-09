@@ -48,8 +48,8 @@ export function DraftCountdown({
         isExpired
           ? 'border-zinc-300 bg-zinc-100 text-zinc-600'
           : isUrgent
-          ? 'border-red-300 bg-red-50 text-red-700 animate-pulse'
-          : 'border-emerald-300 bg-emerald-50 text-emerald-800'
+          ? 'border-destructive/30 bg-destructive/10 text-destructive animate-pulse'
+          : 'border-success/30 bg-success/10 text-success'
       }`}
       role="timer"
       aria-live={isUrgent ? 'assertive' : 'polite'}
@@ -69,8 +69,8 @@ export function DraftCountdown({
               isExpired
                 ? 'bg-zinc-400'
                 : isUrgent
-                ? 'bg-red-500'
-                : 'bg-emerald-500'
+                ? 'bg-destructive'
+                : 'bg-success'
             }`}
             style={{ width: `${pct}%` }}
           />

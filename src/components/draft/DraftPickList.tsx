@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Image from 'next/image'
-import { SlugIcon } from './CardHand'
+import { SlugIcon, powerupStyles } from './CardHand'
 import type { PowerupCardData } from './PowerupCard'
 
 interface PickEffect {
@@ -150,14 +150,14 @@ export function DraftPickList({
             ))}
           </colgroup>
           <thead>
-            <tr style={{ backgroundColor: 'var(--color-primary, #006747)' }}>
-              <th className="px-1.5 sm:px-2 py-2 text-left text-[9px] sm:text-[11px] font-bold text-white uppercase tracking-wider">
+            <tr style={{ backgroundColor: 'var(--color-primary)' }}>
+              <th className="px-1.5 sm:px-2 py-2 text-left text-[9px] sm:text-[11px] font-bold text-primary-foreground uppercase tracking-wider">
                 Player
               </th>
               {Array.from({ length: roundCount }, (_, i) => (
                 <th
                   key={i}
-                  className="px-0.5 py-2 text-center text-[9px] sm:text-[11px] font-bold text-white/70 uppercase tracking-wider"
+                  className="px-0.5 py-2 text-center text-[9px] sm:text-[11px] font-bold text-primary-foreground/70 uppercase tracking-wider"
                 >
                   R{i + 1}
                 </th>
@@ -179,8 +179,8 @@ export function DraftPickList({
                       {info?.image ? (
                         <Image src={info.image} alt="" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0 object-cover" />
                       ) : (
-                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary, #006747)' }}>
-                          <span className="text-[8px] sm:text-[9px] font-bold text-white">
+                        <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary)' }}>
+                          <span className="text-[8px] sm:text-[9px] font-bold text-primary-foreground">
                             {lastName.charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -206,22 +206,17 @@ export function DraftPickList({
 
                     const isAttack = pick.powerup.type === 'ATTACK'
                     const slug = pick.powerup.slug ?? ''
+                    const c = powerupStyles(isAttack)
 
                     return (
                       <td key={i} className="px-0.5 py-1 sm:py-1.5">
                         <button
                           type="button"
                           onClick={() => setSelectedPick(pick)}
-                          className={`w-full h-10 sm:h-12 rounded-md sm:rounded-lg border-2 flex flex-col sm:flex-row items-center sm:gap-1 px-1 sm:px-1.5 justify-center sm:justify-start text-center sm:text-left cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 overflow-hidden ${
-                            isAttack
-                              ? 'bg-red-50 border-red-300'
-                              : 'bg-emerald-50 border-emerald-300'
-                          }`}
+                          className={`w-full h-10 sm:h-12 rounded-md sm:rounded-lg border-2 flex flex-col sm:flex-row items-center sm:gap-1 px-1 sm:px-1.5 justify-center sm:justify-start text-center sm:text-left cursor-pointer transition-opacity hover:opacity-80 active:opacity-60 overflow-hidden ${c.soft} ${c.divider}`}
                         >
-                          <SlugIcon slug={slug} isAttack={isAttack} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${isAttack ? 'text-red-700' : 'text-emerald-800'}`} />
-                          <span className={`text-[8px] sm:text-[11px] font-bold truncate max-w-full leading-tight ${
-                            isAttack ? 'text-red-800' : 'text-emerald-800'
-                          }`}>
+                          <SlugIcon slug={slug} isAttack={isAttack} className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${c.ink}`} />
+                          <span className={`text-[8px] sm:text-[11px] font-bold truncate max-w-full leading-tight ${c.name}`}>
                             {pick.powerup.name}
                           </span>
                         </button>
@@ -240,6 +235,7 @@ export function DraftPickList({
         const isAttack = selectedPick.powerup.type === 'ATTACK'
         const slug = selectedPick.powerup.slug ?? ''
         const effect = selectedPick.powerup.effect
+        const c = powerupStyles(isAttack)
         const canShowAdminEdit =
           isAdmin &&
           !!tournamentId &&
@@ -258,16 +254,14 @@ export function DraftPickList({
                 transform: 'translate(-50%, -50%)',
               }}
             >
-              <div className={`absolute inset-0 rounded-2xl flex flex-col overflow-hidden select-none bg-[#f5f0e8] border-[3px] shadow-2xl shadow-black/50 ${
-                isAttack ? 'border-red-700' : 'border-emerald-800'
-              }`}>
+              <div className={`absolute inset-0 rounded-2xl flex flex-col overflow-hidden select-none bg-powerup-stock border-[3px] shadow-2xl shadow-black/50 ${c.frame}`}>
                 {/* Header */}
-                <div className={`px-5 pt-5 pb-3 shrink-0 ${isAttack ? 'bg-red-800' : 'bg-emerald-900'}`}>
+                <div className={`px-5 pt-5 pb-3 shrink-0 ${c.header}`}>
                   <div className="flex items-center gap-3">
-                    <SlugIcon slug={slug} isAttack={isAttack} className="w-8 h-8 text-white" />
+                    <SlugIcon slug={slug} isAttack={isAttack} className="w-8 h-8 text-powerup-stock" />
                     <div className="flex-1 min-w-0">
-                      <p className="text-[11px] font-bold uppercase tracking-widest text-white/70">{selectedPick.powerup.type}</p>
-                      <p className="text-xl font-heading font-bold text-white leading-tight">{selectedPick.powerup.name}</p>
+                      <p className="text-[11px] font-bold uppercase tracking-widest text-powerup-stock/70">{selectedPick.powerup.type}</p>
+                      <p className="text-xl font-heading font-bold text-powerup-stock leading-tight">{selectedPick.powerup.name}</p>
                     </div>
                   </div>
                 </div>
@@ -281,20 +275,18 @@ export function DraftPickList({
                       )}
                       {effect && (
                         <div className="flex flex-wrap gap-1.5">
-                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                            isAttack ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-                          }`}>
+                          <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${c.chip}`}>
                             {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
                           </span>
                           {effect.scoring.modifier !== null && (
                             <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${
-                              effect.scoring.modifier < 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+                              effect.scoring.modifier < 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
                             }`}>
                               {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier} strokes
                             </span>
                           )}
                           {effect.requiresTarget && (
-                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-800">
+                            <span className="text-xs font-semibold px-2.5 py-1 rounded-full bg-warning/15 text-gold-ink">
                               Targets opponent
                             </span>
                           )}
@@ -330,14 +322,12 @@ export function DraftPickList({
                               onClick={() => setPendingSwapId(p.id)}
                               className={`text-left rounded border px-2 py-1.5 text-[11px] leading-tight transition-colors ${
                                 isSel
-                                  ? 'border-emerald-700 bg-emerald-100'
+                                  ? 'border-primary bg-primary/10'
                                   : 'border-zinc-300 bg-white hover:bg-zinc-50'
                               }`}
                             >
                               <div className="font-semibold text-zinc-800">{p.name}</div>
-                              <div className={`text-[9px] uppercase tracking-wide ${
-                                p.type === 'ATTACK' ? 'text-red-700' : 'text-emerald-700'
-                              }`}>
+                              <div className={`text-[9px] uppercase tracking-wide ${powerupStyles(p.type === 'ATTACK').ink}`}>
                                 {p.type}
                               </div>
                             </button>
@@ -345,7 +335,7 @@ export function DraftPickList({
                         })}
                       </div>
                       {swapError && (
-                        <p className="text-xs font-medium text-red-700 bg-red-50 border border-red-200 rounded px-2 py-1">
+                        <p className="text-xs font-medium text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1">
                           {swapError}
                         </p>
                       )}
@@ -354,7 +344,7 @@ export function DraftPickList({
                 </div>
 
                 {/* Footer */}
-                <div className={`px-5 py-3 shrink-0 flex gap-2 ${isAttack ? 'bg-red-800/10' : 'bg-emerald-900/10'}`}>
+                <div className={`px-5 py-3 shrink-0 flex gap-2 ${c.soft}`}>
                   {!editMode ? (
                     <>
                       {canShowAdminEdit && (
@@ -388,7 +378,7 @@ export function DraftPickList({
                         type="button"
                         onClick={handleSaveSwap}
                         disabled={savingSwap || !pendingSwapId}
-                        className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors disabled:opacity-50"
+                        className="flex-1 py-2 rounded-lg text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
                       >
                         {savingSwap ? 'Saving…' : 'Save Change'}
                       </button>

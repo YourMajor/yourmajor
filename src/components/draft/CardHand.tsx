@@ -31,6 +31,42 @@ function SlugIcon({ slug, isAttack, className }: { slug: string; isAttack: boole
 
 export { SLUG_ICON_COMPONENTS, SlugIcon }
 
+/** The sanctioned powerup register (DESIGN.md "The powerup register").
+ *  Every powerup surface derives its color from these class sets — raw
+ *  Tailwind color-scale classes on powerup UI are a defect. */
+export const POWERUP_STYLES = {
+  ATTACK: {
+    ink: 'text-powerup-attack',
+    name: 'text-powerup-attack-deep',
+    caption: 'text-powerup-attack/70',
+    frame: 'border-powerup-attack',
+    frameSoft: 'border-powerup-attack/70',
+    divider: 'border-powerup-attack/30',
+    hairline: 'border-powerup-attack/15',
+    header: 'bg-powerup-attack-deep',
+    chip: 'bg-powerup-attack/10 text-powerup-attack-deep',
+    button: 'bg-powerup-attack hover:bg-powerup-attack-deep',
+    soft: 'bg-powerup-attack/10',
+  },
+  BOOST: {
+    ink: 'text-powerup-boost',
+    name: 'text-powerup-boost-deep',
+    caption: 'text-powerup-boost/70',
+    frame: 'border-powerup-boost',
+    frameSoft: 'border-powerup-boost/70',
+    divider: 'border-powerup-boost/30',
+    hairline: 'border-powerup-boost/15',
+    header: 'bg-powerup-boost-deep',
+    chip: 'bg-powerup-boost/10 text-powerup-boost-deep',
+    button: 'bg-powerup-boost hover:bg-powerup-boost-deep',
+    soft: 'bg-powerup-boost/10',
+  },
+} as const
+
+export function powerupStyles(isAttack: boolean) {
+  return POWERUP_STYLES[isAttack ? 'ATTACK' : 'BOOST']
+}
+
 interface ActivationContext {
   players: Array<{ id: string; name: string }>
   currentPlayerId: string
@@ -154,14 +190,14 @@ export function CardHand({ cards, onCardClick, onActivateCard, activationContext
                 transition: 'left 0.5s ease-out, bottom 0.5s ease-out, transform 0.5s ease-out',
                 transform: `rotate(${rotation}deg)`,
                 ...(isHighlighted ? {
-                  filter: 'drop-shadow(0 0 12px rgba(251, 191, 36, 0.7))',
+                  filter: 'drop-shadow(0 0 12px var(--accent))',
                 } : {}),
               }}
             >
               <button
                 type="button"
                 className={`relative w-full h-full cursor-pointer ${
-                  isHighlighted ? 'ring-2 ring-amber-400 rounded-2xl' : ''
+                  isHighlighted ? 'ring-2 ring-accent rounded-2xl' : ''
                 }`}
                 onClick={() => openCard(card.powerupId)}
                 onMouseEnter={() => setHoveredId(card.powerupId)}
@@ -203,11 +239,12 @@ export function CardFront({
 }) {
   const fontSize = large ? 20 : Math.max(12, 16 - count)
   const iconSize = large ? 'w-8 h-8' : 'w-6 h-6'
-  const iconColor = isAttack ? 'text-red-700' : 'text-emerald-800'
+  const c = powerupStyles(isAttack)
+  const iconColor = c.ink
   return (
     <div className={`
-      absolute inset-0 rounded-2xl flex flex-col select-none bg-[#f5f0e8] border-[3px]
-      ${isAttack ? 'border-red-700' : 'border-emerald-800'}
+      absolute inset-0 rounded-2xl flex flex-col select-none bg-powerup-stock border-[3px]
+      ${c.frame}
       ${isHovered ? 'shadow-2xl shadow-black/40' : 'shadow-lg shadow-black/15'}
     `}>
       <div className="flex items-start justify-between px-3 pt-3">
@@ -215,18 +252,12 @@ export function CardFront({
         <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${iconColor}`}>{type}</span>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-2">
-        <div className={`w-full border-t border-b py-3 ${
-          isAttack ? 'border-red-700/30' : 'border-emerald-800/30'
-        }`}>
-          <p className={`font-heading font-bold text-center leading-tight ${
-            isAttack ? 'text-red-800' : 'text-emerald-900'
-          }`} style={{ fontSize: `${fontSize}px` }}>
+        <div className={`w-full border-t border-b py-3 ${c.divider}`}>
+          <p className={`font-heading font-bold text-center leading-tight ${c.name}`} style={{ fontSize: `${fontSize}px` }}>
             {name}
           </p>
         </div>
-        <span className={`mt-2 text-[11px] font-semibold ${
-          isAttack ? 'text-red-600/70' : 'text-emerald-700/70'
-        }`}>
+        <span className={`mt-2 text-[11px] font-semibold ${c.caption}`}>
           {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
           {effect.scoring.modifier !== null && (
             <> &middot; {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier}</>
@@ -348,12 +379,12 @@ export function CardBack({
   return (
     <div className="flex flex-col h-full">
       {/* Header */}
-      <div className={`px-5 pt-4 pb-2.5 shrink-0 ${isAttack ? 'bg-red-800' : 'bg-emerald-900'}`}>
+      <div className={`px-5 pt-4 pb-2.5 shrink-0 ${powerupStyles(isAttack).header}`}>
         <div className="flex items-center gap-3">
-          <SlugIcon slug={slug} isAttack={isAttack} className="w-7 h-7 text-white" />
+          <SlugIcon slug={slug} isAttack={isAttack} className="w-7 h-7 text-powerup-stock" />
           <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-white/70">{type}</p>
-            <p className="text-lg font-heading font-bold text-white leading-tight">{name}</p>
+            <p className="text-[9px] font-bold uppercase tracking-widest text-powerup-stock/70">{type}</p>
+            <p className="text-lg font-heading font-bold text-powerup-stock leading-tight">{name}</p>
           </div>
         </div>
       </div>
@@ -363,14 +394,12 @@ export function CardBack({
         <p className="text-[13px] text-zinc-800 leading-relaxed">{description}</p>
 
         <div className="flex flex-wrap gap-1.5">
-          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-            isAttack ? 'bg-red-100 text-red-800' : 'bg-emerald-100 text-emerald-800'
-          }`}>
+          <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${powerupStyles(isAttack).chip}`}>
             {effect.duration === -1 ? 'Variable' : `${effect.duration} Hole`}
           </span>
           {effect.scoring.modifier !== null && (
             <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${
-              effect.scoring.modifier < 0 ? 'bg-emerald-100 text-emerald-800' : 'bg-red-100 text-red-800'
+              effect.scoring.modifier < 0 ? 'bg-success/10 text-success' : 'bg-destructive/10 text-destructive'
             }`}>
               {effect.scoring.modifier > 0 ? '+' : ''}{effect.scoring.modifier} strokes
             </span>
@@ -409,7 +438,7 @@ export function CardBack({
                   Apply on hole
                 </label>
                 {targetUnscoredHoles.length === 0 ? (
-                  <p className="text-[11px] text-red-600">
+                  <p className="text-[11px] text-destructive">
                     Target has finished — no hole to attack.
                   </p>
                 ) : (
@@ -460,9 +489,9 @@ export function CardBack({
                     {selectedPlayerIds.map((id) => {
                       const p = otherPlayers.find((pl) => pl.id === id)
                       return (
-                        <span key={id} className="inline-flex items-center gap-1 text-[11px] font-semibold bg-emerald-100 text-emerald-800 pl-2 pr-1 py-0.5 rounded-full">
+                        <span key={id} className="inline-flex items-center gap-1 text-[11px] font-semibold bg-primary/10 text-primary pl-2 pr-1 py-0.5 rounded-full">
                           {p?.name ?? 'Player'}
-                          <button type="button" onClick={() => togglePlayerSelection(id)} className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-emerald-200">&times;</button>
+                          <button type="button" onClick={() => togglePlayerSelection(id)} className="w-3.5 h-3.5 flex items-center justify-center rounded-full hover:bg-primary/20">&times;</button>
                         </span>
                       )
                     })}
@@ -482,7 +511,7 @@ export function CardBack({
                           onClick={() => togglePlayerSelection(p.id)}
                           className={`w-full text-left px-2 py-1.5 text-xs transition-colors ${
                             isSelected
-                              ? 'bg-emerald-100 text-emerald-900 font-semibold'
+                              ? 'bg-primary/10 text-primary font-semibold'
                               : atMax
                                 ? 'text-zinc-400 cursor-not-allowed'
                                 : 'text-zinc-700 hover:bg-zinc-100'
@@ -513,7 +542,7 @@ export function CardBack({
               </div>
             )}
             {error && (
-              <p className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1">
+              <p className="text-[11px] font-medium text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1">
                 {error}
               </p>
             )}
@@ -522,7 +551,7 @@ export function CardBack({
       </div>
 
       {/* Footer */}
-      <div className={`px-5 py-2.5 shrink-0 flex gap-2 ${isAttack ? 'bg-red-800/10' : 'bg-emerald-900/10'}`}>
+      <div className={`px-5 py-2.5 shrink-0 flex gap-2 ${powerupStyles(isAttack).soft}`}>
         {customFooter ? customFooter : canActivateCtx ? (
           <>
             <button
@@ -537,9 +566,7 @@ export function CardBack({
               type="button"
               onClick={handleActivateInline}
               disabled={!canSubmit || activating}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold text-white transition-colors disabled:opacity-50 ${
-                isAttack ? 'bg-red-700 hover:bg-red-800' : 'bg-emerald-700 hover:bg-emerald-800'
-              }`}
+              className={`flex-1 py-2 rounded-lg text-xs font-bold text-powerup-stock transition-colors disabled:opacity-50 ${powerupStyles(isAttack).button}`}
             >
               {activating ? 'Activating...' : isAttack ? 'Attack!' : 'Play Card'}
             </button>
@@ -547,7 +574,7 @@ export function CardBack({
         ) : onActivate ? (
           <>
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors">Back</button>
-            <button type="button" onClick={onActivate} className={`flex-1 py-2 rounded-lg text-xs font-bold text-white transition-colors ${isAttack ? 'bg-red-700 hover:bg-red-800' : 'bg-emerald-700 hover:bg-emerald-800'}`}>
+            <button type="button" onClick={onActivate} className={`flex-1 py-2 rounded-lg text-xs font-bold text-powerup-stock transition-colors ${powerupStyles(isAttack).button}`}>
               {isAttack ? 'Play Attack' : 'Play Card'}
             </button>
           </>

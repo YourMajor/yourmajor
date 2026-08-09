@@ -582,7 +582,7 @@ export function DraftBoard({
               customFooter={
                 <>
                   {error && (
-                    <p className="text-[11px] font-medium text-red-600 bg-red-50 border border-red-200 rounded px-2 py-1 mb-2 w-full">
+                    <p className="text-[11px] font-medium text-destructive bg-destructive/10 border border-destructive/30 rounded px-2 py-1 mb-2 w-full">
                       {error}
                     </p>
                   )}
@@ -598,7 +598,7 @@ export function DraftBoard({
                     type="button"
                     onClick={handleConfirmPick}
                     disabled={picking || !isMyTurn}
-                    className="flex-1 py-2 rounded-lg text-xs font-bold text-white bg-emerald-700 hover:bg-emerald-800 transition-colors disabled:opacity-50"
+                    className="flex-1 py-2 rounded-lg text-xs font-bold text-primary-foreground bg-primary hover:bg-primary/90 transition-colors disabled:opacity-50"
                   >
                     {picking ? (
                       <span className="flex items-center justify-center gap-1.5">

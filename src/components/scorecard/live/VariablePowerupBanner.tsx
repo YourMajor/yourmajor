@@ -40,18 +40,16 @@ export function VariablePowerupBanner({
         <div
           className={`flex items-center gap-2.5 px-3 py-2.5 rounded-lg border-2 animate-in fade-in slide-in-from-top-2 duration-300 ${
             powerupMessage.outcome === 'success'
-              ? 'bg-emerald-950/80 border-emerald-400 shadow-[0_0_12px_rgba(52,211,153,0.3)]'
-              : 'bg-red-950/80 border-red-400 shadow-[0_0_12px_rgba(248,113,113,0.3)]'
+              ? 'bg-zinc-950/85 border-success shadow-[0_0_12px] shadow-success/30'
+              : 'bg-zinc-950/85 border-destructive shadow-[0_0_12px] shadow-destructive/30'
           }`}
         >
           {powerupMessage.outcome === 'success' ? (
-            <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400" />
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-success" />
           ) : (
-            <XCircle className="w-5 h-5 shrink-0 text-red-400" />
+            <XCircle className="w-5 h-5 shrink-0 text-destructive" />
           )}
-          <p className={`text-sm font-semibold ${
-            powerupMessage.outcome === 'success' ? 'text-emerald-200' : 'text-red-200'
-          }`}>
+          <p className="text-sm font-semibold text-powerup-stock">
             {powerupMessage.message}
           </p>
         </div>
@@ -68,13 +66,13 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
     const declaredCount = (meta.declaredCount as number) ?? 0
 
     return (
-      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-emerald-500 bg-emerald-950/60 shadow-[0_0_8px_rgba(52,211,153,0.2)] animate-pulse-subtle">
-        <TreePine className="w-5 h-5 shrink-0 text-emerald-400" />
+      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-powerup-active bg-zinc-950/85 shadow-[0_0_8px] shadow-powerup-active/20 animate-pulse-subtle">
+        <TreePine className="w-5 h-5 shrink-0 text-powerup-active" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-emerald-200 truncate">
+          <p className="text-sm font-semibold text-powerup-stock truncate">
             Fairway Finder
           </p>
-          <p className="text-[11px] text-emerald-300/70">
+          <p className="text-[11px] text-powerup-stock/70">
             {fairwaysHit}/{declaredCount} consecutive fairways
           </p>
         </div>
@@ -83,7 +81,7 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
             <div
               key={i}
               className={`w-2 h-2 rounded-full ${
-                i < fairwaysHit ? 'bg-emerald-400' : 'bg-emerald-800'
+                i < fairwaysHit ? 'bg-powerup-active' : 'bg-powerup-active/25'
               }`}
             />
           ))}
@@ -96,13 +94,13 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
     const consecutiveWins = (meta.consecutiveWins as number) ?? 0
 
     return (
-      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-amber-500 bg-amber-950/60 shadow-[0_0_8px_rgba(245,158,11,0.2)] animate-pulse-subtle">
-        <Crown className="w-5 h-5 shrink-0 text-amber-400" />
+      <div className="flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-powerup-active bg-zinc-950/85 shadow-[0_0_8px] shadow-powerup-active/20 animate-pulse-subtle">
+        <Crown className="w-5 h-5 shrink-0 text-powerup-active" />
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-semibold text-amber-200 truncate">
+          <p className="text-sm font-semibold text-powerup-stock truncate">
             King of the Hill
           </p>
-          <p className="text-[11px] text-amber-300/70">
+          <p className="text-[11px] text-powerup-stock/70">
             {consecutiveWins > 0
               ? `${consecutiveWins} hole${consecutiveWins !== 1 ? 's' : ''} won — streak active!`
               : 'Waiting for scores...'
@@ -110,7 +108,7 @@ function VariablePowerupCard({ powerup }: { powerup: VariablePowerupState }) {
           </p>
         </div>
         {consecutiveWins > 0 && (
-          <span className="text-sm font-bold text-amber-300">
+          <span className="text-sm font-bold text-accent">
             -{consecutiveWins}
           </span>
         )}

@@ -62,7 +62,7 @@ export function HoleNavigator({
 
         const hasPowerup = (score?.activePowerups?.length ?? 0) > 0
         const hasAttack = (score?.attacksReceived?.length ?? 0) > 0
-        const powerupRing = hasPowerup ? 'ring-2 ring-purple-500' : hasAttack ? 'ring-2 ring-red-700' : ''
+        const powerupRing = hasPowerup ? 'ring-2 ring-powerup-active' : hasAttack ? 'ring-2 ring-powerup-attack' : ''
 
         return (
           <button
@@ -74,7 +74,7 @@ export function HoleNavigator({
             onClick={() => onSelect(idx)}
             className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all touch-manipulation
               ${hasScore ? PILL_BG[type] : 'border border-white/40 text-white/70'}
-              ${isCurrent ? 'ring-2 ring-[var(--color-accent,oklch(0.72_0.11_78))] scale-110' : powerupRing}
+              ${isCurrent ? 'ring-2 ring-[var(--color-accent)] scale-110' : powerupRing}
             `}
           >
             {hole.number}

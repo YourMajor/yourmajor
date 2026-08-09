@@ -2,7 +2,7 @@
 
 import Image from 'next/image'
 import { Crosshair, Ban, Sliders, Heart } from 'lucide-react'
-import { SlugIcon } from './CardHand'
+import { SlugIcon, powerupStyles } from './CardHand'
 
 export interface PowerupCardData {
   id: string
@@ -72,7 +72,8 @@ export function PowerupCard({
     />
   }
 
-  const iconColor = isAttack ? 'text-red-700' : 'text-emerald-800'
+  const c = powerupStyles(isAttack)
+  const iconColor = c.ink
 
   const sizeClasses = {
     sm: 'w-[110px] h-[160px]',
@@ -95,10 +96,10 @@ export function PowerupCard({
       disabled={disabled || isPicked || isUsed}
       className={`
         relative rounded-2xl overflow-hidden flex flex-col
-        bg-[#f5f0e8] border-[3px] transition-all select-none
+        bg-powerup-stock border-[3px] transition-all select-none
         ${sizeClasses[size]}
-        ${isAttack ? 'border-red-700' : 'border-emerald-800'}
-        ${isSelected ? 'ring-3 ring-amber-400 shadow-xl shadow-amber-400/20 scale-[1.03]' : ''}
+        ${c.frame}
+        ${isSelected ? 'ring-3 ring-accent shadow-xl shadow-accent/20 scale-[1.03]' : ''}
         ${isPicked || isUsed ? 'opacity-50 cursor-not-allowed' : ''}
         ${!isPicked && !isUsed && !disabled ? 'hover:shadow-lg hover:scale-[1.02] active:scale-[0.98] cursor-pointer' : ''}
         ${disabled && !isPicked && !isUsed ? 'opacity-60 cursor-not-allowed' : ''}
@@ -113,19 +114,13 @@ export function PowerupCard({
 
       {/* Center — name */}
       <div className="flex-1 flex flex-col items-center justify-center px-2 py-1">
-        <div className={`w-full border-t border-b py-2 ${
-          isAttack ? 'border-red-700/25' : 'border-emerald-800/25'
-        }`}>
-          <p className={`font-heading font-bold text-center leading-tight ${nameFontSize[size]} ${
-            isAttack ? 'text-red-800' : 'text-emerald-900'
-          }`}>
+        <div className={`w-full border-t border-b py-2 ${c.divider}`}>
+          <p className={`font-heading font-bold text-center leading-tight ${nameFontSize[size]} ${c.name}`}>
             {powerup.name}
           </p>
         </div>
         {/* Duration + modifier */}
-        <span className={`mt-1 text-[8px] font-semibold ${
-          isAttack ? 'text-red-600/60' : 'text-emerald-700/60'
-        }`}>
+        <span className={`mt-1 text-[8px] font-semibold ${c.caption}`}>
           {powerup.effect.duration === -1 ? 'Variable' : `${powerup.effect.duration} Hole`}
           {powerup.effect.scoring.modifier !== null && (
             <> &middot; {powerup.effect.scoring.modifier > 0 ? '+' : ''}{powerup.effect.scoring.modifier}</>
@@ -179,15 +174,14 @@ interface BrowseCardProps {
 }
 
 function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy, onClick, disabled, isFavorite, onToggleFavorite }: BrowseCardProps) {
-  const iconColor = isAttack ? 'text-red-700' : 'text-emerald-800'
+  const c = powerupStyles(isAttack)
+  const iconColor = c.ink
   const requiresTarget = powerup.effect.requiresTarget
   const excludePar3 = powerup.effect.restrictions?.excludePar3
   const needsInput = powerup.effect.input && powerup.effect.input.type !== 'none'
   const teaser = getTeaser(powerup.description)
 
-  const typePillClasses = isAttack
-    ? 'bg-red-700/10 text-red-800 border-red-700/30'
-    : 'bg-[oklch(0.72_0.11_78/0.15)] text-[oklch(0.45_0.12_78)] border-[oklch(0.72_0.11_78/0.40)]'
+  const typePillClasses = `${c.chip} ${c.divider}`
 
   return (
     <div className="relative w-full">
@@ -198,9 +192,9 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
         aria-label={`${powerup.name}, ${powerup.type.toLowerCase()}, ${powerup.effect.duration === -1 ? 'variable' : powerup.effect.duration} hole${powerup.effect.duration === 1 ? '' : 's'}`}
         className={`
           relative w-full aspect-[3/4] rounded-2xl overflow-hidden flex flex-col text-left
-          bg-[#f5f0e8] border-2 transition-all select-none
-          ${isAttack ? 'border-red-700/70' : 'border-emerald-800/70'}
-          ${isSelected ? 'ring-2 ring-amber-400 shadow-xl shadow-amber-400/20 scale-[1.02]' : 'shadow-sm'}
+          bg-powerup-stock border-2 transition-all select-none
+          ${c.frameSoft}
+          ${isSelected ? 'ring-2 ring-accent shadow-xl shadow-accent/20 scale-[1.02]' : 'shadow-sm'}
           ${isPicked || isUsed ? 'opacity-55 cursor-not-allowed' : ''}
           ${!isPicked && !isUsed && !disabled ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer' : ''}
           ${disabled && !isPicked && !isUsed ? 'opacity-60 cursor-not-allowed' : ''}
@@ -226,7 +220,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
 
         {/* Name + teaser */}
         <div className="px-2.5 pb-1.5">
-          <p className={`font-heading font-bold leading-tight text-[12px] line-clamp-2 ${isAttack ? 'text-red-900' : 'text-emerald-900'}`}>
+          <p className={`font-heading font-bold leading-tight text-[12px] line-clamp-2 ${c.name}`}>
             {powerup.name}
           </p>
           {teaser && (
@@ -238,7 +232,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
 
         {/* Micro-icon footer */}
         {(requiresTarget || excludePar3 || needsInput) && (
-          <div className={`flex items-center gap-1 px-2.5 py-1 border-t ${isAttack ? 'border-red-700/15' : 'border-emerald-800/15'}`}>
+          <div className={`flex items-center gap-1 px-2.5 py-1 border-t ${c.hairline}`}>
             {requiresTarget && (
               <span title="Targets opponent" aria-label="Targets opponent">
                 <Crosshair className={`w-3 h-3 ${iconColor}`} />

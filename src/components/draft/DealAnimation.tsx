@@ -71,7 +71,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
               {[0, 1, 2, 3, 4].map((i) => (
                 <div
                   key={i}
-                  className="absolute inset-0 rounded-xl border-2 border-white/20 bg-gradient-to-br from-emerald-900 to-emerald-950"
+                  className="absolute inset-0 rounded-xl border-2 border-white/20 bg-gradient-to-br from-primary to-surface-deep"
                   style={{
                     transform: `rotate(${(shuffleCount % 2 === 0 ? 1 : -1) * (i * 3 + shuffleCount * 5)}deg) translateX(${(shuffleCount % 2 === 0 ? 1 : -1) * i * 4}px)`,
                     transition: 'transform 0.15s ease-out',
@@ -95,10 +95,10 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
           <>
             <div className="relative w-24 h-32 mx-auto">
               <div
-                className="absolute inset-0 rounded-xl border-2 border-emerald-500/50 bg-gradient-to-br from-emerald-900 to-emerald-950 shadow-lg shadow-emerald-500/20 animate-bounce"
+                className="absolute inset-0 rounded-xl border-2 border-accent/50 bg-gradient-to-br from-primary to-surface-deep shadow-lg shadow-accent/20 animate-bounce"
               >
                 <div className="w-full h-full flex items-center justify-center">
-                  <Zap className="w-8 h-8 text-emerald-400" />
+                  <Zap className="w-8 h-8 text-accent" />
                 </div>
               </div>
             </div>
@@ -126,7 +126,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
             {/* Progress bar */}
             <div className="w-64 mx-auto h-1.5 rounded-full bg-white/10 overflow-hidden">
               <div
-                className="h-full rounded-full bg-emerald-500 transition-all duration-200"
+                className="h-full rounded-full bg-accent transition-all duration-200"
                 style={{ width: `${((dealIndex + 1) / totalCards) * 100}%` }}
               />
             </div>

@@ -137,14 +137,14 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
           onClick={() => onFavoritesOnlyChange(!favoritesOnly)}
           className={`flex items-center justify-center gap-2 w-full min-h-9 px-3 rounded-lg text-xs sm:text-sm font-semibold transition-colors border ${
             favoritesOnly
-              ? 'bg-red-50 text-red-700 border-red-200 shadow-sm'
+              ? 'bg-destructive/10 text-destructive border-destructive/25 shadow-sm'
               : 'bg-card text-muted-foreground border-input hover:text-foreground'
           }`}
         >
           <Heart className={`w-3.5 h-3.5 ${favoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
           <span>Favourites only</span>
           {typeof favoriteCount === 'number' && (
-            <span className={`text-[10px] font-mono ${favoritesOnly ? 'text-red-600/70' : 'text-muted-foreground/70'}`}>
+            <span className={`text-[10px] font-mono ${favoritesOnly ? 'text-destructive/70' : 'text-muted-foreground/70'}`}>
               {favoriteCount}
             </span>
           )}
