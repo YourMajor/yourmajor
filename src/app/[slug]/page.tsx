@@ -247,6 +247,7 @@ export default async function TournamentPage({
         name={tournament.name}
         description={tournament.description}
         logo={tournament.logo}
+        headerImage={tournament.headerImage}
         startDate={tournament.startDate}
         endDate={tournament.endDate}
         status={effectiveStatus}
