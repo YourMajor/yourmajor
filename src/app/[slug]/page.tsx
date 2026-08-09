@@ -251,6 +251,7 @@ export default async function TournamentPage({
         startDate={tournament.startDate}
         endDate={tournament.endDate}
         status={effectiveStatus}
+        adminHref={isAdmin ? `/${slug}/admin` : null}
       />
 
       <SponsorStrip tournamentId={tournament.id} />

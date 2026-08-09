@@ -30,9 +30,12 @@ interface RoundSummaryProps {
   courseName: string
   playerName?: string
   onHoleSelect?: (index: number) => void
+  /** Set once the round is posted: the summary becomes the round's ending,
+   *  with the final number celebrated and one door out. */
+  finishedHref?: string | null
 }
 
-export function RoundSummary({ holes, scores, courseName, playerName, onHoleSelect }: RoundSummaryProps) {
+export function RoundSummary({ holes, scores, courseName, playerName, onHoleSelect, finishedHref = null }: RoundSummaryProps) {
   const front = holes.filter((h) => h.number <= 9)
   const back = holes.filter((h) => h.number > 9)
 
@@ -123,7 +126,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
           </tr>
           {/* Score row */}
           <tr>
-            <td className="py-2.5 px-1.5 text-[9px] font-bold text-muted-foreground">
+            <td className="py-2.5 px-1.5 text-[0.6875rem] font-bold text-muted-foreground">
               {playerName
                 ? playerName.split(/\s+/).map(w => w[0]).filter(Boolean).slice(0, 2).join('').toUpperCase()
                 : 'SC'}
@@ -171,6 +174,37 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
 
   return (
     <div className="flex flex-col h-full overflow-y-auto bg-background text-foreground">
+      {/* The ending: once the round posts, the number gets its moment. */}
+      {finishedHref && (
+        <div
+          role="status"
+          className="mx-2 mt-3 rounded-md border p-4 text-center"
+          style={{ borderColor: 'var(--color-accent)', background: 'color-mix(in oklab, var(--color-accent) 10%, transparent)' }}
+        >
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+            Round posted
+          </p>
+          <p className="mt-1 font-mono tabular-nums text-4xl font-semibold score-post">
+            {totalStrokes}
+            {diff !== null && (
+              <span
+                className="ml-2 text-lg align-middle"
+                style={{ color: diff < 0 ? 'var(--score-birdie)' : 'var(--muted-foreground)' }}
+              >
+                ({diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff})
+              </span>
+            )}
+          </p>
+          <a
+            href={finishedHref}
+            className="mt-3 inline-flex min-h-11 items-center justify-center rounded-md px-5 text-sm font-semibold"
+            style={{ background: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
+          >
+            See where you stand
+          </a>
+        </div>
+      )}
+
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
         <h3 className="text-lg font-heading font-bold text-foreground">

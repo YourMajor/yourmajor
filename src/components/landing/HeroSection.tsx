@@ -7,6 +7,7 @@ import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { HeroCodeSearch } from './HeroCodeSearch'
+import { ClickSpark } from './ClickSpark'
 import heroCourse from '../../../public/images/marketing/hero-course.webp'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
@@ -60,12 +61,11 @@ export function HeroSection() {
       media.add(
         '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
         () => {
-          // No media zoom or drift: the photograph must hold still so the
-          // shot trail stays registered to the course (the flight lands on
-          // the green in the picture). Only the copy drifts on departure.
+          // The copy drifts gently on departure but never fades
+          // (user-directed): the headline stays at full strength for the
+          // whole scroll, including while the flight plays.
           gsap.to(copyRef.current, {
             yPercent: -10,
-            opacity: 0.35,
             ease: 'none',
             scrollTrigger: {
               trigger: sectionRef.current,
@@ -280,7 +280,7 @@ export function HeroSection() {
             Everything your golf group needs.
           </p>
 
-          <div className="mt-10 flex min-h-12 flex-col gap-3 sm:flex-row sm:items-start">
+          <ClickSpark className="mt-10 flex min-h-12 flex-col gap-3 sm:flex-row sm:items-start">
             <Link href="/auth/signup" className="mk-btn mk-btn-primary">
               Create a tournament
             </Link>
@@ -302,7 +302,7 @@ export function HeroSection() {
                 Join with a code
               </button>
             )}
-          </div>
+          </ClickSpark>
 
           {/* The price of entry, stated where the decision happens: the
               first "free" signal otherwise sits several thousand pixels

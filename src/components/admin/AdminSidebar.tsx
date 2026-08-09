@@ -62,8 +62,15 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
         aria-label="Admin sections"
         className="lg:hidden sticky top-0 z-20 bg-background/95 backdrop-blur border-b border-border"
       >
-        <div className="overflow-x-auto">
-          <ul className="flex gap-1 px-3 py-2 whitespace-nowrap">
+        {/* The strip scrolls; the mask fade on the right says so. */}
+        <div
+          className="overflow-x-auto"
+          style={{
+            WebkitMaskImage: 'linear-gradient(to right, black calc(100% - 2.5rem), transparent)',
+            maskImage: 'linear-gradient(to right, black calc(100% - 2.5rem), transparent)',
+          }}
+        >
+          <ul className="flex gap-1 px-3 py-2 pr-10 whitespace-nowrap">
             {links.map((link) => {
               const active = isActive(link.href)
               const Icon = link.icon
@@ -84,7 +91,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                     {link.badge ? (
                       <span
                         aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
-                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[0.6875rem] font-bold"
                       >
                         {link.badge}
                       </span>
@@ -103,7 +110,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
         className="hidden lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-border lg:bg-muted/20"
       >
         <div className="px-5 pt-6 pb-4 border-b border-border">
-          <p className="text-[10px] font-semibold uppercase tracking-widest text-muted-foreground">
+          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
             Admin
           </p>
           <p className="mt-1 text-sm font-heading font-bold truncate" title={tournamentName}>
@@ -131,7 +138,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                   {link.badge ? (
                     <span
                       aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
-                      className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[10px] font-bold"
+                      className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[0.6875rem] font-bold"
                     >
                       {link.badge}
                     </span>

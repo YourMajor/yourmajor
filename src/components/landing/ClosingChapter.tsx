@@ -2,6 +2,7 @@
 
 import Link from 'next/link'
 import { motion, useReducedMotion } from 'motion/react'
+import { ClickSpark } from './ClickSpark'
 
 /**
  * The 18th: the page's chapter-divider close, sitting at night at the end
@@ -77,9 +78,11 @@ export function ClosingChapter() {
           </motion.p>
         </div>
 
-        <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-10">
-          Create a tournament
-        </Link>
+        <ClickSpark className="mt-10 inline-block">
+          <Link href="/auth/signup" className="mk-btn mk-btn-primary">
+            Create a tournament
+          </Link>
+        </ClickSpark>
       </div>
     </section>
   )

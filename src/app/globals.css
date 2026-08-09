@@ -1114,9 +1114,22 @@ main.marketing::after {
 @media (hover: hover) {
   .card-sheen:hover::after { transition: transform 600ms ease-out; transform: translateX(120%); }
 }
+/* Hover delight on tournament tiles: the logo badge tips like a ball
+   marker being lifted, and the accent rail brightens and thickens. */
+.tcard-badge { transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1); }
+.tcard-stripe { transition: height 200ms ease-out, box-shadow 200ms ease-out; }
+@media (hover: hover) {
+  .card-sheen:hover .tcard-badge { transform: rotate(-8deg) scale(1.06); }
+  .card-sheen:hover .tcard-stripe {
+    height: 3px;
+    box-shadow: 0 0 10px oklch(from var(--accent) l c h / 0.55);
+  }
+}
 @media (prefers-reduced-motion: reduce) {
   .card-rise { animation: none; }
   .card-sheen::after { display: none; }
+  .tcard-badge, .tcard-stripe { transition: none; }
+  .card-sheen:hover .tcard-badge { transform: none; }
 }
 
 /* ── Posting the Number (live scoring feedback) ─────────── */

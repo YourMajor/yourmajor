@@ -77,8 +77,8 @@ export function DashboardHero({
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          WebkitMaskImage: 'linear-gradient(to bottom, black 82%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, black 82%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 93%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 93%, transparent 100%)',
         }}
       >
         <Image

@@ -87,7 +87,7 @@ export function TournamentCard({
           >
             {/* Accent stripe */}
             <div
-              className="absolute top-0 left-0 right-0 h-[2px]"
+              className="tcard-stripe absolute top-0 left-0 right-0 h-[2px]"
               style={{ backgroundColor: t.accentColor }}
             />
 
@@ -99,12 +99,12 @@ export function TournamentCard({
                   alt=""
                   width={40}
                   height={40}
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
+                  className="tcard-badge h-9 w-9 sm:h-10 sm:w-10 rounded-full object-cover shrink-0 border-2"
                   style={{ borderColor: t.accentColor }}
                 />
               ) : (
                 <div
-                  className="h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading font-bold text-white shrink-0 border-2"
+                  className="tcard-badge h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading font-bold text-white shrink-0 border-2"
                   style={{ backgroundColor: `${t.primaryColor}80`, borderColor: t.accentColor }}
                 >
                   {t.name.charAt(0).toUpperCase()}

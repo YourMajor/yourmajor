@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useRef, useCallback, useEffect } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ChevronLeft } from 'lucide-react'
 import { useLiveScoringState } from './useLiveScoringState'
@@ -124,7 +123,6 @@ export function LiveScoring({
     tournamentFormat === 'MATCH_PLAY'
     || tournamentFormat === 'RYDER_CUP'
     || tournamentFormat === 'NASSAU'
-  const router = useRouter()
 
   const state = useLiveScoringState({
     tournamentPlayerId,
@@ -472,12 +470,15 @@ export function LiveScoring({
       }
     }
 
-    if (backHref) {
-      router.push(backHref)
-    }
-  }, [state, backHref, router, tournamentId, roundId])
+    // The round's ending happens here, not on a redirect: land on the
+    // Round Summary with the posted number celebrated; the player leaves
+    // through its CTA when they're ready.
+    setRoundPosted(true)
+    setPanelIndex(1)
+  }, [state, tournamentId, roundId])
 
   const [panelIndex, setPanelIndex] = useState(0) // -1, 0, 1
+  const [roundPosted, setRoundPosted] = useState(false)
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
   const touchStart = useRef<{ x: number; y: number; time: number } | null>(null)
@@ -701,6 +702,7 @@ export function LiveScoring({
               scores={state.scores}
               courseName={courseName}
               playerName={playerName}
+              finishedHref={roundPosted ? (backHref ?? null) : null}
               onHoleSelect={(idx) => {
                 state.navigateToHole(idx)
                 setPanelIndex(0) // snap back to scoring panel
@@ -710,31 +712,28 @@ export function LiveScoring({
         </div>
       </div>
 
-      {/* ── Panel Dots + Chat Button (bottom) ─────────────────────── */}
-      <div className="shrink-0 flex items-center justify-between px-4 py-2 bg-black/20 pb-[calc(0.5rem+env(safe-area-inset-bottom))]">
-        <div className="w-8" /> {/* spacer */}
-        <div className="flex items-center gap-2">
-          {[-1, 0, 1].map((idx) => (
+      {/* ── Panel switcher (bottom) ───────────────────────────────────
+          Labeled and thumb-sized: the swipe still works, but these are the
+          discoverable, glove-proof way into the side panels (44px rule). */}
+      <div className="shrink-0 flex items-center justify-center px-4 py-1.5 bg-black/20 pb-[calc(0.375rem+env(safe-area-inset-bottom))]">
+        <div role="tablist" aria-label="Scoring panels" className="flex w-full max-w-sm rounded-md bg-white/10 p-0.5">
+          {([[-1, 'Holes'], [0, 'Score'], [1, 'Card']] as const).map(([idx, label]) => (
             <button
               key={idx}
               type="button"
+              role="tab"
+              aria-selected={panelIndex === idx}
               onClick={() => setPanelIndex(idx)}
-              className={`w-2 h-2 rounded-full transition-all touch-manipulation ${
+              className={`flex-1 min-h-11 rounded-[5px] text-sm font-semibold transition-colors touch-manipulation ${
                 panelIndex === idx
-                  ? 'bg-white scale-125'
-                  : 'bg-white/30'
+                  ? 'bg-white/90 text-black'
+                  : 'text-white/75'
               }`}
-              aria-label={
-                idx === -1
-                  ? 'Hole Overview'
-                  : idx === 0
-                    ? 'Scoring'
-                    : 'Round Summary'
-              }
-            />
+            >
+              {label}
+            </button>
           ))}
         </div>
-        <div className="w-8" /> {/* spacer */}
       </div>
     </div>
   )

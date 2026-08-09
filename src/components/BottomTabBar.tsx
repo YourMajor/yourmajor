@@ -39,17 +39,17 @@ export function BottomTabBar() {
     return () => document.removeEventListener('keydown', handler)
   }, [moreOpen, closeMore])
 
-  if (!mounted) return null
-
   // Every tab here goes somewhere that requires an account. On the marketing
   // surface the visitor has not signed in yet, so the bar is four links to a
   // login redirect, overlapping the page it is sitting on.
   if (isMarketingRoute(pathname)) return null
 
-  return createPortal(
+  // The bar renders inline (fixed positioning needs no portal), so it is in
+  // the server HTML and never pops in after hydration. Only the More sheet
+  // portals to <body>, and it can only open post-mount anyway.
+  return (
     <>
-      {/* More sheet overlay */}
-      {moreOpen && (
+      {mounted && moreOpen && createPortal(
         <div className="fixed inset-0 z-50 lg:hidden" role="dialog" aria-modal="true" aria-label="More menu">
           <div className="absolute inset-0 bg-black/40" onClick={closeMore} />
           <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl border-t border-border pb-[env(safe-area-inset-bottom,0px)] animate-in slide-in-from-bottom duration-200">
@@ -86,7 +86,8 @@ export function BottomTabBar() {
               </form>
             </nav>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
 
       {/* Bottom tab bar */}
@@ -130,7 +131,6 @@ export function BottomTabBar() {
           })}
         </div>
       </nav>
-    </>,
-    document.body,
+    </>
   )
 }

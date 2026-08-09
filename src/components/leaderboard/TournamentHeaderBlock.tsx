@@ -1,4 +1,5 @@
 import Image from 'next/image'
+import { Settings as SettingsIcon } from 'lucide-react'
 
 interface TournamentHeaderBlockProps {
   name: string
@@ -8,6 +9,8 @@ interface TournamentHeaderBlockProps {
   startDate: Date | null
   endDate: Date | null
   status: string
+  /** When set, the organizer sees their door: a Manage button in the frame. */
+  adminHref?: string | null
 }
 
 function formatDate(d: Date) {
@@ -39,6 +42,7 @@ export function TournamentHeaderBlock({
   startDate,
   endDate,
   status,
+  adminHref = null,
 }: TournamentHeaderBlockProps) {
   const meta = statusMeta(status)
   const dateLabel = startDate
@@ -79,6 +83,20 @@ export function TournamentHeaderBlock({
       )}
 
       <div className="relative px-5 py-6 sm:px-7 sm:py-8">
+        {/* The organizer's door: always visible, never buried in a menu. */}
+        {adminHref && (
+          <a
+            href={adminHref}
+            className="absolute top-3 right-3 inline-flex min-h-11 items-center gap-1.5 rounded-md px-3.5 text-xs font-semibold transition-colors"
+            style={{
+              background: 'oklch(0.95 0.012 85)',
+              color: 'oklch(0.22 0.02 150)',
+            }}
+          >
+            <SettingsIcon className="w-3.5 h-3.5" aria-hidden />
+            Manage
+          </a>
+        )}
         <div className="flex items-start gap-4 sm:gap-5">
           {logo && (
             <div className="tournament-logo-badge relative shrink-0 w-14 h-14 sm:w-16 sm:h-16 rounded-full overflow-hidden">

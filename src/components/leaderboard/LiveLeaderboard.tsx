@@ -202,7 +202,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
   const showingRound = roundFilter !== 'all' ? Number(roundFilter) : null
 
   const scoreTypeOptions = [
-    { value: 'gross', label: 'Traditional' },
+    { value: 'gross', label: 'Gross' },
     ...(hasNet ? [{ value: 'net', label: 'Net' }] : []),
   ]
   const roundOptions = [

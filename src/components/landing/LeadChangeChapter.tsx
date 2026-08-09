@@ -1,10 +1,11 @@
 'use client'
 
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
 import { LeaderboardPlate, ROUND_STATES, scoreColor } from './LeaderboardPlate'
+import { SplitFlapStatus } from './SplitFlapStatus'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
@@ -79,6 +80,8 @@ export function LeadChangeChapter() {
   const sectionRef = useRef<HTMLElement>(null)
   const plateRef = useRef<HTMLDivElement>(null)
   const railRef = useRef<HTMLDivElement>(null)
+  // Drives the split-flap readout above the board; paint() advances it.
+  const [beatIndex, setBeatIndex] = useState(0)
 
   useGSAP(
     () => {
@@ -100,6 +103,7 @@ export function LeadChangeChapter() {
             if (index === painted) return
             painted = index
             paintBoard(plate, index)
+            setBeatIndex(index)
             beats.forEach((beat, i) => {
               // is-on retypes the active chip (see .mk-chip in globals.css).
               beat.classList.toggle('is-on', i === index)
@@ -144,6 +148,7 @@ export function LeadChangeChapter() {
             // transforms, or the static board below the breakpoint keeps the
             // final round's figures in rest-state order.
             paintBoard(plate, 0, true)
+            setBeatIndex(0)
             gsap.set(beats, { clearProps: 'all' })
           }
         },
@@ -198,6 +203,11 @@ export function LeadChangeChapter() {
             </div>
 
             <div ref={plateRef} className="lg:col-span-7">
+              {/* The board's clock: flips with the beats, holds "Thru 12"
+                  wherever the chapter renders static. */}
+              <div className="mb-3 flex justify-end">
+                <SplitFlapStatus value={BEATS[beatIndex].thru} />
+              </div>
               <LeaderboardPlate />
             </div>
           </div>

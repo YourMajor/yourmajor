@@ -7,8 +7,14 @@ import { NavUnderline } from '@/components/NavUnderline'
 import { MobileNavMenu } from '@/components/MobileNavMenu'
 import { ProfileDropdown } from '@/components/ProfileDropdown'
 
-const NAV_LINKS: { label: string; href: string }[] = [
+// Two nav worlds, deliberately: signed-in users get app routes (their
+// tournaments, not the marketing shelf); visitors get the marketing anchors.
+const APP_LINKS: { label: string; href: string }[] = [
   { label: 'Dashboard', href: '/dashboard' },
+  { label: 'Tournaments', href: '/tournaments' },
+  { label: 'Pricing', href: '/pricing' },
+]
+const VISITOR_LINKS: { label: string; href: string }[] = [
   { label: 'Features', href: '/#features' },
   { label: 'Tournaments', href: '/#clubhouse' },
   { label: 'Pricing', href: '/pricing' },
@@ -71,7 +77,7 @@ export async function GlobalNav() {
           {/* Desktop nav links */}
           <nav className="relative hidden lg:flex items-center gap-1 text-sm lg:text-base">
             <NavUnderline />
-            {(user ? NAV_LINKS : NAV_LINKS.filter(l => l.href !== '/dashboard')).map((link) => (
+            {(user ? APP_LINKS : VISITOR_LINKS).map((link) => (
               <Link
                 key={link.href}
                 href={link.href}

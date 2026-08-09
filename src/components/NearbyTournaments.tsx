@@ -122,7 +122,7 @@ export default function NearbyTournaments() {
 
         return (
           <Link key={t.id} href={`/${t.slug}`} className="block">
-            <Card className="hover:shadow-md transition-all cursor-pointer overflow-hidden !py-0 !gap-0">
+            <Card className="card-sheen rounded-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer overflow-hidden !py-0 !gap-0">
               {/* Branded header strip */}
               <div
                 className="relative px-3 py-2.5 flex items-center"
