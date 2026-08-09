@@ -1,7 +1,18 @@
 'use client'
 
-import { useReducedMotion } from 'motion/react'
+import { useSyncExternalStore } from 'react'
 import { useInView } from '@/hooks/useInView'
+
+// Local reduced-motion read; not worth pulling motion/react into this chunk.
+const rmQuery = '(prefers-reduced-motion: reduce)'
+function subscribeRM(cb: () => void) {
+  const mq = window.matchMedia(rmQuery)
+  mq.addEventListener('change', cb)
+  return () => mq.removeEventListener('change', cb)
+}
+function useReducedMotion() {
+  return useSyncExternalStore(subscribeRM, () => window.matchMedia(rmQuery).matches, () => false)
+}
 
 interface HoleScore {
   holeNumber: number
