@@ -1,6 +1,6 @@
 'use client'
 
-import { cn } from '@/lib/utils'
+import { cn, isLightColor } from '@/lib/utils'
 
 // Pre-defined color pairs that are accessibility/contrast compliant.
 // Each pair has a dark primary (for white text) and a complementary accent.
@@ -104,14 +104,20 @@ export function ColorDonutPicker({
       {/* Preview strip */}
       <div className="flex items-center gap-3 mt-2">
         <div className="flex rounded-lg overflow-hidden border border-border shadow-sm">
-          <div className="w-16 h-8 flex items-center justify-center text-[10px] font-bold text-white" style={{ backgroundColor: primaryColor }}>
+          <div
+            className="w-16 h-8 flex items-center justify-center text-[10px] font-bold"
+            style={{
+              backgroundColor: primaryColor,
+              color: isLightColor(primaryColor) ? 'var(--brand-ink)' : 'var(--brand-bone)',
+            }}
+          >
             Aa
           </div>
           <div
             className="w-16 h-8 flex items-center justify-center text-[10px] font-bold"
             style={{
               backgroundColor: accentColor,
-              color: isLightAccent(accentColor) ? '#1a1a1a' : '#ffffff',
+              color: isLightColor(accentColor) ? 'var(--brand-ink)' : 'var(--brand-bone)',
             }}
           >
             Aa
@@ -125,11 +131,3 @@ export function ColorDonutPicker({
   )
 }
 
-function isLightAccent(hex: string): boolean {
-  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex)
-  if (!result) return false
-  const r = parseInt(result[1], 16) / 255
-  const g = parseInt(result[2], 16) / 255
-  const b = parseInt(result[3], 16) / 255
-  return 0.2126 * r + 0.7152 * g + 0.0722 * b > 0.5
-}

@@ -43,6 +43,11 @@ export async function PATCH(
 
   const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate, status, logo } = body
 
+  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+  if ((primaryColor && !HEX_COLOR.test(primaryColor)) || (accentColor && !HEX_COLOR.test(accentColor))) {
+    return NextResponse.json({ error: 'Colors must be #RRGGBB' }, { status: 400 })
+  }
+
   try {
     const tournament = await prisma.tournament.update({
       where: { id },

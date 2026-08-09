@@ -51,6 +51,12 @@
   --color-popover: var(--popover);
   --color-card-foreground: var(--card-foreground);
   --color-card: var(--card);
+  --color-powerup-attack: var(--powerup-attack);
+  --color-powerup-attack-deep: var(--powerup-attack-deep);
+  --color-powerup-boost: var(--powerup-boost);
+  --color-powerup-boost-deep: var(--powerup-boost-deep);
+  --color-powerup-active: var(--powerup-active);
+  --color-powerup-stock: var(--powerup-stock);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -103,6 +109,24 @@
   /* ── Semantic status colours ─────────────────────── */
   --success:              oklch(0.55 0.17 145);  /* green  */
   --warning:              oklch(0.65 0.15 75);   /* amber  */
+
+  /* ── Powerup card register (sanctioned — DESIGN.md "Operate
+     Surface" → "The powerup register"). Cards are physical
+     objects: stock and inks are mode-invariant literals (dark
+     mode flips --primary/--card, cards must not follow), and
+     they ignore per-tournament branding. Only --powerup-active
+     flips in .dark.                                          */
+  --powerup-attack:       oklch(0.50 0.20 25);   /* system crimson */
+  --powerup-attack-deep:  oklch(0.42 0.17 25);
+  --powerup-boost:        oklch(0.27 0.055 155); /* tournament green */
+  --powerup-boost-deep:   oklch(0.22 0.05 155);
+  --powerup-active:       oklch(0.58 0.24 300);  /* powerup live on this hole */
+  --powerup-stock:        oklch(0.96 0.011 85);  /* card face paper (was #f5f0e8) */
+
+  /* Mode-invariant endpoints for the brand luminance guard
+     (brandVars() in src/lib/utils.ts picks one per brand color). */
+  --brand-ink:            oklch(0.22 0.02 150);
+  --brand-bone:           oklch(0.98 0.005 85);
   --chart-1:              oklch(0.27 0.055 155);
   --chart-2:              oklch(0.45 0.10 78);
   --chart-3:              oklch(0.50 0.20 25);
@@ -165,6 +189,7 @@
 
   --success:              oklch(0.65 0.15 145);
   --warning:              oklch(0.70 0.14 75);
+  --powerup-active:       oklch(0.72 0.18 300);  /* lighter purple for night */
   --chart-1:              oklch(0.62 0.10 155);
   --chart-2:              oklch(0.72 0.11 78);
   --chart-3:              oklch(0.62 0.19 25);

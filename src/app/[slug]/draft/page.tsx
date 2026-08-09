@@ -6,6 +6,7 @@ import { DraftBoard } from '@/components/draft/DraftBoard'
 import { PowerupCard } from '@/components/draft/PowerupCard'
 import { PreDraftPowerupPreview } from '@/components/draft/PreDraftPowerupPreview'
 import { computeCurrentTurn } from '@/lib/draft-utils'
+import { brandVars } from '@/lib/utils'
 import { Swords, Clock } from 'lucide-react'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
 
@@ -182,14 +183,10 @@ export default async function DraftPage({
     tournament.powerupsPerPlayer,
   )
 
-  const rootStyle: Record<string, string> = {}
-  if (tournament.primaryColor) rootStyle['--color-primary'] = tournament.primaryColor
-  if (tournament.accentColor) rootStyle['--color-accent'] = tournament.accentColor
-
   return (
     <main
       className="max-w-5xl mx-auto px-3 sm:px-4 py-6 space-y-4"
-      style={rootStyle}
+      style={brandVars(tournament.primaryColor, tournament.accentColor)}
     >
       <div className="text-center">
         <h1 className="text-2xl font-heading font-bold">{tournament.name} — Powerup Draft</h1>

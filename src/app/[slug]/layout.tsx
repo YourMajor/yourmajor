@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getChampionHistory, getLatestInChain, type PastChampion } from '@/lib/tournament-chain'
 import { getRootTournamentId } from '@/lib/league-chain'
+import { brandVars } from '@/lib/utils'
 import { PersistentChat } from '@/components/hub/PersistentChat'
 import { NotificationPopup } from '@/components/notifications/NotificationPopup'
 import { TournamentShell } from '@/components/leaderboard/TournamentShell'
@@ -131,7 +132,7 @@ export default async function TournamentLayout({
   return (
     <div
       className="min-h-screen bg-background"
-      style={{ '--color-primary': tournament.primaryColor, '--color-accent': tournament.accentColor } as React.CSSProperties}
+      style={brandVars(tournament.primaryColor, tournament.accentColor) as React.CSSProperties}
       suppressHydrationWarning
     >
       <TournamentProvider value={ctx}>

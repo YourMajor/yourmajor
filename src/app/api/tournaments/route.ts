@@ -42,6 +42,11 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'name and slug are required' }, { status: 400 })
   }
 
+  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
+  if ((primaryColor && !HEX_COLOR.test(primaryColor)) || (accentColor && !HEX_COLOR.test(accentColor))) {
+    return NextResponse.json({ error: 'Colors must be #RRGGBB' }, { status: 400 })
+  }
+
   try {
     const joinCode = await generateJoinCode()
     const tournament = await prisma.tournament.create({
