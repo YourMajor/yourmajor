@@ -254,21 +254,19 @@ export default async function DashboardPage() {
         </div>
         {yourTournaments.length > 0 || invitedTournaments.length > 0 ? (
           <>
-            {yourTournaments.map((m) => (
-              <TournamentCard
-                key={m.id}
-                t={m.tournament}
-                showAdmin={m.isAdmin}
-                isRegistered
-              />
+            {yourTournaments.map((m, i) => (
+              <div key={m.id} className="card-rise" style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}>
+                <TournamentCard t={m.tournament} showAdmin={m.isAdmin} isRegistered />
+              </div>
             ))}
-            {invitedTournaments.map((inv) => (
-              <TournamentCard
+            {invitedTournaments.map((inv, i) => (
+              <div
                 key={`inv-${inv.tournament.id}`}
-                t={inv.tournament}
-                showAdmin={false}
-                inviteToken={inv.token}
-              />
+                className="card-rise"
+                style={{ animationDelay: `${Math.min(yourTournaments.length + i, 8) * 70}ms` }}
+              >
+                <TournamentCard t={inv.tournament} showAdmin={false} inviteToken={inv.token} />
+              </div>
             ))}
           </>
         ) : (
@@ -293,13 +291,10 @@ export default async function DashboardPage() {
             <Repeat className="w-4 h-4 text-muted-foreground" />
             <h2 className="font-heading font-semibold text-lg">Your Leagues</h2>
           </div>
-          {activeLeagues.map((m) => (
-            <TournamentCard
-              key={m.id}
-              t={m.tournament}
-              showAdmin={m.isAdmin}
-              isRegistered
-            />
+          {activeLeagues.map((m, i) => (
+            <div key={m.id} className="card-rise" style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}>
+              <TournamentCard t={m.tournament} showAdmin={m.isAdmin} isRegistered />
+            </div>
           ))}
         </section>
       )}

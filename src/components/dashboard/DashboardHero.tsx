@@ -2,10 +2,12 @@
 
 import { useSyncExternalStore } from 'react'
 import Link from 'next/link'
+import Image from 'next/image'
 import { PlusCircle } from 'lucide-react'
 import { CountUp } from '@/components/motion/CountUp'
 import { FindTournament } from '@/components/FindTournament'
 import { buttonVariants } from '@/components/ui/button-variants'
+import heroCourse from '../../../public/images/marketing/hero-course.webp'
 
 // No-op subscribe — greeting is computed on mount, doesn't need to react to changes.
 const noopSubscribe = () => () => {}
@@ -68,32 +70,58 @@ export function DashboardHero({
 
   return (
     <section className="relative w-full overflow-hidden">
-      {/* Ambient wash — the green and gold breathe onto the paper, softly */}
+      {/* The course at dusk: the marketing hero photograph under the same
+          slate-and-sunset atmosphere, dissolving into the page ground so
+          the band works on bone paper and on the night theme alike. */}
       <div
         aria-hidden
         className="pointer-events-none absolute inset-0"
         style={{
-          background:
-            'radial-gradient(1200px 500px at 20% -10%, color-mix(in oklab, var(--primary) 14%, transparent), transparent 60%),' +
-            'radial-gradient(900px 400px at 90% 0%, color-mix(in oklab, var(--accent) 18%, transparent), transparent 55%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 82%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 82%, transparent 100%)',
         }}
-      />
+      >
+        <Image
+          src={heroCourse}
+          alt=""
+          fill
+          priority
+          sizes="100vw"
+          className="object-cover"
+          style={{ objectPosition: 'center 35%' }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'radial-gradient(120% 60% at 50% 80%, oklch(from var(--sunset) l c h / 0.30), transparent 62%),' +
+              'linear-gradient(to bottom, oklch(0.24 0.030 262 / 0.50), oklch(0.16 0.025 262 / 0.66))',
+          }}
+        />
+      </div>
 
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-10 sm:pt-16 sm:pb-14">
         <div className="text-center space-y-3">
           <h1
-            className="font-heading font-semibold text-foreground"
+            className="font-heading font-semibold"
             style={{
               fontSize: 'clamp(2.5rem, 4.5vw, 4rem)',
               letterSpacing: '-0.015em',
               lineHeight: 1.05,
+              color: 'oklch(0.98 0.005 85)',
+              textShadow: '0 1px 12px oklch(0.15 0.03 262 / 0.55)',
             }}
           >
             {greeting}
           </h1>
           <p
-            className="text-muted-foreground mx-auto max-w-xl"
-            style={{ fontSize: '1rem', lineHeight: 1.6 }}
+            className="mx-auto max-w-xl"
+            style={{
+              fontSize: '1rem',
+              lineHeight: 1.6,
+              color: 'oklch(0.95 0.012 85 / 0.88)',
+              textShadow: '0 1px 8px oklch(0.15 0.03 262 / 0.5)',
+            }}
           >
             {subheadFor(activeTournamentCount, round)}
           </p>

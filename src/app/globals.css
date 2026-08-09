@@ -118,12 +118,66 @@
   --sidebar-ring:         oklch(0.27 0.055 155);
 
   /* The application's display face is the marketing serif;
-     Playfair is retired. */
+     Playfair survives only as the logo wordmark (--font-logo). */
   --font-heading:         var(--font-display);
+
+  /* Atmosphere only — never text, border, icon, or control. */
+  --sunset:               oklch(0.60 0.150 45);
 
   /* ── Mobile / iOS safe-area tokens ──────────────── */
   --touch-target-min: 48px;
   --nav-bottom-height: 64px;
+}
+
+/* ── Dark mode: the marketing dusk, lived in ─────────────
+   The night/dusk-slate atmosphere from the landing page's ending becomes
+   the working ground; bone text, gold as the accent and the ring, the
+   primary action set as a bone plate exactly like the marketing CTA.
+   Toggled by class on <html> (cookie `ym-theme`; see ThemeToggle). */
+.dark {
+  --background:           oklch(0.16 0.025 262);  /* night            */
+  --foreground:           oklch(0.95 0.012 85);   /* bone             */
+  --card:                 oklch(0.21 0.028 262);  /* raised dusk      */
+  --card-foreground:      oklch(0.95 0.012 85);
+  --popover:              oklch(0.21 0.028 262);
+  --popover-foreground:   oklch(0.95 0.012 85);
+  --primary:              oklch(0.95 0.012 85);   /* bone plate CTA   */
+  --primary-foreground:   oklch(0.22 0.02 150);   /* ink              */
+  --secondary:            oklch(0.26 0.030 262);
+  --secondary-foreground: oklch(0.95 0.012 85);
+  --muted:                oklch(0.24 0.030 262);  /* dusk slate       */
+  --muted-foreground:     oklch(0.76 0.014 130);
+  --accent:               oklch(0.72 0.11 78);
+  --accent-foreground:    oklch(0.16 0.025 262);
+  --gold-ink:             oklch(0.72 0.11 78);    /* bright gold is AA on night */
+  --surface-deep:         oklch(0.13 0.02 262);
+  --surface-deep-foreground: oklch(0.95 0.012 85);
+  --destructive:          oklch(0.62 0.22 27);
+  --border:               oklch(0.32 0.03 262);
+  --input:                oklch(0.32 0.03 262);
+  --ring:                 oklch(0.72 0.11 78);
+
+  --score-eagle:          oklch(0.72 0.11 78);
+  --score-birdie:         oklch(0.62 0.19 25);
+  --score-par:            var(--foreground);
+  --score-bogey:          var(--muted-foreground);
+  --score-double:         oklch(0.55 0.02 262);
+
+  --success:              oklch(0.65 0.15 145);
+  --warning:              oklch(0.70 0.14 75);
+  --chart-1:              oklch(0.62 0.10 155);
+  --chart-2:              oklch(0.72 0.11 78);
+  --chart-3:              oklch(0.62 0.19 25);
+  --chart-4:              oklch(0.60 0.02 150);
+  --chart-5:              oklch(0.50 0.05 155);
+  --sidebar:              oklch(0.19 0.026 262);
+  --sidebar-foreground:   oklch(0.95 0.012 85);
+  --sidebar-primary:      oklch(0.95 0.012 85);
+  --sidebar-primary-foreground: oklch(0.22 0.02 150);
+  --sidebar-accent:       oklch(0.26 0.030 262);
+  --sidebar-accent-foreground: oklch(0.95 0.012 85);
+  --sidebar-border:       oklch(0.30 0.03 262);
+  --sidebar-ring:         oklch(0.72 0.11 78);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -439,8 +493,8 @@
 .marketing .mk-logo:hover .mk-logo-major { letter-spacing: 0.03em; }
 
 /* The putt: on hover a ball rolls in from the left, slows across the rings,
-   sits on the lip for a beat, and drops in. Invisible at rest and on app
-   routes (the ball element only animates inside .marketing). */
+   sits on the lip for a beat, and drops in. Invisible at rest; plays on
+   marketing AND app routes (user-requested 2026-08-09). */
 .mk-logo-ball {
   opacity: 0;
   transform-box: fill-box;
@@ -454,12 +508,12 @@
   76%  { transform: translateX(0) scale(0.92); opacity: 1; }
   100% { transform: translateX(0) scale(0.05); opacity: 0; }
 }
-.marketing .mk-logo:hover .mk-logo-ball {
+.mk-logo:hover .mk-logo-ball {
   animation: mkLogoPutt 1.15s cubic-bezier(0.3, 0.9, 0.4, 1) forwards;
 }
 @media (prefers-reduced-motion: reduce) {
   .marketing .mk-logo .mk-logo-major { transition: none; }
-  .marketing .mk-logo:hover .mk-logo-ball { animation: none; }
+  .mk-logo:hover .mk-logo-ball { animation: none; }
 }
 
 /* ── Cursor grammar ──────────────────────────────────────
@@ -1032,6 +1086,37 @@ main.marketing::after {
 }
 .animate-shake {
   animation: shake 0.4s ease-in-out;
+}
+
+/* ── Dashboard furniture (dusk hero + card motion) ──────── */
+/* Cards rise onto the wall once, in order (parent sets animation-delay). */
+@keyframes cardRise {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: none; }
+}
+.card-rise { animation: cardRise 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
+/* A gold sheen sweeps interactive cards on hover — the marketing plate
+   flourish, unscoped for the app. Pointer devices only. */
+.card-sheen { position: relative; overflow: hidden; }
+.card-sheen::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 40%,
+    oklch(from var(--accent) l c h / 0.14) 50%,
+    transparent 60%
+  );
+  transform: translateX(-120%);
+}
+@media (hover: hover) {
+  .card-sheen:hover::after { transition: transform 600ms ease-out; transform: translateX(120%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card-rise { animation: none; }
+  .card-sheen::after { display: none; }
 }
 
 /* ── Posting the Number (live scoring feedback) ─────────── */

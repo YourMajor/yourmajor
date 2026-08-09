@@ -9,6 +9,7 @@ import { ProfileEditForm } from './ProfileEditForm'
 import { Trophy, Zap, Crown } from 'lucide-react'
 import { IdentityHero } from '@/components/profile/IdentityHero'
 import { PushNotificationManager } from '@/components/pwa/PushNotificationManager'
+import { ThemeToggle } from '@/components/profile/ThemeToggle'
 
 export default async function ProfilePage({
   searchParams,
@@ -234,6 +235,13 @@ export default async function ProfilePage({
               </Link>
             </>
           )}
+        </CardContent>
+      </Card>
+
+      {/* Appearance */}
+      <Card>
+        <CardContent className="py-4">
+          <ThemeToggle />
         </CardContent>
       </Card>
 

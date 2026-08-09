@@ -73,7 +73,7 @@ export function TournamentCard({
     <div className="relative">
       <Link href={`/${t.slug}`} className="block">
         <Card
-          className={`hover:shadow-md transition-all cursor-pointer overflow-hidden !py-0 !gap-0${isInvite ? ' ring-2' : ''}`}
+          className={`card-sheen rounded-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer overflow-hidden !py-0 !gap-0${isInvite ? ' ring-2' : ''}`}
           style={isInvite ? { '--tw-ring-color': t.accentColor } as React.CSSProperties : undefined}
         >
           {/* Branded header strip */}

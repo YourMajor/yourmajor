@@ -49,14 +49,20 @@ export async function GlobalNav() {
               rolls in from the left and drops into the rings like a putt
               into the cup. The ball is invisible at rest and everywhere
               outside .marketing. */}
-          <Link href="/" className="mk-logo flex items-center gap-2.5 shrink-0">
+          {/* Logged in, the logo goes straight to the dashboard: '/' would
+              only bounce there through a server redirect, and the hard hop
+              cut the putt animation short. */}
+          <Link href={user ? '/dashboard' : '/'} className="mk-logo flex items-center gap-2.5 shrink-0">
             <svg viewBox="0 0 512 512" className="h-12 w-12" aria-hidden>
               <circle cx="256" cy="256" r="256" fill="#191f1b" />
               <circle cx="256" cy="256" r="190" fill="none" stroke="#c99c56" strokeWidth="32" />
               <circle cx="256" cy="256" r="148" fill="none" stroke="#c99c56" strokeWidth="32" />
               <circle className="mk-logo-ball" cx="256" cy="256" r="58" fill="#f1ede2" />
             </svg>
-            <span className="mk-logo-word font-heading leading-none text-left">
+            <span
+              className="mk-logo-word leading-none text-left"
+              style={{ fontFamily: 'var(--font-logo), Georgia, serif' }}
+            >
               <span className="mk-logo-your block text-sm font-normal text-primary uppercase" style={{ letterSpacing: '0.15em' }}>Your</span>
               <span className="mk-logo-major block text-2xl font-black -mt-1.5 text-accent">MAJOR</span>
             </span>

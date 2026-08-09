@@ -29,7 +29,7 @@ export function MobileNavMenu() {
           <div className="fixed inset-0 z-40" onClick={() => setOpen(false)} />
 
           {/* Dropdown */}
-          <div className="absolute top-full right-4 mt-1 z-50 w-48 rounded-xl bg-white shadow-xl border border-border py-2 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="absolute top-full right-4 mt-1 z-50 w-48 rounded-md bg-popover text-popover-foreground shadow-xl border border-border py-2 animate-in fade-in slide-in-from-top-2 duration-200">
             {LINKS.map((link) => (
               <Link
                 key={link.href}
