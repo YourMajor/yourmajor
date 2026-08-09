@@ -109,7 +109,7 @@ export function IdentityHero({
             {isEditing && (
               <Link
                 href="/profile"
-                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-white transition-all"
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-zinc-900/80 hover:bg-white transition-all"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back
@@ -118,7 +118,7 @@ export function IdentityHero({
             {tournamentBackRef && (
               <Link
                 href={`/${tournamentBackRef}`}
-                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-foreground/80 hover:bg-white transition-all"
+                className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/70 backdrop-blur-sm px-3 py-1.5 text-xs font-medium text-zinc-900/80 hover:bg-white transition-all"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Back to Tournament
@@ -225,7 +225,7 @@ export function IdentityHero({
           <div className="mt-10 flex justify-center">
             <Link
               href="/profile?edit=1#profile-edit"
-              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/80 backdrop-blur-sm px-5 py-2 text-sm font-medium text-foreground/90 hover:bg-white transition-all shadow-sm hover:shadow-md"
+              className="inline-flex items-center gap-1.5 rounded-full border border-black/10 bg-white/80 backdrop-blur-sm px-5 py-2 text-sm font-medium text-zinc-900/90 hover:bg-white transition-all shadow-sm hover:shadow-md"
             >
               <Pencil className="w-3.5 h-3.5" />
               Edit profile

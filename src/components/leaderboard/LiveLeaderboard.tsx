@@ -539,7 +539,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover/player:flex items-center z-10">
                               <Link
                                 href={`/${slug}/players/${p.tournamentPlayerId}`}
-                                className="whitespace-nowrap rounded-md bg-white border border-border shadow-lg px-3 py-1.5 text-xs font-medium text-foreground hover:bg-muted transition-colors"
+                                className="whitespace-nowrap rounded-md bg-popover border border-border shadow-lg px-3 py-1.5 text-xs font-medium text-popover-foreground hover:bg-muted transition-colors"
                               >
                                 Click to View Player Profile
                               </Link>
