@@ -104,13 +104,13 @@ export function TournamentCard({
                 aria-hidden
                 className="tcurtain-breathe absolute inset-0"
                 style={{
-                  backgroundImage: `linear-gradient(120deg, ${t.primaryColor}, color-mix(in oklab, ${t.primaryColor}, black 22%), ${t.primaryColor})`,
+                  backgroundImage: `linear-gradient(115deg, ${t.primaryColor} 0%, color-mix(in oklab, ${t.primaryColor}, black 26%) 38%, color-mix(in oklab, ${t.primaryColor}, white 16%) 55%, ${t.primaryColor} 78%)`,
                 }}
               />
             )}
             {/* Accent stripe */}
             <div
-              className="absolute top-0 left-0 right-0 h-[2px]"
+              className="tcard-rail absolute top-0 left-0 right-0 h-[2px]"
               style={{ backgroundColor: t.accentColor }}
             />
 
