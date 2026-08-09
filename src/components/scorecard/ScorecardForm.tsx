@@ -2,6 +2,11 @@
 
 import { useState, useRef } from 'react'
 import { Button } from '@/components/ui/button'
+import {
+  SCORE_STYLE as SHARED_SCORE_STYLE,
+  getScoreType as getSharedScoreType,
+  type ScoreType as SharedScoreType,
+} from '@/components/scorecard/detail/score-styles'
 
 interface HoleData {
   id: string
@@ -29,25 +34,17 @@ interface Props {
 
 // ─── Score type helpers ────────────────────────────────────────────────────
 
-type ScoreType = 'eagle' | 'birdie' | 'par' | 'bogey' | 'double' | 'empty'
+type ScoreType = SharedScoreType | 'empty'
 
 function getScoreType(strokes: number | undefined, par: number): ScoreType {
   if (strokes == null) return 'empty'
-  const d = strokes - par
-  if (d <= -2) return 'eagle'
-  if (d === -1) return 'birdie'
-  if (d === 0)  return 'par'
-  if (d === 1)  return 'bogey'
-  return 'double'
+  return getSharedScoreType(strokes, par)
 }
 
+// The shared token-driven map plus this form's empty-cell state.
 const SCORE_STYLE: Record<ScoreType, { cell: string; text: string; dot: string; doubleRing?: string }> = {
-  eagle:  { cell: 'rounded-full border-2 border-red-500',               text: 'text-red-600',    dot: '#b8860b', doubleRing: 'rounded-full border-2 border-red-500' },
-  birdie: { cell: 'rounded-full border-2 border-red-500',               text: 'text-red-600',    dot: '#dc2626' },
-  par:    { cell: 'border border-border/40 rounded-sm',                  text: 'text-foreground', dot: '#6b7280' },
-  bogey:  { cell: 'border-2 border-gray-700 rounded-none',              text: 'text-foreground', dot: '#374151' },
-  double: { cell: 'border-2 border-gray-700 rounded-none',              text: 'text-gray-600',   dot: '#1f2937', doubleRing: 'border-2 border-gray-700 rounded-none' },
-  empty:  { cell: 'border border-border/30 rounded',                    text: 'text-foreground', dot: '#d1d5db' },
+  ...SHARED_SCORE_STYLE,
+  empty: { cell: 'border border-border/30 rounded', text: 'text-foreground', dot: 'var(--border)' },
 }
 
 // ─── SVG Donut Chart ───────────────────────────────────────────────────────
@@ -67,7 +64,7 @@ function DonutChart({ counts, total }: { counts: Record<string, number>; total: 
   let cum = 0
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#e5e7eb" strokeWidth="14" />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--muted)" strokeWidth="14" />
       {segs.map((seg) => {
         const len = (counts[seg.key] / total) * circ
         const off = circ * 0.25 - cum
@@ -80,8 +77,8 @@ function DonutChart({ counts, total }: { counts: Record<string, number>; total: 
           />
         )
       })}
-      <text x={c} y={c + 7} textAnchor="middle"
-        style={{ fontSize: '20px', fontWeight: 700, fill: '#111827' }}>
+      <text x={c} y={c + 6} textAnchor="middle"
+        style={{ fontSize: '1rem', fontWeight: 600, fill: 'var(--foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}>
         {total}
       </text>
     </svg>

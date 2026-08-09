@@ -23,7 +23,7 @@ export function NineTable({
 }) {
   if (holes.length === 0) return null
 
-  const summaryTd = 'px-1 py-2 text-center text-xs sm:text-sm font-bold bg-[var(--color-primary)]/8 border-l border-[var(--color-primary)]/15'
+  const summaryTd = 'px-1 py-2 text-center text-xs sm:text-sm font-bold font-mono tabular-nums bg-[var(--color-primary)]/8 border-l border-[var(--color-primary)]/15'
 
   return (
     <div className="rounded-xl border border-border shadow-sm overflow-hidden">
@@ -34,7 +34,7 @@ export function NineTable({
               Hole
             </th>
             {holes.map((s) => (
-              <th key={s.holeNumber} className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-white">
+              <th key={s.holeNumber} className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-white font-mono tabular-nums">
                 {s.holeNumber}
               </th>
             ))}
@@ -48,7 +48,7 @@ export function NineTable({
           <tr className="border-b border-border bg-muted/20">
             <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-[9px] sm:text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">Par</td>
             {holes.map((s) => (
-              <td key={s.holeNumber} className="text-center py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold">{s.par}</td>
+              <td key={s.holeNumber} className="text-center py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold font-mono tabular-nums">{s.par}</td>
             ))}
             <td className={summaryTd}>{totalPar}</td>
           </tr>
@@ -82,7 +82,7 @@ export function NineTable({
                 <td key={s.holeNumber} className="py-2 sm:py-2.5 text-center">
                   {style.doubleRing ? (
                     <div className={`size-7 sm:size-10 mx-auto flex items-center justify-center p-0.5 ${style.doubleRing}`}>
-                      <div className={`w-full h-full flex items-center justify-center relative font-bold text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
+                      <div className={`w-full h-full flex items-center justify-center relative font-bold font-mono tabular-nums text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
                         {s.strokes}
                         {receivesStroke && (
                           <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" title="Handicap stroke" />
@@ -90,7 +90,7 @@ export function NineTable({
                       </div>
                     </div>
                   ) : (
-                    <div className={`size-6 sm:size-8 mx-auto flex items-center justify-center relative font-bold text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
+                    <div className={`size-6 sm:size-8 mx-auto flex items-center justify-center relative font-bold font-mono tabular-nums text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
                       {s.strokes}
                       {receivesStroke && (
                         <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" title="Handicap stroke" />

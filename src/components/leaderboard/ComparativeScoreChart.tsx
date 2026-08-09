@@ -190,7 +190,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
               y1={yScale(v)}
               x2={w - pad.right}
               y2={yScale(v)}
-              stroke={v === 0 ? '#d4d4d8' : '#f3f4f6'}
+              stroke={v === 0 ? 'var(--border)' : 'color-mix(in oklab, var(--border) 45%, transparent)'}
               strokeWidth={v === 0 ? 1.5 : 0.5}
             />
           ))}
@@ -204,7 +204,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
                 x={pad.left - 8}
                 y={yScale(v) + 3.5}
                 textAnchor="end"
-                style={{ fontSize: 9, fill: '#9ca3af', fontFamily: 'inherit' }}
+                style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}
               >
                 {v === 0 ? 'E' : v > 0 ? `+${v}` : `${v}`}
               </text>
@@ -217,7 +217,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
               x={xScale(hole)}
               y={h - pad.bottom + 14}
               textAnchor="middle"
-              style={{ fontSize: 9, fill: '#6b7280', fontFamily: 'inherit' }}
+              style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}
             >
               {hole}
             </text>

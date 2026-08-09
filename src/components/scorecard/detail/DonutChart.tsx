@@ -15,7 +15,7 @@ export function DonutChart({ counts, total }: { counts: Record<string, number>; 
   let cum = 0
   return (
     <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="#e5e7eb" strokeWidth="14" />
+      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--muted)" strokeWidth="14" />
       {segs.map((seg) => {
         const len = (counts[seg.key] / total) * circ
         const off = circ * 0.25 - cum
@@ -27,8 +27,8 @@ export function DonutChart({ counts, total }: { counts: Record<string, number>; 
           />
         )
       })}
-      <text x={c} y={c + 7} textAnchor="middle"
-        style={{ fontSize: '20px', fontWeight: 700, fill: '#111827' }}>
+      <text x={c} y={c + 6} textAnchor="middle"
+        style={{ fontSize: '1rem', fontWeight: 600, fill: 'var(--foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}>
         {total}
       </text>
     </svg>
