@@ -425,3 +425,30 @@ tournament layout — plus logo and header image. Every branded surface derives
 from those two variables with contrast guarding; nothing may hardcode a
 foreground against them. The app tokens above are the fallback world when a
 tournament has no branding.
+
+Contrast guarding is centralized: `brandVars()` in `src/lib/utils.ts` computes
+the foregrounds once at the two injection points (`[slug]/layout.tsx` and the
+draft page) by luminance-testing each brand color and overriding
+`--primary-foreground` / `--accent-foreground` with the mode-invariant
+`--brand-ink` or `--brand-bone`. Components read `text-primary-foreground` /
+`text-accent-foreground` (or the vars inline) and never hardcode white or ink
+against `--color-primary` / `--color-accent`. Brand colors are validated to
+`#RRGGBB` at every write path.
+
+**The powerup register.** Powerup cards are game pieces with their own
+sanctioned, token-only palette — mode-invariant (cards are physical objects;
+only the active glow flips in dark) and independent of tournament branding:
+
+- `--powerup-attack` / `--powerup-attack-deep` — system crimson ink and deeps
+- `--powerup-boost` / `--powerup-boost-deep` — tournament green ink and deeps
+- `--powerup-active` — purple; exactly one meaning: *a powerup is live on this
+  hole* (rings, glows, scorecard stars, chat powerup messages)
+- `--powerup-stock` — the card-face paper (the old hardcoded `#f5f0e8`)
+
+All component usage goes through `POWERUP_STYLES` / `powerupStyles()` in
+`src/components/draft/CardHand.tsx`; a raw Tailwind color-scale class
+(red-*, emerald-*, purple-*, amber-*) on a powerup surface is a defect.
+Selected/highlighted cards use the gold accent (`ring-accent`) — never a third
+hue. Good/bad stroke modifiers use `--success` / `--destructive`, selection
+states use `--primary` — those are app semantics, not the register. The
+favourite heart stays literal red: it is iconography, not dialect.
