@@ -2,7 +2,6 @@ import { redirect } from 'next/navigation'
 import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { buttonVariants } from '@/components/ui/button-variants'
 import { Card, CardContent } from '@/components/ui/card'
 
 import { Trophy, Clock, MapPin, Repeat } from 'lucide-react'
@@ -212,7 +211,21 @@ export default async function DashboardPage() {
   const mostRecentIsComplete = mostRecentRoundHoles >= 18
   const mostRecentDiff = (mostRecentRoundGross ?? 0) - (mostRecentRoundPar ?? 0)
 
-  const hasActiveRoundToScore = Boolean(mostRecentScore && !mostRecentIsComplete)
+  // The hero's locker plate. Live = the tournament is running and the round
+  // isn't fully posted yet; the plate leads with the number either way.
+  const heroRound =
+    mostRecentScore && mostRecentRoundGross !== null
+      ? {
+          course: mostRecentScore.round.course.name,
+          tournament: mostRecentScore.round.tournament.name,
+          slug: mostRecentScore.round.tournament.slug,
+          gross: mostRecentRoundGross,
+          diff: mostRecentDiff,
+          thru: mostRecentRoundHoles,
+          complete: mostRecentIsComplete,
+          live: !mostRecentIsComplete,
+        }
+      : null
 
   return (
     <>
@@ -222,43 +235,10 @@ export default async function DashboardPage() {
       totalRounds={totalRounds}
       scoringAvg={scoringAvg}
       activeTournamentCount={activeMemberships.length + activeLeagues.length}
-      hasActiveRoundToScore={hasActiveRoundToScore}
+      round={heroRound}
     />
 
     <main className="max-w-4xl mx-auto px-4 py-6 sm:px-6 space-y-10">
-      {/* Most Recent Round */}
-      {mostRecentScore && (
-        <Card className="overflow-hidden border-l-4" style={{ borderLeftColor: 'var(--accent)' }}>
-          <CardContent className="py-2 px-4">
-            <div className="flex items-center justify-between gap-3">
-              <div className="flex items-center gap-3 min-w-0">
-                {mostRecentRoundGross !== null && mostRecentRoundPar !== null && (
-                  <div className="shrink-0">
-                    <span className="text-lg font-bold font-heading leading-none">{mostRecentRoundGross}</span>
-                    <span className="text-[11px] text-muted-foreground ml-1">
-                      ({mostRecentDiff === 0 ? 'E' : mostRecentDiff > 0 ? `+${mostRecentDiff}` : `${mostRecentDiff}`})
-                    </span>
-                  </div>
-                )}
-                <div className="min-w-0">
-                  <p className="text-sm font-semibold truncate">{mostRecentScore.round.course.name}</p>
-                  <p className="text-[11px] text-muted-foreground truncate">
-                    {mostRecentScore.round.tournament.name} · thru {mostRecentRoundHoles}
-                  </p>
-                </div>
-              </div>
-              <Link
-                href={`/${mostRecentScore.round.tournament.slug}${mostRecentIsComplete ? '' : '/play'}`}
-                className={buttonVariants({ variant: mostRecentIsComplete ? 'outline' : 'default', size: 'sm' })}
-                style={!mostRecentIsComplete ? { backgroundColor: 'var(--accent)', color: 'var(--accent-foreground)' } : {}}
-              >
-                {mostRecentIsComplete ? 'View' : 'Resume'}
-              </Link>
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
       {/* Your Tournaments */}
       <section className="space-y-3">
         <div className="flex items-center justify-between">
