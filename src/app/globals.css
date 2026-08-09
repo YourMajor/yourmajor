@@ -1095,44 +1095,33 @@ main.marketing::after {
   to   { opacity: 1; transform: none; }
 }
 .card-rise { animation: cardRise 400ms cubic-bezier(0.22, 1, 0.36, 1) both; }
-/* A gold sheen sweeps interactive cards on hover — the marketing plate
-   flourish, unscoped for the app. Pointer devices only. */
-.card-sheen { position: relative; overflow: hidden; }
-.card-sheen::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  pointer-events: none;
-  background: linear-gradient(
-    105deg,
-    transparent 40%,
-    oklch(from var(--accent) l c h / 0.14) 50%,
-    transparent 60%
-  );
-  transform: translateX(-120%);
+/* Drop the curtain: at rest the tile wears its brand color; on hover the
+   scrim thins and lifts while the tournament's own header photograph blooms
+   through with a slow settle. A bottom gradient stays put so the name never
+   loses its ground. Photo-less tiles breathe their primary instead. */
+.tcurtain-photo {
+  transform: scale(1.08);
+  transition: transform 900ms cubic-bezier(0.22, 1, 0.36, 1), opacity 350ms ease-out;
+  opacity: 0.35;
+}
+.tcurtain-scrim {
+  transition: opacity 350ms ease-out, transform 500ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+.tcurtain-breathe {
+  background-size: 220% 100%;
+  background-position: 0% 50%;
+  transition: background-position 900ms cubic-bezier(0.22, 1, 0.36, 1);
 }
 @media (hover: hover) {
-  .card-sheen:hover::after { transition: transform 600ms ease-out; transform: translateX(120%); }
-}
-/* Hover delight on tournament tiles: the logo badge tips like a ball
-   marker being lifted, and the accent rail brightens and thickens. */
-.tcard-badge { transition: transform 200ms cubic-bezier(0.22, 1, 0.36, 1); }
-.tcard-stripe {
-  transform-origin: top;
-  transition: transform 200ms ease-out, box-shadow 200ms ease-out;
-}
-@media (hover: hover) {
-  .card-sheen:hover .tcard-badge { transform: rotate(-8deg) scale(1.06); }
-  .card-sheen:hover .tcard-stripe {
-    transform: scaleY(1.5);
-    box-shadow: 0 0 10px oklch(from var(--accent) l c h / 0.55);
-  }
+  .tcard-hover:hover .tcurtain-photo { transform: scale(1); opacity: 1; }
+  .tcard-hover:hover .tcurtain-scrim { opacity: 0.25; transform: translateY(-18%); }
+  .tcard-hover:hover .tcurtain-breathe { background-position: 100% 50%; }
 }
 @media (prefers-reduced-motion: reduce) {
   .card-rise { animation: none; }
-  .card-sheen::after { display: none; }
-  .tcard-badge, .tcard-stripe { transition: none; }
-  .card-sheen:hover .tcard-badge { transform: none; }
+  .tcurtain-photo, .tcurtain-scrim, .tcurtain-breathe { transition: none; }
+  .tcard-hover:hover .tcurtain-photo,
+  .tcard-hover:hover .tcurtain-scrim { transform: none; }
 }
 
 /* ── Posting the Number (live scoring feedback) ─────────── */

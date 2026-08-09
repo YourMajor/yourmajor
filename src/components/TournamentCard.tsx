@@ -73,26 +73,49 @@ export function TournamentCard({
     <div className="relative">
       <Link href={`/${t.slug}`} className="block">
         <Card
-          className={`card-sheen rounded-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer overflow-hidden !py-0 !gap-0${isInvite ? ' ring-2' : ''}`}
+          className={`tcard-hover rounded-md hover:shadow-lg hover:-translate-y-0.5 transition-all duration-200 cursor-pointer overflow-hidden !py-0 !gap-0${isInvite ? ' ring-2' : ''}`}
           style={isInvite ? { '--tw-ring-color': t.accentColor } as React.CSSProperties : undefined}
         >
-          {/* Branded header strip */}
-          <div
-            className="relative px-3 py-2.5 flex items-center"
-            style={{
-              background: t.headerImage
-                ? `linear-gradient(to top, ${t.primaryColor}ee, ${t.primaryColor}cc), url(${t.headerImage}) center/cover no-repeat`
-                : `linear-gradient(135deg, ${t.primaryColor}, ${t.primaryColor}dd)`,
-            }}
-          >
+          {/* Branded header strip: the curtain. At rest the brand color owns
+              the strip; hovering thins the scrim and lets the tournament's
+              own photograph bloom through. */}
+          <div className="relative px-3 py-2.5 flex items-center overflow-hidden">
+            {t.headerImage ? (
+              <>
+                <div
+                  aria-hidden
+                  className="tcurtain-photo absolute inset-0"
+                  style={{ background: `url(${t.headerImage}) center/cover no-repeat` }}
+                />
+                <div
+                  aria-hidden
+                  className="tcurtain-scrim absolute inset-0"
+                  style={{ background: `linear-gradient(to top, ${t.primaryColor}ee, ${t.primaryColor}cc)` }}
+                />
+                {/* The name's ground never lifts */}
+                <div
+                  aria-hidden
+                  className="absolute inset-x-0 bottom-0 h-3/5"
+                  style={{ background: `linear-gradient(to top, ${t.primaryColor}e6, transparent)` }}
+                />
+              </>
+            ) : (
+              <div
+                aria-hidden
+                className="tcurtain-breathe absolute inset-0"
+                style={{
+                  backgroundImage: `linear-gradient(120deg, ${t.primaryColor}, color-mix(in oklab, ${t.primaryColor}, black 22%), ${t.primaryColor})`,
+                }}
+              />
+            )}
             {/* Accent stripe */}
             <div
-              className="tcard-stripe absolute top-0 left-0 right-0 h-[2px]"
+              className="absolute top-0 left-0 right-0 h-[2px]"
               style={{ backgroundColor: t.accentColor }}
             />
 
             {/* Logo + Name */}
-            <div className="flex items-center gap-2.5 min-w-0 flex-1">
+            <div className="relative flex items-center gap-2.5 min-w-0 flex-1">
               {t.logo ? (
                 <Image
                   src={t.logo}
