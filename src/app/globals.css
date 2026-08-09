@@ -504,20 +504,74 @@
   animation: mkTypingDot 1.3s ease-in-out infinite;
 }
 
-/* Formats marquee: one seamless loop of the scoring vocabulary. The track
-   holds two copies of the row; -50% is exactly one copy. */
-@keyframes mkMarquee {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-.marketing .mk-marquee-track {
-  display: flex;
-  width: max-content;
-  animation: mkMarquee 36s linear infinite;
-}
 @media (prefers-reduced-motion: reduce) {
   .marketing .mk-typing-dot { animation: none !important; }
-  .marketing .mk-marquee-track { animation: none !important; }
+}
+
+/* Split-flap round status: the board's own clock, flipped broadcast-style
+   when the lead-change chapter advances. Tiles are the deep green pushed
+   nearly to black so they read as physical furniture on the studio panel;
+   the leaves exist only while a flip is in flight. */
+.marketing .mk-flap-row { display: inline-flex; gap: 3px; }
+.marketing .mk-flap {
+  --mk-flap-tile: color-mix(in oklch, var(--mk-green-deep) 68%, black);
+  position: relative;
+  width: 0.78em;
+  height: 1.16em;
+  overflow: hidden;
+  border-radius: var(--mk-radius-sm);
+  background: var(--mk-flap-tile);
+  box-shadow: inset 0 1px 0 oklch(1 0 0 / 0.09), inset 0 -2px 3px oklch(0 0 0 / 0.4);
+  perspective: 340px;
+}
+.marketing .mk-flap::before {
+  content: '';
+  position: absolute;
+  left: 0; right: 0;
+  top: calc(50% - 0.5px);
+  height: 1px;
+  background: oklch(0 0 0 / 0.55);
+  z-index: 4;
+}
+.marketing .mk-flap-half,
+.marketing .mk-flap-leaf {
+  position: absolute; left: 0; width: 100%; height: 50%;
+  overflow: hidden;
+  background: var(--mk-flap-tile);
+}
+.marketing .mk-flap-top { top: 0; }
+.marketing .mk-flap-bottom { bottom: 0; }
+.marketing .mk-flap-char {
+  position: absolute; left: 0; width: 100%; height: 200%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--mk-bone);
+}
+.marketing .mk-flap-top .mk-flap-char,
+.marketing .mk-flap-front .mk-flap-char { top: 0; }
+.marketing .mk-flap-bottom .mk-flap-char,
+.marketing .mk-flap-back .mk-flap-char { bottom: 0; }
+.marketing .mk-flap-leaf { z-index: 3; backface-visibility: hidden; }
+.marketing .mk-flap-front {
+  top: 0;
+  transform-origin: center bottom;
+  animation: mkFlapFront 0.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+.marketing .mk-flap-back {
+  bottom: 0;
+  transform-origin: center top;
+  transform: rotateX(90deg);
+  animation: mkFlapBack 0.2s cubic-bezier(0.23, 1, 0.32, 1) both;
+}
+@keyframes mkFlapFront {
+  from { transform: rotateX(0deg); filter: brightness(1.05); }
+  to   { transform: rotateX(-90deg); filter: brightness(0.55); }
+}
+@keyframes mkFlapBack {
+  0%, 45% { transform: rotateX(90deg); filter: brightness(0.6); }
+  100%    { transform: rotateX(0deg); filter: brightness(1); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-flap-leaf { animation: none !important; }
 }
 
 /* ── Dusk interlude ──────────────────────────────────────
@@ -852,9 +906,6 @@ main.marketing::after {
   );
   animation: mkGlowBreathe 8s ease-in-out infinite alternate;
 }
-
-/* The marquee yields to a reading pause on hover. */
-.marketing .mk-marquee:hover .mk-marquee-track { animation-play-state: paused; }
 
 @media (prefers-reduced-motion: reduce) {
   .marketing nav [data-nav-rule] { transition: none; }
