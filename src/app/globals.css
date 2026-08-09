@@ -36,6 +36,9 @@
   --color-warning: var(--warning);
   --color-accent-foreground: var(--accent-foreground);
   --color-accent: var(--accent);
+  --color-gold-ink: var(--gold-ink);
+  --color-surface-deep: var(--surface-deep);
+  --color-surface-deep-foreground: var(--surface-deep-foreground);
   --color-club: var(--club);
   --color-tour: var(--tour);
   --color-muted-foreground: var(--muted-foreground);
@@ -58,52 +61,65 @@
 }
 
 :root {
-  /* ── Navy Blue palette ───────────────────────────── */
-  --background:           oklch(0.985 0.002 250);
-  --foreground:           oklch(0.17 0.03 250);
-  --card:                 oklch(1 0 0);
-  --card-foreground:      oklch(0.17 0.03 250);
-  --popover:              oklch(1 0 0);
-  --popover-foreground:   oklch(0.17 0.03 250);
-  --primary:              oklch(0.30 0.08 255);
-  --primary-foreground:   oklch(0.99 0 0);
-  --secondary:            oklch(0.95 0.006 250);
-  --secondary-foreground: oklch(0.17 0.03 250);
-  --muted:                oklch(0.95 0.004 250);
-  --muted-foreground:     oklch(0.50 0.02 250);
-  --accent:               oklch(0.72 0.11 78);
-  --accent-foreground:    oklch(0.15 0.02 40);
+  /* ── Championship Board, Operate surface ─────────────
+     The app's adaptation of the marketing world (DESIGN.md
+     "Operate Surface"): warm bone paper as the working ground,
+     deep green as structure (nav, primary actions, dark strips),
+     gold as a rule or an accent word, ink text tinted green.
+     Per-tournament branding still overrides --color-primary /
+     --color-accent inline on the [slug] layout wrapper.        */
+  --background:           oklch(0.97 0.008 85);   /* warm paper       */
+  --foreground:           oklch(0.22 0.02 150);   /* ink              */
+  --card:                 oklch(0.995 0.004 85);  /* lifted plate     */
+  --card-foreground:      oklch(0.22 0.02 150);
+  --popover:              oklch(0.995 0.004 85);
+  --popover-foreground:   oklch(0.22 0.02 150);
+  --primary:              oklch(0.27 0.055 155);  /* tournament green */
+  --primary-foreground:   oklch(0.98 0.005 85);   /* bone             */
+  --secondary:            oklch(0.93 0.015 150);
+  --secondary-foreground: oklch(0.22 0.02 150);
+  --muted:                oklch(0.94 0.01 90);
+  --muted-foreground:     oklch(0.47 0.02 150);   /* green-grey       */
+  --accent:               oklch(0.72 0.11 78);    /* gold rule        */
+  --accent-foreground:    oklch(0.22 0.02 150);
+  --gold-ink:             oklch(0.45 0.10 78);    /* AA gold on light */
+  --surface-deep:         oklch(0.21 0.045 155);  /* deep green strip */
+  --surface-deep-foreground: oklch(0.98 0.005 85);
   --club:                 oklch(0.55 0.14 158);
   --tour:                 oklch(0.42 0.16 20);
   --destructive:          oklch(0.577 0.245 27.325);
-  --border:               oklch(0.88 0.01 250);
-  --input:                oklch(0.88 0.01 250);
-  --ring:                 oklch(0.30 0.08 255);
-  --radius:               0.5rem;
+  --border:               oklch(0.87 0.012 120);  /* tinted hairline  */
+  --input:                oklch(0.87 0.012 120);
+  --ring:                 oklch(0.27 0.055 155);
+  --radius:               0.375rem;               /* squared: 2-6px   */
 
   /* ── Score semantic colours ──────────────────────── */
-  --score-eagle:          oklch(0.55 0.15 85);   /* gold — ace / eagle */
-  --score-birdie:         oklch(0.50 0.20 25);   /* red  — under par  */
+  --score-eagle:          oklch(0.50 0.11 78);   /* dark gold — eagle */
+  --score-birdie:         oklch(0.50 0.20 25);   /* red — under par   */
   --score-par:            var(--foreground);
   --score-bogey:          var(--muted-foreground);
-  --score-double:         oklch(0.55 0.02 250);  /* faded grey         */
+  --score-double:         oklch(0.55 0.02 150);  /* faded green-grey  */
 
   /* ── Semantic status colours ─────────────────────── */
   --success:              oklch(0.55 0.17 145);  /* green  */
   --warning:              oklch(0.65 0.15 75);   /* amber  */
-  --chart-1:              oklch(0.30 0.08 255);
-  --chart-2:              oklch(0.72 0.11 78);
-  --chart-3:              oklch(0.62 0.18 30);
-  --chart-4:              oklch(0.52 0.10 220);
-  --chart-5:              oklch(0.75 0.05 250);
-  --sidebar:              oklch(0.97 0.004 250);
-  --sidebar-foreground:   oklch(0.17 0.03 250);
-  --sidebar-primary:      oklch(0.30 0.08 255);
-  --sidebar-primary-foreground: oklch(0.99 0 0);
-  --sidebar-accent:       oklch(0.93 0.008 250);
-  --sidebar-accent-foreground: oklch(0.17 0.03 250);
-  --sidebar-border:       oklch(0.88 0.01 250);
-  --sidebar-ring:         oklch(0.30 0.08 255);
+  --chart-1:              oklch(0.27 0.055 155);
+  --chart-2:              oklch(0.45 0.10 78);
+  --chart-3:              oklch(0.50 0.20 25);
+  --chart-4:              oklch(0.45 0.02 150);
+  --chart-5:              oklch(0.60 0.05 155);
+  --sidebar:              oklch(0.95 0.012 120);
+  --sidebar-foreground:   oklch(0.22 0.02 150);
+  --sidebar-primary:      oklch(0.27 0.055 155);
+  --sidebar-primary-foreground: oklch(0.98 0.005 85);
+  --sidebar-accent:       oklch(0.91 0.015 140);
+  --sidebar-accent-foreground: oklch(0.22 0.02 150);
+  --sidebar-border:       oklch(0.86 0.012 120);
+  --sidebar-ring:         oklch(0.27 0.055 155);
+
+  /* The application's display face is the marketing serif;
+     Playfair is retired. */
+  --font-heading:         var(--font-display);
 
   /* ── Mobile / iOS safe-area tokens ──────────────── */
   --touch-target-min: 48px;
@@ -984,6 +1000,23 @@ main.marketing::after {
   display: none;
 }
 
+/* ── Operate-surface vocabulary ────────────────────────
+   The two shared conventions the app inherits from the
+   Championship Board (DESIGN.md "Operate Surface"):
+   a plate is where information lives; any number a user
+   might compare vertically is tabular mono. */
+.plate {
+  background: var(--card);
+  border: 1px solid oklch(from var(--foreground) l c h / 0.08);
+  border-radius: var(--radius-lg);
+  box-shadow: 0 16px 40px oklch(0.30 0.04 155 / 0.10);
+}
+.tabular-data {
+  font-family: var(--font-geist-mono), ui-monospace, monospace;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
 /* ── Score colour helpers ──────────────────────────────── */
 .score-eagle   { color: var(--score-eagle);  font-weight: 700; }
 .score-birdie  { color: var(--score-birdie); font-weight: 600; }
@@ -1001,18 +1034,22 @@ main.marketing::after {
   animation: shake 0.4s ease-in-out;
 }
 
-/* ── Tournament-branded surface ────────────────────────── */
+/* ── Tournament-branded surface ────────────────────────
+   --color-primary / --color-accent resolve to the app tokens
+   through @theme, and to the tournament's own colors where the
+   [slug] layout injects them inline. No literal fallbacks: the
+   token layer is the fallback. */
 .tournament-header {
-  background-color: var(--color-primary, oklch(0.30 0.08 255));
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--primary-foreground);
 }
 .tournament-accent {
-  color: var(--color-accent, oklch(0.72 0.11 78));
+  color: var(--color-accent);
 }
 
 /* ── Embossed logo badge ─────────────────────────────── */
 .tournament-logo-badge {
-  border: 2px solid color-mix(in oklch, var(--color-primary, #1A3260), white 30%);
+  border: 2px solid color-mix(in oklch, var(--color-primary), white 30%);
   box-shadow:
     0 4px 16px rgba(0, 0, 0, 0.18),
     0 2px 6px rgba(0, 0, 0, 0.12),
@@ -1020,22 +1057,23 @@ main.marketing::after {
     inset 0 -1px 0 rgba(0, 0, 0, 0.12);
   background: linear-gradient(
     160deg,
-    color-mix(in oklch, var(--color-primary, #1A3260), white 10%),
-    color-mix(in oklch, var(--color-primary, #1A3260), black 8%)
+    color-mix(in oklch, var(--color-primary), white 10%),
+    color-mix(in oklch, var(--color-primary), black 8%)
   );
 }
 
 /* ── Embossed text effect ────────────────────────────── */
 .tournament-embossed-text {
-  color: var(--color-primary, #1A3260);
+  color: var(--color-primary);
   text-shadow:
-    0 1px 0 color-mix(in oklch, var(--color-primary, #1A3260), white 40%),
-    0 -1px 0 color-mix(in oklch, var(--color-primary, #1A3260), black 30%);
+    0 1px 0 color-mix(in oklch, var(--color-primary), white 40%),
+    0 -1px 0 color-mix(in oklch, var(--color-primary), black 30%);
 }
 
 /* ── Footer ─────────────────────────────────────────── */
 .footer-masters {
-  background-color: oklch(0.22 0.06 255);
+  background-color: var(--surface-deep);
+  border-top: 1px solid oklch(from var(--accent) l c h / 0.35);
 }
 
 /* ── Section divider (gold rule) ────────────────────── */
@@ -1056,29 +1094,29 @@ main.marketing::after {
   width: 100%;
 }
 .masters-table thead {
-  background-color: var(--color-primary, oklch(0.30 0.08 255));
-  color: white;
+  background-color: var(--color-primary);
+  color: var(--primary-foreground);
 }
 .masters-table thead th {
-  font-size: 12px;
+  font-size: 0.6875rem; /* DESIGN.md label step */
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.14em;
   font-weight: 600;
   padding: 10px 8px;
-  border-bottom: 2px solid var(--color-accent, oklch(0.72 0.11 78));
+  border-bottom: 2px solid var(--color-accent);
 }
 .masters-table tbody tr {
-  border-bottom: 1px solid oklch(0.88 0.01 140);
+  border-bottom: 1px solid var(--border);
 }
 .masters-table tbody tr:nth-child(even) {
-  background-color: oklch(0.97 0.003 95);
+  background-color: var(--muted);
 }
 .masters-table tbody tr:hover {
-  background-color: oklch(0.95 0.005 95);
+  background-color: var(--secondary);
 }
 .masters-table td,
 .masters-table th {
-  border-right: 1px solid oklch(0.90 0.008 140 / 0.5);
+  border-right: 1px solid oklch(from var(--border) l c h / 0.5);
 }
 .masters-table td:last-child,
 .masters-table th:last-child {
@@ -1086,7 +1124,7 @@ main.marketing::after {
 }
 .masters-table td {
   padding: 10px 8px;
-  font-size: 14px;
+  font-size: 0.875rem; /* DESIGN.md body-sm step */
 }
 
 /* ── Card flip animation ─────────────────────────────── */

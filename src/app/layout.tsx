@@ -1,18 +1,13 @@
 import type { Metadata, Viewport } from 'next'
-import { Geist, Geist_Mono, Playfair_Display, Libre_Caslon_Display } from 'next/font/google'
+import { Geist, Geist_Mono, Libre_Caslon_Display } from 'next/font/google'
 import { PwaRegister } from '@/components/pwa/PwaRegister'
 import { InstallPrompt } from '@/components/pwa/InstallPrompt'
 import './globals.css'
 
 const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({ variable: '--font-geist-mono', subsets: ['latin'] })
-const playfair = Playfair_Display({
-  variable: '--font-heading',
-  subsets: ['latin'],
-  display: 'swap',
-})
-// Marketing surface display face. Scoped to `.marketing` in globals.css;
-// the application keeps --font-heading. See DESIGN.md.
+// The one display face, marketing and app both: globals.css points
+// --font-heading at this variable. See DESIGN.md "Operate Surface".
 const libreCaslon = Libre_Caslon_Display({
   variable: '--font-display',
   weight: '400',
@@ -21,7 +16,7 @@ const libreCaslon = Libre_Caslon_Display({
 })
 
 export const viewport: Viewport = {
-  themeColor: '#1A3260',
+  themeColor: '#041e0f',
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
@@ -46,7 +41,7 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${playfair.variable} ${libreCaslon.variable} h-full antialiased`} suppressHydrationWarning>
+    <html lang="en" className={`${geistSans.variable} ${geistMono.variable} ${libreCaslon.variable} h-full antialiased`} suppressHydrationWarning>
       <body className="min-h-full flex flex-col" suppressHydrationWarning>
         {children}
         <PwaRegister />

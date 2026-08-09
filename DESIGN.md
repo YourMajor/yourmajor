@@ -389,3 +389,39 @@ collapses to static under `prefers-reduced-motion`.
   information the reader needs.
 - **Don't** make same-size icon-heading-text cards the page structure, and never
   nest a card inside a card.
+
+## Operate Surface (post-login application, 2026-08-08)
+
+The authenticated app carries the Championship Board **craft**, not its drench.
+Users are mid-task — often outdoors, sunlit, one-handed — so the surface is
+Operate mode: a warm bone-paper ground (`--background oklch(0.97 0.008 85)`),
+ink text tinted green, and deep green as **structure** rather than atmosphere:
+the primary action, the nav strips (`--surface-deep`), table headers, active
+states. Gold stays a rule, a hairline, or one accent word (`--accent` on dark,
+`--gold-ink oklch(0.45 0.10 78)` for AA text on light). Radii are squared
+(`--radius 0.375rem`, 2–6px range). Libre Caslon Display is the app's heading
+face too; Playfair is retired. Playful drench, dusk/night atmosphere, poster
+moments, grain, and MOTION_INTENSITY 7 remain marketing-only.
+
+Rules that carry over unchanged:
+- **Tabular:** any vertically comparable number is Geist Mono `tnum`
+  (`.tabular-data`). A leaderboard column of proportional figures is a defect.
+- **Red Means Under Par** for scores (`--score-birdie`). Unlike marketing, the
+  app does keep `--destructive` red for errors — score red is distinguished by
+  mono type and table context, never by button styling.
+- **Plates carry information** (`.plate`): bone card, ink hairline at 8%,
+  green-tinted ambient shadow. Decoration never gets a plate.
+- **Tinted shadows** toward the green ground; never neutral black on color.
+
+Operate constraints (from the mode, binding here):
+- Motion is 150–250ms and conveys state — feedback, loading, reveal,
+  position change. No orchestrated page-load choreography.
+- Density is a feature: tables and standings stay dense and legible.
+- Touch targets ≥ 44px on player-facing surfaces (sunlight, one-handed).
+
+**The branding contract.** Inside `/[slug]`, per-tournament branding is exactly
+two variables — `--color-primary` and `--color-accent`, injected inline by the
+tournament layout — plus logo and header image. Every branded surface derives
+from those two variables with contrast guarding; nothing may hardcode a
+foreground against them. The app tokens above are the fallback world when a
+tournament has no branding.
