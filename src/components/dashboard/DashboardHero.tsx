@@ -69,16 +69,17 @@ export function DashboardHero({
   )
 
   return (
-    <section className="relative w-full overflow-hidden">
+    <section className="relative w-full">
       {/* The course at dusk: the marketing hero photograph under the same
-          slate-and-sunset atmosphere, dissolving into the page ground so
-          the band works on bone paper and on the night theme alike. */}
+          slate-and-sunset atmosphere. The backdrop overhangs the section by
+          ~14rem so the photograph dissolves down into the tournament list
+          rather than stopping at the band's edge. */}
       <div
         aria-hidden
-        className="pointer-events-none absolute inset-0"
+        className="pointer-events-none absolute inset-x-0 top-0 -bottom-56 overflow-hidden"
         style={{
-          WebkitMaskImage: 'linear-gradient(to bottom, black 93%, transparent 100%)',
-          maskImage: 'linear-gradient(to bottom, black 93%, transparent 100%)',
+          WebkitMaskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
+          maskImage: 'linear-gradient(to bottom, black 62%, transparent 100%)',
         }}
       >
         <Image
