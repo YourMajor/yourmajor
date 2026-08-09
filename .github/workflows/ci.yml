@@ -27,6 +27,11 @@ jobs:
 
       - run: npx prisma generate
 
+      # next-env.d.ts is gitignored (generated); without it tsc can't resolve
+      # static image imports (*.webp) and fails with TS2307.
+      - name: Generate Next.js types
+        run: npx next typegen
+
       - name: Type check
         run: npx tsc --noEmit
 
