@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useSyncExternalStore } from 'react'
 import { StepperInput } from './StepperInput'
 import { StatToggle } from './StatToggle'
 import { hasFairway, canToggleGirOn } from './score-validation'
@@ -27,6 +27,20 @@ function getScoreType(strokes: number | null, par: number): ScoreType {
   if (d === 0) return 'par'
   if (d === 1) return 'bogey'
   return 'double'
+}
+
+// Online status, render-layer only: the save pipeline (debounce + offline
+// queue) lives in useLiveScoringState and is not touched here.
+function subscribeOnline(cb: () => void) {
+  window.addEventListener('online', cb)
+  window.addEventListener('offline', cb)
+  return () => {
+    window.removeEventListener('online', cb)
+    window.removeEventListener('offline', cb)
+  }
+}
+function useOnline() {
+  return useSyncExternalStore(subscribeOnline, () => navigator.onLine, () => true)
 }
 
 const SCORE_BADGE_STYLE: Record<ScoreType, string> = {
@@ -118,6 +132,7 @@ export function HoleScoring({
   onConcede,
 }: HoleScoringProps) {
   const [inspectedCard, setInspectedCard] = useState<PowerupCardData | null>(null)
+  const online = useOnline()
   const scoreType = getScoreType(score.strokes, hole.par)
   const scoreLabel = score.strokes !== null
     ? score.strokes === 1
@@ -391,6 +406,10 @@ export function HoleScoring({
             <p className="text-xs text-red-400 font-medium text-center px-2">
               {finishError}
             </p>
+          ) : !online && (saveStatus === 'pending' || saveStatus === 'saving') ? (
+            <span role="status" className="text-xs text-amber-300/90">
+              Saved on your phone — syncs when the signal returns
+            </span>
           ) : saveStatus === 'pending' ? (
             <span className="text-xs text-white/60">Pending…</span>
           ) : saveStatus === 'saving' ? (
@@ -421,8 +440,8 @@ export function HoleScoring({
             disabled={!hasNext && !isLastHole}
             className="flex-1 flex items-center justify-center gap-1.5 px-5 py-4 rounded-xl font-semibold text-base active:scale-95 transition-all touch-manipulation"
             style={{
-              backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',
-              color: 'var(--color-primary, oklch(0.40 0.11 160))',
+              backgroundColor: 'var(--color-accent)',
+              color: 'var(--color-primary)',
             }}
           >
             {isLastHole ? 'Finish Round' : 'Next Hole'}

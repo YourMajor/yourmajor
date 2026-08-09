@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback, useMemo } from 'react'
 import Link from 'next/link'
-import { ChevronDown, Crown, Lock, Search } from 'lucide-react'
+import { ChevronDown, ChevronUp, Crown, Lock, Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { type PlayerStanding, type StandingKind } from '@/lib/scoring-utils'
@@ -176,6 +176,28 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
     return result
   }, [sorted, isPointsSort, scoreType])
 
+  // Posting the Number: when fresh standings arrive and a row's position
+  // changed, pulse it once (gold hairline, CSS) and mark the direction.
+  // Keyed to the sort mode so a gross/net toggle never reads as a lead change.
+  const prevOrderRef = useRef<{ mode: string; order: Map<string, number> } | null>(null)
+  const [movedRows, setMovedRows] = useState<Map<string, 'up' | 'down'>>(new Map())
+  useEffect(() => {
+    const mode = `${isPointsSort}-${scoreType}`
+    const order = new Map(withRanks.map((p, i) => [p.tournamentPlayerId, i]))
+    const prev = prevOrderRef.current
+    prevOrderRef.current = { mode, order }
+    if (!prev || prev.mode !== mode) return
+    const moved = new Map<string, 'up' | 'down'>()
+    for (const [id, idx] of order) {
+      const old = prev.order.get(id)
+      if (old !== undefined && old !== idx) moved.set(id, idx < old ? 'up' : 'down')
+    }
+    if (moved.size === 0) return
+    setMovedRows(moved)
+    const t = setTimeout(() => setMovedRows(new Map()), 1400)
+    return () => clearTimeout(t)
+  }, [withRanks, isPointsSort, scoreType])
+
   const hasScores = standings.some((s) => s.holesPlayed > 0)
   const showingRound = roundFilter !== 'all' ? Number(roundFilter) : null
 
@@ -347,7 +369,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
           revealing live would give away which holes the handicap depends on. */}
       {peoriaReveal && peoriaReveal.length > 0 && (
         <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs sm:text-sm">
-          <div className="font-semibold text-foreground mb-1.5 uppercase tracking-wide text-[10px] sm:text-xs">
+          <div className="font-semibold text-foreground mb-1.5 uppercase tracking-[0.14em] text-[0.6875rem]">
             Peoria secret holes
           </div>
           <ul className="space-y-1">
@@ -443,7 +465,10 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                 : p.holesPlayed
 
               return (
-                <tr key={p.tournamentPlayerId} className="cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors">
+                <tr
+                  key={p.tournamentPlayerId}
+                  className={`cursor-pointer hover:bg-muted/50 active:bg-muted/70 transition-colors ${movedRows.has(p.tournamentPlayerId) ? 'leader-row-moved' : ''}`}
+                >
                   {/* Position */}
                   <td className="text-center px-0" style={{ width: '36px' }}>
                     {p.holesPlayed === 0 ? (
@@ -454,6 +479,12 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                           <><span className="text-muted-foreground text-xs">T</span>{p.displayRank.slice(1)}</>
                         ) : (
                           p.displayRank
+                        )}
+                        {movedRows.get(p.tournamentPlayerId) === 'up' && (
+                          <ChevronUp aria-label="moved up" className="inline w-3 h-3 align-middle" style={{ color: 'var(--color-accent)' }} />
+                        )}
+                        {movedRows.get(p.tournamentPlayerId) === 'down' && (
+                          <ChevronDown aria-label="moved down" className="inline w-3 h-3 align-middle text-muted-foreground" />
                         )}
                       </span>
                     )}
