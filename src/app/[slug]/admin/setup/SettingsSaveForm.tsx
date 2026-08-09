@@ -29,7 +29,7 @@ export function SettingsSaveForm({ action, children }: Props) {
     <form action={formAction} className="space-y-6">
       {children}
       {error && <p className="text-sm text-destructive">{error}</p>}
-      {showSuccess && <p className="text-sm text-emerald-600">Saved.</p>}
+      {showSuccess && <p className="text-sm text-success">Saved.</p>}
       <Button type="submit" className="w-full" disabled={pending}>
         {pending ? 'Saving…' : 'Save Changes'}
       </Button>

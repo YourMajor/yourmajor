@@ -75,7 +75,7 @@ export function SubdomainCard({
             {pending ? 'Saving…' : 'Save Subdomain'}
           </Button>
           {error && <p className="text-sm text-destructive">{error}</p>}
-          {success && <p className="text-sm text-emerald-600">{success}</p>}
+          {success && <p className="text-sm text-success">{success}</p>}
         </form>
       </CardContent>
     </Card>

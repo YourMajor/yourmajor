@@ -101,7 +101,7 @@ export function TeamClient({
               </p>
             )}
             {error && <p className="text-sm text-destructive mt-3">{error}</p>}
-            {success && <p className="text-sm text-emerald-600 mt-3">{success}</p>}
+            {success && <p className="text-sm text-success mt-3">{success}</p>}
           </CardContent>
         </Card>
       )}

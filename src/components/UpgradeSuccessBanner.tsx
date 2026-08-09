@@ -18,10 +18,10 @@ export function UpgradeSuccessBanner({ slug }: { slug: string }) {
   }
 
   return (
-    <div className="mb-6 rounded-xl border border-emerald-500/30 bg-emerald-500/5 px-4 py-3">
+    <div className="mb-6 rounded-xl border border-success/30 bg-success/5 px-4 py-3">
       <div className="flex items-start justify-between gap-3">
         <div className="flex items-start gap-3">
-          <CheckCircle2 className="w-5 h-5 text-emerald-500 mt-0.5 shrink-0" />
+          <CheckCircle2 className="w-5 h-5 text-success mt-0.5 shrink-0" />
           <div>
             <p className="text-sm font-semibold text-foreground">Tournament upgraded to Pro!</p>
             <p className="text-xs text-muted-foreground mt-0.5">
@@ -29,7 +29,7 @@ export function UpgradeSuccessBanner({ slug }: { slug: string }) {
             </p>
             <Link
               href={`/${slug}/admin/setup`}
-              className="inline-flex items-center gap-1 text-xs font-medium text-emerald-600 hover:text-emerald-500 mt-2"
+              className="inline-flex items-center gap-1 text-xs font-medium text-success hover:text-success/80 mt-2"
             >
               Add Personalization →
             </Link>
