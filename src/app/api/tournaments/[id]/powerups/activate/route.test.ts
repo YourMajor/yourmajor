@@ -52,7 +52,7 @@ const prismaMock = {
         effect: currentEffect,
       },
     })),
-    updateMany: vi.fn(async () => ({ count: 1 })),
+    updateMany: vi.fn(async (_args: { data: Record<string, unknown> }) => ({ count: 1 })),
   },
   tournamentRound: { findFirst: vi.fn(async () => roundRow) },
   score: { findMany: vi.fn(async () => []) },
@@ -62,6 +62,13 @@ const prismaMock = {
 
 let currentPowerupType = 'ATTACK'
 let currentEffect: unknown = ATTACK_EFFECT
+
+// `after()` throws outside a request scope, so run the callback inline. That
+// also lets the push/broadcast assertions below see it.
+vi.mock('next/server', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('next/server')>()),
+  after: (fn: () => unknown) => { void fn() },
+}))
 
 vi.mock('@/lib/auth', () => authMock)
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
@@ -163,9 +170,7 @@ describe('POST /api/tournaments/[id]/powerups/activate — cross-tournament scop
     expect(res.status).toBe(200)
     expect(prismaMock.playerPowerup.updateMany).toHaveBeenCalledTimes(1)
 
-    const { data } = prismaMock.playerPowerup.updateMany.mock.calls[0][0] as {
-      data: { targetPlayerId: string; targetHoleNumber: number }
-    }
+    const { data } = prismaMock.playerPowerup.updateMany.mock.calls[0][0]
     expect(data.targetPlayerId).toBe('tp_target')
     // Target has no scores, so the attack lands on the hole *after* the one
     // they're on (computeAttackTargetHole: unscored[1] ?? unscored[0]).

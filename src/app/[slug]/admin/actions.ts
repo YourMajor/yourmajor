@@ -2,8 +2,9 @@
 
 import { prisma } from '@/lib/prisma'
 import { revalidatePath } from 'next/cache'
+import { after } from 'next/server'
 import { requireAuth, isTournamentAdmin } from '@/lib/auth'
-import { sendPushToUser } from '@/lib/push'
+import { sendPushToUsers } from '@/lib/push'
 
 export async function closeRegistrationAndGoLive(tournamentId: string) {
   const user = await requireAuth()
@@ -57,16 +58,19 @@ export async function sendAnnouncement(
 
   if (recipients.length === 0) return { ok: true, recipients: 0 }
 
-  const url = `/${tournament.slug}`
-  await Promise.allSettled(
-    recipients.map((r) =>
-      sendPushToUser(r.userId, {
+  // Dispatch after the response — the admin shouldn't wait on web-push round
+  // trips for the whole roster before their announcement is confirmed sent.
+  after(async () => {
+    try {
+      await sendPushToUsers(recipients.map((r) => r.userId), {
         title: `${tournament.name} — Announcement`,
         body: trimmed,
-        url,
-      }),
-    ),
-  )
+        url: `/${tournament.slug}`,
+      })
+    } catch (err) {
+      console.error('[push] announcement dispatch failed:', err)
+    }
+  })
 
   return { ok: true, recipients: recipients.length }
 }

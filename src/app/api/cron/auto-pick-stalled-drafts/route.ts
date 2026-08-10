@@ -122,12 +122,16 @@ export async function GET(request: NextRequest) {
         return picked
       })
 
+      // Awaited, not fire-and-forget: a cron has no latency budget to protect
+      // and nothing waits on its response, so `void` only risked losing the
+      // work when the function froze.
       if (out) {
-        void broadcastDraftPick(d.id)
+        await broadcastDraftPick(d.id).catch((err) =>
+          console.error('[broadcast] cron auto-pick failed', err))
       }
 
       if (out && out.nextPickerUserId && tournament) {
-        void sendPushToUser(out.nextPickerUserId, {
+        await sendPushToUser(out.nextPickerUserId, {
           title: `${tournament.name} — You're on the clock`,
           body: "It's your turn to pick a powerup.",
           url: `/${tournament.slug}/draft`,

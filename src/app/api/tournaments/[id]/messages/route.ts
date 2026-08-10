@@ -1,8 +1,8 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { containsProfanity } from '@/lib/content-moderation'
-import { sendPushToUser } from '@/lib/push'
+import { sendPushToUsers } from '@/lib/push'
 
 export async function GET(
   _req: NextRequest,
@@ -86,18 +86,23 @@ export async function POST(
     include: { user: { select: { name: true, image: true } } },
   })
 
-  // Defer push by 2s so the realtime subscription has time to deliver the
-  // message in-app first. Recipients with a visible chat tab get the in-app
-  // update and the SW suppresses the OS banner; recipients in the background
-  // still receive the push, just slightly delayed.
-  setTimeout(() => {
-    dispatchChatPush({
-      tournamentId: id,
-      authorUserId: user.id,
-      authorName: message.user.name ?? 'Someone',
-      content: message.content,
-    }).catch((err) => console.error('[push] chat dispatch failed', err))
-  }, 2000)
+  // Push runs after the response. A bare setTimeout here did not survive on
+  // Vercel — the function can be frozen once the response is sent, so the
+  // callback fired late or not at all. The realtime broadcast that lets the
+  // service worker suppress a duplicate banner is triggered by the create
+  // above, before the response, so it has already gone out by now.
+  after(async () => {
+    try {
+      await dispatchChatPush({
+        tournamentId: id,
+        authorUserId: user.id,
+        authorName: message.user.name ?? 'Someone',
+        content: message.content,
+      })
+    } catch (err) {
+      console.error('[push] chat dispatch failed', err)
+    }
+  })
 
   return NextResponse.json(message, { status: 201 })
 }
@@ -126,10 +131,9 @@ async function dispatchChatPush(args: {
   if (recipients.length === 0) return
 
   const body = `${args.authorName}: ${args.content.slice(0, 80)}${args.content.length > 80 ? '…' : ''}`
-  const url = `/${tournament.slug}`
-  await Promise.allSettled(
-    recipients.map((r) =>
-      sendPushToUser(r.userId, { title: tournament.name, body, url }),
-    ),
-  )
+  await sendPushToUsers(recipients.map((r) => r.userId), {
+    title: tournament.name,
+    body,
+    url: `/${tournament.slug}`,
+  })
 }

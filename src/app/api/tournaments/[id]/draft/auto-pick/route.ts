@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { computeCurrentTurn } from '@/lib/draft-utils'
@@ -134,15 +134,23 @@ export async function POST(
       return picked
     })
 
-    void broadcastDraftPick(draft.id)
-
-    if (result.nextPickerUserId) {
-      void sendPushToUser(result.nextPickerUserId, {
-        title: `${tournament.name} — You're on the clock`,
-        body: "It's your turn to pick a powerup.",
-        url: `/${tournament.slug}/draft`,
-      }).catch((err) => console.error('[push] draft auto-pick dispatch failed', err))
-    }
+    // Both run after the response — a bare `void` can be frozen with the
+    // function the moment the response is sent.
+    const nextPickerUserId = result.nextPickerUserId
+    after(async () => {
+      try {
+        await broadcastDraftPick(draft.id)
+        if (nextPickerUserId) {
+          await sendPushToUser(nextPickerUserId, {
+            title: `${tournament.name} — You're on the clock`,
+            body: "It's your turn to pick a powerup.",
+            url: `/${tournament.slug}/draft`,
+          })
+        }
+      } catch (err) {
+        console.error('[push] draft auto-pick dispatch failed', err)
+      }
+    })
 
     return NextResponse.json(result, { status: 201 })
   } catch (err) {

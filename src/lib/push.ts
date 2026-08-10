@@ -21,12 +21,15 @@ export type PushPayload = {
   icon?: string
 }
 
-// Fire-and-forget delivery to every subscription belonging to a user.
+// Delivery to every subscription belonging to the given users, in one query.
 // Prunes 404/410 endpoints so stale subscriptions don't accumulate.
-export async function sendPushToUser(userId: string, payload: PushPayload): Promise<void> {
-  if (!configureVapid()) return
+//
+// Callers must schedule this with `after()` — on Vercel the function can be
+// frozen the moment the response is sent, so a bare `void` here never runs.
+export async function sendPushToUsers(userIds: string[], payload: PushPayload): Promise<void> {
+  if (!configureVapid() || userIds.length === 0) return
 
-  const subs = await prisma.pushSubscription.findMany({ where: { userId } })
+  const subs = await prisma.pushSubscription.findMany({ where: { userId: { in: userIds } } })
   if (subs.length === 0) return
 
   const json = JSON.stringify(payload)
@@ -53,3 +56,6 @@ export async function sendPushToUser(userId: string, payload: PushPayload): Prom
     await prisma.pushSubscription.deleteMany({ where: { endpoint: { in: stale } } })
   }
 }
+
+export const sendPushToUser = (userId: string, payload: PushPayload): Promise<void> =>
+  sendPushToUsers([userId], payload)

@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
@@ -273,19 +273,23 @@ export async function POST(
       },
     })
 
-    // Broadcast to the recipient's notification channel so the in-app modal
-    // updates instantly without depending on RLS-gated postgres_changes.
-    // The client refetches via the auth-checked notifications API.
-    void broadcastNotification(targetPlayer.id).catch(() => {})
-
-    // Fire-and-forget push so the recipient sees a system banner even if the
-    // app isn't focused. In-app delivery is handled by the broadcast above
-    // (see NotificationPopup).
-    void sendPushToUser(targetPlayer.user.id, {
-      title: `${targetPlayer.tournament.name} — Under attack!`,
-      body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${landsOnHole})`,
-      url: `/${targetPlayer.tournament.slug}/play`,
-    }).catch((err) => console.error('[push] attack dispatch failed', err))
+    // Both run after the response. The broadcast updates the recipient's
+    // in-app modal without depending on RLS-gated postgres_changes; the push
+    // gives them a system banner when the app isn't focused. A bare `void`
+    // did not survive on Vercel — the function can freeze at the response.
+    const target = targetPlayer
+    after(async () => {
+      try {
+        await broadcastNotification(target.id)
+        await sendPushToUser(target.user.id, {
+          title: `${target.tournament.name} — Under attack!`,
+          body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${landsOnHole})`,
+          url: `/${target.tournament.slug}/play`,
+        })
+      } catch (err) {
+        console.error('[push] attack dispatch failed', err)
+      }
+    })
 
     // System chat message for attack
     await prisma.tournamentMessage.create({

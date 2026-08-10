@@ -96,17 +96,24 @@ export async function POST(
     }
   })
 
-  // Fire-and-forget push to the first picker so they're alerted off-app.
-  // In-app delivery is handled by the Notification Realtime subscription.
-  if (firstTurn && tournament) {
-    const firstPicker = allPlayers.find((p) => p.id === firstTurn.tournamentPlayerId)
-    if (firstPicker) {
-      void sendPushToUser(firstPicker.user.id, {
-        title: `${tournament.name} — You're on the clock`,
-        body: 'It’s your turn to pick a powerup.',
-        url: `/${tournament.slug}/draft`,
-      }).catch((err) => console.error('[push] draft start dispatch failed', err))
-    }
+  // Push the first picker so they're alerted off-app. In-app delivery is
+  // handled by the Notification Realtime subscription. Same after() treatment
+  // as the email above — a bare `void` dies with the frozen function.
+  const firstPicker = firstTurn && tournament
+    ? allPlayers.find((p) => p.id === firstTurn.tournamentPlayerId)
+    : undefined
+  if (firstPicker && tournament) {
+    after(async () => {
+      try {
+        await sendPushToUser(firstPicker.user.id, {
+          title: `${tournament.name} — You're on the clock`,
+          body: 'It’s your turn to pick a powerup.',
+          url: `/${tournament.slug}/draft`,
+        })
+      } catch (err) {
+        console.error('[push] draft start dispatch failed', err)
+      }
+    })
   }
 
   return NextResponse.json({ status: updated.status })

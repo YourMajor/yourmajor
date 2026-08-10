@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { executePick } from '@/lib/draft-pick'
@@ -46,15 +46,23 @@ export async function POST(
       })
     })
 
-    void broadcastDraftPick(draft.id)
-
-    if (result.nextPickerUserId) {
-      void sendPushToUser(result.nextPickerUserId, {
-        title: `${tournament.name} — You're on the clock`,
-        body: "It's your turn to pick a powerup.",
-        url: `/${tournament.slug}/draft`,
-      }).catch((err) => console.error('[push] draft pick dispatch failed', err))
-    }
+    // Both run after the response. A bare `void` did not survive on Vercel —
+    // the function can be frozen the moment the response is sent.
+    const nextPickerUserId = result.nextPickerUserId
+    after(async () => {
+      try {
+        await broadcastDraftPick(draft.id)
+        if (nextPickerUserId) {
+          await sendPushToUser(nextPickerUserId, {
+            title: `${tournament.name} — You're on the clock`,
+            body: "It's your turn to pick a powerup.",
+            url: `/${tournament.slug}/draft`,
+          })
+        }
+      } catch (err) {
+        console.error('[push] draft pick dispatch failed', err)
+      }
+    })
 
     return NextResponse.json(result, { status: 201 })
   } catch (err) {

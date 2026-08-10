@@ -68,7 +68,8 @@ export async function POST(
     })
     // Without this the recipient's NotificationPopup keeps showing the deleted
     // notification until they refetch. Same channel activate broadcasts on.
-    void broadcastNotification(targetPlayerId).catch(() => {})
+    // Awaited with the delete it announces so it can't be lost to a freeze.
+    await broadcastNotification(targetPlayerId).catch(() => {})
   }
 
   if (usedAt) {
