@@ -42,7 +42,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
       style={{
         height: viewport ? `${viewport.height}px` : '100dvh',
         transform: open ? `translateY(${viewport?.offsetTop ?? 0}px)` : `translateY(100%)`,
-        backgroundColor: 'var(--color-primary, oklch(0.40 0.11 160))',
+        backgroundColor: 'var(--color-primary)',
       }}
     >
       <div className="shrink-0 flex items-center justify-between px-4 py-3 bg-black/20">
@@ -100,7 +100,7 @@ export function LiveChat({ tournamentId, currentUserId, isAdmin, open, onClose }
               className="shrink-0 p-2.5 rounded-lg disabled:opacity-30 active:scale-90 transition-all touch-manipulation"
               style={{
                 backgroundColor: 'var(--color-accent, oklch(0.72 0.11 78))',
-                color: 'var(--color-primary, oklch(0.40 0.11 160))',
+                color: 'var(--color-primary)',
               }}
               aria-label="Send message"
             >

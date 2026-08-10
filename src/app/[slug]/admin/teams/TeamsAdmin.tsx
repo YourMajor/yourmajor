@@ -240,7 +240,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
               <header className="flex items-center gap-3 mb-3">
                 <span
                   className="inline-block h-4 w-4 rounded-full ring-1 ring-border"
-                  style={{ backgroundColor: team.color ?? 'var(--color-primary, oklch(0.40 0.11 160))' }}
+                  style={{ backgroundColor: team.color ?? 'var(--color-primary)' }}
                   aria-hidden="true"
                 />
                 <h2 className="text-base font-semibold">{team.name}</h2>

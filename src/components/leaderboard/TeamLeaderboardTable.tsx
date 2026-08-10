@@ -75,7 +75,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
                     {/* Team color chip */}
                     <span
                       className="inline-block h-3 w-3 rounded-full ring-1 ring-border shrink-0"
-                      style={{ backgroundColor: p.teamColor ?? 'var(--color-primary, oklch(0.40 0.11 160))' }}
+                      style={{ backgroundColor: p.teamColor ?? 'var(--color-primary)' }}
                       aria-hidden="true"
                     />
                     <div className="flex items-center gap-2 min-w-0">

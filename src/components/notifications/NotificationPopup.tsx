@@ -253,7 +253,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
           </p>
 
           <Link href={`/${slug}/draft`} onClick={dismiss} className="w-full">
-            <Button className="w-full bg-amber-500 hover:bg-amber-600 text-zinc-950 mt-2">
+            <Button className="w-full bg-accent hover:bg-accent/90 text-accent-foreground mt-2">
               Go to Draft
             </Button>
           </Link>

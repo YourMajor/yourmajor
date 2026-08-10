@@ -143,7 +143,7 @@ export default async function TeamDetailPage({
       <header className="flex items-center gap-3 mb-6">
         <span
           className="inline-block h-6 w-6 rounded-full ring-1 ring-border"
-          style={{ backgroundColor: team.color ?? 'var(--color-primary, oklch(0.40 0.11 160))' }}
+          style={{ backgroundColor: team.color ?? 'var(--color-primary)' }}
           aria-hidden="true"
         />
         <div>
