@@ -45,6 +45,9 @@ export async function requireAdmin(): Promise<User> {
  * `isTournamentAdmin` below additionally honours account-level co-admins.
  * The two are deliberately not merged: widening this one would grant
  * co-admins access to every action that calls it.
+ *
+ * API route handlers use `isTournamentAdmin` directly instead, matching the
+ * admin layout — see the routes under api/tournaments/[id]/draft.
  */
 export async function requireTournamentAdmin(tournamentId: string): Promise<User> {
   const user = await getUser()

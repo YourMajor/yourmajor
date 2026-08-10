@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 
 export async function PUT(
   req: NextRequest,
@@ -11,12 +11,7 @@ export async function PUT(
 
   const { id: tournamentId } = await params
 
-  // Verify admin
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

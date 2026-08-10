@@ -1,16 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
-import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
-
-async function getAdminUser() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user?.email) return null
-  const dbUser = await prisma.user.findUnique({ where: { email: user.email } })
-  if (!dbUser || dbUser.role !== 'ADMIN') return null
-  return dbUser
-}
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 
 export async function GET(
   _request: NextRequest,
@@ -35,10 +26,14 @@ export async function PATCH(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
-  const admin = await getAdminUser()
-  if (!admin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
   const { id } = await params
+
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isTournamentAdmin(user.id, id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const body = await request.json()
 
   const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate, status, logo } = body
@@ -75,21 +70,10 @@ export async function DELETE(
 ) {
   const { id } = await params
 
-  // Allow global admins OR tournament admins
-  const supabase = await createClient()
-  const { data: { user: authUser } } = await supabase.auth.getUser()
-  if (!authUser?.email) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const dbUser = await prisma.user.findUnique({ where: { email: authUser.email } })
-  if (!dbUser) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-
-  const isGlobalAdmin = dbUser.role === 'ADMIN'
-  if (!isGlobalAdmin) {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: id, userId: dbUser.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const user = await getUser()
+  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isTournamentAdmin(user.id, id))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
   // The Tournament self-relation (parentTournamentId → TournamentRenewal) has

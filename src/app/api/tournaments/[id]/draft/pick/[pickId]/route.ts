@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { canPickPowerup } from '@/lib/draft-utils'
 
 export async function PATCH(
@@ -16,11 +16,7 @@ export async function PATCH(
     return NextResponse.json({ error: 'powerupId is required' }, { status: 400 })
   }
 
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 

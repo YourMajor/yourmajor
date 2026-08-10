@@ -18,14 +18,16 @@ export async function POST(
 
   const { id: tournamentId } = await params
 
-  // Caller must be a participant or admin of this tournament. Any participant
-  // can fire this endpoint when they observe the timer expire — the server is
-  // the source of truth for whether a pick should actually happen.
+  // Caller must be a member of this tournament. Any participant can fire this
+  // endpoint when they observe the timer expire — the server is the source of
+  // truth for whether a pick should actually happen — so this is deliberately
+  // NOT an admin gate. Membership is still required: a global ADMIN with no
+  // row here used to pass, which let any site admin drive someone else's draft.
   const membership = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },
     select: { id: true },
   })
-  if (!membership && user.role !== 'ADMIN') {
+  if (!membership) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
