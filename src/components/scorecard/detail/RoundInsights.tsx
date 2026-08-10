@@ -1,3 +1,12 @@
+'use client'
+
+import { BarChart } from '@/components/charts/bar-chart'
+import { Bar } from '@/components/charts/bar'
+import { BarXAxis } from '@/components/charts/bar-x-axis'
+import { Grid } from '@/components/charts/grid'
+import { ChartTooltip } from '@/components/charts/tooltip'
+import { InsightCallout } from '@/components/insight-callout'
+
 interface HoleScore {
   holeNumber: number
   par: number
@@ -112,40 +121,65 @@ export function RoundInsights({ holes }: { holes: HoleScore[] }) {
     })
   }
 
-  if (weaknesses.length === 0 && strengths.length === 0) return null
+  const parTypeData = [
+    { name: 'Par 3s', avg: par3Avg, count: par3s.length },
+    { name: 'Par 4s', avg: par4Avg, count: par4s.length },
+    { name: 'Par 5s', avg: par5Avg, count: par5s.length },
+  ].filter((d): d is { name: string; avg: number; count: number } =>
+    d.count > 0 && d.avg !== null
+  )
+
+  if (weaknesses.length === 0 && strengths.length === 0 && parTypeData.length === 0) return null
 
   return (
     <div className="space-y-3 pt-4 border-t border-border">
       <h3 className="text-2xl font-heading font-bold">Insights</h3>
 
-      <div className="grid grid-cols-3 gap-2">
-        {[
-          { label: 'Par 3s', avg: par3Avg, count: par3s.length },
-          { label: 'Par 4s', avg: par4Avg, count: par4s.length },
-          { label: 'Par 5s', avg: par5Avg, count: par5s.length },
-        ].filter(d => d.count > 0).map(d => (
-          <div key={d.label} className="rounded-lg border border-border p-3 text-center">
-            <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
-            <p className={`text-lg font-bold font-heading ${
-              d.avg !== null && d.avg < 0 ? 'text-red-600' : 'text-foreground'
-            }`}>
-              {d.avg !== null ? (d.avg >= 0 ? '+' : '') + d.avg.toFixed(2) : '—'}
-            </p>
-            <p className="text-[11px] text-muted-foreground">avg vs par</p>
-          </div>
-        ))}
-      </div>
+      {parTypeData.length > 0 && (
+        <div>
+          <p className="text-[11px] text-muted-foreground uppercase tracking-wider">
+            Scoring by par type · avg vs par
+          </p>
+          <BarChart
+            data={parTypeData}
+            xDataKey="name"
+            aspectRatio="5 / 2"
+            margin={{ top: 12, right: 8, bottom: 32, left: 8 }}
+          >
+            <Grid horizontal highlightRowValues={[0]} />
+            <Bar dataKey="avg" fill="var(--chart-1)" animate={false} />
+            <BarXAxis showAllLabels />
+            <ChartTooltip
+              showDatePill={false}
+              rows={(point) => [
+                {
+                  color: 'var(--chart-1)',
+                  label: String(point.name),
+                  value: `${(point.avg as number) >= 0 ? '+' : ''}${(point.avg as number).toFixed(2)} vs par`,
+                },
+              ]}
+            />
+          </BarChart>
+          <p className="tabular-data text-xs text-center space-x-3">
+            {parTypeData.map(d => (
+              <span key={d.name} className="text-muted-foreground">
+                {d.name}{' '}
+                <span
+                  className="font-bold"
+                  style={{ color: d.avg < 0 ? 'var(--score-birdie)' : 'var(--foreground)' }}
+                >
+                  {(d.avg >= 0 ? '+' : '') + d.avg.toFixed(2)}
+                </span>
+              </span>
+            ))}
+          </p>
+        </div>
+      )}
 
       {strengths.length > 0 && (
         <div className="space-y-2">
           {strengths.map((s, i) => (
-            <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-green-200 bg-green-50">
-              <span className="text-green-600 text-sm mt-0.5">+</span>
-              <div>
-                <p className="text-xs font-bold text-green-800">{s.area}</p>
-                <p className="text-xs text-green-700 mt-0.5">{s.message}</p>
-              </div>
-            </div>
+            <InsightCallout key={i} kind="strength" area={s.area} message={s.message} />
           ))}
         </div>
       )}
@@ -153,13 +187,7 @@ export function RoundInsights({ holes }: { holes: HoleScore[] }) {
       {weaknesses.length > 0 && (
         <div className="space-y-2">
           {weaknesses.sort((a, b) => a.impact - b.impact).map((w, i) => (
-            <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50">
-              <span className="text-amber-600 text-sm mt-0.5">!</span>
-              <div>
-                <p className="text-xs font-bold text-amber-800">{w.area}</p>
-                <p className="text-xs text-amber-700 mt-0.5">{w.message}</p>
-              </div>
-            </div>
+            <InsightCallout key={i} kind="weakness" area={w.area} message={w.message} />
           ))}
         </div>
       )}

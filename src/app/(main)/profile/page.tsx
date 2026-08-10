@@ -8,6 +8,8 @@ import { Separator } from '@/components/ui/separator'
 import { ProfileEditForm } from './ProfileEditForm'
 import { Trophy, Zap, Crown } from 'lucide-react'
 import { IdentityHero } from '@/components/profile/IdentityHero'
+import { ScoringTrend } from '@/components/profile/ScoringTrend'
+import { InsightCallout } from '@/components/insight-callout'
 import { PushNotificationManager } from '@/components/pwa/PushNotificationManager'
 import { ThemeToggle } from '@/components/profile/ThemeToggle'
 
@@ -396,7 +398,7 @@ export default async function ProfilePage({
 
       {/* Insights */}
       {userTier.tier === 'FREE' ? (
-        insights.length > 0 && (
+        (insights.length > 0 || roundVsPars.length >= 2) && (
           <Card className="border-dashed border-2 border-border shadow-none">
             <CardContent className="py-6 flex flex-col items-center text-center">
               <p className="font-heading font-semibold text-sm">Unlock Insights</p>
@@ -413,29 +415,18 @@ export default async function ProfilePage({
           </Card>
         )
       ) : (
-        insights.length > 0 && (
+        (insights.length > 0 || roundVsPars.length >= 2) && (
           <Card>
             <CardHeader className="pb-3">
               <CardTitle className="text-base font-heading">Insights</CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
+            <CardContent className="space-y-3">
+              <ScoringTrend roundVsPars={roundVsPars} />
               {insights.filter(i => i.type === 'strength').map((ins, i) => (
-                <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-green-200 bg-green-50">
-                  <span className="text-green-600 text-sm mt-0.5 font-bold">+</span>
-                  <div>
-                    <p className="text-xs font-bold text-green-800">{ins.area}</p>
-                    <p className="text-xs text-green-700 mt-0.5">{ins.message}</p>
-                  </div>
-                </div>
+                <InsightCallout key={i} kind="strength" area={ins.area} message={ins.message} />
               ))}
               {insights.filter(i => i.type === 'weakness').map((ins, i) => (
-                <div key={i} className="flex items-start gap-2.5 px-3 py-2.5 rounded-lg border border-amber-200 bg-amber-50">
-                  <span className="text-amber-600 text-sm mt-0.5 font-bold">!</span>
-                  <div>
-                    <p className="text-xs font-bold text-amber-800">{ins.area}</p>
-                    <p className="text-xs text-amber-700 mt-0.5">{ins.message}</p>
-                  </div>
-                </div>
+                <InsightCallout key={i} kind="weakness" area={ins.area} message={ins.message} />
               ))}
             </CardContent>
           </Card>
