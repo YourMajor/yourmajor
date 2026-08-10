@@ -154,7 +154,7 @@ export function LeagueEventsTable({ events }: Props) {
                     <div className="flex items-center gap-2 min-w-0">
                       <Link
                         href={`/${event.slug}/admin/setup`}
-                        className="font-medium truncate hover:underline hover:text-[var(--color-primary)]"
+                        className="font-medium truncate hover:underline hover:text-brand"
                       >
                         {event.name}
                       </Link>
@@ -175,7 +175,7 @@ export function LeagueEventsTable({ events }: Props) {
                     )}
                   </td>
                   <td className="px-4 py-3 whitespace-nowrap">
-                    <span className={`inline-block text-[10px] font-medium px-2 py-0.5 rounded-full ${badge.cls}`}>
+                    <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-full ${badge.cls}`}>
                       {badge.label}
                     </span>
                   </td>
@@ -240,7 +240,7 @@ export function LeagueEventsTable({ events }: Props) {
                       </Link>
                       <Link
                         href={`/${event.slug}`}
-                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-[var(--color-primary)] hover:bg-[var(--color-primary)]/10 transition-colors"
+                        className="inline-flex items-center gap-1 px-2 py-1 rounded-md text-xs font-medium text-brand hover:bg-[var(--color-primary)]/10 transition-colors"
                         title="Open event leaderboard"
                       >
                         Open <ArrowRight className="w-3 h-3" />
@@ -294,7 +294,7 @@ export function LeagueEventsTable({ events }: Props) {
                     </p>
                   )}
                 </Link>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${badge.cls}`}>
                   {badge.label}
                 </span>
               </div>
@@ -347,19 +347,19 @@ export function LeagueEventsTable({ events }: Props) {
               <div className="flex items-center justify-between gap-2 mt-3 pt-2 border-t border-border flex-wrap">
                 <Link
                   href={`/${event.slug}/admin/groups`}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-brand"
                 >
                   <Users className="w-3 h-3" /> Groups
                 </Link>
                 <Link
                   href={`/${event.slug}/admin/scores`}
-                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-[var(--color-primary)]"
+                  className="inline-flex items-center gap-1 text-xs font-medium text-foreground hover:text-brand"
                 >
                   <ClipboardEdit className="w-3 h-3" /> Scores
                 </Link>
                 <Link
                   href={`/${event.slug}`}
-                  className="inline-flex items-center gap-0.5 text-xs font-medium text-[var(--color-primary)]"
+                  className="inline-flex items-center gap-0.5 text-xs font-medium text-brand"
                 >
                   Open <ArrowRight className="w-3 h-3" />
                 </Link>

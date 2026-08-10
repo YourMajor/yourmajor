@@ -47,7 +47,7 @@ export function StepFormat({ value, onChange, isFree = false }: Props) {
           type="button"
           onClick={() => setShowAll((v) => !v)}
           aria-expanded={showAll}
-          className="flex items-center gap-1.5 text-xs font-medium text-[var(--color-primary)] hover:underline"
+          className="flex items-center gap-1.5 text-xs font-medium text-brand hover:underline"
         >
           <Info className="w-3.5 h-3.5" />
           About these formats
@@ -115,14 +115,14 @@ export function StepFormat({ value, onChange, isFree = false }: Props) {
                       {f.description}
                     </span>
                     {locked && (
-                      <span className="absolute top-1.5 right-1.5 text-[9px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      <span className="absolute top-1.5 right-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
                         Pro
                       </span>
                     )}
                     {selected && !locked && (
                       <span
                         aria-hidden
-                        className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white text-[10px] leading-none"
+                        className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white text-[11px] leading-none"
                       >
                         ✓
                       </span>

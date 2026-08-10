@@ -89,7 +89,7 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
             >
               <span>{t.label}</span>
               {typeof count === 'number' && (
-                <span className={`ml-1.5 text-[10px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                <span className={`ml-1.5 text-[11px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                   {count}
                 </span>
               )}
@@ -118,7 +118,7 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
             >
               <span>{d.label}</span>
               {typeof count === 'number' && (
-                <span className={`ml-1.5 text-[10px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
+                <span className={`ml-1.5 text-[11px] font-mono ${active ? 'text-muted-foreground' : 'text-muted-foreground/70'}`}>
                   {count}
                 </span>
               )}
@@ -144,7 +144,7 @@ export function PowerupFilterBar({ search, onSearchChange, typeFilter, onTypeFil
           <Heart className={`w-3.5 h-3.5 ${favoritesOnly ? 'fill-red-500 text-red-500' : ''}`} />
           <span>Favourites only</span>
           {typeof favoriteCount === 'number' && (
-            <span className={`text-[10px] font-mono ${favoritesOnly ? 'text-destructive/70' : 'text-muted-foreground/70'}`}>
+            <span className={`text-[11px] font-mono ${favoritesOnly ? 'text-destructive/70' : 'text-muted-foreground/70'}`}>
               {favoriteCount}
             </span>
           )}

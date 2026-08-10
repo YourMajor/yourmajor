@@ -71,7 +71,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
         {/* Free preview */}
         <div className="rounded-xl border border-border overflow-hidden">
           <div className="px-4 py-2 bg-muted/50 border-b border-border">
-            <p className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">Free</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Free</p>
           </div>
           <div className="p-6 flex flex-col items-center">
             <div
@@ -82,14 +82,14 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
             </div>
             <p className="mt-3 text-sm font-heading font-bold text-foreground">{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-2" style={{ backgroundColor: DEFAULT.accent }} />
-            <p className="text-[10px] text-muted-foreground mt-2">Default colors &middot; No logo</p>
+            <p className="text-[11px] text-muted-foreground mt-2">Default colors &middot; No logo</p>
           </div>
         </div>
 
         {/* Pro preview */}
         <div className="rounded-xl border-2 border-accent/40 overflow-hidden ring-1 ring-accent/10">
           <div className="px-4 py-2 border-b border-accent/20" style={{ backgroundColor: `${PREVIEW.accent}15` }}>
-            <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PREVIEW.accent }}>Pro</p>
+            <p className="text-[11px] font-semibold uppercase tracking-wider" style={{ color: PREVIEW.accent }}>Pro</p>
           </div>
           {/* Banner area */}
           <div className="relative h-20 overflow-hidden" style={{ background: `linear-gradient(135deg, ${PREVIEW.primary} 0%, ${PREVIEW.primary}dd 50%, ${PREVIEW.accent}40 100%)` }}>
@@ -112,7 +112,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
             </div>
             <p className="mt-2 text-sm font-heading font-bold" style={{ color: PREVIEW.primary }}>{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-1.5" style={{ backgroundColor: PREVIEW.accent }} />
-            <p className="text-[10px] mt-1.5" style={{ color: PREVIEW.accent }}>Your colors &middot; Your logo</p>
+            <p className="text-[11px] mt-1.5" style={{ color: PREVIEW.accent }}>Your colors &middot; Your logo</p>
           </div>
         </div>
       </div>
@@ -129,7 +129,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
           <div key={label} className="text-center p-3 rounded-lg border border-border bg-card">
             <Icon className="w-5 h-5 mx-auto text-accent mb-1.5" />
             <p className="text-xs font-semibold text-foreground">{label}</p>
-            <p className="text-[10px] text-muted-foreground">{desc}</p>
+            <p className="text-[11px] text-muted-foreground">{desc}</p>
           </div>
         ))}
       </div>
@@ -169,7 +169,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
         </div>
       </div>
 
-      <p className="text-center text-[10px] text-muted-foreground mt-6">
+      <p className="text-center text-[11px] text-muted-foreground mt-6">
         You can always upgrade later from your tournament settings.
       </p>
     </div>

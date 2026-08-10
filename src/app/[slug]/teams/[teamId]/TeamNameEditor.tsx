@@ -87,7 +87,7 @@ export function TeamNameEditor({ slug, teamId, initialName, canEdit }: Props) {
         <button
           type="submit"
           disabled={pending}
-          className="text-[var(--color-primary)] hover:opacity-80 disabled:opacity-50"
+          className="text-brand hover:opacity-80 disabled:opacity-50"
           aria-label="Save team name"
         >
           <Check className="w-5 h-5" />

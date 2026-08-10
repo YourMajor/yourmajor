@@ -94,7 +94,7 @@ export function LeagueScoreSelector({ events }: Props) {
                   </p>
                   <p className="text-xs text-muted-foreground truncate">{ev.name}</p>
                 </div>
-                <span className={`text-[10px] font-medium px-2 py-0.5 rounded-full shrink-0 ${STATUS_TONE[ev.status]}`}>
+                <span className={`text-[11px] font-medium px-2 py-0.5 rounded-full shrink-0 ${STATUS_TONE[ev.status]}`}>
                   {STATUS_LABEL[ev.status]}
                 </span>
                 {!ev.isCurrent && <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />}

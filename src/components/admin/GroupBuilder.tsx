@@ -906,7 +906,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                         aria-hidden="true"
                       />
                       <span className="font-medium">{t.name}</span>
-                      <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+                      <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                         {t.memberIds.length}
                       </span>
                     </DraggablePill>
@@ -928,7 +928,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-amber-300 bg-amber-50 text-amber-800"
                       >
                         <span className="font-medium">{p.name}</span>
-                        <span className="text-[10px]">No team</span>
+                        <span className="text-[11px]">No team</span>
                       </span>
                     ))}
                   </div>
@@ -948,12 +948,12 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     onClick={() => handlePlayerTap(p.id)}
                     className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all select-none ${
                       selectedPlayerIds.has(p.id)
-                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
+                        ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-brand'
                         : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted'
                     }`}
                   >
                     <span className="font-medium">{p.name}</span>
-                    <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                    <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
                       {p.handicap}
                     </span>
                     <button
@@ -973,7 +973,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
       </DroppableArea>
 
       {!teamModeActive && selectedPlayerIds.size > 0 && (
-        <p className="text-xs text-center text-[var(--color-primary)] font-medium animate-pulse">
+        <p className="text-xs text-center text-brand font-medium animate-pulse">
           {selectedPlayerIds.size === 1
             ? `Tap a group to move ${players.find((p) => selectedPlayerIds.has(p.id))?.name ?? 'player'} there`
             : `Tap a group to move ${selectedPlayerIds.size} players there`}
@@ -1005,7 +1005,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                         className="h-7 text-sm w-36"
                         autoFocus
                       />
-                      <button onClick={finishRenaming} className="p-1 rounded hover:bg-muted">
+                      <button onClick={finishRenaming} aria-label="Save group name" className="p-1 rounded hover:bg-muted">
                         <Check className="w-3.5 h-3.5" />
                       </button>
                     </div>
@@ -1014,6 +1014,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                       {group.name}
                       <button
                         onClick={(e) => { e.stopPropagation(); startRenaming(group.id, group.name) }}
+                        aria-label={`Rename ${group.name}`}
                         className="p-1 rounded hover:bg-muted opacity-0 group-hover:opacity-100 transition-opacity"
                       >
                         <Pencil className="w-3 h-3 text-muted-foreground" />
@@ -1032,7 +1033,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
                     const hasUnsent = group.members.some((m) => !m.notifiedAt || teeTimeChanged || startHoleChanged)
                     return hasUnsent && group.members.length > 0 ? (
-                      <span className="text-[10px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
                         unsent
                       </span>
                     ) : null
@@ -1071,7 +1072,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                           aria-hidden="true"
                         />
                         <span className="font-medium text-sm">{t.name}</span>
-                        <span className="text-[10px] text-muted-foreground">
+                        <span className="text-[11px] text-muted-foreground">
                           {t.memberIds.map((id) => players.find((p) => p.id === id)?.name).filter(Boolean).join(', ')}
                         </span>
                         <button
@@ -1103,13 +1104,13 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                         onClick={() => handlePlayerTap(m.tournamentPlayerId)}
                         className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border transition-all select-none ${
                           selectedPlayerIds.has(m.tournamentPlayerId)
-                            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-[var(--color-primary)]'
+                            ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/10 ring-2 ring-[var(--color-primary)] text-brand'
                             : 'border-border hover:border-[var(--color-primary)]/40'
                         }`}
                       >
                         <span className="font-medium">{m.name}</span>
                         {p && tier && (
-                          <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+                          <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
                             {p.handicap}
                           </span>
                         )}
@@ -1321,7 +1322,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
             aria-hidden="true"
           />
           <span className="font-medium">{draggedTeam.name}</span>
-          <span className="text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
+          <span className="text-[11px] font-medium px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
             {draggedTeam.memberIds.length}
           </span>
         </div>
@@ -1331,7 +1332,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
           {(() => {
             const tier = handicapTier(draggedPlayer.handicap)
             return (
-              <span className={`text-[10px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
+              <span className={`text-[11px] font-medium px-1.5 py-0.5 rounded-full ${tier.bg} ${tier.text}`}>
                 {draggedPlayer.handicap}
               </span>
             )

@@ -112,7 +112,7 @@ export function DraftBoardSheet({
                 active
                   ? 'bg-primary text-primary-foreground border-primary'
                   : isCurrent
-                    ? 'bg-[oklch(0.72_0.11_78/0.12)] text-foreground border-[oklch(0.72_0.11_78/0.40)]'
+                    ? 'bg-accent/12 text-foreground border-accent/40'
                     : 'bg-card text-muted-foreground border-border hover:text-foreground'
               }`}
             >
@@ -142,7 +142,7 @@ export function DraftBoardSheet({
               key={playerId}
               className={`flex items-center gap-3 p-2 rounded-lg border transition-colors ${
                 status === 'ON_THE_CLOCK'
-                  ? 'bg-[oklch(0.72_0.11_78/0.08)] border-[oklch(0.72_0.11_78/0.40)] ring-1 ring-[oklch(0.72_0.11_78/0.30)]'
+                  ? 'bg-accent/8 border-accent/40 ring-1 ring-accent/30'
                   : 'bg-card border-border'
               }`}
             >
@@ -166,7 +166,7 @@ export function DraftBoardSheet({
               {/* Name + status */}
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-semibold text-foreground truncate">{name}</p>
-                <p className={`text-[10px] font-bold uppercase tracking-wider ${
+                <p className={`text-[11px] font-bold uppercase tracking-wider ${
                   status === 'PICKED' ? 'text-muted-foreground' :
                   status === 'ON_THE_CLOCK' ? 'text-[oklch(0.45_0.12_78)]' :
                   'text-muted-foreground/60'

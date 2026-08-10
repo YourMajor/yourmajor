@@ -292,7 +292,7 @@ function HeroStat({ label, value, decimals = 0, signed = false, muted = false, p
       >
         {placeholder ?? <CountUp to={value} decimals={decimals} signed={signed} />}
       </div>
-      <div className="mt-2 text-[10px] sm:text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
+      <div className="mt-2 text-[11px] uppercase tracking-[0.2em] text-muted-foreground font-medium">
         {label}
       </div>
     </div>

@@ -202,7 +202,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
       >
         {/* Top row: type pill on the left; right side reserved for the heart overlay */}
         <div className="flex items-start justify-between px-2.5 pt-2.5">
-          <span className={`text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${typePillClasses}`}>
+          <span className={`text-[11px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded-md border ${typePillClasses}`}>
             {powerup.type}
           </span>
           {/* spacer the same width as the heart button so the type pill stays
@@ -213,7 +213,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
         {/* Icon + duration */}
         <div className="flex-1 flex flex-col items-center justify-center pt-1 pb-0.5 gap-0.5">
           <SlugIcon slug={powerup.slug} isAttack={isAttack} className={`w-9 h-9 sm:w-10 sm:h-10 ${iconColor}`} />
-          <span className={`font-mono text-[10px] font-bold ${iconColor}`}>
+          <span className={`font-mono text-[11px] font-bold ${iconColor}`}>
             {formatDuration(powerup.effect.duration)}
           </span>
         </div>
@@ -224,7 +224,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
             {powerup.name}
           </p>
           {teaser && (
-            <p className="text-[10px] leading-tight text-zinc-600 line-clamp-2 mt-0.5">
+            <p className="text-[11px] leading-tight text-zinc-600 line-clamp-2 mt-0.5">
               {teaser}
             </p>
           )}

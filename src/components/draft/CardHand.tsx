@@ -249,7 +249,7 @@ export function CardFront({
     `}>
       <div className="flex items-start justify-between px-3 pt-3">
         <SlugIcon slug={slug} isAttack={isAttack} className={`${iconSize} ${iconColor}`} />
-        <span className={`text-[9px] font-bold uppercase tracking-widest mt-1 ${iconColor}`}>{type}</span>
+        <span className={`text-[11px] font-bold uppercase tracking-widest mt-1 ${iconColor}`}>{type}</span>
       </div>
       <div className="flex-1 flex flex-col items-center justify-center px-3 py-2">
         <div className={`w-full border-t border-b py-3 ${c.divider}`}>
@@ -265,7 +265,7 @@ export function CardFront({
         </span>
       </div>
       <div className="flex items-end justify-between px-3 pb-3">
-        <span className={`text-[9px] font-bold uppercase tracking-widest mb-1 ${iconColor}`}>{type}</span>
+        <span className={`text-[11px] font-bold uppercase tracking-widest mb-1 ${iconColor}`}>{type}</span>
         <div className="rotate-180">
           <SlugIcon slug={slug} isAttack={isAttack} className={`${iconSize} ${iconColor}`} />
         </div>
@@ -383,7 +383,7 @@ export function CardBack({
         <div className="flex items-center gap-3">
           <SlugIcon slug={slug} isAttack={isAttack} className="w-7 h-7 text-powerup-stock" />
           <div className="flex-1 min-w-0">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-powerup-stock/70">{type}</p>
+            <p className="text-[11px] font-bold uppercase tracking-widest text-powerup-stock/70">{type}</p>
             <p className="text-lg font-heading font-bold text-powerup-stock leading-tight">{name}</p>
           </div>
         </div>

@@ -161,7 +161,7 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
                   placeholder="2026-07-04, 2026-09-07"
                   className="block w-full px-3 py-2 rounded-lg border border-border text-sm bg-background"
                 />
-                <span className="text-[10px] text-muted-foreground">Comma- or space-separated YYYY-MM-DD dates to drop.</span>
+                <span className="text-[11px] text-muted-foreground">Comma- or space-separated YYYY-MM-DD dates to drop.</span>
               </label>
             </div>
 

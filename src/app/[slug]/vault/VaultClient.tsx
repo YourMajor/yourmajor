@@ -96,7 +96,7 @@ export function VaultClient({ entries }: Props) {
                     <div className="flex items-center gap-2">
                       <Avatar className="h-7 w-7">
                         {s.avatarUrl && <AvatarImage src={s.avatarUrl} />}
-                        <AvatarFallback className="text-[10px]">
+                        <AvatarFallback className="text-[11px]">
                           {s.playerName.split(' ').map((w) => w[0]).join('').slice(0, 2).toUpperCase()}
                         </AvatarFallback>
                       </Avatar>

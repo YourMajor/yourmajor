@@ -105,7 +105,7 @@ export function ColorDonutPicker({
       <div className="flex items-center gap-3 mt-2">
         <div className="flex rounded-lg overflow-hidden border border-border shadow-sm">
           <div
-            className="w-16 h-8 flex items-center justify-center text-[10px] font-bold"
+            className="w-16 h-8 flex items-center justify-center text-[11px] font-bold"
             style={{
               backgroundColor: primaryColor,
               color: isLightColor(primaryColor) ? 'var(--brand-ink)' : 'var(--brand-bone)',
@@ -114,7 +114,7 @@ export function ColorDonutPicker({
             Aa
           </div>
           <div
-            className="w-16 h-8 flex items-center justify-center text-[10px] font-bold"
+            className="w-16 h-8 flex items-center justify-center text-[11px] font-bold"
             style={{
               backgroundColor: accentColor,
               color: isLightColor(accentColor) ? 'var(--brand-ink)' : 'var(--brand-bone)',

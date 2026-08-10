@@ -16,7 +16,7 @@ export async function SponsorStrip({ tournamentId }: { tournamentId: string }) {
 
   const attribution = (
     <span className="inline-flex items-center gap-2">
-      <span className="uppercase tracking-wider text-[10px]">Presented by</span>
+      <span className="uppercase tracking-wider text-[11px]">Presented by</span>
       {sponsor.logoUrl && (
         <Image
           src={sponsor.logoUrl}
@@ -66,7 +66,7 @@ export async function SponsorStrip({ tournamentId }: { tournamentId: string }) {
   // the existing compact look for sponsors that haven't uploaded a banner.
   const inline = (
     <div className="inline-flex items-center gap-2 text-xs text-muted-foreground">
-      <span className="uppercase tracking-wider text-[10px]">Presented by</span>
+      <span className="uppercase tracking-wider text-[11px]">Presented by</span>
       {sponsor.logoUrl ? (
         <Image
           src={sponsor.logoUrl}

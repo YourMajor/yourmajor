@@ -41,7 +41,7 @@ function rankBadge(rank: number | undefined, label: 'GROSS' | 'NET') {
     return (
       <span
         title={`Leading ${label.toLowerCase()} division`}
-        className="inline-flex items-center gap-1 rounded-full bg-yellow-400/90 text-yellow-950 px-1.5 py-0.5 text-[10px] font-bold"
+        className="inline-flex items-center gap-1 rounded-full bg-yellow-400/90 text-yellow-950 px-1.5 py-0.5 text-[11px] font-bold"
       >
         <Crown className="w-3 h-3" />
         {label}

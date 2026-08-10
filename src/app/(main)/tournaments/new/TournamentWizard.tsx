@@ -348,7 +348,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
                 i < step
                   ? 'bg-[var(--color-primary)] text-white'
                   : i === step
-                  ? 'bg-[var(--color-primary)]/20 text-[var(--color-primary)] ring-2 ring-[var(--color-primary)]'
+                  ? 'bg-[var(--color-primary)]/20 text-brand ring-2 ring-[var(--color-primary)]'
                   : 'bg-muted text-muted-foreground'
               }`}
             >

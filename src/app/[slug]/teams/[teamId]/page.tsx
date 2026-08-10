@@ -258,7 +258,7 @@ export default async function TeamDetailPage({
                               {winner && (
                                 <span
                                   title={winner.name}
-                                  className="text-[10px] text-muted-foreground truncate max-w-[3em]"
+                                  className="text-[11px] text-muted-foreground truncate max-w-[3em]"
                                 >
                                   {winner.name.charAt(0).toUpperCase()}
                                 </span>

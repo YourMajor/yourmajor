@@ -74,7 +74,7 @@ export function PowerupsInfoPanel() {
                 <div className="flex justify-center pt-1">
                   <PowerupCard powerup={EXAMPLE_BOOST} size="sm" disabled />
                 </div>
-                <p className="text-[10px] text-center text-muted-foreground italic">
+                <p className="text-[11px] text-center text-muted-foreground italic">
                   Example: &ldquo;{EXAMPLE_BOOST.name}&rdquo; — {EXAMPLE_BOOST.description}
                 </p>
               </div>
@@ -92,7 +92,7 @@ export function PowerupsInfoPanel() {
                 <div className="flex justify-center pt-1">
                   <PowerupCard powerup={EXAMPLE_ATTACK} size="sm" disabled />
                 </div>
-                <p className="text-[10px] text-center text-muted-foreground italic">
+                <p className="text-[11px] text-center text-muted-foreground italic">
                   Example: &ldquo;{EXAMPLE_ATTACK.name}&rdquo; — {EXAMPLE_ATTACK.description}
                 </p>
               </div>

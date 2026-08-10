@@ -26,7 +26,7 @@ export function FormatInfoButton({ formatId, className }: FormatInfoButtonProps)
   return (
     <Dialog>
       <span className={`inline-flex items-center gap-1.5 ${className ?? ''}`}>
-        <span className="text-[10px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+        <span className="text-[11px] sm:text-xs font-semibold uppercase tracking-wide text-muted-foreground">
           Format
         </span>
         <span className="text-sm font-semibold text-foreground">{format.label}</span>

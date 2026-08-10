@@ -213,7 +213,7 @@ export default async function ProfilePage({
               )}
               {userTier.tier === 'FREE' && (
                 <p className="text-xs text-muted-foreground">
-                  <Link href="/pricing" className="underline text-[var(--color-primary)]">Upgrade</Link> for more features
+                  <Link href="/pricing" className="underline text-brand">Upgrade</Link> for more features
                 </p>
               )}
             </div>
@@ -230,7 +230,7 @@ export default async function ProfilePage({
           {userTier.tier !== 'FREE' && (
             <>
               <Separator />
-              <Link href="/billing" className="text-xs text-[var(--color-primary)] underline">
+              <Link href="/billing" className="text-xs text-brand underline">
                 Manage billing
               </Link>
             </>

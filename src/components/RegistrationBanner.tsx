@@ -83,7 +83,7 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, ca
     <>
       <div className="rounded-md border border-border px-3 py-1.5 flex items-center justify-between gap-3">
         <p className="text-xs font-medium text-foreground flex items-center gap-1.5 min-w-0">
-          <CheckCircle2 className="w-3.5 h-3.5 text-[var(--color-primary)] shrink-0" />
+          <CheckCircle2 className="w-3.5 h-3.5 text-brand shrink-0" />
           <span className="truncate">You are registered</span>
         </p>
         {canUnregister && (

@@ -288,7 +288,7 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
         </CardHeader>
         <CardContent className="space-y-4">
           {isFree ? (
-            <p className="text-sm text-muted-foreground">Custom branding, logos, and colors require Pro or Tour. <Link href="/pricing" className="underline text-[var(--color-primary)]">Upgrade</Link></p>
+            <p className="text-sm text-muted-foreground">Custom branding, logos, and colors require Pro or Tour. <Link href="/pricing" className="underline text-brand">Upgrade</Link></p>
           ) : (
             <>
               <div className="space-y-2">

@@ -114,7 +114,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                         type="button"
                         onClick={() => setAssigningPlayerId(isPicking ? null : p.tournamentPlayerId)}
                         disabled={pending}
-                        className="text-xs font-semibold text-[var(--color-primary)] hover:underline disabled:opacity-50"
+                        className="text-xs font-semibold text-brand hover:underline disabled:opacity-50"
                       >
                         {isPicking ? 'Cancel' : 'Assign to team…'}
                       </button>
@@ -375,7 +375,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                   onClick={() => setOpenMemberPicker(team.id)}
                   disabled={pending || atRecommendedSize}
                   title={atRecommendedSize ? 'Team is at recommended size' : undefined}
-                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-[var(--color-primary)] hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
+                  className="mt-3 inline-flex items-center gap-1.5 text-xs font-semibold text-brand hover:underline disabled:opacity-40 disabled:cursor-not-allowed disabled:no-underline"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
                   Add member

@@ -48,8 +48,8 @@ export function DraftPeekBar({
           {isMyTurn ? (
             <>
               <span className="relative flex items-center justify-center w-2.5 h-2.5 shrink-0">
-                <span className="absolute inset-0 rounded-full bg-[oklch(0.72_0.11_78)] animate-turn-pulse" />
-                <span className="relative w-1.5 h-1.5 rounded-full bg-[oklch(0.72_0.11_78)]" />
+                <span className="absolute inset-0 rounded-full bg-accent animate-turn-pulse" />
+                <span className="relative w-1.5 h-1.5 rounded-full bg-accent" />
               </span>
               <span className="text-xs font-bold text-foreground">Your turn</span>
             </>
@@ -64,16 +64,16 @@ export function DraftPeekBar({
                   className="w-6 h-6 rounded-full object-cover border border-border shrink-0"
                 />
               ) : (
-                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[10px] font-bold shrink-0">
+                <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center text-[11px] font-bold shrink-0">
                   {currentPlayerName.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
                 <p className="text-xs font-bold text-foreground truncate leading-tight">{currentPlayerName}</p>
                 {typeof picksUntilMine === 'number' && picksUntilMine > 0 ? (
-                  <p className="text-[10px] text-muted-foreground leading-tight">You up in {picksUntilMine}</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">You up in {picksUntilMine}</p>
                 ) : (
-                  <p className="text-[10px] text-muted-foreground leading-tight">Picking…</p>
+                  <p className="text-[11px] text-muted-foreground leading-tight">Picking…</p>
                 )}
               </div>
             </>
@@ -93,7 +93,7 @@ export function DraftPeekBar({
             <Hand className="w-4 h-4" />
             <span className="text-xs font-semibold">Hand</span>
             {handCount > 0 && (
-              <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[10px] font-bold">
+              <span className="ml-0.5 inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-primary text-primary-foreground text-[11px] font-bold">
                 {handCount}
               </span>
             )}

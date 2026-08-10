@@ -62,11 +62,11 @@ export function InstallPrompt() {
       </p>
       <ol className="mt-3 space-y-1.5 text-xs text-foreground">
         <li className="flex items-center gap-2">
-          <Share className="w-4 h-4 text-[var(--color-primary)]" />
+          <Share className="w-4 h-4 text-brand" />
           <span>Tap the Share button in Safari</span>
         </li>
         <li className="flex items-center gap-2">
-          <Plus className="w-4 h-4 text-[var(--color-primary)]" />
+          <Plus className="w-4 h-4 text-brand" />
           <span>Choose &ldquo;Add to Home Screen&rdquo;</span>
         </li>
       </ol>

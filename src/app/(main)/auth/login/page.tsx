@@ -64,7 +64,7 @@ export default async function LoginPage({
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-3 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em] text-white/50 bg-white/[0.06] border border-white/10">
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50 bg-white/[0.06] border border-white/10">
                 or
               </span>
             </div>

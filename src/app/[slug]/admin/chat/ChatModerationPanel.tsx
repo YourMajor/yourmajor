@@ -122,12 +122,12 @@ export function ChatModerationPanel({ tournamentId, initialBans, initialMessages
                 <div key={m.id} className="group flex items-start gap-3 px-4 py-2.5">
                   <Avatar className="h-7 w-7 shrink-0 mt-0.5">
                     <AvatarImage src={m.user.image ?? undefined} />
-                    <AvatarFallback className="text-[10px]">{initials}</AvatarFallback>
+                    <AvatarFallback className="text-[11px]">{initials}</AvatarFallback>
                   </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2">
                       <span className="text-xs font-semibold">{m.user.name ?? 'Player'}</span>
-                      <span className="text-[10px] text-muted-foreground">{time}</span>
+                      <span className="text-[11px] text-muted-foreground">{time}</span>
                     </div>
                     <p className="text-xs mt-0.5 break-words text-muted-foreground">{m.content}</p>
                   </div>

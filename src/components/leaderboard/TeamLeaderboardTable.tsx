@@ -90,7 +90,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
                             <div key={m.tournamentPlayerId} className="relative">
                               <Avatar className="h-6 w-6 ring-2 ring-background">
                                 <AvatarImage src={m.avatarUrl ?? undefined} />
-                                <AvatarFallback className="text-[10px] font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
+                                <AvatarFallback className="text-[11px] font-bold" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
                                   {m.name.charAt(0).toUpperCase()}
                                 </AvatarFallback>
                               </Avatar>
@@ -106,7 +106,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
                           )
                         })}
                         {overflow > 0 && (
-                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-[10px] font-semibold text-muted-foreground ring-2 ring-background">
+                          <span className="inline-flex items-center justify-center h-6 w-6 rounded-full bg-muted text-[11px] font-semibold text-muted-foreground ring-2 ring-background">
                             +{overflow}
                           </span>
                         )}

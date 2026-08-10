@@ -271,7 +271,7 @@ function AttendancePanel({ attendance }: { attendance: { rows: AttendanceRow[]; 
             {attendance.events.map((e) => (
               <th key={e.tournamentId} className="text-center py-2 px-2 font-medium text-muted-foreground min-w-[4rem]">
                 <span className="text-[11px] block">{e.name}</span>
-                {e.date && <span className="text-[9px] text-muted-foreground">{new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
+                {e.date && <span className="text-[11px] text-muted-foreground">{new Date(e.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>}
               </th>
             ))}
             <th className="text-center py-2 px-3 font-semibold text-foreground">%</th>

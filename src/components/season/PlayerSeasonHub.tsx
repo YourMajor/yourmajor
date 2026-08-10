@@ -228,7 +228,7 @@ function PersonalBestsTab({ stats }: { stats: PlayerSeasonStats }) {
             return (
               <div key={item.label} className="flex-1 flex flex-col items-center gap-1">
                 <div className={`w-full rounded-t ${item.color}`} style={{ height: `${Math.max(pct, 2)}%` }} />
-                <span className="text-[9px] text-muted-foreground">{item.label}</span>
+                <span className="text-[11px] text-muted-foreground">{item.label}</span>
                 <span className="text-[11px] font-semibold text-foreground">{item.count}</span>
               </div>
             )

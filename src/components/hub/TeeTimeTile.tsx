@@ -15,7 +15,7 @@ export function TeeTimeTile({ myGroup }: Props) {
   return (
     <div className="rounded-xl border border-border overflow-hidden">
       <div className="px-5 py-3 bg-[var(--color-primary)]/5 border-b border-border">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[var(--color-primary)]">Your Tee Time</p>
+        <p className="text-xs font-semibold uppercase tracking-wider text-brand">Your Tee Time</p>
       </div>
       <div className="px-5 py-4 space-y-2">
         <div className="flex items-center justify-between gap-4">
