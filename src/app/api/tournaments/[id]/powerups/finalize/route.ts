@@ -27,6 +27,16 @@ export async function POST(
   })
   if (!player) return NextResponse.json({ error: 'Not a participant' }, { status: 403 })
 
+  // Scope the round to this tournament, same as activate. Harmless today
+  // because finalizeVariablePowerups also filters on the caller's own
+  // tournamentPlayerId, but leaving the two siblings asymmetric is how the
+  // guard gets missed next time.
+  const round = await prisma.tournamentRound.findFirst({
+    where: { id: roundId, tournamentId },
+    select: { id: true },
+  })
+  if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+
   const results = await finalizeVariablePowerups(player.id, roundId)
 
   return NextResponse.json({ results })

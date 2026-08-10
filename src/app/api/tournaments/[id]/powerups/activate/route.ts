@@ -57,11 +57,17 @@ export async function POST(
   // Validate restrictions. Load all holes — we need them not just for the
   // attacker's activation hole but also to compute the recipient's target hole
   // when this is an attack.
-  const round = await prisma.tournamentRound.findUnique({
-    where: { id: roundId },
+  // findFirst, not findUnique: the round has to belong to *this* tournament.
+  // roundId is attacker-controlled and reaches three sinks (the target's score
+  // filter, the persisted row, and the hole list), so it is scoped here at the
+  // load rather than at each use. No compound unique on (id, tournamentId).
+  const round = await prisma.tournamentRound.findFirst({
+    where: { id: roundId, tournamentId },
     include: { course: { include: { holes: true } } },
   })
-  const hole = round?.course.holes.find((h) => h.number === holeNumber)
+  if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+
+  const hole = round.course.holes.find((h) => h.number === holeNumber)
   if (!hole) return NextResponse.json({ error: 'Hole not found' }, { status: 404 })
 
   const activation = canActivate(effect, { par: hole.par, number: hole.number })
@@ -74,18 +80,53 @@ export async function POST(
     return NextResponse.json({ error: 'Target player required for attack cards' }, { status: 400 })
   }
 
+  // Resolve the target *before* the claim below writes it to the row — every
+  // player id in the body has to belong to this tournament. Only the caller
+  // was scoped above, so without this a participant of one tournament could
+  // land a real attack on another tournament's leaderboard.
+  let targetPlayer: {
+    id: string
+    user: { id: string; name: string | null }
+    tournament: { slug: string; name: string }
+  } | null = null
+  if (targetPlayerId) {
+    targetPlayer = await prisma.tournamentPlayer.findFirst({
+      where: { id: targetPlayerId, tournamentId },
+      select: {
+        id: true,
+        user: { select: { id: true, name: true } },
+        tournament: { select: { slug: true, name: true } },
+      },
+    })
+    if (!targetPlayer) {
+      return NextResponse.json({ error: 'Target player is not in this tournament' }, { status: 403 })
+    }
+  }
+
+  // Same for the multi-target variable powerups, whose ids ride in metadata
+  // and are read back as tournamentPlayer ids by variable-powerup-evaluator.
+  const selectedPlayerIds = [...new Set((metadata?.selectedPlayerIds as string[] | undefined) ?? [])]
+  if (selectedPlayerIds.length > 0) {
+    const inTournament = await prisma.tournamentPlayer.count({
+      where: { id: { in: selectedPlayerIds }, tournamentId },
+    })
+    if (inTournament !== selectedPlayerIds.length) {
+      return NextResponse.json({ error: 'Target player is not in this tournament' }, { status: 403 })
+    }
+  }
+
   // For attacks, decide which hole on the recipient's scorecard the attack
   // lands on. Default = recipient's first unscored hole + 1 (clamped). The
   // client may override to any of the recipient's unscored holes; we validate
   // the override is actually unscored before accepting it.
   let resolvedTargetHole: number | null = null
-  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayerId) {
+  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
     const targetScores = await prisma.score.findMany({
-      where: { tournamentPlayerId: targetPlayerId, roundId },
+      where: { tournamentPlayerId: targetPlayer.id, roundId },
       select: { hole: { select: { number: true } } },
     })
     const scoredNumbers = new Set(targetScores.map((s) => s.hole.number))
-    const allHoleNumbers = round!.course.holes.map((h) => h.number)
+    const allHoleNumbers = round.course.holes.map((h) => h.number)
 
     if (typeof targetHoleOverride === 'number') {
       if (!allHoleNumbers.includes(targetHoleOverride)) {
@@ -124,7 +165,7 @@ export async function POST(
       }
     } else if (powerupSlug === 'king-of-the-hill') {
       structuredMetadata = {
-        targetPlayerIds: metadata?.selectedPlayerIds ?? [],
+        targetPlayerIds: selectedPlayerIds,
         activationHoleNumber: holeNumber,
         consecutiveWins: 0,
         status: 'in_progress',
@@ -158,7 +199,7 @@ export async function POST(
         status: 'in_progress',
       }
     } else if (powerupSlug === 'double-or-nothing') {
-      const targetIds = (targetPlayerId ? [targetPlayerId] : (metadata?.selectedPlayerIds as string[] | undefined)) ?? []
+      const targetIds = targetPlayerId ? [targetPlayerId] : selectedPlayerIds
       structuredMetadata = {
         targetPlayerIds: targetIds,
         activationHoleNumber: holeNumber,
@@ -212,23 +253,17 @@ export async function POST(
   })
 
   // Create attack notification for target player
-  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayerId) {
-    const targetPlayer = await prisma.tournamentPlayer.findUnique({
-      where: { id: targetPlayerId },
-      select: {
-        id: true,
-        user: { select: { id: true, name: true } },
-        tournament: { select: { slug: true, name: true } },
-      },
-    })
-
+  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
     const landsOnHole = resolvedTargetHole ?? holeNumber
 
     await prisma.notification.create({
       data: {
-        tournamentPlayerId: targetPlayerId,
+        tournamentPlayerId: targetPlayer.id,
         type: 'ATTACK_RECEIVED',
         payload: {
+          // Undo deletes this notification by matching on playerPowerupId —
+          // there is no FK from Notification to PlayerPowerup.
+          playerPowerupId,
           attackerName: player.user.name ?? 'A player',
           powerupName: playerPowerup.powerup.name,
           powerupDescription: playerPowerup.powerup.description,
@@ -241,25 +276,23 @@ export async function POST(
     // Broadcast to the recipient's notification channel so the in-app modal
     // updates instantly without depending on RLS-gated postgres_changes.
     // The client refetches via the auth-checked notifications API.
-    void broadcastNotification(targetPlayerId).catch(() => {})
+    void broadcastNotification(targetPlayer.id).catch(() => {})
 
     // Fire-and-forget push so the recipient sees a system banner even if the
     // app isn't focused. In-app delivery is handled by the broadcast above
     // (see NotificationPopup).
-    if (targetPlayer?.user.id && targetPlayer.tournament) {
-      void sendPushToUser(targetPlayer.user.id, {
-        title: `${targetPlayer.tournament.name} — Under attack!`,
-        body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${landsOnHole})`,
-        url: `/${targetPlayer.tournament.slug}/play`,
-      }).catch((err) => console.error('[push] attack dispatch failed', err))
-    }
+    void sendPushToUser(targetPlayer.user.id, {
+      title: `${targetPlayer.tournament.name} — Under attack!`,
+      body: `${player.user.name ?? 'A player'} used ${playerPowerup.powerup.name} on you (Hole ${landsOnHole})`,
+      url: `/${targetPlayer.tournament.slug}/play`,
+    }).catch((err) => console.error('[push] attack dispatch failed', err))
 
     // System chat message for attack
     await prisma.tournamentMessage.create({
       data: {
         tournamentId,
         userId: user.id,
-        content: `⚔️ ${player.user.name ?? 'Player'} ATTACKED ${targetPlayer?.user.name ?? 'Player'} with ${playerPowerup.powerup.name} on Hole ${landsOnHole}!`,
+        content: `⚔️ ${player.user.name ?? 'Player'} ATTACKED ${targetPlayer.user.name ?? 'Player'} with ${playerPowerup.powerup.name} on Hole ${landsOnHole}!`,
         isSystem: true,
       },
     })
