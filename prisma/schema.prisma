@@ -383,6 +383,10 @@ model TournamentRound {
   // before any scores are entered. Revealed on the leaderboard only after every participant has
   // scored all 18 holes for the round.
   peoriaHoles  Int[]     @default([])
+  // Claimed by the first score submitted for the round, so the "Round has
+  // begun" chat message posts exactly once. A count()-based check raced:
+  // two simultaneous first scores both saw a count of 2 and neither posted.
+  roundStartAnnouncedAt DateTime?
 
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   course          Course           @relation(fields: [courseId], references: [id])
@@ -783,6 +787,10 @@ model StandaloneRound {
   course            Course?           @relation(fields: [courseId], references: [id])
   selectedTeeOption TeeOption?        @relation(fields: [selectedTeeOptionId], references: [id])
   scores            StandaloneScore[]
+
+  // /dashboard and /profile both count and list a user's rounds by userId
+  // alone. Same gap TournamentPlayer had before 20260803000000.
+  @@index([userId])
 }
 
 model StandaloneScore {

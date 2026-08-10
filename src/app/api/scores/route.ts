@@ -86,11 +86,17 @@ export async function POST(request: NextRequest) {
   // expire:0 = hard immediate eviction (Next 16 requires the profile arg).
   revalidateTag(`leaderboard-${tp.tournamentId}`, { expire: 0 })
 
-  // Auto-post "Round has begun!" system message on first score for a round
+  // Auto-post "Round has begun!" system message on first score for a round.
+  // Claimed with a conditional write rather than a count() == 1 check: that
+  // check both ran on every new score and raced — two players submitting
+  // their first score together each saw a count of 2, so the message was
+  // silently skipped. Same pattern as the powerup claim in powerups/activate.
   if (isNewScore) {
-    const totalScoresForRound = await prisma.score.count({ where: { roundId } })
-    if (totalScoresForRound === 1) {
-      // This is the very first score submitted for this round
+    const claimed = await prisma.tournamentRound.updateMany({
+      where: { id: roundId, tournamentId: tp.tournamentId, roundStartAnnouncedAt: null },
+      data: { roundStartAnnouncedAt: new Date() },
+    })
+    if (claimed.count === 1) {
       const round = await prisma.tournamentRound.findUnique({
         where: { id: roundId },
         select: { roundNumber: true, tournamentId: true },
@@ -134,7 +140,11 @@ export async function POST(request: NextRequest) {
           chatMessage = `🏌️ Round ${round.roundNumber} has begun! Good luck everyone!${leaderSummary}`
         }
 
-        // Check if a round-start message already exists for this round (prevent duplicates)
+        // Kept after the claim above, and now reached once per round rather
+        // than once per score: rounds that were already under way when
+        // roundStartAnnouncedAt was added have a null claim, so the first
+        // score after deploy would otherwise re-announce them. This makes the
+        // column a pure additive migration with no backfill.
         const existing = await prisma.tournamentMessage.findFirst({
           where: {
             tournamentId: round.tournamentId,
