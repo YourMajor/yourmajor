@@ -2,6 +2,10 @@
 
 import { useLayoutEffect, useRef, useState, type ReactNode } from 'react'
 import type { Timeline } from 'animejs'
+import gsap from 'gsap'
+import { ScrollTrigger } from 'gsap/ScrollTrigger'
+import { SplitText } from 'gsap/SplitText'
+import { useGSAP } from '@gsap/react'
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
 import { useTimelineInView } from '@/components/motion/useTimelineInView'
 import {
@@ -9,6 +13,8 @@ import {
   MessageSquare, TrendingUp, Map as MapIcon, Smartphone, Settings,
   Repeat, Timer, Globe, Crosshair, Palette, Trophy,
 } from 'lucide-react'
+
+gsap.registerPlugin(ScrollTrigger, SplitText, useGSAP)
 
 /* ═══════════════════════════════════════════════════════
    VISUALS
@@ -591,7 +597,9 @@ function FeatureSplit({ feature, reverse }: { feature: SplitFeature; reverse?: b
       >
         <div className="min-w-0 flex-1">
           <feature.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
-          <h3 className="mt-4 text-2xl lg:text-3xl">{feature.title}</h3>
+          <h3 data-split-heading className="mt-4 text-2xl lg:text-3xl">
+            {feature.title}
+          </h3>
           <p
             className="mt-4 max-w-[52ch] text-base leading-relaxed"
             style={{ color: 'var(--mk-text-muted)' }}
@@ -608,8 +616,53 @@ function FeatureSplit({ feature, reverse }: { feature: SplitFeature; reverse?: b
 /** The two image/text splits that open the features narrative. Top padding
     gives the poster's photo fade room to finish before the first split. */
 export function FeatureSplits() {
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Each split's title rises out of a mask, line by line, as its row
+  // arrives — the typographic beat of this stretch. Desktop full-motion
+  // only: below the gate the headings are never split or transformed, so
+  // the static rest state is the plain heading.
+  useGSAP(
+    () => {
+      const media = gsap.matchMedia()
+      media.add(
+        '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
+        () => {
+          const splits = gsap.utils
+            .toArray<HTMLElement>('[data-split-heading]', rootRef.current)
+            .map((heading) =>
+              SplitText.create(heading, {
+                type: 'lines',
+                mask: 'lines',
+                // Re-splits when the webfont lands or the column resizes;
+                // the animation is created inside onSplit so it always
+                // targets the current lines.
+                autoSplit: true,
+                onSplit(self) {
+                  return gsap.from(self.lines, {
+                    yPercent: 110,
+                    duration: 0.7,
+                    ease: 'power3.out',
+                    stagger: 0.1,
+                    scrollTrigger: {
+                      trigger: heading,
+                      start: 'top 85%',
+                      toggleActions: 'play none none reset',
+                    },
+                  })
+                },
+              }),
+            )
+          return () => splits.forEach((split) => split.revert())
+        },
+      )
+      return () => media.revert()
+    },
+    { scope: rootRef },
+  )
+
   return (
-    <div className="mk-container space-y-24 pt-24 lg:space-y-32 lg:pt-36">
+    <div ref={rootRef} className="mk-container space-y-24 pt-24 lg:space-y-32 lg:pt-36">
       {SPLIT_FEATURES.map((feature, i) => (
         <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
       ))}
@@ -621,15 +674,54 @@ export function FeatureSplits() {
     No hover treatment: the pointer spotlight showed hard edges over the
     mockups and was removed at the user's direction. */
 export function FeatureBento() {
+  const rootRef = useRef<HTMLDivElement>(null)
+
+  // Each capability's gold rule draws itself in as the row arrives.
+  // ScrollTrigger, not `animation-timeline: view()`: ScrollSmoother
+  // transforms the scrolled content and freezes CSS scroll-driven
+  // animations at their first frame.
+  useGSAP(
+    () => {
+      const media = gsap.matchMedia()
+      media.add(
+        '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
+        () => {
+          gsap.utils
+            .toArray<HTMLElement>('.mk-hairline-draw', rootRef.current)
+            .forEach((rule) => {
+              gsap.fromTo(
+                rule,
+                { backgroundSize: '0% 1px' },
+                {
+                  backgroundSize: '100% 1px',
+                  ease: 'none',
+                  // Scrubbed, not toggled: a trigger that is already past
+                  // its start when it is created never fires onEnter, and
+                  // the rule sat at 0% forever.
+                  scrollTrigger: {
+                    trigger: rule,
+                    start: 'top 92%',
+                    end: 'top 62%',
+                    scrub: 1,
+                  },
+                },
+              )
+            })
+        },
+      )
+      return () => media.revert()
+    },
+    { scope: rootRef },
+  )
+
   return (
-    <div id="bento" className="mk-container mt-24 lg:mt-32">
+    <div ref={rootRef} id="bento" className="mk-container mt-24 lg:mt-32">
       <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
           {BENTO_FEATURES.map((feature, i) => (
             <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
-              <div
-                className="relative pt-6"
-                style={{ borderTop: '1px solid var(--mk-rule-gold)' }}
-              >
+              {/* The rule is a background, not a border, so it can draw
+                  itself in as the row arrives (.mk-hairline-draw). */}
+              <div className="mk-hairline-draw relative pt-6">
                 <feature.icon className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
                 <h3 className="mt-4 text-xl lg:text-2xl">{feature.title}</h3>
                 <p

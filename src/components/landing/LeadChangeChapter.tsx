@@ -128,9 +128,19 @@ export function LeadChangeChapter() {
           const trigger = ScrollTrigger.create({
             trigger: sectionRef.current,
             start: 'top top',
-            end: '+=70%',
+            end: '+=50%',
             pin: true,
             scrub: true,
+            // The paint is discrete (three board states), so when scrolling
+            // stops mid-beat the board settles onto the nearest state
+            // instead of resting between rounds. Values are zone centers of
+            // the thresholds below.
+            snap: {
+              snapTo: [0.17, 0.52, 0.85],
+              duration: 0.4,
+              delay: 0.1,
+              ease: 'power1.inOut',
+            },
             onUpdate: (self) => {
               paint(self.progress < 0.34 ? 0 : self.progress < 0.7 ? 1 : 2)
             },
@@ -161,7 +171,7 @@ export function LeadChangeChapter() {
 
   return (
     <section ref={sectionRef} id="lead" className="relative flex min-h-[100dvh] items-center">
-      <div className="mk-container w-full py-20">
+      <div className="mk-container w-full py-12">
         {/* The studio band: the chapter mounts on a deep-green panel framed by
             a gold hairline. Live-accepted variant with params baked: deep
             tone, gold at 45% (chip borders at 90%). */}

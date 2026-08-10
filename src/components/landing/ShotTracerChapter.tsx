@@ -4,22 +4,22 @@ import { useRef } from 'react'
 import gsap from 'gsap'
 import { ScrollTrigger } from 'gsap/ScrollTrigger'
 import { useGSAP } from '@gsap/react'
-import { createTimeline, createMotionPath, createDrawable } from 'animejs'
 
 gsap.registerPlugin(ScrollTrigger, useGSAP)
 
 /**
  * Chapter 3 — the shot tracer. A textured vector aerial of a par 5 at
  * dusk, drawn entirely from the marketing tokens (every color is a
- * color-mix of tokens; the grain is SVG turbulence), with the five
- * strokes traced over it. Scrolling through the pinned section plays the
- * strokes along SVG paths (anime createMotionPath), each leaving a bone
- * tracer (createDrawable), while the data rail brightens shot by shot.
- * Scroll drives the anime timeline through seek(); no timers anywhere.
+ * color-mix of tokens; the grain is SVG turbulence), with ONE continuous
+ * tee-to-hole tracer over it. The section never pins: when it enters the
+ * viewport the trace draws itself in about two seconds — the house
+ * dashoffset-proxy pattern from HeroSection, the ball riding the tip via
+ * getPointAtLength — while the data rail brightens shot by shot alongside.
+ * Leaving upward resets it, so scrolling back replays the shot.
  *
  * Static renditions (mobile, reduced motion, no JS) show the finished hole:
- * all four tracers drawn, ball at the hole, full data rail. The scrub only
- * ever winds that picture back, so nothing is gated behind it.
+ * tracer drawn, ball at the hole, full data rail. The entrance only ever
+ * winds that picture back, so nothing is gated behind it.
  *
  * Names and figures are a demonstration, and the section says so.
  */
@@ -34,27 +34,14 @@ const SHOTS = [
   { n: '5', label: 'Putt', dist: '2 ft', left: 'holed' },
 ]
 
-/* Trajectories in the aerial photograph's coordinate space (1024x1536),
-   tee box bottom-center to the flag top-center: the drive is one big
-   drawing arc, the two mid shots are smaller mounds bulging off the line,
-   and the putts are two short strokes across the green. */
-const FLIGHTS = [
-  'M 505 1300 C 560 1120, 560 985, 520 850',
-  'M 520 850 C 478 745, 468 655, 505 560',
-  'M 505 560 C 548 455, 556 320, 522 205',
-  'M 522 205 L 534 152',
-  'M 534 152 L 537 131',
-]
+/* One continuous tee-to-hole line in the aerial's coordinate space
+   (1024x1536) — the same corridor the old five flights traced, joined
+   into a single stroke from the tee box to the flag. */
+const TRACE =
+  'M 505 1300 C 560 1120, 560 985, 520 850 C 478 745, 468 655, 505 560 ' +
+  'C 548 455, 556 320, 522 205 C 528 178, 533 148, 537 131'
 
 const HOLE = { x: 537, y: 131 }
-
-const SHOT_WINDOWS = [
-  { at: 0, dur: 900 },
-  { at: 1100, dur: 650 },
-  { at: 1950, dur: 600 },
-  { at: 2750, dur: 420 },
-  { at: 3350, dur: 280 },
-]
 
 export function ShotTracerChapter() {
   const sectionRef = useRef<HTMLElement>(null)
@@ -73,51 +60,59 @@ export function ShotTracerChapter() {
           if (!svg || !rail) return
 
           const ball = svg.querySelector<SVGCircleElement>('[data-ball]')
-          const flights = svg.querySelectorAll<SVGPathElement>('[data-flight]')
-          const rows = rail.querySelectorAll<HTMLElement>('[data-shot]')
+          const flight = svg.querySelector<SVGPathElement>('[data-flight]')
+          const rows = gsap.utils.toArray<HTMLElement>('[data-shot]', rail)
           const result = rail.querySelector<HTMLElement>('[data-result]')
-          if (!ball || flights.length !== FLIGHTS.length || rows.length !== SHOTS.length || !result) return
+          if (!ball || !flight || rows.length !== SHOTS.length || !result) return
 
-          const tl = createTimeline({ autoplay: false })
+          // Wind the finished picture back: undrawn trace, hidden ball,
+          // dimmed rows. All context-tracked, so media.revert restores the
+          // static rest state.
+          gsap.set(rows, { opacity: 0.35, x: -6 })
+          gsap.set(result, { opacity: 0, y: 8 })
+          gsap.set(ball, { opacity: 0 })
+          flight.style.strokeDashoffset = '1'
+          const len = flight.getTotalLength()
 
-          // Rest-state pieces wind back to the start of the round.
-          rows.forEach((row) => tl.set(row, { opacity: 0.35 }, 0))
-          tl.set(result, { opacity: 0, translateY: 8 }, 0)
-
-          SHOT_WINDOWS.forEach((win, i) => {
-            const flight = flights[i]
-            const drawable = createDrawable(flight)
-            const { translateX, translateY } = createMotionPath(flight)
-
-            tl.set(drawable, { draw: '0 0' }, 0)
-            tl.add(drawable, { draw: '0 1', duration: win.dur, ease: 'inOutSine' }, win.at)
-            tl.add(ball, { translateX, translateY, duration: win.dur, ease: 'inOutSine' }, win.at)
-            tl.add(rows[i], { opacity: 1, translateX: [-6, 0], duration: 260, ease: 'outCubic' }, win.at)
-          })
-
-          tl.add(result, { opacity: 1, translateY: 0, duration: 320, ease: 'outCubic' }, 3800)
-
-          // createMotionPath emits absolute path coordinates as transforms,
-          // so the ball sits at the SVG origin while the paths carry it.
-          ball.setAttribute('cx', '0')
-          ball.setAttribute('cy', '0')
-
-          const trigger = ScrollTrigger.create({
-            trigger: sectionRef.current,
-            start: 'top top',
-            end: '+=200%',
-            pin: true,
-            scrub: true,
-            onUpdate: (self) => {
-              tl.seek(self.progress * tl.duration)
+          // The shot plays itself when the section arrives; leaving upward
+          // resets it, so scrolling back replays. Never pins.
+          const draw = { v: 1 }
+          const tl = gsap.timeline({
+            scrollTrigger: {
+              trigger: sectionRef.current,
+              start: 'top 60%',
+              toggleActions: 'play none none reset',
             },
           })
-
-          tl.seek(0)
+          tl.to(ball, { opacity: 1, ease: 'power2.in', duration: 0.12 }, 0.1)
+          tl.to(
+            draw,
+            {
+              v: 0,
+              ease: 'power2.inOut',
+              duration: 1.8,
+              onUpdate: () => {
+                flight.style.strokeDashoffset = String(draw.v)
+                const tip = flight.getPointAtLength((1 - draw.v) * len)
+                gsap.set(ball, { attr: { cx: tip.x, cy: tip.y } })
+              },
+            },
+            0.1,
+          )
+          // The rail brightens shot by shot alongside the draw.
+          tl.to(
+            rows,
+            { opacity: 1, x: 0, ease: 'power2.out', duration: 0.3, stagger: 0.28 },
+            0.25,
+          )
+          // The drop: a small pop as the ball reaches the hole.
+          tl.to(ball, { scale: 1.6, transformOrigin: '50% 50%', ease: 'power2.out', duration: 0.12 }, 1.92)
+          tl.to(ball, { scale: 1, ease: 'power2.in', duration: 0.16 }, 2.04)
+          tl.to(result, { opacity: 1, y: 0, ease: 'power2.out', duration: 0.32 }, 2.0)
 
           return () => {
-            trigger.kill()
-            tl.revert()
+            // Untracked writes from onUpdate: restore the static picture.
+            flight.style.strokeDashoffset = ''
             ball.setAttribute('cx', String(HOLE.x))
             ball.setAttribute('cy', String(HOLE.y))
           }
@@ -228,7 +223,7 @@ export function ShotTracerChapter() {
                 preserveAspectRatio="xMidYMid slice"
                 className="absolute inset-0 h-full w-full"
                 role="img"
-                aria-label="Aerial view of a par five with five traced strokes: drive, long iron, pitch and two putts for par"
+                aria-label="Aerial view of a par five with the shot traced from tee to hole"
               >
                 <defs>
                   {/* Film grain: SVG turbulence, bone-tinted, static. */}
@@ -247,6 +242,20 @@ export function ShotTracerChapter() {
                     <stop offset="0.62" stopColor="transparent" />
                     <stop offset="1" stopColor="color-mix(in oklch, var(--mk-night) 55%, transparent)" />
                   </radialGradient>
+                  {/* The tracer warms from bone at the tee into gold at the
+                      flag — the page's one sanctioned gold line grammar. */}
+                  <linearGradient
+                    id="tr-trace"
+                    gradientUnits="userSpaceOnUse"
+                    x1="505"
+                    y1="1300"
+                    x2="537"
+                    y2="131"
+                  >
+                    <stop offset="0" stopColor="var(--mk-bone)" stopOpacity="0.85" />
+                    <stop offset="0.72" stopColor="var(--mk-bone)" />
+                    <stop offset="1" stopColor="var(--mk-gold)" />
+                  </linearGradient>
                 </defs>
 
                 {/* Dusky ground. */}
@@ -324,19 +333,20 @@ export function ShotTracerChapter() {
                 <rect width="1024" height="1536" fill="url(#tr-vignette)" />
                 <rect width="1024" height="1536" filter="url(#tr-grain)" opacity="0.55" />
 
-                {/* The five strokes. Static default is fully drawn. */}
-                {FLIGHTS.map((d) => (
-                  <path
-                    key={d}
-                    data-flight
-                    d={d}
-                    fill="none"
-                    stroke="var(--mk-bone)"
-                    strokeWidth="4"
-                    strokeLinecap="round"
-                    opacity="0.95"
-                  />
-                ))}
+                {/* The trace. Static default is fully drawn (dashoffset 0
+                    attribute); the entrance winds it back via inline style. */}
+                <path
+                  data-flight
+                  d={TRACE}
+                  pathLength="1"
+                  strokeDasharray="1"
+                  strokeDashoffset="0"
+                  fill="none"
+                  stroke="url(#tr-trace)"
+                  strokeWidth="5"
+                  strokeLinecap="round"
+                  opacity="0.95"
+                />
 
                 {/* Hole ring at the flag. */}
                 <circle

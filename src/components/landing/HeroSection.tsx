@@ -87,26 +87,28 @@ export function HeroSection() {
             // over the stylesheet's static drawn state.
             const draw = { v: 1 }
             flight.style.strokeDashoffset = '1'
+            // Real path length (pathLength=1 only normalizes dash math), so
+            // the ball can ride the tracer tip. Cached once; one
+            // getPointAtLength per tick costs no layout.
+            const flightLength = flight.getTotalLength()
             // The hero holds still (pin) for a runway that plays two beats:
             // the window expands to full bleed, then the scrub plays the
             // flight. The page releases once the ball drops.
             const heroTl = gsap.timeline({
               scrollTrigger: {
                 trigger: sectionRef.current,
-                // Anchor to the hero's resting offset (the nav's height):
-                // waiting for 'top top' costs one nav-height of dead scroll
-                // before the expand begins. This way the very first scrolled
-                // pixel starts opening the window.
-                start: () => {
-                  const el = sectionRef.current
-                  if (!el) return 'top top'
-                  const top = Math.max(0, el.getBoundingClientRect().top + window.scrollY)
-                  return `top ${top}px`
-                },
+                // 'top top' is exact now: inside ScrollSmoother the content
+                // starts at viewport 0 (the old nav-height offset hack read
+                // getBoundingClientRect mid-catch-up and misfired — that was
+                // the jitter). anticipatePin is deliberately absent: it
+                // fights the smoother and causes pin jumps.
+                start: 'top top',
                 end: '+=150%',
                 pin: true,
-                anticipatePin: 1,
-                scrub: true,
+                // A short catch-up damps per-tick jitter on the clip-path
+                // expand and the tracer draw; the copy parallax above stays
+                // 1:1 so the text feels anchored.
+                scrub: 0.8,
               },
             })
             // Beat one — scroll-expand. The resting crop frames the sunset
@@ -122,10 +124,13 @@ export function HeroSection() {
               { clipPath: 'inset(0% 0% 0% 0% round 0px)', ease: 'power2.inOut', duration: 0.34 },
               0,
             )
+            // yPercent rides along for parallax depth — the photo settles
+            // down-and-in — and ends at identity with the scale, so the
+            // tracer's registration to the course is untouched.
             heroTl.fromTo(
               zoomRef.current,
-              { scale: 1.12 },
-              { scale: 1, ease: 'power2.inOut', duration: 0.34 },
+              { scale: 1.12, yPercent: 4 },
+              { scale: 1, yPercent: 0, ease: 'power2.inOut', duration: 0.34 },
               0,
             )
             // Beat two — the shot. Flown by ~80% of the runway; the rest
@@ -139,19 +144,31 @@ export function HeroSection() {
                 duration: 0.4,
                 onUpdate: () => {
                   flight.style.strokeDashoffset = String(draw.v)
+                  // The ball rides the drawn tip of the tracer. The path
+                  // ends at the ball's static cx/cy, so the landing is
+                  // byte-identical to the rest state.
+                  const tip = flight.getPointAtLength((1 - draw.v) * flightLength)
+                  gsap.set(ball, { attr: { cx: tip.x, cy: tip.y } })
                 },
               },
               0.42,
             )
-            // The ball only fades up as the flight finishes.
+            // The ball appears at the strike and flies the trail.
             heroTl.fromTo(
               ball,
               { opacity: 0 },
-              { opacity: 1, ease: 'power2.in', duration: 0.12 },
-              0.68,
+              { opacity: 1, ease: 'power2.in', duration: 0.06 },
+              0.42,
             )
             // Hold to the end of the pin.
             heroTl.to({}, { duration: 0.18 })
+          }
+          return () => {
+            // The onUpdate attribute writes aren't context-tracked: a
+            // mid-scroll revert (resize below the breakpoint) would strand
+            // the ball mid-path. Restore its static landing (see the JSX).
+            ball?.setAttribute('cx', '372')
+            ball?.setAttribute('cy', '750')
           }
         },
       )

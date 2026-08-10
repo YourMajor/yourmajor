@@ -321,6 +321,11 @@
   --mk-section: clamp(5rem, 10vw, 9rem);
   --mk-container: 80rem;
 
+  /* The cup: the opaque base of the deep-green shadow family below. Any
+     golf hole the marketing surface draws (BallDropDivider, TubeRun) is
+     this, never neutral black. */
+  --mk-cup: oklch(0.15 0.04 155);
+
   /* Green-tinted elevation — never a black shadow on green */
   --mk-shadow-plate: 0 24px 60px oklch(0.15 0.04 155 / 0.45);
   --mk-shadow-plate-hover: 0 32px 80px oklch(0.15 0.04 155 / 0.55);
@@ -743,18 +748,26 @@
   position: relative;
   isolation: isolate;
   background:
-    /* Sunset haze low in the sky, matching the hero's horizon band. No
-       ember near the bottom edge: anything tinting the zone's last pixels
-       cannot match the plain green below it, and reads as a hard line
-       between the tracer and the draft. */
+    /* Sunset haze low in the sky, matching the hero's horizon band. It must
+       reach neither edge: anything tinting the zone's first or last pixels
+       cannot match the plain green outside it, and reads as a hard line —
+       at the top against the lead-change chapter, at the bottom against the
+       draft. Centred at 42% with a 55% radius fading out by 64%, the ember
+       dies at 6.8% and 77.2%, clear of both handoffs. Moving this centre
+       without redoing that arithmetic puts the seam back. */
     radial-gradient(
-      130% 55% at 50% 22%,
+      130% 55% at 50% 42%,
       color-mix(in oklch, var(--mk-sunset) 19%, transparent),
       transparent 64%
     ),
+    /* oklab, not sRGB: green and dusk sit ~107° apart in hue, and the sRGB
+       path between them sags through a muddy grey that bands. */
     linear-gradient(
-      to bottom,
-      var(--mk-dusk) 0,
+      in oklab to bottom,
+      /* Top handoff from the page green: the poster no longer bridges into
+         this zone, so the dusk must arrive on its own without a seam. */
+      var(--mk-green-ground) 0,
+      var(--mk-dusk) 30rem,
       var(--mk-dusk) calc(100% - 26rem),
       var(--mk-green-ground) 100%
     );
@@ -941,6 +954,88 @@ main.marketing::after {
    scrolls (HeroSection). pathLength=1 makes the dash math unit-free. */
 .marketing .mk-hero-tracer path { stroke-dasharray: 1; stroke-dashoffset: 0; }
 
+/* Worm tube (TubeRun): the two balls that come back out of the cup to take
+   the tube rest holed (hidden) — GSAP winds them out. The scattered volley
+   is NOT hidden: those six lie on the green as part of the rest state, and
+   the scroll only draws them into the cup. */
+.marketing .mk-tube-run [data-ball] {
+  opacity: 0;
+}
+
+/* Bento hairlines (FeatureBento): the gold rule over each capability draws
+   itself left to right as the row arrives. The rule is a background, not a
+   border, because a border cannot be drawn — and its static default is the
+   full-width rule, so every non-animated rendition is the finished state. */
+.marketing .mk-hairline-draw {
+  background-image: linear-gradient(to right, var(--mk-rule-gold), var(--mk-rule-gold));
+  background-repeat: no-repeat;
+  background-position: left top;
+  background-size: 100% 1px;
+}
+@keyframes mkHairlineDraw {
+  from { background-size: 0% 1px; }
+  to   { background-size: 100% 1px; }
+}
+/* Committee sheet (AdminChapter): a single gold pass travels down the
+   ruled rows as the sheet crosses the viewport — the eye of the person
+   checking the card, not another entrance. */
+.marketing .mk-sheet-trace {
+  position: relative;
+  overflow: hidden;
+}
+@keyframes mkSheetTrace {
+  from { transform: translateY(-100%); }
+  to   { transform: translateY(280%); }
+}
+/* Both of the above are driven by ScrollTrigger, not
+   `animation-timeline: view()`: the landing page runs ScrollSmoother, and
+   a smoother transforms #smooth-content while a view() timeline reads the
+   untransformed layout — so every scroll-driven CSS animation on this
+   surface silently freezes at its start frame. The @keyframes stay as the
+   documented intent; GSAP does the driving. */
+.marketing .mk-sheet-sweep {
+  position: absolute;
+  inset-inline: 0;
+  top: 0;
+  height: 38%;
+  pointer-events: none;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    color-mix(in oklch, var(--mk-gold) 13%, transparent),
+    transparent
+  );
+  transform: translateY(-100%);
+}
+/* Featured tier (PricingSummary): the one plate that keeps moving on its
+   own — a slow gold gleam crossing the bone, so the decision point is
+   never a still frame. Idle loop, not an entrance. */
+@keyframes mkGleam {
+  0%        { transform: translateX(-130%); }
+  55%, 100% { transform: translateX(130%); }
+}
+.marketing .mk-gleam {
+  position: relative;
+  overflow: hidden;
+}
+.marketing .mk-gleam::after {
+  content: '';
+  position: absolute;
+  inset: -20% -35%;
+  pointer-events: none;
+  background: linear-gradient(
+    105deg,
+    transparent 42%,
+    color-mix(in oklch, var(--mk-gold) 20%, transparent) 50%,
+    transparent 58%
+  );
+  transform: translateX(-130%);
+  animation: mkGleam 7s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .marketing .mk-gleam::after { display: none; }
+}
+
 /* Header: the gold rule that glides between nav links. JS (NavUnderline)
    only sets transform and opacity. */
 .marketing nav [data-nav-rule] {
@@ -956,17 +1051,12 @@ main.marketing::after {
   from { transform: translate(18px, 18px); }
   to   { transform: translate(3px, 3px); }
 }
-@supports (animation-timeline: view()) {
-  /* Desktop only: on a slow thumb-scroll the mid-register state sat centered
-     in a phone viewport long enough to read as a rendering bug. */
-  @media (min-width: 1024px) and (prefers-reduced-motion: no-preference) {
-    .marketing .mk-poster-ink {
-      animation: mkPressRegister linear both;
-      animation-timeline: view();
-      animation-range: entry 20% cover 55%;
-    }
-  }
-}
+/* The press-register is driven by ScrollTrigger (see TubeRun, which is this
+   section's motion island), not by `animation-timeline: view()`. The
+   landing page runs ScrollSmoother: it transforms #smooth-content while a
+   view() timeline reads the untransformed layout, so the CSS version froze
+   the ink at its fully misregistered first frame. The keyframes above stay
+   as the documented intent and as the mobile/no-JS reference. */
 
 /* Lead change: the active commentary chip types itself in, and the row that
    takes the lead flashes gold as it lands. Classes are toggled by the

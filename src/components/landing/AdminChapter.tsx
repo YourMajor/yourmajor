@@ -1,4 +1,5 @@
 import { ScrollReveal } from '@/components/motion/ScrollReveal'
+import { SheetSweep } from '@/components/motion/SheetSweep'
 
 /**
  * The organizer's chapter. Everything here names a real control that ships
@@ -74,13 +75,14 @@ export function AdminChapter() {
 
           <ScrollReveal className="lg:col-span-7" delay={80}>
             <div
-              className="p-6 lg:p-8"
+              className="mk-sheet-trace p-6 lg:p-8"
               style={{
                 background: 'var(--mk-bone)',
                 borderRadius: 'var(--mk-radius-md)',
                 boxShadow: 'var(--mk-shadow-plate)',
               }}
             >
+              <SheetSweep />
               <div
                 className="flex items-baseline justify-between pb-3"
                 style={{ borderBottom: '2px solid var(--mk-gold)' }}

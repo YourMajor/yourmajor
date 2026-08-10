@@ -1,6 +1,8 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useSyncExternalStore } from 'react'
+import { createPortal } from 'react-dom'
+import { ScrollSmoother } from 'gsap/ScrollSmoother'
 
 /**
  * The page as a front nine. A fixed right-edge rail of nine holes, one per
@@ -26,6 +28,15 @@ const HOLES: Array<{ id: string; label: string }> = [
 
 export function ScorecardRail() {
   const railRef = useRef<HTMLElement>(null)
+  // Portaled to <body>: the rail must stay fixed to the viewport, and the
+  // landing page's ScrollSmoother transforms #smooth-content, which turns
+  // any fixed descendant into a scrolled-away absolute. Portal render is
+  // client-only, hence the hydration-safe mounted gate.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false,
+  )
 
   useEffect(() => {
     const rail = railRef.current
@@ -65,23 +76,40 @@ export function ScorecardRail() {
       window.removeEventListener('resize', onScroll)
       if (raf) cancelAnimationFrame(raf)
     }
-  }, [])
+  }, [mounted])
 
   const jump = (id: string) => {
     const el = document.getElementById(id)
     if (!el) return
     const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-    el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
+    // Inside the smoother, native scrollIntoView fights the transform;
+    // hand the jump to it when it exists.
+    const smoother = ScrollSmoother.get()
+    if (smoother) smoother.scrollTo(el, !reduce)
+    else el.scrollIntoView({ behavior: reduce ? 'auto' : 'smooth', block: 'start' })
   }
 
-  return (
+  if (!mounted) return null
+
+  return createPortal(
     <nav
       ref={railRef}
       aria-label="Page holes"
       // 1440 floor, not lg: below that the fixed rail overlaps the
       // container's right edge and steals clicks from real controls
       // (verified at 1280 wide laptops).
-      className="fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 min-[1440px]:flex"
+      // `marketing` keeps the mk-* token scope now that the portal renders
+      // outside <main class="marketing">. The class also paints the page's
+      // opaque green ground — the inline background below overrides it with
+      // the nav's glass treatment, so the rail reads over the poster photo,
+      // the dusk zone and the nightfall alike.
+      className="marketing fixed right-5 top-1/2 z-40 hidden -translate-y-1/2 flex-col items-center gap-1 rounded-[var(--mk-radius-md)] px-1.5 py-3 min-[1440px]:flex"
+      style={{
+        backgroundColor: 'color-mix(in oklab, var(--mk-green-deep) 55%, transparent)',
+        backdropFilter: 'blur(12px)',
+        WebkitBackdropFilter: 'blur(12px)',
+        border: '1px solid var(--mk-rule-gold)',
+      }}
     >
       <span
         aria-hidden
@@ -104,6 +132,7 @@ export function ScorecardRail() {
           {i + 1}
         </button>
       ))}
-    </nav>
+    </nav>,
+    document.body,
   )
 }

@@ -1,5 +1,6 @@
 import Image from 'next/image'
 import posterCourse from '../../../public/images/marketing/poster-course.webp'
+import { TubeRun } from './TubeRun'
 
 /**
  * The one screenprint moment on the page (DESIGN.md v3: exactly one; a second
@@ -21,8 +22,15 @@ const LINES = ['Built for', 'competitive', 'golfers']
 
 export function PosterInterstitial() {
   return (
+    // Compact band (no min-h): the poster is a beat between chapters now,
+    // not a destination. No overflow clip — the worm tube overlay is meant
+    // to overflow this section's top and bottom (the photo layer is static
+    // inset-0, so nothing else can poke out).
+    // Tall enough for the photograph to be a stage rather than a strip, and
+    // for the worm tube to complete its run inside this section. No
+    // overflow clip: the tube is meant to overhang the top edge.
     <div
-      className="relative flex min-h-[75vh] flex-col justify-center py-14"
+      className="relative flex min-h-[88rem] flex-col justify-center pt-[26rem] pb-24"
       style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
     >
       {/* Media stage: same drop-in contract as the hero's. The photo (and
@@ -30,13 +38,23 @@ export function PosterInterstitial() {
           with dusk: the zone's own background shows through the poster's
           lower reach, so the boundary with the next section cannot exist,
           haze and all. */}
+      {/* No parallax here, deliberately: a data-speed drift on this layer
+          swept the photo's hard edge (near-black dusk sky) through the
+          section as a flashing hairline — twice, even with generous
+          overdraw, because smoother catch-up transients exceed any static
+          margin. The poster's motion budget is its press-register ink and
+          the breathing glow; the photo holds still. */}
       <div
         className="absolute inset-0"
         aria-hidden
         style={{
+          // The photograph fills the whole section and dissolves at both
+          // ends, so the green ground carries into it and out of it with
+          // no seam at either edge.
           WebkitMaskImage:
-            'linear-gradient(to bottom, black 52%, transparent 90%)',
-          maskImage: 'linear-gradient(to bottom, black 52%, transparent 90%)',
+            'linear-gradient(to bottom, transparent 0%, black 17%, black 74%, transparent 100%)',
+          maskImage:
+            'linear-gradient(to bottom, transparent 0%, black 17%, black 74%, transparent 100%)',
         }}
       >
         <Image
@@ -56,17 +74,13 @@ export function PosterInterstitial() {
           }}
         />
       </div>
-      {/* Top handoff only: the page green dissolving into the photo. */}
-      <div
-        aria-hidden
-        className="pointer-events-none absolute inset-0"
-        style={{
-          background:
-            'linear-gradient(to bottom, var(--mk-green-ground), transparent 26%)',
-        }}
-      />
+      {/* No separate top handoff: the mask above now dissolves the
+          photograph at both edges, and a second green wash on top of it
+          only darkened the sky twice over. */}
 
-      <div className="mk-container relative w-full">
+      {/* z-10: the type always reads in front of the worm tube, which
+          passes behind the letterforms. */}
+      <div className="mk-container relative z-10 w-full">
         {/* Sunset projection: a slow orange glow breathes behind the type. */}
         <div aria-hidden className="mk-poster-glow" />
         <h2
@@ -100,13 +114,18 @@ export function PosterInterstitial() {
         </h2>
 
         <p
-          className="mt-8 max-w-[65ch] text-base lg:text-lg"
+          className="mt-8 max-w-[46ch] text-base lg:text-lg"
           style={{ color: 'var(--mk-text)' }}
         >
           Everything you need to run tournament golf, from casual weekend events
           to season-long leagues.
         </p>
       </div>
+
+      {/* The worm tube rides the right side of this section (copy stays
+          left), overflowing into the divider above and the leaderboard
+          below so the chapters read as one continuous course. */}
+      <TubeRun />
     </div>
   )
 }
