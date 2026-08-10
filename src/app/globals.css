@@ -64,6 +64,27 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --color-chart-scale-pattern-color: var(--chart-scale-pattern-color);
+  --color-chart-scale-05: var(--chart-scale-05);
+  --color-chart-scale-04: var(--chart-scale-04);
+  --color-chart-scale-03: var(--chart-scale-03);
+  --color-chart-scale-02: var(--chart-scale-02);
+  --color-chart-scale-01: var(--chart-scale-01);
+  --color-chart-label: var(--chart-label);
+  --color-chart-marker-foreground: var(--chart-marker-foreground);
+  --color-chart-marker-border: var(--chart-marker-border);
+  --color-chart-marker-background: var(--chart-marker-background);
+  --color-chart-tooltip-muted: var(--chart-tooltip-muted);
+  --color-chart-tooltip-foreground: var(--chart-tooltip-foreground);
+  --color-chart-tooltip-background: var(--chart-tooltip-background);
+  --chart-brush-border: var(--chart-brush-border);
+  --color-chart-grid: var(--chart-grid);
+  --color-chart-crosshair: var(--chart-crosshair);
+  --chart-line-secondary: var(--chart-line-secondary);
+  --chart-line-primary: var(--chart-line-primary);
+  --color-chart-foreground-muted: var(--chart-foreground-muted);
+  --color-chart-foreground: var(--chart-foreground);
+  --color-chart-background: var(--chart-background);
 }
 
 :root {
@@ -151,6 +172,31 @@
   /* ── Mobile / iOS safe-area tokens ──────────────── */
   --touch-target-min: 48px;
   --nav-bottom-height: 64px;
+  /* ── bklit chart register — every value is a Championship Board
+     token so dark mode and per-tournament branding flip for free.
+     The tooltip is the one deliberate literal: a surface-deep green
+     plate in both modes, bone text on it.                        */
+  --chart-background: transparent;
+  --chart-foreground: var(--foreground);
+  --chart-foreground-muted: var(--muted-foreground);
+  --chart-line-primary: var(--chart-1);
+  --chart-line-secondary: var(--chart-2);
+  --chart-crosshair: var(--muted-foreground);
+  --chart-grid: var(--border);
+  --chart-brush-border: var(--chart-grid);
+  --chart-tooltip-background: oklch(0.21 0.045 155 / 0.94);
+  --chart-tooltip-foreground: oklch(0.97 0.008 85);
+  --chart-tooltip-muted: oklch(0.97 0.008 85 / 0.8);
+  --chart-marker-background: var(--card);
+  --chart-marker-border: var(--border);
+  --chart-marker-foreground: var(--foreground);
+  --chart-label: var(--muted-foreground);
+  --chart-scale-01: oklch(0.93 0.02 155);
+  --chart-scale-02: oklch(0.82 0.05 155);
+  --chart-scale-03: oklch(0.68 0.08 155);
+  --chart-scale-04: oklch(0.50 0.09 155);
+  --chart-scale-05: oklch(0.34 0.07 155);
+  --chart-scale-pattern-color: oklch(0.95 0.01 155);
 }
 
 /* ── Dark mode: the marketing dusk, lived in ─────────────
@@ -203,6 +249,14 @@
   --sidebar-accent-foreground: oklch(0.95 0.012 85);
   --sidebar-border:       oklch(0.30 0.03 262);
   --sidebar-ring:         oklch(0.72 0.11 78);
+  /* bklit chart register: light-mode values reference tokens that
+     already flip here; only the green ramp needs its own dark run. */
+  --chart-scale-01: oklch(0.30 0.04 155);
+  --chart-scale-02: oklch(0.42 0.06 155);
+  --chart-scale-03: oklch(0.55 0.08 155);
+  --chart-scale-04: oklch(0.68 0.09 155);
+  --chart-scale-05: oklch(0.80 0.08 155);
+  --chart-scale-pattern-color: oklch(0.26 0.03 155);
 }
 
 /* ══════════════════════════════════════════════════════════════
@@ -483,7 +537,6 @@
   .marketing .mk-btn-secondary::after,
   .marketing .mk-btn-secondary-plate::after { transition: none; }
 }
-
 
 /* ── Hero title ceremony ─────────────────────────────────
    Pure CSS on purpose: the reveal runs without JavaScript, and the
