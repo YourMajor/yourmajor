@@ -452,3 +452,27 @@ Selected/highlighted cards use the gold accent (`ring-accent`) — never a third
 hue. Good/bad stroke modifiers use `--success` / `--destructive`, selection
 states use `--primary` — those are app semantics, not the register. The
 favourite heart stays literal red: it is iconography, not dialect.
+
+**The One Muted Step Rule.** On a branded surface, secondary text is
+`text-primary-foreground/80` — the single muted step, not a ladder. Measured
+against the default tournament green, bone reads 3.39:1 at `/60` and 4.05:1 at
+`/70`; only `/80` (4.79:1) clears AA. `/60` and `/70` foregrounds are a defect,
+not a taste choice. Non-text uses of the same ramp — hairlines at `/15`,
+dividers at `/20`, chip fills at `/10` — are unaffected; they are structure,
+and structure is allowed to whisper.
+
+**The Disabled-Is-Not-Faded Rule.** A disabled control is restyled, never
+dimmed with `opacity`. Opacity composites a filled button's label toward the
+page ground exactly as fast as its fill, so a green primary at 50% collapsed to
+grey-on-grey (1.9:1). Every filled variant disables to `bg-muted` +
+`text-muted-foreground` (5.69:1) and reads plainly as inactive; ghost and link
+variants disable to `text-muted-foreground` alone. This lives in
+`buttonVariants` (`src/components/ui/button-variants.ts`) so no call site has
+to remember it.
+
+**The Unlayered-Beats-Utilities Trap.** Custom rules in `globals.css` sit
+outside `@layer`, so they outrank *every* Tailwind utility regardless of
+specificity. A bare `.marketing nav a { display: inline-block }` silently
+stripped `inline-flex` from any anchor styled as a button, dropping its label
+to the top of the pill. When an unlayered rule sets a property a utility also
+owns, scope it (`:not([class*="flex"])`) so component-level intent survives.
