@@ -56,7 +56,10 @@ export function PricingSummary() {
           {TIERS.map((tier, i) => (
             <ScrollReveal key={tier.name} direction="up" delay={i * 70} duration={600}>
             <div
-              className="mk-sheen flex h-full flex-col p-6"
+              // The featured plate keeps a slow gold gleam running on its
+              // own (mk-gleam); the rest carry the hover sheen. One ::after
+              // each, so the two treatments cannot share an element.
+              className={`${tier.featured ? 'mk-gleam' : 'mk-sheen'} flex h-full flex-col p-6`}
               style={{
                 background: tier.featured ? 'var(--mk-bone)' : 'var(--mk-green-raised)',
                 color: tier.featured ? 'var(--mk-ink)' : 'var(--mk-text)',
