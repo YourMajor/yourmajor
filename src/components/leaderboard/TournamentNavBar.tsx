@@ -212,7 +212,7 @@ export function TournamentNavBar({
               <ul className="flex items-center gap-1 overflow-x-auto">
                 {isLeague && (
                   <li className="shrink-0 pr-3 mr-1 border-r border-primary-foreground/15">
-                    <span className="inline-flex items-center gap-1.5 text-[10px] font-bold uppercase tracking-wider text-accent">
+                    <span className="inline-flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wider text-accent">
                       <BarChart3 className="w-3 h-3" /> League
                     </span>
                   </li>
