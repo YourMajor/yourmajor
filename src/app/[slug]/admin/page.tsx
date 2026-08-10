@@ -14,6 +14,7 @@ import {
   CalendarCheck,
   CalendarClock,
   ArrowRight,
+  PenLine,
 } from 'lucide-react'
 import { CopyJoinCode } from './CopyJoinCode'
 import { QuickAddPlayer } from './QuickAddPlayer'
@@ -38,10 +39,12 @@ async function toggleRegistration(tournamentId: string) {
   revalidatePath(`/${t.slug}/admin`)
 }
 
-const STATUS_CONFIG: Record<string, { label: string; bg: string; text: string }> = {
-  REGISTRATION: { label: 'Registration', bg: 'bg-blue-100', text: 'text-blue-800' },
-  ACTIVE: { label: 'Live', bg: 'bg-green-100', text: 'text-green-800' },
-  COMPLETED: { label: 'Completed', bg: 'text-muted-foreground bg-muted', text: 'text-foreground' },
+// Status pills sit on the brand-primary header, so they read against the
+// contrast-guarded --primary-foreground rather than a fixed palette.
+const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
+  REGISTRATION: { label: 'Registration', cls: 'bg-primary-foreground/15 text-primary-foreground' },
+  ACTIVE: { label: 'Live', cls: 'bg-accent text-accent-foreground' },
+  COMPLETED: { label: 'Completed', cls: 'bg-primary-foreground/10 text-primary-foreground/70' },
 }
 
 const SCORING_METHOD_LABELS: Record<string, string> = {
@@ -105,6 +108,8 @@ export default async function AdminDashboard({
     eventsUpcoming: number
     rosterTotal: number
     rosterActive: number
+    activeEvent: { name: string; slug: string } | null
+    nextEvent: { name: string; slug: string } | null
     leader: { name: string; userId: string; value: string } | null
     latestRecap: { name: string; date: string | null; winner: string | null; slug: string } | null
     latestAnnouncement: { subject: string; sentAt: Date | null; deliveryCount: number; successCount: number } | null
@@ -129,9 +134,11 @@ export default async function AdminDashboard({
       listAnnouncements(tournament.id).catch(() => []),
     ])
 
+    const activeEvents = leagueEvents.filter((e) => e.status === 'ACTIVE')
+    const upcomingEvents = leagueEvents.filter((e) => e.status === 'REGISTRATION')
     const eventsCompleted = leagueEvents.filter((e) => e.status === 'COMPLETED').length
-    const eventsActive = leagueEvents.filter((e) => e.status === 'ACTIVE').length
-    const eventsUpcoming = leagueEvents.filter((e) => e.status === 'REGISTRATION').length
+    const eventsActive = activeEvents.length
+    const eventsUpcoming = upcomingEvents.length
     const leader = standings && standings.standings.length > 0 ? standings.standings[0] : null
 
     league = {
@@ -144,6 +151,8 @@ export default async function AdminDashboard({
       eventsUpcoming,
       rosterTotal: rosterCount,
       rosterActive: rosterActiveCount,
+      activeEvent: activeEvents[0] ? { name: activeEvents[0].name, slug: activeEvents[0].slug } : null,
+      nextEvent: upcomingEvents[0] ? { name: upcomingEvents[0].name, slug: upcomingEvents[0].slug } : null,
       leader: leader
         ? {
             name: leader.playerName,
@@ -171,35 +180,56 @@ export default async function AdminDashboard({
   }
 
   return (
-    <main className="space-y-8">
+    <main className="space-y-10">
       {/* Header */}
-      <div className="rounded-xl overflow-hidden border border-border">
+      <header className="rounded-xl overflow-hidden border border-border">
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--color-primary)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Admin Overview</p>
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary-foreground/60 mb-1">
+            {league ? 'League Admin' : 'Admin Overview'}
+          </p>
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl sm:text-2xl font-heading font-bold text-white">{tournament.name}</h1>
-            <span className={`text-xs font-bold px-3 py-1 rounded-full ${statusCfg.bg} ${statusCfg.text}`}>
+            <h1 className="text-xl sm:text-2xl font-heading font-bold text-primary-foreground">{tournament.name}</h1>
+            <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${statusCfg.cls}`}>
               {statusCfg.label}
             </span>
           </div>
+          {league && (
+            <p className="text-xs text-primary-foreground/70 mt-1.5">
+              {league.seasonName} · event {league.eventsCompleted + league.eventsActive} of {league.eventsTotal}
+            </p>
+          )}
         </div>
+      </header>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 divide-x divide-y sm:divide-y-0 divide-border">
-          <StatCell icon={Users} label="Participants" value={String(participantCount)} />
-          <StatCell icon={Calendar} label="Rounds" value={String(tournament._count.rounds)} />
-          <StatCell
-            icon={Activity}
-            label="Scores"
-            value={`${scoreCount}`}
-            sub={expectedScores > 0 ? `${scorePct}% of expected` : undefined}
-          />
-          <StatCell
-            icon={tournament.isOpenRegistration ? Globe : Lock}
-            label="Registration"
-            value={tournament.isOpenRegistration ? 'Open' : 'Invite'}
-          />
-        </div>
-      </div>
+      {/* ── Right now: everything that changes state ─────────────────────── */}
+      <section className="space-y-3">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Right now</h2>
+
+        {league && (
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href={`/${slug}/admin/season`}
+              className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-md text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+              style={{ backgroundColor: 'var(--color-primary)' }}
+            >
+              <Trophy className="w-4 h-4" /> Manage season
+            </Link>
+            {league.activeEvent && (
+              <Link
+                href={`/${league.activeEvent.slug}/admin/scores`}
+                className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-md border border-border text-sm font-semibold hover:bg-muted transition-colors"
+              >
+                <PenLine className="w-4 h-4" /> Chase scores
+              </Link>
+            )}
+            <Link
+              href={`/${slug}/admin/communications`}
+              className="inline-flex items-center gap-1.5 min-h-11 px-4 rounded-md border border-border text-sm font-semibold hover:bg-muted transition-colors"
+            >
+              <Mail className="w-4 h-4" /> Send announcement
+            </Link>
+          </div>
+        )}
 
       {/* Join Code */}
       {tournament.joinCode && tournament.tournamentType !== 'INVITE' && (
@@ -220,80 +250,102 @@ export default async function AdminDashboard({
         </div>
       )}
 
-      {/* Tournament Lifecycle (state-changing, kept on Overview) */}
       {showAdminControls && (
-        <div className="space-y-2">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">
-            Tournament Lifecycle
-          </p>
-          <div className="flex flex-col gap-2">
-            <RegistrationToggle
-              tournamentId={tournament.id}
-              registrationClosed={tournament.registrationClosed}
-              toggleAction={toggleRegistration}
+        <div className="flex flex-col gap-2">
+          <RegistrationToggle
+            tournamentId={tournament.id}
+            registrationClosed={tournament.registrationClosed}
+            toggleAction={toggleRegistration}
+          />
+          {tournament.powerupsEnabled && (
+            <DraftPowerupsCard
+              label={tournament.distributionMode === 'RANDOM' ? 'Deal Powerups' : 'Draft Powerups'}
+              href={`/${slug}/admin/draft`}
             />
-            {tournament.powerupsEnabled && (
-              <DraftPowerupsCard
-                label={tournament.distributionMode === 'RANDOM' ? 'Deal Powerups' : 'Draft Powerups'}
-                href={`/${slug}/admin/draft`}
-              />
-            )}
-            <GoLiveButton tournamentId={tournament.id} slug={slug} />
-          </div>
+          )}
+          <GoLiveButton tournamentId={tournament.id} slug={slug} />
         </div>
       )}
 
       {tournament.status === 'ACTIVE' && <QuickAddPlayer tournamentId={tournament.id} />}
 
       {tournament.status === 'ACTIVE' && <AnnouncementForm tournamentId={tournament.id} />}
+      </section>
+
+      {/* ── Reference: the numbers, nothing to act on ────────────────────── */}
+      <section className="space-y-4">
+        <h2 className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Reference</h2>
+
+        <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
+          <Stat icon={Users} label="Participants" value={String(participantCount)} figure />
+          <Stat icon={Calendar} label="Rounds" value={String(tournament._count.rounds)} figure />
+          <Stat
+            icon={Activity}
+            label="Scores"
+            value={String(scoreCount)}
+            sub={expectedScores > 0 ? `${scorePct}% of expected` : undefined}
+            figure
+          />
+          <Stat
+            icon={tournament.isOpenRegistration ? Globe : Lock}
+            label="Registration"
+            value={tournament.isOpenRegistration ? 'Open' : 'Invite'}
+            figure
+          />
+        </div>
 
       {/* League summary (read-only metrics) */}
       {league ? (
-        <section className="space-y-4">
-          <div className="flex items-end justify-between gap-3">
-            <div>
-              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">League Summary</p>
-              <h2 className="text-lg font-heading font-semibold mt-0.5">{league.seasonName}</h2>
-              <p className="text-xs text-muted-foreground mt-0.5">
-                {league.scoringMethodLabel}
-                {league.leagueEndDate && (
-                  <> · ends {league.leagueEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
-                )}
-              </p>
-            </div>
-            <Link
-              href={`/${slug}/admin/season`}
-              className="text-xs font-medium text-[var(--color-primary)] hover:underline inline-flex items-center gap-1"
-            >
-              Manage season <ArrowRight className="w-3 h-3" />
-            </Link>
-          </div>
+        <div className="space-y-4">
+          <p className="text-xs text-muted-foreground">
+            {league.scoringMethodLabel}
+            {league.leagueEndDate && (
+              <> · ends {league.leagueEndDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</>
+            )}
+          </p>
 
           <div className="grid gap-3 grid-cols-2 sm:grid-cols-4">
-            <MetricCard icon={CalendarCheck} label="Completed" value={String(league.eventsCompleted)} tone="muted" />
-            <MetricCard icon={Activity} label="In progress" value={String(league.eventsActive)} tone={league.eventsActive > 0 ? 'green' : 'muted'} />
-            <MetricCard icon={CalendarClock} label="Upcoming" value={String(league.eventsUpcoming)} tone="muted" />
-            <MetricCard icon={Calendar} label="Total events" value={String(league.eventsTotal)} tone="muted" />
+            <Stat icon={CalendarCheck} label="Completed" value={String(league.eventsCompleted)} figure href={`/${slug}/admin/season`} />
+            <Stat
+              icon={Activity}
+              label="In progress"
+              value={String(league.eventsActive)}
+              sub={league.activeEvent?.name}
+              figure
+              active={league.eventsActive > 0}
+              href={league.activeEvent ? `/${league.activeEvent.slug}/admin/scores` : `/${slug}/admin/season`}
+            />
+            <Stat
+              icon={CalendarClock}
+              label="Upcoming"
+              value={String(league.eventsUpcoming)}
+              sub={league.nextEvent?.name}
+              figure
+              href={`/${slug}/admin/season`}
+            />
+            <Stat icon={Calendar} label="Total events" value={String(league.eventsTotal)} figure href={`/${slug}/admin/season`} />
           </div>
 
           <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
-            <Tile
+            <Stat
               icon={Users}
-              title="Roster"
-              primary={`${league.rosterActive} active`}
-              secondary={league.rosterTotal !== league.rosterActive ? `${league.rosterTotal} total` : undefined}
+              label="Roster"
+              value={`${league.rosterActive} active`}
+              sub={league.rosterTotal !== league.rosterActive ? `${league.rosterTotal} total` : undefined}
+              href={`/${slug}/admin/season`}
             />
-            <Tile
+            <Stat
               icon={Crown}
-              title="Standings leader"
-              primary={league.leader ? league.leader.name : 'Pending first results'}
-              secondary={league.leader ? league.leader.value : undefined}
+              label="Standings leader"
+              value={league.leader ? league.leader.name : 'Pending first results'}
+              sub={league.leader ? league.leader.value : undefined}
+              href={`/${slug}/season`}
             />
-            <Tile
+            <Stat
               icon={Trophy}
-              title="Latest event"
-              primary={league.latestRecap ? league.latestRecap.name : 'Awaiting first event'}
-              secondary={
+              label="Latest event"
+              value={league.latestRecap ? league.latestRecap.name : 'Awaiting first event'}
+              sub={
                 league.latestRecap
                   ? `Won by ${league.latestRecap.winner ?? '—'}${
                       league.latestRecap.date
@@ -307,54 +359,54 @@ export default async function AdminDashboard({
           </div>
 
           {league.latestAnnouncement && (
-            <Tile
+            <Stat
               icon={Mail}
-              title="Last announcement"
-              primary={league.latestAnnouncement.subject}
-              secondary={`${league.latestAnnouncement.successCount}/${league.latestAnnouncement.deliveryCount} delivered${
+              label="Last announcement"
+              value={league.latestAnnouncement.subject}
+              sub={`${league.latestAnnouncement.successCount}/${league.latestAnnouncement.deliveryCount} delivered${
                 league.latestAnnouncement.sentAt
                   ? ` · ${league.latestAnnouncement.sentAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })}`
                   : ''
               }`}
+              href={`/${slug}/admin/communications`}
             />
           )}
-        </section>
+        </div>
       ) : (
         // Single-tournament dashboard
-        <section className="space-y-4">
-          <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tournament Health</p>
+        <div className="space-y-4">
           <div className="grid gap-3 grid-cols-1 md:grid-cols-3">
-            <Tile
+            <Stat
               icon={Users}
-              title="Group assignments"
-              primary={
+              label="Group assignments"
+              value={
                 tournament._count.groups === 0
                   ? 'No groups yet'
                   : `${assignedPlayerCount}/${participantCount} assigned`
               }
-              secondary={
+              sub={
                 tournament._count.groups > 0
                   ? `${tournament._count.groups} group${tournament._count.groups === 1 ? '' : 's'} · ${groupCoverage}% coverage`
                   : undefined
               }
               href={`/${slug}/admin/groups`}
             />
-            <Tile
+            <Stat
               icon={ListChecks}
-              title="Score progress"
-              primary={expectedScores > 0 ? `${scorePct}% complete` : '—'}
-              secondary={`${scoreCount} score${scoreCount === 1 ? '' : 's'} submitted`}
+              label="Score progress"
+              value={expectedScores > 0 ? `${scorePct}% complete` : '—'}
+              sub={`${scoreCount} score${scoreCount === 1 ? '' : 's'} submitted`}
               href={`/${slug}/admin/scores`}
             />
-            <Tile
+            <Stat
               icon={Activity}
-              title="Last activity"
-              primary={
+              label="Last activity"
+              value={
                 latestActivity
                   ? latestActivity.submittedAt.toLocaleString('en-US', { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' })
                   : 'No scores yet'
               }
-              secondary={tournament.rounds[0]?.course?.name ?? undefined}
+              sub={tournament.rounds[0]?.course?.name ?? undefined}
             />
           </div>
           {tournament.rounds.length > 0 && (
@@ -375,86 +427,59 @@ export default async function AdminDashboard({
               </ul>
             </div>
           )}
-        </section>
+        </div>
       )}
+      </section>
     </main>
   )
 }
 
 // ─── Sub-components ─────────────────────────────────────────────────────────
 
-function StatCell({
+/** The one card on this page. `figure` sets a big tabular number instead of a
+ *  sentence; `active` tints the card when something is live; `href` makes it a
+ *  link with an affordance arrow. */
+function Stat({
   icon: Icon,
   label,
   value,
   sub,
+  href,
+  figure = false,
+  active = false,
 }: {
   icon: React.ComponentType<{ className?: string }>
   label: string
   value: string
   sub?: string
-}) {
-  return (
-    <div className="px-5 py-4 text-center">
-      <div className="flex items-center justify-center gap-2 mb-1">
-        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        <span className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
-      </div>
-      <p className="text-2xl font-heading font-bold">{value}</p>
-      {sub && <p className="text-[11px] text-muted-foreground mt-0.5">{sub}</p>}
-    </div>
-  )
-}
-
-function MetricCard({
-  icon: Icon,
-  label,
-  value,
-  tone,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  label: string
-  value: string
-  tone: 'muted' | 'green'
-}) {
-  const toneCls = tone === 'green'
-    ? 'bg-green-50 border-green-200'
-    : 'border-border'
-  return (
-    <div className={`rounded-xl border ${toneCls} p-4`}>
-      <div className="flex items-center justify-between gap-2">
-        <Icon className="w-4 h-4 text-muted-foreground" />
-        <p className="text-2xl font-heading font-bold">{value}</p>
-      </div>
-      <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground mt-2">{label}</p>
-    </div>
-  )
-}
-
-function Tile({
-  icon: Icon,
-  title,
-  primary,
-  secondary,
-  href,
-}: {
-  icon: React.ComponentType<{ className?: string }>
-  title: string
-  primary: string
-  secondary?: string
   href?: string
+  figure?: boolean
+  active?: boolean
 }) {
   const inner = (
-    <div className="rounded-xl border border-border p-4 h-full transition-all hover:border-[var(--color-primary)]/40">
+    <div
+      className={`rounded-xl border p-4 h-full transition-colors ${
+        active ? 'border-success/40 bg-success/5' : 'border-border'
+      } ${href ? 'hover:border-[var(--color-primary)]/40' : ''}`}
+    >
       <div className="flex items-center gap-2 mb-2">
-        <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{title}</p>
+        <Icon className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+        <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground truncate">{label}</p>
+        {href && <ArrowRight className="w-3 h-3 text-muted-foreground ml-auto shrink-0" />}
       </div>
-      <p className="text-base font-semibold text-foreground truncate">{primary}</p>
-      {secondary && <p className="text-xs text-muted-foreground mt-0.5 truncate">{secondary}</p>}
+      <p
+        className={
+          figure
+            ? 'text-2xl font-heading font-bold tabular-data'
+            : 'text-base font-semibold text-foreground truncate'
+        }
+      >
+        {value}
+      </p>
+      {sub && <p className="text-xs text-muted-foreground mt-0.5 truncate">{sub}</p>}
     </div>
   )
-  if (href) return <Link href={href}>{inner}</Link>
+  if (href) return <Link href={href} className="block h-full">{inner}</Link>
   return inner
 }
 
