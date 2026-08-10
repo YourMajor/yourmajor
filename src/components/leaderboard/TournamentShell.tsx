@@ -89,7 +89,7 @@ export function TournamentShell({
             <Link
               href={`/${latestTournament.slug}`}
               className="flex items-center justify-center gap-2 py-2 text-xs sm:text-sm font-semibold transition-opacity hover:opacity-80"
-              style={{ color: 'var(--color-accent-foreground, white)' }}
+              style={{ color: 'var(--accent-foreground)' }}
             >
               There is a new tournament available: {latestTournament.name}
               <ArrowRight className="w-3.5 h-3.5" />
