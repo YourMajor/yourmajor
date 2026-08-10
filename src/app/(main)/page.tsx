@@ -13,8 +13,8 @@ import { DraftChapter } from '@/components/landing/DraftChapter'
 import { AdminChapter } from '@/components/landing/AdminChapter'
 import { StatsBand } from '@/components/landing/StatsBand'
 import { SeasonStrip } from '@/components/landing/SeasonStrip'
-import { FormatsMarquee } from '@/components/landing/FormatsMarquee'
 import { ScorecardRail } from '@/components/landing/ScorecardRail'
+import { SmoothScroll } from '@/components/landing/SmoothScroll'
 import { ClosingChapter } from '@/components/landing/ClosingChapter'
 import { MobileCta } from '@/components/landing/MobileCta'
 import { PricingSummary } from '@/components/landing/PricingSummary'
@@ -29,20 +29,30 @@ export default async function Home() {
     // overflow-x-clip, never -hidden: -hidden silently kills position:sticky
     // on descendants, and the hero's scroll sequence depends on it.
     <main id="content" className="marketing overflow-x-clip">
+      {/* Mounted first: creates the ScrollSmoother (desktop full-motion)
+          before any sibling chapter registers its ScrollTriggers. */}
+      <SmoothScroll />
+
       <HeroSection />
+
+      {/* The poster beat, then the leaderboard chapter. The volley of balls
+          that used to fall into its own cup in a divider band now rains
+          into the worm tube's cup instead — one hole, inside
+          PosterInterstitial. */}
+      <PosterInterstitial />
 
       <LeadChangeChapter />
 
       {/* The same sections /features renders, inlined here so the landing
           scroll tells the whole story. Signed-in visitors are redirected to
-          /dashboard above and read them on /features instead. */}
-      <section id="features" className="mk-section scroll-mt-24 pt-0">
-        {/* The dusk interlude: poster photo through the shot tracer sit on
+          /dashboard above and read them on /features instead.
+          NOTE: no mk-section here — its unlayered padding-block beats any
+          Tailwind pt-0, which is exactly the double gap we removed. */}
+      <section id="features" className="scroll-mt-24" style={{ paddingBottom: 'var(--mk-section)' }}>
+        {/* The dusk interlude: feature splits through the shot tracer sit on
             twilight slate, then the ground ramps back to green. */}
         <div className="mk-dusk-zone">
-          <PosterInterstitial />
           <FeatureSplits />
-          <FormatsMarquee />
           <ShotTracerChapter />
         </div>
         <DraftChapter />
