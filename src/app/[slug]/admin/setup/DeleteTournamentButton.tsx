@@ -27,6 +27,10 @@ export function DeleteTournamentButton({ tournamentId, size = 'default' }: Props
         setDeleting(false)
         return
       }
+      // Full document load on purpose. The tournament this page belongs to no
+      // longer exists, so a client-side push would re-render the current
+      // layout — which reads that tournament — before navigating away.
+      // eslint-disable-next-line @next/next/no-location-assign-relative-destination
       window.location.href = '/dashboard'
     } catch {
       alert('Something went wrong. Please try again.')

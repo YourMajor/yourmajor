@@ -14,7 +14,7 @@ export function TurnStrip({ isMyTurn, currentPlayerName, pickNumber, roundNumber
     <div
       className={`sticky top-0 z-30 -mx-3 sm:-mx-4 px-3 sm:px-4 border-b transition-colors ${
         isMyTurn
-          ? 'bg-[oklch(0.72_0.11_78/0.12)] border-[oklch(0.72_0.11_78/0.40)]'
+          ? 'bg-accent/12 border-accent/40'
           : 'bg-card/95 backdrop-blur-sm border-border'
       }`}
       aria-live="polite"
@@ -24,8 +24,8 @@ export function TurnStrip({ isMyTurn, currentPlayerName, pickNumber, roundNumber
         {isMyTurn ? (
           <>
             <span className="relative flex items-center justify-center w-2.5 h-2.5 shrink-0">
-              <span className="absolute inset-0 rounded-full bg-[oklch(0.72_0.11_78)] animate-turn-pulse" />
-              <span className="relative w-1.5 h-1.5 rounded-full bg-[oklch(0.72_0.11_78)]" />
+              <span className="absolute inset-0 rounded-full bg-accent animate-turn-pulse" />
+              <span className="relative w-1.5 h-1.5 rounded-full bg-accent" />
             </span>
             <span className="font-bold text-foreground">Your turn</span>
             {pickNumber !== null && roundNumber !== null && (

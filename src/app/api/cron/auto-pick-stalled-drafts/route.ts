@@ -44,11 +44,6 @@ export async function GET(request: NextRequest) {
 
   for (const d of stalled) {
     try {
-      const tournament = await prisma.tournament.findUnique({
-        where: { id: d.tournamentId },
-        select: { slug: true, name: true },
-      })
-
       const out = await prisma.$transaction(async (tx) => {
         const fresh = await tx.draft.findUnique({
           where: { id: d.id },
@@ -56,6 +51,11 @@ export async function GET(request: NextRequest) {
             picks: { include: { powerup: { select: { type: true } } } },
             tournament: {
               select: {
+                // slug/name are only for the push below — this row is already
+                // being read, so a separate findUnique per stalled draft (up
+                // to MAX_DRAFTS_PER_RUN of them, serially) bought nothing.
+                slug: true,
+                name: true,
                 powerupsPerPlayer: true,
                 maxAttacksPerPlayer: true,
                 tournamentPowerups: {
@@ -119,7 +119,7 @@ export async function GET(request: NextRequest) {
           },
         })
 
-        return picked
+        return { ...picked, tournament: fresh.tournament }
       })
 
       // Awaited, not fire-and-forget: a cron has no latency budget to protect
@@ -130,11 +130,11 @@ export async function GET(request: NextRequest) {
           console.error('[broadcast] cron auto-pick failed', err))
       }
 
-      if (out && out.nextPickerUserId && tournament) {
+      if (out && out.nextPickerUserId) {
         await sendPushToUser(out.nextPickerUserId, {
-          title: `${tournament.name} — You're on the clock`,
+          title: `${out.tournament.name} — You're on the clock`,
           body: "It's your turn to pick a powerup.",
-          url: `/${tournament.slug}/draft`,
+          url: `/${out.tournament.slug}/draft`,
         }).catch((err) => console.error('[push] cron auto-pick dispatch failed', err))
       }
 

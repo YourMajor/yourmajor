@@ -9,7 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:watch": "vitest",
-    "qa": "tsc --noEmit && npm run lint && npm run test && npm run build",
+    "qa": "npm run build && tsc --noEmit && npm run lint && npm run test",
     "migrate:resolve": "node scripts/migrate-resolve.mjs",
     "icons:generate": "node scripts/generate-icons.mjs"
   },

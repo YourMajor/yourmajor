@@ -142,9 +142,13 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     setTimeout(() => setNotification(null), 300)
   }
 
-  // These modals are hand-rolled rather than built on ui/dialog, so Escape
-  // has to be wired up explicitly.
+  // These modals are hand-rolled rather than built on ui/dialog, so Escape,
+  // focus entry and focus restore all have to be wired up explicitly. Mirrors
+  // DraftBottomSheet, which is the reference implementation.
   const open = !!notification && visible
+  const dialogRef = useRef<HTMLDivElement | null>(null)
+  const triggerRef = useRef<HTMLElement | null>(null)
+
   useEffect(() => {
     if (!open) return
     const onKeyDown = (e: KeyboardEvent) => {
@@ -153,6 +157,25 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
     document.addEventListener('keydown', onKeyDown)
     return () => document.removeEventListener('keydown', onKeyDown)
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open])
+
+  // Remember what had focus so it can be handed back on close — otherwise
+  // dismissing drops keyboard users at the top of the document.
+  useEffect(() => {
+    if (open) {
+      triggerRef.current = (document.activeElement as HTMLElement) ?? null
+    } else if (triggerRef.current) {
+      triggerRef.current.focus?.()
+    }
+  }, [open])
+
+  // Focus trap entry: move focus into the dialog rather than leaving it behind
+  // the backdrop, where Tab would walk the page underneath.
+  useEffect(() => {
+    if (!open) return
+    dialogRef.current
+      ?.querySelector<HTMLElement>('button, [tabindex]:not([tabindex="-1"])')
+      ?.focus()
   }, [open])
 
   if (!notification || !visible) return null
@@ -164,6 +187,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
         <div className="absolute inset-0 bg-black/60" onClick={dismiss} />
 
         <div
+          ref={dialogRef}
           role="dialog"
           aria-modal="true"
           aria-label="You've been attacked"
@@ -220,6 +244,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
       <div className="absolute inset-0 bg-black/60" onClick={dismiss} />
 
       <div
+        ref={dialogRef}
         role="dialog"
         aria-modal="true"
         aria-label="It's your turn to draft"

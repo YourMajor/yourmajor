@@ -290,6 +290,7 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
                   onClick={() => handleDeletePhoto(photo.id)}
                   className="absolute top-1.5 right-1.5 z-10 p-1 rounded-full bg-black/50 text-white opacity-0 group-hover:opacity-100 transition-opacity hover:bg-red-600"
                   title="Delete photo"
+                  aria-label="Delete photo"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>

@@ -31,6 +31,7 @@ const HOLES = [
 let roundRow: unknown = null
 let targetPlayerRow: unknown = null
 let selectedInTournament = 0
+const claimWrites: Array<Record<string, unknown>> = []
 
 const prismaMock = {
   tournamentPlayer: {
@@ -52,7 +53,10 @@ const prismaMock = {
         effect: currentEffect,
       },
     })),
-    updateMany: vi.fn(async (_args: { data: Record<string, unknown> }) => ({ count: 1 })),
+    updateMany: vi.fn(async (args: { data: Record<string, unknown> }) => {
+      claimWrites.push(args.data)
+      return { count: 1 }
+    }),
   },
   tournamentRound: { findFirst: vi.fn(async () => roundRow) },
   score: { findMany: vi.fn(async () => []) },
@@ -87,6 +91,7 @@ beforeEach(() => {
     tournament: { slug: 'the-open', name: 'The Open' },
   }
   selectedInTournament = 0
+  claimWrites.length = 0
 })
 
 const ctx = () => ({ params: Promise.resolve({ id: 'tourn_1' }) })
@@ -170,7 +175,7 @@ describe('POST /api/tournaments/[id]/powerups/activate — cross-tournament scop
     expect(res.status).toBe(200)
     expect(prismaMock.playerPowerup.updateMany).toHaveBeenCalledTimes(1)
 
-    const { data } = prismaMock.playerPowerup.updateMany.mock.calls[0][0]
+    const data = claimWrites[0]
     expect(data.targetPlayerId).toBe('tp_target')
     // Target has no scores, so the attack lands on the hole *after* the one
     // they're on (computeAttackTargetHole: unscored[1] ?? unscored[0]).

@@ -11,14 +11,27 @@ const broadcastMock = { broadcastNotification: vi.fn(async () => {}) }
 const USED_AT = new Date('2026-08-10T10:00:00Z')
 let powerupRow: Record<string, unknown> | null = null
 
+const resetWrites: Array<Record<string, unknown>> = []
+const messageUpdates: Array<{ where: Record<string, unknown>; data: Record<string, unknown> }> = []
+
 const prismaMock = {
   tournamentPlayer: { findUnique: vi.fn(async () => ({ id: 'tp_caller' })) },
   playerPowerup: {
     findUnique: vi.fn(async () => powerupRow),
-    update: vi.fn(async (_args: { data: Record<string, unknown> }) => ({ status: 'AVAILABLE' })),
+    update: vi.fn(async (args: { data: Record<string, unknown> }) => {
+      resetWrites.push(args.data)
+      return { status: 'AVAILABLE' }
+    }),
   },
-  notification: { deleteMany: vi.fn(async (_args: unknown) => ({ count: 1 })) },
-  tournamentMessage: { updateMany: vi.fn(async (_args: unknown) => ({ count: 1 })) },
+  notification: { deleteMany: vi.fn(async () => ({ count: 1 })) },
+  tournamentMessage: {
+    updateMany: vi.fn(
+      async (args: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+        messageUpdates.push(args)
+        return { count: 1 }
+      },
+    ),
+  },
 }
 
 vi.mock('@/lib/auth', () => authMock)
@@ -27,6 +40,8 @@ vi.mock('@/lib/notification-broadcast', () => broadcastMock)
 
 beforeEach(() => {
   vi.clearAllMocks()
+  resetWrites.length = 0
+  messageUpdates.length = 0
   authMock.getUser.mockResolvedValue({ id: 'user_caller' })
   powerupRow = {
     id: 'pp_1',
@@ -53,7 +68,7 @@ describe('POST /api/tournaments/[id]/powerups/undo', () => {
     const res = await POST(req(), ctx())
 
     expect(res.status).toBe(200)
-    const { data } = prismaMock.playerPowerup.update.mock.calls[0][0]
+    const data = resetWrites[0]
     expect(data.targetHoleNumber).toBeNull()
     // Prisma treats `undefined` as "don't touch", so a JSON null has to be
     // explicit or the variable-powerup metadata survives the undo.
@@ -78,10 +93,7 @@ describe('POST /api/tournaments/[id]/powerups/undo', () => {
     const { POST } = await import('./route')
     await POST(req(), ctx())
 
-    const call = prismaMock.tournamentMessage.updateMany.mock.calls[0][0] as {
-      where: Record<string, unknown>
-      data: Record<string, unknown>
-    }
+    const call = messageUpdates[0]
     expect(call.where).toMatchObject({
       tournamentId: 'tourn_1',
       isSystem: true,
