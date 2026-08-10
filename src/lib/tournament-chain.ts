@@ -1,6 +1,9 @@
 import { prisma } from '@/lib/prisma'
 import { getCachedLeaderboard } from '@/lib/scoring'
 
+/** Upper bound on how far the parent/child chain walks are followed. */
+const MAX_CHAIN_DEPTH = 20
+
 export interface PastChampion {
   slug: string
   headerImage: string | null
@@ -44,7 +47,10 @@ export async function getAncestorChain(tournamentId: string): Promise<AncestorTo
   })
   currentId = current?.parentTournamentId ?? null
 
-  while (currentId) {
+  // Bounded like getLatestInChain below. parentTournamentId is a plain
+  // self-relation with no cycle constraint, so an A→B→A pair would otherwise
+  // spin here forever and hang the request rather than just being slow.
+  for (let i = 0; currentId && i < MAX_CHAIN_DEPTH; i++) {
     const t = await prisma.tournament.findUnique({
       where: { id: currentId },
       select: {
@@ -82,7 +88,7 @@ export async function getLatestInChain(tournamentId: string): Promise<LatestTour
   let currentId = tournamentId
   let latest: { slug: string; name: string } | null = null
 
-  for (let i = 0; i < 20; i++) {
+  for (let i = 0; i < MAX_CHAIN_DEPTH; i++) {
     const child = await prisma.tournament.findFirst({
       where: { parentTournamentId: currentId },
       select: { id: true, slug: true, name: true },
@@ -237,19 +243,27 @@ export async function getPodiumHistory(
   const ancestors = await getAncestorChain(tournamentId)
   const completed = ancestors.filter((t) => t.status === 'COMPLETED')
 
+  // Batch both halves the way getChampionHistory already does. This used to
+  // run a leaderboard read and a player lookup serially per ancestor.
+  const standingsByTournament = await Promise.all(
+    completed.map((t) => getCachedLeaderboard(t.id, t.status)),
+  )
+  const podiums = standingsByTournament.map((s) => s.slice(0, topN))
+
+  const allPlayerIds = [...new Set(podiums.flat().map((s) => s.tournamentPlayerId))]
+  const players = allPlayerIds.length
+    ? await prisma.tournamentPlayer.findMany({
+        where: { id: { in: allPlayerIds } },
+        select: { id: true, userId: true },
+      })
+    : []
+  const userIdByPlayer = new Map(players.map((p) => [p.id, p.userId]))
+
   const results: PastTournamentPodium[] = []
 
-  for (const t of completed) {
-    const standings = await getCachedLeaderboard(t.id, t.status)
-    const top = standings.slice(0, topN)
-    if (top.length === 0) continue
-
-    const playerIds = top.map((s) => s.tournamentPlayerId)
-    const players = await prisma.tournamentPlayer.findMany({
-      where: { id: { in: playerIds } },
-      select: { id: true, userId: true },
-    })
-    const userIdByPlayer = new Map(players.map((p) => [p.id, p.userId]))
+  completed.forEach((t, i) => {
+    const top = podiums[i]
+    if (top.length === 0) return
 
     results.push({
       tournamentId: t.id,
@@ -269,7 +283,7 @@ export async function getPodiumHistory(
         netVsPar: s.netVsPar,
       })),
     })
-  }
+  })
 
   return results
 }
@@ -426,19 +440,29 @@ export async function getChainRoster(tournamentId: string): Promise<ChainRoster>
 
   const completed = chain.filter((t) => t.status === 'COMPLETED')
 
-  const inputs: RosterTournamentInput[] = []
-  for (const t of completed) {
-    const standings = await getCachedLeaderboard(t.id, t.status)
-    if (standings.length === 0) continue
+  // One leaderboard fan-out and one player lookup for the whole chain, rather
+  // than a pair of serial awaits per completed edition.
+  const standingsByTournament = await Promise.all(
+    completed.map((t) => getCachedLeaderboard(t.id, t.status)),
+  )
 
-    const playerIds = standings.map((s) => s.tournamentPlayerId)
-    const players = await prisma.tournamentPlayer.findMany({
-      where: { id: { in: playerIds } },
-      select: { id: true, userId: true },
-    })
-    const userIdByPlayer = new Map<string, string | null>(
-      players.map((p) => [p.id, p.userId]),
-    )
+  const allPlayerIds = [
+    ...new Set(standingsByTournament.flat().map((s) => s.tournamentPlayerId)),
+  ]
+  const players = allPlayerIds.length
+    ? await prisma.tournamentPlayer.findMany({
+        where: { id: { in: allPlayerIds } },
+        select: { id: true, userId: true },
+      })
+    : []
+  const userIdByPlayer = new Map<string, string | null>(
+    players.map((p) => [p.id, p.userId]),
+  )
+
+  const inputs: RosterTournamentInput[] = []
+  completed.forEach((t, i) => {
+    const standings = standingsByTournament[i]
+    if (standings.length === 0) return
 
     inputs.push({
       tournament: {
@@ -454,7 +478,7 @@ export async function getChainRoster(tournamentId: string): Promise<ChainRoster>
       })),
       userIdByPlayer,
     })
-  }
+  })
 
   return aggregateChainRoster(inputs)
 }
