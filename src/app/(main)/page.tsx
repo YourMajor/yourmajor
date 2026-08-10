@@ -33,8 +33,9 @@ export default async function Home() {
 
       <LeadChangeChapter />
 
-      {/* Features live here now rather than on their own route; /features
-          redirects to this anchor. */}
+      {/* The same sections /features renders, inlined here so the landing
+          scroll tells the whole story. Signed-in visitors are redirected to
+          /dashboard above and read them on /features instead. */}
       <section id="features" className="mk-section scroll-mt-24 pt-0">
         {/* The dusk interlude: poster photo through the shot tracer sit on
             twilight slate, then the ground ramps back to green. */}
