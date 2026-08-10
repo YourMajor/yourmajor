@@ -36,13 +36,24 @@ export function brandVars(
 ): Record<string, string> {
   const vars: Record<string, string> = {}
   if (primaryColor) {
+    // Both names are load-bearing and neither is redundant. globals.css maps
+    // the theme with `@theme inline`, which *substitutes* rather than chains:
+    // `bg-primary` compiles to `var(--primary)`, not `var(--color-primary)`.
+    // So --color-primary alone reaches only the surfaces that write it inline
+    // (.tournament-header, .masters-table thead), while every bg-primary /
+    // text-primary utility keeps reading the app token. Setting only the
+    // former guarded the foreground against a colour the background wasn't
+    // using — invisible in light mode, where both are dark, and bone-on-bone
+    // in dark mode, where --primary flips to the bone plate.
     vars['--color-primary'] = primaryColor
+    vars['--primary'] = primaryColor
     vars['--primary-foreground'] = isLightColor(primaryColor)
       ? 'var(--brand-ink)'
       : 'var(--brand-bone)'
   }
   if (accentColor) {
     vars['--color-accent'] = accentColor
+    vars['--accent'] = accentColor
     vars['--accent-foreground'] = isLightColor(accentColor)
       ? 'var(--brand-ink)'
       : 'var(--brand-bone)'

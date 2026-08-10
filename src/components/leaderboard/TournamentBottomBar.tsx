@@ -5,6 +5,7 @@ import { createPortal } from 'react-dom'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Trophy, BarChart3, Pencil, Menu, User, History } from 'lucide-react'
+import { brandVars } from '@/lib/utils'
 
 interface TournamentBottomBarProps {
   slug: string
@@ -64,11 +65,17 @@ export function TournamentBottomBar({
   return createPortal(
     <nav
       className="fixed bottom-0 left-0 right-0 z-40 md:hidden border-t"
+      // This portals to document.body, so it sits outside the [slug] wrapper
+      // that injects the brand vars. Painting primaryColor here while reading
+      // --primary-foreground from :root gave ink-on-green (2.17:1) in dark
+      // mode, where the app token flips. Any surface that paints the brand
+      // colour outside the wrapper has to carry its own guard.
       style={{
+        ...brandVars(primaryColor, accentColor),
         backgroundColor: primaryColor,
         borderColor: `color-mix(in oklch, ${primaryColor}, white 15%)`,
         paddingBottom: 'env(safe-area-inset-bottom, 0px)',
-      }}
+      } as React.CSSProperties}
     >
       <div className="flex items-center justify-around h-14">
         {tabs.map((tab) => {
@@ -87,7 +94,7 @@ export function TournamentBottomBar({
               <button
                 key={tab.label}
                 onClick={onMenuOpen}
-                className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] text-primary-foreground/60 hover:text-primary-foreground transition-colors"
+                className="flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] text-primary-foreground/80 hover:text-primary-foreground transition-colors"
                 aria-label={tab.label}
               >
                 <Icon className="w-5 h-5" />
@@ -101,7 +108,7 @@ export function TournamentBottomBar({
               key={tab.href}
               href={tab.href}
               className={`relative flex flex-col items-center justify-center gap-0.5 min-w-[64px] min-h-[48px] transition-colors ${
-                isCurrent ? 'text-primary-foreground' : 'text-primary-foreground/60 hover:text-primary-foreground'
+                isCurrent ? 'text-primary-foreground' : 'text-primary-foreground/80 hover:text-primary-foreground'
               }`}
               aria-label={tab.label}
             >

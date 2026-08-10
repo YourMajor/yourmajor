@@ -37,8 +37,10 @@ describe('brandVars', () => {
   it('returns guarded vars for both colors', () => {
     expect(brandVars('#006747', '#C9A84C')).toEqual({
       '--color-primary': '#006747',
+      '--primary': '#006747',
       '--primary-foreground': 'var(--brand-bone)',
       '--color-accent': '#C9A84C',
+      '--accent': '#C9A84C',
       '--accent-foreground': 'var(--brand-ink)',
     })
   })
@@ -46,8 +48,19 @@ describe('brandVars', () => {
   it('flips the foreground for a light primary', () => {
     expect(brandVars('#F5E642', null)).toEqual({
       '--color-primary': '#F5E642',
+      '--primary': '#F5E642',
       '--primary-foreground': 'var(--brand-ink)',
     })
+  })
+
+  // `@theme inline` substitutes rather than chains, so bg-primary compiles to
+  // var(--primary). Setting only --color-primary left every bg-primary utility
+  // on the app token while the guarded foreground tracked the brand colour —
+  // bone-on-bone in dark mode. Both names must be written together.
+  it('sets the utility token alongside the theme name', () => {
+    const vars = brandVars('#006747', '#C9A84C')
+    expect(vars['--primary']).toBe(vars['--color-primary'])
+    expect(vars['--accent']).toBe(vars['--color-accent'])
   })
 
   it('returns an empty object when unbranded', () => {
