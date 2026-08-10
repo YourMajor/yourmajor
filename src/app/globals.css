@@ -393,10 +393,17 @@
 }
 
 /* Nav links share the magnetic grammar; inline anchors ignore transforms, so
-   they must be inline-block for the pull to exist at all. */
+   they must be inline-block for the pull to exist at all. This rule is
+   unlayered, so it outranks every Tailwind utility no matter the specificity —
+   which means an anchor styled as a button (buttonVariants on the Sign in CTA)
+   used to lose its `inline-flex` here and drop its label to the top of the
+   pill. Anchors that already lay themselves out as flex keep their own
+   display; only plain text links get blockified. */
 .marketing nav a {
-  display: inline-block;
   transform: translate(var(--mag-x, 0px), var(--mag-y, 0px));
+}
+.marketing nav a:not([class*="flex"]) {
+  display: inline-block;
 }
 
 /* `white-space: nowrap` means the button cannot shrink below its label, so on a
@@ -1349,6 +1356,20 @@ body:has(main.marketing)::after { display: none; }
 .hero-stagger-4 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 0.9s both; }
 .hero-stagger-5 { animation: heroFadeUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) 1.1s both; }
 
+/* ── Brand colour as text ────────────────────────────
+   A brand fill is safe because it pairs with the guarded --primary-foreground.
+   Brand *text* has no such pairing: it sits on the page ground, and a dark
+   brand on the night ground is illegible (#006747 measured 2.57:1). In dark
+   mode it is mixed toward the page's own foreground until it carries; light
+   mode keeps the true brand. Registered as a utility so ordinary Tailwind
+   colour classes can still override it in the normal cascade. */
+@layer utilities {
+  .text-brand { color: var(--color-primary); }
+  .dark .text-brand {
+    color: color-mix(in oklch, var(--color-primary) 40%, var(--foreground));
+  }
+}
+
 /* ── Hide scrollbar but keep scrolling ──────────────── */
 .scrollbar-hide { -ms-overflow-style: none; scrollbar-width: none; }
 .scrollbar-hide::-webkit-scrollbar { display: none; }
@@ -1390,4 +1411,11 @@ select.native-select {
   background-repeat: no-repeat;
   background-position: right 0.5rem center;
   background-size: 1rem;
+}
+/* Spinners respect reduced motion everywhere. Tailwind's animate-spin is used
+   in ~17 places and only one of them opted out by hand; a single rule beats
+   remembering the modifier at every call site. The element stays visible —
+   only the rotation stops — so loading states still read as present. */
+@media (prefers-reduced-motion: reduce) {
+  .animate-spin { animation: none; }
 }

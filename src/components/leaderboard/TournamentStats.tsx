@@ -148,7 +148,7 @@ export function TournamentStats({ standings, roundNumbers, powerupsEnabled, atta
                   {s.label}
                 </p>
                 <p className="text-sm font-medium text-foreground truncate">{s.playerName}</p>
-                <p className="text-base font-heading font-bold leading-tight" style={{ color: 'var(--color-primary)' }}>
+                <p className="text-base font-heading font-bold leading-tight text-brand">
                   {s.value}
                 </p>
               </div>

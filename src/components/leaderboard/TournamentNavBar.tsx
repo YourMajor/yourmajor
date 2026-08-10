@@ -103,12 +103,14 @@ export function TournamentNavBar({
   // on the [slug] layout wrapper — no per-component luminance flips.
   const light = isLightColor(primaryColor) // only the champion-ring gradient still flips shade
   const menuText = 'text-primary-foreground'
-  const menuTextMuted = 'text-primary-foreground/60'
+  // /80 is the one muted step that clears 4.5:1 against a mid-dark brand
+  // primary; /60 and /70 measured 3.4 and 4.05 on the default green.
+  const menuTextMuted = 'text-primary-foreground/80'
   const menuHover = 'hover:text-primary-foreground'
   const menuBorder = 'border-primary-foreground/15'
 
   const accentText = 'text-accent-foreground'
-  const accentTextMuted = 'text-accent-foreground/70'
+  const accentTextMuted = 'text-accent-foreground/80'
 
   const fmt = (d: string) =>
     new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -189,7 +191,7 @@ export function TournamentNavBar({
                 <Link href={`/profile?ref=${slug}`} className="flex items-center gap-1.5 px-2 sm:px-3 py-1.5 rounded text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 transition-colors">
                   <Avatar className="h-6 w-6 sm:h-7 sm:w-7">
                     {avatarUrl && <AvatarImage src={avatarUrl} alt="Profile" />}
-                    <AvatarFallback className="text-[9px] sm:text-xs font-bold bg-primary-foreground/20 text-primary-foreground">{initials}</AvatarFallback>
+                    <AvatarFallback className="text-[11px] sm:text-xs font-bold bg-primary-foreground/20 text-primary-foreground">{initials}</AvatarFallback>
                   </Avatar>
                   <span className="hidden sm:inline text-xs font-medium">Profile</span>
                 </Link>
@@ -228,7 +230,7 @@ export function TournamentNavBar({
                         className={`inline-flex items-center gap-1.5 px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wider whitespace-nowrap transition-colors border-b-2 ${
                           active
                             ? 'text-primary-foreground'
-                            : 'border-transparent text-primary-foreground/70 hover:text-primary-foreground'
+                            : 'border-transparent text-primary-foreground/80 hover:text-primary-foreground'
                         }`}
                         style={active ? { borderBottomColor: 'var(--color-accent)' } : undefined}
                       >

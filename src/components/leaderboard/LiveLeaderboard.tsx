@@ -357,7 +357,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
             style={{ backgroundColor: 'var(--color-primary)' }}
           >
             {scoringCta.label}
-            <span className="text-primary-foreground/70 text-[11px] sm:text-xs font-normal hidden sm:inline">
+            <span className="text-primary-foreground/80 text-[11px] sm:text-xs font-normal hidden sm:inline">
               {scoringCta.holesPlayed}/{scoringCta.totalHoles}
             </span>
           </Link>

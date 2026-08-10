@@ -44,7 +44,7 @@ async function toggleRegistration(tournamentId: string) {
 const STATUS_CONFIG: Record<string, { label: string; cls: string }> = {
   REGISTRATION: { label: 'Registration', cls: 'bg-primary-foreground/15 text-primary-foreground' },
   ACTIVE: { label: 'Live', cls: 'bg-accent text-accent-foreground' },
-  COMPLETED: { label: 'Completed', cls: 'bg-primary-foreground/10 text-primary-foreground/70' },
+  COMPLETED: { label: 'Completed', cls: 'bg-primary-foreground/10 text-primary-foreground/80' },
 }
 
 const SCORING_METHOD_LABELS: Record<string, string> = {
@@ -184,7 +184,7 @@ export default async function AdminDashboard({
       {/* Header */}
       <header className="rounded-xl overflow-hidden border border-border">
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--color-primary)' }}>
-          <p className="text-xs font-semibold uppercase tracking-widest text-primary-foreground/60 mb-1">
+          <p className="text-xs font-semibold uppercase tracking-widest text-primary-foreground/80 mb-1">
             {league ? 'League Admin' : 'Admin Overview'}
           </p>
           <div className="flex items-center justify-between gap-4">
@@ -194,7 +194,7 @@ export default async function AdminDashboard({
             </span>
           </div>
           {league && (
-            <p className="text-xs text-primary-foreground/70 mt-1.5">
+            <p className="text-xs text-primary-foreground/80 mt-1.5">
               {league.seasonName} · event {league.eventsCompleted + league.eventsActive} of {league.eventsTotal}
             </p>
           )}
@@ -239,7 +239,7 @@ export default async function AdminDashboard({
               className="shrink-0 w-10 h-10 rounded-lg flex items-center justify-center"
               style={{ backgroundColor: 'color-mix(in srgb, var(--color-primary) 10%, transparent)' }}
             >
-              <Hash className="w-5 h-5" style={{ color: 'var(--color-primary)' }} />
+              <Hash className="w-5 h-5 text-brand" />
             </div>
             <div className="min-w-0">
               <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">Tournament Code</p>

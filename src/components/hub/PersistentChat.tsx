@@ -145,7 +145,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
       >
         {open ? <X className="w-6 h-6 text-primary-foreground" /> : <MessageCircle className="w-6 h-6 text-primary-foreground" />}
         {!open && unreadCount > 0 && (
-          <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[10px] font-bold text-white px-1 ${
+          <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white px-1 ${
             hasAttack ? 'bg-red-500 animate-pulse' : 'bg-red-500'
           }`}>
             {unreadCount > 9 ? '9+' : unreadCount}
@@ -178,9 +178,9 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
           >
             <div className="flex items-center gap-2">
               <h3 className="text-base sm:text-sm font-heading font-bold text-primary-foreground">{label ?? 'Tournament Chat'}</h3>
-              <ChevronDown className="w-4 h-4 text-primary-foreground/40 sm:hidden" />
+              <ChevronDown className="w-4 h-4 text-primary-foreground/80 sm:hidden" />
             </div>
-            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-primary-foreground/60 hover:text-primary-foreground hover:bg-primary-foreground/10">
+            <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">
               <X className="w-5 h-5 sm:w-4 sm:h-4" />
             </button>
           </div>

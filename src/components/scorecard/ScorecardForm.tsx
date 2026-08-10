@@ -313,7 +313,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
                   </th>
                 )
               })}
-              <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/70 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">Out</th>
+              <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/80 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">Out</th>
               {back.map((h) => {
                 const scored = getScoreType(scores[h.id], h.par) !== 'empty'
                 return (
@@ -324,7 +324,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
                 )
               })}
               {back.length > 0 && (
-                <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/70 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">In</th>
+                <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground/80 border-l border-primary-foreground/20 w-14 uppercase tracking-wider">In</th>
               )}
               <th className="px-3 py-4 text-center text-xs font-bold text-primary-foreground border-l border-primary-foreground/20 w-16 uppercase tracking-wider">Total</th>
             </tr>

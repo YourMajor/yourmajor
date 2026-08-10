@@ -16,8 +16,8 @@ function getScoreType(strokes: number | null, par: number): ScoreType {
 }
 
 const CELL_STYLE: Record<ScoreType, string> = {
-  eagle: 'text-[var(--color-primary)] border-2 border-[var(--color-primary)] rounded-full font-extrabold',
-  birdie: 'text-[var(--color-primary)] border-2 border-[var(--color-primary)] rounded-full',
+  eagle: 'text-brand border-2 border-[var(--color-primary)] rounded-full font-extrabold',
+  birdie: 'text-brand border-2 border-[var(--color-primary)] rounded-full',
   par: 'text-foreground',
   bogey: 'text-foreground border border-foreground/40',
   double: 'text-foreground/70 border-2 border-foreground/40',
@@ -236,19 +236,19 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       {/* Totals */}
       <div className="mx-4 mt-4 flex items-center justify-between rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Gross</p>
+          <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Gross</p>
           <p className="text-2xl font-heading font-bold text-primary-foreground">
             {totalPlayed > 0 ? totalStrokes : '-'}
           </p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Par</p>
+          <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Par</p>
           <p className="text-2xl font-heading font-bold text-primary-foreground">{coursePar}</p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">vs Par</p>
+          <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">vs Par</p>
           <p className={`text-2xl font-heading font-bold ${
             diff !== null && diff < 0 ? 'text-red-300' : 'text-primary-foreground'
           }`}>
@@ -257,7 +257,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
-          <p className="text-[11px] text-primary-foreground/70 uppercase tracking-wider">Holes</p>
+          <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Holes</p>
           <p className="text-2xl font-heading font-bold text-primary-foreground">{totalPlayed}</p>
         </div>
       </div>

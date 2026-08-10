@@ -111,7 +111,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
                 style={{ backgroundColor: 'var(--color-primary)' }}>
                 Player
               </th>
-              <th className="px-2 py-3 text-center text-xs font-bold text-primary-foreground/60 w-10">HCP</th>
+              <th className="px-2 py-3 text-center text-xs font-bold text-primary-foreground/80 w-10">HCP</th>
               {round.holes.map((h) => (
                 <th key={h.id} className="py-3 text-center text-xs font-bold text-primary-foreground min-w-[2.5rem]">{h.number}</th>
               ))}

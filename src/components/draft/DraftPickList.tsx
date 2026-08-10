@@ -151,13 +151,13 @@ export function DraftPickList({
           </colgroup>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-              <th className="px-1.5 sm:px-2 py-2 text-left text-[9px] sm:text-[11px] font-bold text-primary-foreground uppercase tracking-wider">
+              <th className="px-1.5 sm:px-2 py-2 text-left text-[11px] font-bold text-primary-foreground uppercase tracking-wider">
                 Player
               </th>
               {Array.from({ length: roundCount }, (_, i) => (
                 <th
                   key={i}
-                  className="px-0.5 py-2 text-center text-[9px] sm:text-[11px] font-bold text-primary-foreground/70 uppercase tracking-wider"
+                  className="px-0.5 py-2 text-center text-[11px] font-bold text-primary-foreground/80 uppercase tracking-wider"
                 >
                   R{i + 1}
                 </th>
@@ -180,7 +180,7 @@ export function DraftPickList({
                         <Image src={info.image} alt="" width={24} height={24} className="w-5 h-5 sm:w-6 sm:h-6 rounded-full shrink-0 object-cover" />
                       ) : (
                         <div className="w-5 h-5 sm:w-6 sm:h-6 rounded-full flex items-center justify-center shrink-0" style={{ backgroundColor: 'var(--color-primary)' }}>
-                          <span className="text-[8px] sm:text-[9px] font-bold text-primary-foreground">
+                          <span className="text-[8px] sm:text-[11px] font-bold text-primary-foreground">
                             {lastName.charAt(0).toUpperCase()}
                           </span>
                         </div>
@@ -198,7 +198,7 @@ export function DraftPickList({
                       return (
                         <td key={i} className="px-0.5 py-1 sm:py-1.5">
                           <div className="h-10 sm:h-12 rounded-md sm:rounded-lg border border-dashed border-border/30 flex items-center justify-center">
-                            <span className="text-[9px] text-muted-foreground/30">&mdash;</span>
+                            <span className="text-[11px] text-muted-foreground/30">&mdash;</span>
                           </div>
                         </td>
                       )
@@ -327,7 +327,7 @@ export function DraftPickList({
                               }`}
                             >
                               <div className="font-semibold text-zinc-800">{p.name}</div>
-                              <div className={`text-[9px] uppercase tracking-wide ${powerupStyles(p.type === 'ATTACK').ink}`}>
+                              <div className={`text-[11px] uppercase tracking-wide ${powerupStyles(p.type === 'ATTACK').ink}`}>
                                 {p.type}
                               </div>
                             </button>

@@ -81,7 +81,7 @@ export function SeasonDashboard({
       {/* Header */}
       <div>
         <div className="flex items-center gap-3 mb-1">
-          <Trophy className="w-6 h-6" style={{ color: 'var(--color-primary)' }} />
+          <Trophy className="w-6 h-6 text-brand" />
           <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-foreground">
             Season Standings
           </h1>
@@ -361,7 +361,7 @@ function RecapCard({ recap }: { recap: EventRecap }) {
         <div className="flex gap-3 mt-3 pt-3 border-t border-border/50">
           {recap.highlights.map((h) => (
             <div key={h.type} className="flex-1">
-              <p className="text-[9px] font-semibold uppercase tracking-wider text-muted-foreground">{h.label}</p>
+              <p className="text-[11px] font-semibold uppercase tracking-wider text-muted-foreground">{h.label}</p>
               <p className="text-xs font-medium text-foreground">{h.playerName}</p>
               <p className="text-[11px] text-muted-foreground">{h.value}</p>
             </div>

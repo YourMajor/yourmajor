@@ -441,7 +441,10 @@ export function HoleScoring({
             className="flex-1 flex items-center justify-center gap-1.5 px-5 py-4 rounded-xl font-semibold text-base active:scale-95 transition-all touch-manipulation"
             style={{
               backgroundColor: 'var(--color-accent)',
-              color: 'var(--color-primary)',
+              // The guarded foreground for the accent fill — the contract is
+              // that nothing hardcodes a colour against --color-accent, and
+              // brand primary on brand accent is two unrelated brand colours.
+              color: 'var(--accent-foreground)',
             }}
           >
             {isLastHole ? 'Finish Round' : 'Next Hole'}
