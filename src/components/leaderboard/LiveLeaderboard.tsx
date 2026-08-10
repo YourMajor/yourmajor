@@ -494,10 +494,12 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                   <td className="pl-3 sm:pl-4">
                     <div className="relative group/player">
                       {(() => {
-                        // Team rows store team.id in tournamentPlayerId, so the
-                        // per-player link 404s. Phase 4 will wire /teams/{id};
-                        // for now team rows render without a link.
+                        // Team rows store team.id in tournamentPlayerId, so they
+                        // route to the team page rather than the player page.
                         const isTeamRow = p.kind === 'team-stroke' || p.kind === 'team-best-ball'
+                        const href = isTeamRow
+                          ? `/${slug}/teams/${p.tournamentPlayerId}`
+                          : `/${slug}/players/${p.tournamentPlayerId}`
                         const inner = (
                           <>
                             <div className="relative shrink-0">
@@ -529,19 +531,17 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                             </span>
                           </>
                         )
-                        return isTeamRow ? (
-                          <div className="flex items-center gap-2.5 sm:gap-3 min-w-0">{inner}</div>
-                        ) : (
+                        return (
                           <>
-                            <Link href={`/${slug}/players/${p.tournamentPlayerId}`} className="flex items-center gap-2.5 sm:gap-3 min-w-0">
+                            <Link href={href} className="flex items-center gap-2.5 sm:gap-3 min-w-0">
                               {inner}
                             </Link>
                             <div className="absolute right-0 top-1/2 -translate-y-1/2 hidden group-hover/player:flex items-center z-10">
                               <Link
-                                href={`/${slug}/players/${p.tournamentPlayerId}`}
+                                href={href}
                                 className="whitespace-nowrap rounded-md bg-popover border border-border shadow-lg px-3 py-1.5 text-xs font-medium text-popover-foreground hover:bg-muted transition-colors"
                               >
-                                Click to View Player Profile
+                                {isTeamRow ? 'View team' : 'View player profile'}
                               </Link>
                             </div>
                           </>
