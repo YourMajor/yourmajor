@@ -146,7 +146,7 @@ export function PreDraftPowerupPreview({
             href={adminCta.href}
             className={
               buttonVariants({ size: 'sm' }) +
-              ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'
+              ' shrink-0 bg-[var(--color-primary)] text-primary-foreground hover:bg-[var(--color-primary)]/90'
             }
           >
             {adminCta.label}

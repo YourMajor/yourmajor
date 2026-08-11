@@ -58,14 +58,14 @@ export function RegistrationBanner({ slug, isParticipant, isLoggedIn, status, ca
         {isLoggedIn ? (
           <Link
             href={`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`}
-            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
+            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-primary-foreground hover:bg-[var(--color-primary)]/90'}
           >
             Register
           </Link>
         ) : (
           <Link
             href={`/auth/login?next=${encodeURIComponent(`/${slug}/register${inviteToken ? `?token=${inviteToken}` : ''}`)}`}
-            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
+            className={buttonVariants({ size: 'sm' }) + ' shrink-0 bg-[var(--color-primary)] text-primary-foreground hover:bg-[var(--color-primary)]/90'}
           >
             Sign in to Register
           </Link>

@@ -8,15 +8,20 @@ import './globals.css'
 // Body/UI and data faces, one superfamily. `weight` is omitted so the
 // variable `wght` axis loads and the 400/500/600/700 register in
 // DESIGN.md "The Four Weights Rule" is available without four static files.
+// `fallback` is explicit because Next has no capsize metrics for these two
+// yet ("Failed to find font override values" at build), so it cannot derive
+// an adjusted fallback on its own. Without it the swap-in shifts more.
 const googleSans = Google_Sans({
   variable: '--font-google-sans',
   subsets: ['latin'],
   display: 'swap',
+  fallback: ['system-ui', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
 })
 const googleSansCode = Google_Sans_Code({
   variable: '--font-google-sans-code',
   subsets: ['latin'],
   display: 'swap',
+  fallback: ['ui-monospace', 'SFMono-Regular', 'Menlo', 'Consolas', 'monospace'],
 })
 // The logo wordmark keeps its original face (user-pinned): Playfair is
 // loaded for the YOUR/MAJOR lockup only, never for headings.

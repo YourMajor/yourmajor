@@ -146,7 +146,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
         {open ? <X className="w-6 h-6 text-primary-foreground" /> : <MessageCircle className="w-6 h-6 text-primary-foreground" />}
         {!open && unreadCount > 0 && (
           <span className={`absolute -top-1 -right-1 min-w-[20px] h-5 rounded-full flex items-center justify-center text-[11px] font-bold text-white px-1 ${
-            hasAttack ? 'bg-red-500 animate-pulse' : 'bg-red-500'
+            hasAttack ? 'bg-destructive animate-pulse' : 'bg-destructive'
           }`}>
             {unreadCount > 9 ? '9+' : unreadCount}
           </span>

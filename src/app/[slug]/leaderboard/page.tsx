@@ -162,21 +162,24 @@ export default async function LeaderboardPage({
       {tournament.isLeague && (
         <div className="mb-6 rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
           <div className="px-5 py-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-white/50 mb-1">League Event</p>
-            <h2 className="font-heading font-bold text-lg text-white">
+            <p className="ym-label text-primary-foreground/80 mb-1">League Event</p>
+            <h2 className="font-heading font-bold text-lg text-primary-foreground">
               {tournament.startDate ? fmtEventDate(tournament.startDate) : 'Date TBD'}
             </h2>
             {eventCourseName && (
-              <p className="text-sm text-white/70 mt-0.5">{eventCourseName}</p>
+              <p className="text-sm text-primary-foreground/80 mt-0.5">{eventCourseName}</p>
             )}
+            {/* Live chip is the guarded pair inverted: a bone chip carrying
+                brand-coloured text. bg-success with bone measured 2.63:1 in
+                dark mode and failed, so the fill cannot carry the signal. */}
             {effectiveStatus === 'ACTIVE' && (
-              <span className="inline-flex items-center gap-1.5 mt-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide text-white bg-green-600">
-                <span className="h-1.5 w-1.5 rounded-full bg-white animate-pulse" />
+              <span className="ym-label inline-flex items-center gap-1.5 mt-2 rounded-md px-2 py-0.5 bg-primary-foreground text-primary">
+                <span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
                 Live
               </span>
             )}
             {effectiveStatus === 'COMPLETED' && (
-              <span className="inline-flex items-center mt-2 rounded-md px-2 py-0.5 text-[11px] font-bold uppercase tracking-wide bg-white/20 text-white">
+              <span className="ym-label inline-flex items-center mt-2 rounded-md px-2 py-0.5 bg-primary-foreground/20 text-primary-foreground">
                 Final
               </span>
             )}

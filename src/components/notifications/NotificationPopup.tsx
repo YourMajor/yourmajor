@@ -203,7 +203,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
           </button>
 
           <div className="flex flex-col items-center text-center space-y-4">
-            <div className="w-14 h-14 rounded-full bg-red-500/20 flex items-center justify-center">
+            <div className="w-14 h-14 rounded-full bg-destructive/20 flex items-center justify-center">
               <Swords className="w-7 h-7 text-red-400" />
             </div>
 

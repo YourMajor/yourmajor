@@ -52,7 +52,7 @@ export function FormatSettings({ defaultFormat, hasScores }: Props) {
   return (
     <div className="space-y-3">
       {hasScores && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
           Scores have been submitted. Changing the format would alter how the leaderboard is calculated.
         </div>
       )}

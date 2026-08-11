@@ -60,7 +60,7 @@ export function SignupForm({ signUp, next, error, defaultEmail }: Props) {
     <form action={signUp} className="space-y-3" onSubmit={() => setTouched(true)}>
       {next && <input type="hidden" name="next" value={next} />}
       <div className="space-y-1.5">
-        <Label htmlFor="email" className="text-white/80 text-sm font-medium">
+        <Label htmlFor="email" className="text-[var(--mk-text-muted)] text-sm font-medium">
           Email address
         </Label>
         <Input
@@ -71,12 +71,12 @@ export function SignupForm({ signUp, next, error, defaultEmail }: Props) {
           required
           autoComplete="email"
           defaultValue={defaultEmail}
-          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
+          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-[var(--mk-text-subtle)]
             focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="password" className="text-white/80 text-sm font-medium">
+        <Label htmlFor="password" className="text-[var(--mk-text-muted)] text-sm font-medium">
           Password
         </Label>
         <Input
@@ -89,12 +89,12 @@ export function SignupForm({ signUp, next, error, defaultEmail }: Props) {
           autoComplete="new-password"
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
+          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-[var(--mk-text-subtle)]
             focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
         />
       </div>
       <div className="space-y-1.5">
-        <Label htmlFor="confirm" className="text-white/80 text-sm font-medium">
+        <Label htmlFor="confirm" className="text-[var(--mk-text-muted)] text-sm font-medium">
           Confirm password
         </Label>
         <Input
@@ -107,7 +107,7 @@ export function SignupForm({ signUp, next, error, defaultEmail }: Props) {
           autoComplete="new-password"
           value={confirm}
           onChange={(e) => setConfirm(e.target.value)}
-          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
+          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-[var(--mk-text-subtle)]
             focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
         />
       </div>
@@ -115,7 +115,7 @@ export function SignupForm({ signUp, next, error, defaultEmail }: Props) {
         <div
           role="alert"
           aria-live="polite"
-          className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2.5 text-sm text-red-200"
+          className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-red-500/30 px-3 py-2.5 text-sm text-red-200"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{showLocalError ? localErrorMessage : decodeURIComponent(error!)}</span>

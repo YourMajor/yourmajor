@@ -24,7 +24,7 @@ export function PowerupConfigGroup({
   return (
     <div className="space-y-4">
       {locked && (
-        <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+        <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
           Powerups have already been drafted or dealt. These settings are locked to prevent data inconsistencies.
         </div>
       )}

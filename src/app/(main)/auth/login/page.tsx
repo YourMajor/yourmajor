@@ -74,7 +74,7 @@ export default async function LoginPage({
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white">
               Welcome to <span className="text-accent">YourMajor</span>
             </h1>
-            <p className="text-sm text-white/60">Sign in to create or join tournaments</p>
+            <p className="text-sm text-[var(--mk-text-muted)]">Sign in to create or join tournaments</p>
           </div>
 
           <OAuthButtons next={next} />
@@ -84,7 +84,7 @@ export default async function LoginPage({
               <div className="w-full border-t border-white/10" />
             </div>
             <div className="relative flex justify-center">
-              <span className="px-3 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] text-white/50 bg-white/[0.06] border border-white/10">
+              <span className="px-3 py-0.5 rounded-full text-[11px] font-semibold uppercase tracking-[0.2em] text-[var(--mk-text-subtle)] bg-white/[0.06] border border-white/10">
                 or
               </span>
             </div>
@@ -97,7 +97,7 @@ export default async function LoginPage({
             defaultEmail={email ? decodeURIComponent(email) : undefined}
           />
 
-          <p className="text-sm text-white/60 text-center pt-1">
+          <p className="text-sm text-[var(--mk-text-muted)] text-center pt-1">
             Don’t have an account?{' '}
             <Link
               href={`/auth/signup${next ? `?next=${encodeURIComponent(next)}` : ''}`}
@@ -107,13 +107,13 @@ export default async function LoginPage({
             </Link>
           </p>
 
-          <p className="text-[11px] text-white/40 text-center leading-relaxed pt-1">
+          <p className="text-[11px] text-[var(--mk-text-subtle)] text-center leading-relaxed pt-1">
             By continuing, you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-white/70">
+            <Link href="/terms" className="underline hover:text-[var(--mk-text)]">
               Terms of Use
             </Link>{' '}
             and{' '}
-            <Link href="/privacy" className="underline hover:text-white/70">
+            <Link href="/privacy" className="underline hover:text-[var(--mk-text)]">
               Privacy Policy
             </Link>
             .

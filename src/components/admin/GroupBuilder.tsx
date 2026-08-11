@@ -98,8 +98,8 @@ function DroppableArea({
 
 // Color tier for the handicap badge — lower = greener.
 function handicapTier(h: number): { bg: string; text: string } {
-  if (h < 5) return { bg: 'bg-green-100', text: 'text-green-700' }
-  if (h < 15) return { bg: 'bg-amber-100', text: 'text-amber-700' }
+  if (h < 5) return { bg: 'bg-success/15', text: 'text-foreground' }
+  if (h < 15) return { bg: 'bg-warning/15', text: 'text-foreground' }
   return { bg: 'bg-slate-100', text: 'text-slate-600' }
 }
 
@@ -772,11 +772,11 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
     <div className="space-y-6">
       {/* Vacancy alerts — players with assigned tee times who unregistered */}
       {vacancies.length > 0 && (
-        <div className="rounded-xl border border-amber-300 bg-amber-50 overflow-hidden">
+        <div className="rounded-xl border border-warning/40 bg-warning/10 overflow-hidden">
           <div className="px-4 py-3 flex items-center justify-between gap-4 border-b border-amber-200">
             <div className="flex items-center gap-2 min-w-0">
               <AlertTriangle className="w-4 h-4 shrink-0 text-amber-600" />
-              <p className="text-sm font-semibold text-amber-900">
+              <p className="text-sm font-semibold text-foreground">
                 {vacancies.length} player{vacancies.length === 1 ? '' : 's'} dropped from an assigned group
               </p>
             </div>
@@ -785,7 +785,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                 type="button"
                 onClick={handleDismissAllVacancies}
                 disabled={isPending}
-                className="text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors shrink-0"
+                className="text-xs font-medium text-foreground hover:text-foreground transition-colors shrink-0"
               >
                 Dismiss all
               </button>
@@ -799,17 +799,17 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
               const meta = [teeTimeStr, v.startingHole ? `Hole ${v.startingHole}` : null].filter(Boolean).join(' · ')
               return (
                 <li key={v.id} className="px-4 py-2.5 flex items-center justify-between gap-4">
-                  <p className="text-sm text-amber-900 min-w-0">
+                  <p className="text-sm text-foreground min-w-0">
                     <span className="font-semibold">{v.playerName}</span>
-                    <span className="text-amber-700"> unregistered from </span>
+                    <span className="text-foreground"> unregistered from </span>
                     <span className="font-semibold">{v.groupName}</span>
-                    {meta && <span className="text-amber-700"> ({meta})</span>}
+                    {meta && <span className="text-foreground"> ({meta})</span>}
                   </p>
                   <button
                     type="button"
                     onClick={() => handleDismissVacancy(v.id)}
                     disabled={isPending}
-                    className="text-xs font-medium text-amber-700 hover:text-amber-900 transition-colors shrink-0"
+                    className="text-xs font-medium text-foreground hover:text-foreground transition-colors shrink-0"
                   >
                     Dismiss
                   </button>
@@ -915,7 +915,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
               )}
               {noTeamPlayers.length > 0 && (
                 <div className="space-y-1.5 pt-2 border-t border-border">
-                  <p className="text-[11px] font-semibold uppercase tracking-wider text-amber-700">
+                  <p className="text-[11px] font-semibold uppercase tracking-wider text-foreground">
                     Players without a team ({noTeamPlayers.length})
                   </p>
                   <p className="text-xs text-muted-foreground">
@@ -925,7 +925,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     {noTeamPlayers.map((p) => (
                       <span
                         key={p.id}
-                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-amber-300 bg-amber-50 text-amber-800"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm border border-warning/40 bg-warning/10 text-foreground"
                       >
                         <span className="font-medium">{p.name}</span>
                         <span className="text-[11px]">No team</span>
@@ -1023,7 +1023,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                   )}
                   <span className={`text-xs px-2 py-0.5 rounded-full ${
                     group.members.length >= 4
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-success/15 text-foreground'
                       : 'bg-muted text-muted-foreground'
                   }`}>
                     {group.members.length}/4
@@ -1033,7 +1033,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
                     const startHoleChanged = group.startingHole !== group.lastNotifiedStartHole
                     const hasUnsent = group.members.some((m) => !m.notifiedAt || teeTimeChanged || startHoleChanged)
                     return hasUnsent && group.members.length > 0 ? (
-                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-amber-100 text-amber-700">
+                      <span className="text-[11px] px-2 py-0.5 rounded-full bg-warning/15 text-foreground">
                         unsent
                       </span>
                     ) : null
@@ -1220,7 +1220,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
             return (
               <>
                 <Button
-                  className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-white"
+                  className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-primary)]/90 text-primary-foreground"
                   onClick={handleNotifyAffected}
                   disabled={isPending}
                 >

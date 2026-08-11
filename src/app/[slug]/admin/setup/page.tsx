@@ -171,7 +171,7 @@ export default async function TournamentSetup({
           </CardHeader>
           <CardContent className="space-y-4">
             {hasScores && (
-              <div className="rounded-lg border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+              <div className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-foreground">
                 Scores have been submitted. Status cannot be reverted to Registration, and some changes may affect the leaderboard.
               </div>
             )}

@@ -221,7 +221,7 @@ function PersonalBestsTab({ stats }: { stats: PlayerSeasonStats }) {
             { label: 'Birdies', count: stats.totalBirdies, color: 'bg-green-500' },
             { label: 'Pars', count: stats.totalPars, color: 'bg-blue-500' },
             { label: 'Bogeys', count: stats.totalBogeys, color: 'bg-orange-400' },
-            { label: 'Doubles+', count: stats.totalDoubles, color: 'bg-red-500' },
+            { label: 'Doubles+', count: stats.totalDoubles, color: 'bg-destructive' },
           ].map((item) => {
             const total = stats.totalEagles + stats.totalBirdies + stats.totalPars + stats.totalBogeys + stats.totalDoubles
             const pct = total > 0 ? (item.count / total) * 100 : 0

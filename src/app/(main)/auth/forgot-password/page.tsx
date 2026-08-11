@@ -114,7 +114,7 @@ export default async function ForgotPasswordPage({
             <h1 className="font-heading text-2xl sm:text-3xl font-bold text-white">
               Forgot your password?
             </h1>
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-[var(--mk-text-muted)]">
               Enter your email and we’ll send you a reset link - or a magic link to sign in
               without a password.
             </p>
@@ -127,7 +127,7 @@ export default async function ForgotPasswordPage({
             defaultEmail={email ? decodeURIComponent(email) : undefined}
           />
 
-          <p className="text-sm text-white/60 text-center pt-1">
+          <p className="text-sm text-[var(--mk-text-muted)] text-center pt-1">
             Remembered it?{' '}
             <Link
               href="/auth/login"

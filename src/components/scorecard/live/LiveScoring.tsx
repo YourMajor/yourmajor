@@ -605,9 +605,9 @@ export function LiveScoring({
       {teamMode && (
         <div
           role="status"
-          className="shrink-0 bg-amber-500/90 text-amber-950 text-xs font-semibold px-4 py-1.5 flex items-center gap-2"
+          className="shrink-0 bg-warning/90 text-[var(--brand-ink)] text-xs font-semibold px-4 py-1.5 flex items-center gap-2"
         >
-          <span className="inline-block h-2 w-2 rounded-full bg-amber-700" aria-hidden="true" />
+          <span className="inline-block h-2 w-2 rounded-full bg-current opacity-70" aria-hidden="true" />
           <span className="truncate">
             Recording for <span className="font-bold">{teamMode.teamName}</span>
             {teamMode.captainName && (

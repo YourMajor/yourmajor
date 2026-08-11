@@ -213,7 +213,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
                 <button
                   disabled={isPending}
                   onClick={() => startTransition(() => removeRosterMember(tournamentId, member.id))}
-                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-destructive/10 transition-colors"
                   title="Remove from roster"
                 >
                   <X className="w-3.5 h-3.5" />
@@ -679,7 +679,7 @@ function ScheduleEventsPanel({
                 </p>
                 <a
                   href={`/${createdSlug}/admin`}
-                  className="text-xs font-semibold underline text-green-700 mt-1 inline-block"
+                  className="text-xs font-semibold underline text-foreground mt-1 inline-block"
                 >
                   View event admin &rarr;
                 </a>
@@ -880,7 +880,7 @@ function AdjustmentsPanel({
                 type="button"
                 disabled={isPending}
                 onClick={() => startTransition(() => deleteSeasonAdjustment(tournamentId, a.id))}
-                className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-red-50 transition-colors"
+                className="p-1.5 rounded text-muted-foreground hover:text-red-500 hover:bg-destructive/10 transition-colors"
                 title="Remove adjustment"
               >
                 <Trash2 className="w-3.5 h-3.5" />

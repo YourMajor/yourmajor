@@ -31,9 +31,9 @@ export function SkinsLeaderboardTable({ rows, slug, loading, defendingChampionPl
       {trailingCarryover > 0 && (
         <div
           role="status"
-          className="inline-flex items-center gap-2 rounded-full border border-amber-400/60 bg-amber-50 px-3 py-1.5 text-xs font-semibold text-amber-900"
+          className="inline-flex items-center gap-2 rounded-full border border-warning/50 bg-warning/10 px-3 py-1.5 text-xs font-semibold text-foreground"
         >
-          <span className="inline-block h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+          <span className="inline-block h-1.5 w-1.5 rounded-full bg-warning animate-pulse" />
           Carryover: {trailingCarryover} skin{trailingCarryover === 1 ? '' : 's'} on the next hole
         </div>
       )}

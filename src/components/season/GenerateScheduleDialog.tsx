@@ -193,7 +193,7 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
             <p className="text-sm font-semibold text-green-800">
               {done.generated} event{done.generated === 1 ? '' : 's'} created.
             </p>
-            <p className="text-xs text-green-700">
+            <p className="text-xs text-foreground">
               Each event has the active roster auto-registered. Open Events tab to fine-tune individual events.
             </p>
           </div>

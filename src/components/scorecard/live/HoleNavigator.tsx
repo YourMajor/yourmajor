@@ -16,8 +16,8 @@ function getScoreType(strokes: number | null, par: number): ScoreType {
 }
 
 const PILL_BG: Record<ScoreType, string> = {
-  eagle: 'bg-red-500 text-white',
-  birdie: 'bg-red-500 text-white',
+  eagle: 'bg-destructive text-white',
+  birdie: 'bg-destructive text-white',
   par: 'bg-white/30 text-white',
   bogey: 'bg-gray-900 text-white',
   double: 'bg-gray-900 text-white',

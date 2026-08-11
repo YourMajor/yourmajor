@@ -24,7 +24,7 @@ const STATUS_LABEL: Record<string, string> = {
 
 const STATUS_TONE: Record<string, string> = {
   REGISTRATION: 'bg-blue-100 text-blue-700',
-  ACTIVE: 'bg-green-100 text-green-700',
+  ACTIVE: 'bg-success/15 text-foreground',
   COMPLETED: 'bg-muted text-muted-foreground',
 }
 

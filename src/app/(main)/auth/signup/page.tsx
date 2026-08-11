@@ -101,7 +101,7 @@ export default async function SignupPage({
             </h1>
             {/* Reassurance at the commitment moment; the verification
                 requirement is explained in full on the post-submit screen. */}
-            <p className="text-sm text-white/60">
+            <p className="text-sm text-[var(--mk-text-muted)]">
               Your first tournament is free. No card required.
             </p>
           </div>
@@ -113,7 +113,7 @@ export default async function SignupPage({
             defaultEmail={email ? decodeURIComponent(email) : undefined}
           />
 
-          <p className="text-sm text-white/60 text-center pt-1">
+          <p className="text-sm text-[var(--mk-text-muted)] text-center pt-1">
             Already have an account?{' '}
             <Link
               href={`/auth/login${next ? `?next=${encodeURIComponent(next)}` : ''}`}
@@ -123,13 +123,13 @@ export default async function SignupPage({
             </Link>
           </p>
 
-          <p className="text-[11px] text-white/40 text-center leading-relaxed pt-1">
+          <p className="text-[11px] text-[var(--mk-text-subtle)] text-center leading-relaxed pt-1">
             By creating an account, you agree to our{' '}
-            <Link href="/terms" className="underline hover:text-white/70">
+            <Link href="/terms" className="underline hover:text-[var(--mk-text)]">
               Terms of Use
             </Link>{' '}
             and{' '}
-            <Link href="/privacy" className="underline hover:text-white/70">
+            <Link href="/privacy" className="underline hover:text-[var(--mk-text)]">
               Privacy Policy
             </Link>
             .

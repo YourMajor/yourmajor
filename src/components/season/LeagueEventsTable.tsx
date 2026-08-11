@@ -26,7 +26,7 @@ export interface LeagueEventRow {
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   REGISTRATION: { label: 'Upcoming', cls: 'bg-blue-100 text-blue-700' },
-  ACTIVE: { label: 'Live', cls: 'bg-green-100 text-green-700' },
+  ACTIVE: { label: 'Live', cls: 'bg-success/15 text-foreground' },
   COMPLETED: { label: 'Completed', cls: 'bg-muted text-muted-foreground' },
 }
 

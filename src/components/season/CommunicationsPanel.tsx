@@ -433,7 +433,7 @@ function HistoryRow({ item, slug }: { item: AnnouncementHistoryItem; slug: strin
 function StatusChip({ item }: { item: AnnouncementHistoryItem }) {
   if (item.status === 'PENDING') {
     return (
-      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-50 text-amber-800">
+      <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-warning/10 text-foreground">
         <CalendarClock className="w-3 h-3" />
         Scheduled
       </span>

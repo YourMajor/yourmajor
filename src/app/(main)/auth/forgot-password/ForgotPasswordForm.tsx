@@ -65,7 +65,7 @@ export function ForgotPasswordForm({ sendReset, sendMagicLink, error, defaultEma
   return (
     <form action={sendReset} className="space-y-3">
       <div className="space-y-1.5">
-        <Label htmlFor="email" className="text-white/80 text-sm font-medium">
+        <Label htmlFor="email" className="text-[var(--mk-text-muted)] text-sm font-medium">
           Email address
         </Label>
         <Input
@@ -76,7 +76,7 @@ export function ForgotPasswordForm({ sendReset, sendMagicLink, error, defaultEma
           required
           autoComplete="email"
           defaultValue={defaultEmail}
-          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-white/40
+          className="h-11 bg-white/[0.06] border-white/15 text-white placeholder:text-[var(--mk-text-subtle)]
             focus-visible:border-accent focus-visible:ring-accent/30 focus-visible:bg-white/[0.08]"
         />
       </div>
@@ -84,7 +84,7 @@ export function ForgotPasswordForm({ sendReset, sendMagicLink, error, defaultEma
         <div
           role="alert"
           aria-live="polite"
-          className="flex items-start gap-2 rounded-lg bg-red-500/10 border border-red-500/30 px-3 py-2.5 text-sm text-red-200"
+          className="flex items-start gap-2 rounded-lg bg-destructive/10 border border-red-500/30 px-3 py-2.5 text-sm text-red-200"
         >
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
           <span>{decodeURIComponent(error)}</span>

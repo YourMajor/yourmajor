@@ -74,7 +74,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
   return (
     <div className="space-y-6">
       {error && (
-        <div role="alert" className="rounded-lg border border-red-500/40 bg-red-50 px-3 py-2 text-sm text-red-800">
+        <div role="alert" className="rounded-lg border border-destructive/40 bg-destructive/10 px-3 py-2 text-sm text-foreground">
           {error}
         </div>
       )}
@@ -98,7 +98,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
               return (
                 <li
                   key={p.tournamentPlayerId}
-                  className="rounded-md bg-amber-50 ring-1 ring-amber-200 px-2 py-1.5"
+                  className="rounded-md bg-accent/10 ring-1 ring-accent/40 px-2 py-1.5"
                 >
                   <div className="flex items-center gap-3">
                     <Avatar className="h-7 w-7">
@@ -108,7 +108,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                       </AvatarFallback>
                     </Avatar>
                     <span className="flex-1 text-sm font-medium">{p.name}</span>
-                    <span className="text-xs text-amber-700">No team yet</span>
+                    <span className="text-xs text-foreground">No team yet</span>
                     {teams.length > 0 && (
                       <button
                         type="button"
@@ -202,7 +202,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
             <button
               type="submit"
               disabled={pending || !newTeamName.trim()}
-              className="rounded-md bg-[var(--color-primary)] text-white px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
+              className="rounded-md bg-[var(--color-primary)] text-primary-foreground px-3 py-1.5 text-sm font-semibold disabled:opacity-50"
             >
               Create Team
             </button>
@@ -273,7 +273,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                     <div
                       key={m.memberRowId}
                       className={`flex items-center gap-3 rounded-md px-2 py-1.5 transition-colors ${
-                        m.isCaptain ? 'bg-amber-50 ring-1 ring-amber-200' : 'hover:bg-muted/50'
+                        m.isCaptain ? 'bg-accent/10 ring-1 ring-accent/40' : 'hover:bg-muted/50'
                       }`}
                     >
                       <input
@@ -297,7 +297,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                       </Avatar>
                       <span className="flex-1 text-sm font-medium">{m.name}</span>
                       {m.isCaptain && (
-                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-amber-700">
+                        <span className="inline-flex items-center gap-1 text-xs font-semibold text-foreground">
                           <Crown className="w-3 h-3" />
                           Captain
                         </span>

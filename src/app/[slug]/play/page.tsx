@@ -82,7 +82,7 @@ export default async function PlayPage({
         >
           <Link
             href={`/${slug}/draft`}
-            className={buttonVariants({ size: 'sm' }) + ' bg-[var(--color-primary)] text-white hover:bg-[var(--color-primary)]/90'}
+            className={buttonVariants({ size: 'sm' }) + ' bg-[var(--color-primary)] text-primary-foreground hover:bg-[var(--color-primary)]/90'}
           >
             Go to Draft
           </Link>

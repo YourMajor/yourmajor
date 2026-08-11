@@ -82,7 +82,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                     className={[
                       'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-sm font-medium transition-colors',
                       active
-                        ? 'bg-[var(--color-primary)] text-white'
+                        ? 'bg-[var(--color-primary)] text-primary-foreground'
                         : 'text-muted-foreground hover:text-foreground hover:bg-muted',
                     ].join(' ')}
                   >
@@ -91,7 +91,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                     {link.badge ? (
                       <span
                         aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
-                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[0.6875rem] font-bold"
+                        className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-warning text-[var(--brand-ink)] text-[0.6875rem] font-bold"
                       >
                         {link.badge}
                       </span>
@@ -129,7 +129,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                   className={[
                     'flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-colors',
                     active
-                      ? 'bg-[var(--color-primary)] text-white'
+                      ? 'bg-[var(--color-primary)] text-primary-foreground'
                       : 'text-foreground/80 hover:text-foreground hover:bg-muted',
                   ].join(' ')}
                 >
@@ -138,7 +138,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
                   {link.badge ? (
                     <span
                       aria-label={`${link.badge} action${link.badge === 1 ? '' : 's'} needed`}
-                      className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-amber-500 text-white text-[0.6875rem] font-bold"
+                      className="ml-auto inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full bg-warning text-[var(--brand-ink)] text-[0.6875rem] font-bold"
                     >
                       {link.badge}
                     </span>

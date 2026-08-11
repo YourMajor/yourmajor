@@ -318,13 +318,13 @@ export function HoleScoring({
         {score.conceded ? (
           <div
             role="status"
-            className="rounded-xl border border-red-400/40 bg-red-50 px-4 py-3 flex items-center gap-3"
+            className="rounded-xl border border-destructive/40 bg-destructive/10 px-4 py-3 flex items-center gap-3"
           >
-            <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-red-100 text-red-700 font-bold text-base">
+            <span className="inline-flex items-center justify-center h-9 w-9 rounded-full bg-destructive/15 text-foreground font-bold text-base">
               C
             </span>
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-semibold text-red-800">Hole Conceded</p>
+              <p className="text-sm font-semibold text-foreground">Hole Conceded</p>
               <p className="text-xs text-red-700/80">Opponent wins this hole. Tap + or − to undo.</p>
             </div>
           </div>
