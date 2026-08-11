@@ -39,10 +39,10 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
-      // App-wide baseline. No Content-Security-Policy here on purpose: Next's
-      // inline bootstrap scripts need nonce plumbing through the root layout,
-      // which is its own change with real breakage risk. nosniff is the one
-      // that matters most given the public Supabase buckets.
+      // App-wide baseline. The Content-Security-Policy is *not* here: it needs
+      // a per-request nonce, so it is built in src/lib/csp.ts and set by
+      // src/proxy.ts. X-Frame-Options stays as the CSP-2 fallback for
+      // frame-ancestors, and nosniff matters most given the public buckets.
       {
         source: '/(.*)',
         headers: [

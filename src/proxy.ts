@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { updateSession } from '@/utils/supabase/middleware'
+import { buildCsp } from '@/lib/csp'
 import { prisma } from '@/lib/prisma'
 import { extractLeagueSubdomain } from '@/lib/subdomain'
 import { getTournamentTier } from '@/lib/stripe'
@@ -40,6 +41,20 @@ async function resolveSubdomainSlug(subdomain: string): Promise<string | null> {
 }
 
 export async function proxy(request: NextRequest) {
+  // 0. Mint this request's CSP nonce and put it on the *request* headers.
+  //    Next reads the nonce back out of the request's Content-Security-Policy
+  //    header during SSR and stamps it onto its own script tags; x-nonce is
+  //    there for any Server Component that needs to nonce a tag by hand.
+  //
+  //    Mutating request.headers is sound rather than lucky: NextResponse.next({
+  //    request }) copies the headers at construction time, and Next's own
+  //    RequestCookies.set() mutates this same object. So updateSession below
+  //    forwards these without needing to know about them.
+  const nonce = crypto.randomUUID()
+  const csp = buildCsp(nonce)
+  request.headers.set('x-nonce', nonce)
+  request.headers.set('Content-Security-Policy', csp)
+
   // 1. Decide whether the host's subdomain should rewrite to a canonical
   //    /[slug] path. Only Tour-tier leagues with a saved subdomain qualify.
   const host = request.headers.get('host') ?? ''
@@ -68,9 +83,11 @@ export async function proxy(request: NextRequest) {
       // plaintext-transmittable — on the custom-subdomain path only.
       rewrite.cookies.set(c)
     }
+    rewrite.headers.set('Content-Security-Policy', csp)
     return rewrite
   }
 
+  sessionResponse.headers.set('Content-Security-Policy', csp)
   return sessionResponse
 }
 
@@ -79,6 +96,10 @@ export const config = {
     // Skip Supabase auth refresh for static assets, fonts, the manifest, and
     // server-to-server endpoints (cron, Stripe webhooks) that authenticate
     // themselves and don't need a refreshed session cookie.
-    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|api/cron|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf|eot|ico)$).*)',
+    //
+    // sw.js is excluded so it keeps only the tight CSP next.config.ts serves it.
+    // A second CSP header would intersect with that one, and the service worker
+    // would inherit this document policy's connect-src for its own fetches.
+    '/((?!_next/static|_next/image|favicon.ico|robots.txt|sitemap.xml|sw.js|api/cron|api/webhooks|.*\\.(?:svg|png|jpg|jpeg|gif|webp|woff|woff2|ttf|otf|eot|ico)$).*)',
   ],
 }
