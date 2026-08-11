@@ -3,7 +3,7 @@
 import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { sendInviteEmails } from '@/app/(main)/tournaments/new/actions'
+import { sendInviteEmails } from '@/lib/invite-sender'
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
 
