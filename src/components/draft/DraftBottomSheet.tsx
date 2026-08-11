@@ -76,7 +76,7 @@ export function DraftBottomSheet({ open, onClose, title, children, titleAccessor
         {/* Header */}
         <div className="flex items-center justify-between px-5 pt-2 pb-2 shrink-0">
           <div className="flex items-baseline gap-2 min-w-0">
-            <h3 className="font-heading text-base text-foreground truncate">{title}</h3>
+            <h3 className="font-semibold text-base text-foreground truncate">{title}</h3>
             {titleAccessory}
           </div>
           <button

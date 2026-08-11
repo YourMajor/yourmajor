@@ -384,7 +384,7 @@ export function CardBack({
           <SlugIcon slug={slug} isAttack={isAttack} className="w-7 h-7 text-powerup-stock" />
           <div className="flex-1 min-w-0">
             <p className="text-[11px] font-bold uppercase tracking-widest text-powerup-stock/70">{type}</p>
-            <p className="text-lg font-heading text-powerup-stock leading-tight">{name}</p>
+            <p className="text-lg font-semibold text-powerup-stock leading-tight">{name}</p>
           </div>
         </div>
       </div>

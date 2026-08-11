@@ -80,7 +80,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
             >
               {initial}
             </div>
-            <p className="mt-3 text-sm font-heading text-foreground">{tournamentName}</p>
+            <p className="mt-3 text-sm font-semibold text-foreground">{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-2" style={{ backgroundColor: DEFAULT.accent }} />
             <p className="text-[11px] text-muted-foreground mt-2">Default colors &middot; No logo</p>
           </div>
@@ -110,7 +110,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
                 <path d="M10 22 C14 18, 16 24, 20 18 C24 24, 26 18, 30 22" stroke="white" strokeWidth="1" opacity="0.4" fill="none" />
               </svg>
             </div>
-            <p className="mt-2 text-sm font-heading" style={{ color: PREVIEW.primary }}>{tournamentName}</p>
+            <p className="mt-2 text-sm font-semibold" style={{ color: PREVIEW.primary }}>{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-1.5" style={{ backgroundColor: PREVIEW.accent }} />
             <p className="text-[11px] mt-1.5" style={{ color: PREVIEW.accent }}>Your colors &middot; Your logo</p>
           </div>

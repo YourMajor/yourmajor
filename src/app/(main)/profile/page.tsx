@@ -142,7 +142,7 @@ export default async function ProfilePage({
       {/* Membership */}
       <Card>
         <CardHeader className="pb-1">
-          <CardTitle className="text-base font-heading">Membership</CardTitle>
+          <CardTitle className="text-base font-semibold">Membership</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex items-center gap-3">
@@ -162,7 +162,7 @@ export default async function ProfilePage({
               )}
             </div>
             <div>
-              <p className="font-heading text-sm">
+              <p className="font-semibold text-sm">
                 {userTier.tier === 'LEAGUE' ? 'Tour' : userTier.tier === 'PRO' ? 'Pro' : 'Free'} Plan
               </p>
               {userTier.tier === 'LEAGUE' && userTier.expiresAt && (
@@ -216,7 +216,7 @@ export default async function ProfilePage({
       {/* Overview Stats */}
       <Card>
         <CardHeader className="pb-3">
-          <CardTitle className="text-base font-heading">Stats</CardTitle>
+          <CardTitle className="text-base font-semibold">Stats</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="flex justify-between text-sm">
@@ -253,7 +253,7 @@ export default async function ProfilePage({
       {totalHoles >= 18 && (
         <Card>
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-heading">Performance</CardTitle>
+            <CardTitle className="text-base font-semibold">Performance</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             {/* Par breakdown */}
@@ -265,7 +265,7 @@ export default async function ProfilePage({
               ].filter(d => d.count > 0).map(d => (
                 <div key={d.label} className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
-                  <p className={`text-lg font-heading ${d.avg !== null && d.avg < 0 ? 'text-score-birdie' : ''}`}>
+                  <p className={`text-lg font-semibold ${d.avg !== null && d.avg < 0 ? 'text-score-birdie' : ''}`}>
                     {d.avg !== null ? (d.avg >= 0 ? '+' : '') + d.avg.toFixed(2) : '—'}
                   </p>
                   <p className="text-[11px] text-muted-foreground">{d.count} holes</p>
@@ -279,28 +279,28 @@ export default async function ProfilePage({
               {fairwayPct !== null && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">FIR</p>
-                  <p className="text-lg font-heading">{fairwayPct}%</p>
+                  <p className="text-lg font-semibold">{fairwayPct}%</p>
                   <p className="text-[11px] text-muted-foreground">{fairwaysHit}/{fairwayHoles}</p>
                 </div>
               )}
               {girPct !== null && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">GIR</p>
-                  <p className="text-lg font-heading">{girPct}%</p>
+                  <p className="text-lg font-semibold">{girPct}%</p>
                   <p className="text-[11px] text-muted-foreground">{girsHit}/{girHoles}</p>
                 </div>
               )}
               {careerStats.puttsPerGir && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Putts</p>
-                  <p className="text-lg font-heading">{careerStats.puttsPerGir.value.toFixed(2)}</p>
+                  <p className="text-lg font-semibold">{careerStats.puttsPerGir.value.toFixed(2)}</p>
                   <p className="text-[11px] text-muted-foreground">per green hit</p>
                 </div>
               )}
               {scramblingPct !== null && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Scrambling</p>
-                  <p className="text-lg font-heading">{scramblingPct}%</p>
+                  <p className="text-lg font-semibold">{scramblingPct}%</p>
                   <p className="text-[11px] text-muted-foreground">up and down</p>
                 </div>
               )}
@@ -362,7 +362,7 @@ export default async function ProfilePage({
         (careerFindings.length > 0 || roundVsPars.length >= 2) && (
           <Card className="border-dashed border-2 border-border shadow-none">
             <CardContent className="py-6 flex flex-col items-center text-center">
-              <p className="font-heading text-sm">Unlock Insights</p>
+              <p className="font-semibold text-sm">Unlock Insights</p>
               <p className="text-xs text-muted-foreground mt-1">
                 Upgrade to Pro or Tour to see what your scoring is actually costing you, measured
                 against players off your handicap.

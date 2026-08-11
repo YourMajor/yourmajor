@@ -75,7 +75,8 @@ export function ColorDonutPicker({
               className={cn(
                 // ring-offset-background matters: the Tailwind default offset
                 // colour is literal white, which haloes on the night ground.
-                'relative w-10 h-10 rounded-full transition-all ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
+                // 44px, not 40: these are picked one-handed on a phone.
+                'relative w-11 h-11 rounded-full transition-all ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
                 isSelected
                   ? 'ring-2 ring-foreground ring-offset-2 scale-110'
                   : 'hover:scale-105 hover:ring-1 hover:ring-border hover:ring-offset-1'

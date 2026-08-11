@@ -47,7 +47,7 @@ export function DashboardInfoCard() {
             <Sparkles className="w-4 h-4 text-accent" />
           </div>
           <div className="min-w-0">
-            <p className="font-heading text-sm">
+            <p className="font-semibold text-sm">
               Make your next event unforgettable
             </p>
             <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">

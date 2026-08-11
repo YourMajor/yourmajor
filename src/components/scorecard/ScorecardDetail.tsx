@@ -255,7 +255,7 @@ function NetBreakdownModal({
           className="-mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 px-5 py-4 flex items-center justify-between rounded-t-xl"
           style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
         >
-          <DialogTitle className="font-heading text-lg text-primary-foreground">Net Score Breakdown</DialogTitle>
+          <DialogTitle className="font-semibold text-lg text-primary-foreground">Net Score Breakdown</DialogTitle>
           <DialogClose
             aria-label="Close"
             className="p-1 rounded-full text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"

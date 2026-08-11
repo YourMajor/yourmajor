@@ -114,7 +114,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
                   </span>
                 </div>
               )}
-              <p className="text-lg font-heading text-white">
+              <p className="text-lg font-semibold text-white">
                 {currentPlayer.user.name ?? 'Player'}
               </p>
             </div>

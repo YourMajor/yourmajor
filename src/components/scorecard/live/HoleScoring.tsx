@@ -203,7 +203,7 @@ export function HoleScoring({
               Your Score
             </p>
             {runningDiffText && (
-              <p className="text-lg font-heading text-white">
+              <p className="text-lg font-semibold text-white">
                 {runningDiffText}
                 <span className="text-xs font-normal text-white/70 block">
                   After {runningScore.holesPlayed} hole

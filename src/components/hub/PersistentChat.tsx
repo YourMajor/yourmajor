@@ -177,7 +177,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
             onTouchEnd={onHeaderTouchEnd}
           >
             <div className="flex items-center gap-2">
-              <h3 className="text-base sm:text-sm font-heading text-primary-foreground">{label ?? 'Tournament Chat'}</h3>
+              <h3 className="text-base sm:text-sm font-semibold text-primary-foreground">{label ?? 'Tournament Chat'}</h3>
               <ChevronDown className="w-4 h-4 text-primary-foreground/80 sm:hidden" />
             </div>
             <button type="button" onClick={() => setOpen(false)} aria-label="Close chat" className="p-1.5 rounded-full text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10">

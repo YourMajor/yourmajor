@@ -54,7 +54,7 @@ export function ProfileEditForm({ initialName, initialEmail, initialHandicap, in
   return (
     <Card>
       <CardHeader className="pb-3 flex flex-row items-center justify-between">
-        <CardTitle className="text-base font-heading">Edit Profile</CardTitle>
+        <CardTitle className="text-base font-semibold">Edit Profile</CardTitle>
         <Link
           href="/profile"
           className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"

@@ -189,7 +189,7 @@ export function PushNotificationManager({ vapidPublicKey, initialPrefs }: Props)
   return (
     <Card>
       <CardHeader className="pb-1">
-        <CardTitle className="text-base font-heading flex items-center gap-2">
+        <CardTitle className="text-base font-semibold flex items-center gap-2">
           <Bell className="w-4 h-4" /> Notifications
         </CardTitle>
       </CardHeader>

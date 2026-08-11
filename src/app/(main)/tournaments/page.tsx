@@ -114,7 +114,7 @@ export default async function TournamentsPage() {
             <div className="w-12 h-12 rounded-full bg-muted flex items-center justify-center mb-3">
               <Trophy className="w-6 h-6 text-muted-foreground" />
             </div>
-            <p className="font-heading text-base">No tournaments yet</p>
+            <p className="font-semibold text-base">No tournaments yet</p>
             <p className="text-sm text-muted-foreground mt-1 max-w-xs">
               Once you create or join a tournament, your history will live here.
             </p>
@@ -126,7 +126,7 @@ export default async function TournamentsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-heading text-lg">Tournament History</h2>
+            <h2 className="font-semibold text-lg">Tournament History</h2>
           </div>
           {history.map((m) => (
             <TournamentCard
@@ -142,7 +142,7 @@ export default async function TournamentsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-heading text-lg">Organising</h2>
+            <h2 className="font-semibold text-lg">Organising</h2>
           </div>
           {organising.map((m) => (
             <TournamentCard
@@ -159,7 +159,7 @@ export default async function TournamentsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Users className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-heading text-lg">Playing</h2>
+            <h2 className="font-semibold text-lg">Playing</h2>
           </div>
           {playing.map((m) => (
             <TournamentCard
@@ -176,7 +176,7 @@ export default async function TournamentsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Eye className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-heading text-lg">Watching</h2>
+            <h2 className="font-semibold text-lg">Watching</h2>
           </div>
           {watching.map((m) => (
             <TournamentCard
@@ -193,7 +193,7 @@ export default async function TournamentsPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Repeat className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-heading text-lg">Your Leagues</h2>
+            <h2 className="font-semibold text-lg">Your Leagues</h2>
           </div>
           {activeLeagues.map((m) => (
             <TournamentCard

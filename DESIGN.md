@@ -332,6 +332,23 @@ proportional figures in a leaderboard is a defect.
 **The Rare Serif Rule.** The display serif appears at most twice per viewport. It
 opens a section; it never sets body copy, labels, buttons, or UI text.
 
+**The Serif Has A Floor (2026-08-11).** Libre Caslon Display is a *display* cut:
+high stroke contrast, fine hairlines, drawn to be set large. **Below 20px it does
+not hold** — rendered at 14px, 16px and 18px on a phone the hairlines thin to
+near-nothing and the heading reads *lighter* than the body copy beneath it, which
+inverts the hierarchy it is supposed to create. Measured on device at 360px wide
+across a 14/16/18/20/24/28 ladder: it breaks under 20px and is elegant at 24px up.
+
+So the serif floor is **20px (`text-xl`)**. A card title, panel heading, stat
+value or any UI text below that is set in **Google Sans 600**, the Title step,
+not in the serif. This is the same boundary The Rare Serif Rule already implies
+("never UI text"), now with a number attached.
+
+This was found by looking at the surface on a phone, not in the code. Removing
+the synthetic bold from Caslon on 2026-08-11 was correct in itself, but it left
+58 small headings as bare 400-weight display serif, and only at phone size was
+it obvious they had stopped reading as headings at all.
+
 ## Layout
 
 A centered `80rem` container with a `1.5rem` gutter, which fixes the incumbent's

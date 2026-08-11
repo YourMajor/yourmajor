@@ -113,7 +113,7 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
           <p className="ym-label text-muted-foreground">
             Admin
           </p>
-          <p className="mt-1 text-sm font-heading truncate" title={tournamentName}>
+          <p className="mt-1 text-sm font-semibold truncate" title={tournamentName}>
             {tournamentName}
           </p>
         </div>
