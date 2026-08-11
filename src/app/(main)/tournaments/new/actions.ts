@@ -9,7 +9,7 @@ import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
-import { sendInvitations, sendInviteEmails as sendInviteEmailsImpl } from '@/lib/invite-sender'
+import { sendInvitations } from '@/lib/invite-sender'
 import { containsProfanity } from '@/lib/content-moderation'
 import { selectPeoriaHoles } from '@/lib/peoria'
 
@@ -481,17 +481,6 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
   revalidatePath('/tournaments')
 
   return { slug }
-}
-
-// Re-export the email-only path so existing imports of `sendInviteEmails` from
-// '@/app/(main)/tournaments/new/actions' continue to work. Implementation lives
-// in '@/lib/invite-sender' and now also handles SMS.
-export async function sendInviteEmails(
-  tournamentName: string,
-  slug: string,
-  invitations: Array<{ email: string; token: string }>,
-): Promise<void> {
-  await sendInviteEmailsImpl(tournamentName, slug, invitations)
 }
 
 export async function sendLateInvites(

@@ -12,6 +12,17 @@ export async function GET(
 
   const { id: tournamentId } = await params
 
+  // Membership check: without it any logged-in user could read any
+  // tournament's full draft state and roster by id, PRIVATE and INVITE
+  // included. Same guard as the sibling draft/pick route.
+  const membership = await prisma.tournamentPlayer.findUnique({
+    where: { tournamentId_userId: { tournamentId, userId: user.id } },
+    select: { id: true },
+  })
+  if (!membership && user.role !== 'ADMIN') {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
   const tournament = await prisma.tournament.findUnique({
     where: { id: tournamentId },
     select: { id: true, powerupsPerPlayer: true, maxAttacksPerPlayer: true, distributionMode: true },

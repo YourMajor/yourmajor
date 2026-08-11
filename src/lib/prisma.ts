@@ -1,5 +1,6 @@
 import { PrismaClient } from '../generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { SUPABASE_ROOT_CA_2021 } from './supabase-ca'
 
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient }
 const versionKey = '__prismaClientVersion' as keyof typeof globalThis
@@ -8,13 +9,26 @@ const CLIENT_VERSION = '7.7.0-regen'
 
 function createPrismaClient(): PrismaClient {
   // Strip sslmode from connection string — pg-connection-string treats
-  // sslmode=require as verify-full, which rejects the Supabase pooler cert.
-  // We handle SSL explicitly via the ssl option below.
+  // sslmode=require as verify-full against the *system* trust store, which
+  // rejects the Supabase pooler cert. The pooler's chain roots in Supabase's
+  // own "Supabase Root 2021 CA", so we supply that CA explicitly below and
+  // get real verification rather than turning verification off.
   const url = new URL(process.env.DATABASE_URL!)
   url.searchParams.delete('sslmode')
+
+  // Escape hatch for a CA rotation that outpaces a deploy: setting
+  // DB_SSL_INSECURE=1 restores the old unverified behaviour, so a expired-CA
+  // outage is an env-var flip rather than a code change. Not for normal use.
+  const insecure = process.env.DB_SSL_INSECURE === '1'
+  if (insecure) {
+    console.warn('[prisma] DB_SSL_INSECURE=1 — database TLS certificate verification is DISABLED')
+  }
+
   const adapter = new PrismaPg({
     connectionString: url.toString(),
-    ssl: { rejectUnauthorized: false },
+    ssl: insecure
+      ? { rejectUnauthorized: false }
+      : { ca: SUPABASE_ROOT_CA_2021, rejectUnauthorized: true },
     // Dev with the Supabase Session pooler (port 5432) caps at ~15 connections
     // per project; without these, an exhausted pool surfaces as "Operation has
     // timed out" minutes later and crashes the static-paths dev worker.

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 function errorRedirect(origin: string, reason: string) {
   return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(reason)}`)
@@ -13,8 +14,12 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get('type')
   // Recovery emails from Supabase include type=recovery — force the user to
   // /auth/reset-password even if the email template didn't pass an explicit next.
+  // safeNextPath: `next` is attacker-controlled and is concatenated onto the
+  // origin below, so an off-origin value here is an open redirect on the
+  // post-OAuth landing page.
   const explicitNext = searchParams.get('next')
-  const next = explicitNext ?? (type === 'recovery' ? '/auth/reset-password' : '/dashboard')
+  const fallback = type === 'recovery' ? '/auth/reset-password' : '/dashboard'
+  const next = safeNextPath(explicitNext, fallback)
 
   if (oauthError) {
     console.error('[auth/callback] provider error:', oauthError)

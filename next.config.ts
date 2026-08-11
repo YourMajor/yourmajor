@@ -1,5 +1,19 @@
 import type { NextConfig } from "next";
 
+// Pin the Supabase Storage host to *this project's* ref rather than the
+// wildcard *.supabase.co. The wildcard let the Next image optimizer proxy and
+// cache images from anyone else's Supabase project through our domain.
+// Derived from the env var because dev and prod are two separate projects.
+function supabaseImageHost(): string {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
+  if (!url) return '*.supabase.co' // build-time env-less contexts (Preview collection)
+  try {
+    return new URL(url).hostname
+  } catch {
+    return '*.supabase.co'
+  }
+}
+
 const nextConfig: NextConfig = {
   // Pin the workspace root. A stray package-lock.json in the user's home dir made
   // Turbopack infer C:\Users\Beast as the root and then fail to resolve next itself.
@@ -15,7 +29,7 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [
       // Supabase Storage public URLs (tournament photos, logos, headers, avatars)
-      { protocol: 'https', hostname: '*.supabase.co', pathname: '/storage/v1/object/**' },
+      { protocol: 'https', hostname: supabaseImageHost(), pathname: '/storage/v1/object/**' },
       // OAuth provider avatar CDNs used by Supabase Auth metadata
       { protocol: 'https', hostname: 'lh3.googleusercontent.com' },
       { protocol: 'https', hostname: 'avatars.githubusercontent.com' },
@@ -25,6 +39,18 @@ const nextConfig: NextConfig = {
   },
   async headers() {
     return [
+      // App-wide baseline. No Content-Security-Policy here on purpose: Next's
+      // inline bootstrap scripts need nonce plumbing through the root layout,
+      // which is its own change with real breakage risk. nosniff is the one
+      // that matters most given the public Supabase buckets.
+      {
+        source: '/(.*)',
+        headers: [
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+        ],
+      },
       // Service worker: must not be cached by browsers / CDNs, and must be served
       // as JS with a tight CSP so it can never load third-party code.
       {

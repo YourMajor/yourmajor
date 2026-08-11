@@ -62,7 +62,11 @@ export async function proxy(request: NextRequest) {
   if (rewriteUrl) {
     const rewrite = NextResponse.rewrite(rewriteUrl)
     for (const c of sessionResponse.cookies.getAll()) {
-      rewrite.cookies.set(c.name, c.value)
+      // Pass the whole cookie, not (name, value). Copying only the pair drops
+      // httpOnly / secure / sameSite / path / maxAge, which silently re-issued
+      // a refreshed Supabase session cookie as script-readable and
+      // plaintext-transmittable — on the custom-subdomain path only.
+      rewrite.cookies.set(c)
     }
     return rewrite
   }
