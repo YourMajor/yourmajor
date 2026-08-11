@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { canPickPowerup } from '@/lib/draft-utils'
@@ -11,10 +13,9 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: tournamentId, pickId } = await params
-  const { powerupId: newPowerupId } = (await req.json()) as { powerupId: string }
-  if (!newPowerupId) {
-    return NextResponse.json({ error: 'powerupId is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(req, z.object({ powerupId: z.string().min(1) }))
+  if (!parsed.ok) return parsed.response
+  const newPowerupId = parsed.data.powerupId
 
   if (!(await isTournamentAdmin(user.id, tournamentId))) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })

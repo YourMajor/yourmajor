@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
@@ -14,19 +16,18 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: tournamentId } = await params
-  const body = await req.json() as {
-    playerPowerupId: string
-    roundId: string
-    holeNumber: number
-    targetPlayerId?: string
-    targetHoleNumber?: number
-    metadata?: Record<string, unknown>
-  }
-
-  const { playerPowerupId, roundId, holeNumber, targetPlayerId, targetHoleNumber: targetHoleOverride, metadata } = body
-  if (!playerPowerupId || !roundId || !holeNumber) {
-    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
-  }
+  const parsed = await parseBody(req, z.object({
+    playerPowerupId: z.string().min(1),
+    roundId: z.string().min(1),
+    holeNumber: z.number().int().min(1).max(18),
+    targetPlayerId: z.string().min(1).optional(),
+    targetHoleNumber: z.number().int().min(1).max(18).optional(),
+    // Shape stays open — each powerup effect reads its own keys, and the ids
+    // inside are individually scoped to this tournament further down.
+    metadata: z.record(z.string(), z.unknown()).optional(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { playerPowerupId, roundId, holeNumber, targetPlayerId, targetHoleNumber: targetHoleOverride, metadata } = parsed.data
 
   const player = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },

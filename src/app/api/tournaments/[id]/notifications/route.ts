@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 
@@ -57,11 +59,13 @@ export async function PATCH(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: tournamentId } = await params
-  const { ids } = await req.json() as { ids: string[] }
-
-  if (!Array.isArray(ids) || ids.length === 0) {
-    return NextResponse.json({ error: 'ids array required' }, { status: 400 })
-  }
+  // Element types were previously unchecked — Array.isArray passes for
+  // [1, {}, null], which then went to Prisma as an id filter.
+  const parsed = await parseBody(req, z.object({
+    ids: z.array(z.string().min(1)).min(1, 'ids array required'),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { ids } = parsed.data
 
   const player = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },

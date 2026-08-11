@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { getUser } from '@/lib/auth'
 import { createProCheckoutSession, createClubCheckoutSession, createLeagueCheckoutSession } from '@/lib/stripe'
 
@@ -6,8 +8,14 @@ export async function POST(request: NextRequest) {
   const user = await getUser()
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
-  const { type, tournamentId, tournamentName, slug } = body
+  const parsed = await parseBody(request, z.object({
+    type: z.string().min(1),
+    tournamentId: z.string().min(1).optional(),
+    tournamentName: z.string().max(200).optional(),
+    slug: z.string().max(200).optional(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { type, tournamentId, tournamentName, slug } = parsed.data
 
   const origin = request.headers.get('origin') ?? 'http://localhost:3000'
 

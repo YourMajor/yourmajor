@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
@@ -12,11 +14,9 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: tournamentId } = await params
-  const { playerPowerupId } = await req.json() as { playerPowerupId: string }
-
-  if (!playerPowerupId) {
-    return NextResponse.json({ error: 'playerPowerupId is required' }, { status: 400 })
-  }
+  const parsed = await parseBody(req, z.object({ playerPowerupId: z.string().min(1) }))
+  if (!parsed.ok) return parsed.response
+  const { playerPowerupId } = parsed.data
 
   const player = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },

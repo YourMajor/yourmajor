@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse, after } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { containsProfanity } from '@/lib/content-moderation'
@@ -42,11 +44,13 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id } = await params
-  const { content } = await req.json()
-  if (!content?.trim()) return NextResponse.json({ error: 'Content required' }, { status: 400 })
-  if (typeof content !== 'string' || content.length > 500) {
-    return NextResponse.json({ error: 'Message must be 500 characters or fewer' }, { status: 400 })
-  }
+  // The previous hand-rolled version called content.trim() before confirming
+  // content was a string, so a non-string body threw and surfaced as a 500.
+  const parsed = await parseBody(req, z.object({
+    content: z.string().trim().min(1, 'Content required').max(500, 'Message must be 500 characters or fewer'),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { content } = parsed.data
 
   // Verify user is a registered player
   const player = await prisma.tournamentPlayer.findUnique({

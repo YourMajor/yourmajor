@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import {
@@ -15,14 +17,14 @@ export async function POST(
   if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const { id: tournamentId } = await params
-  const { playerPowerupId, scoreModifier } = await req.json() as {
-    playerPowerupId: string
-    scoreModifier: number
-  }
-
-  if (!playerPowerupId || scoreModifier === undefined) {
-    return NextResponse.json({ error: 'playerPowerupId and scoreModifier required' }, { status: 400 })
-  }
+  // scoreModifier is re-validated server-side against the powerup's own rules
+  // further down (validateResolutionModifier); this only enforces the shape.
+  const parsed = await parseBody(req, z.object({
+    playerPowerupId: z.string().min(1),
+    scoreModifier: z.number().int().min(-20).max(20),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { playerPowerupId, scoreModifier } = parsed.data
 
   const player = await prisma.tournamentPlayer.findUnique({
     where: { tournamentId_userId: { tournamentId, userId: user.id } },

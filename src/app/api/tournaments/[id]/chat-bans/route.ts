@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
 
@@ -40,8 +42,15 @@ export async function POST(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { userId, reason, expiresAt } = await req.json()
-  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
+  // expiresAt was previously fed straight to new Date(); a junk string became
+  // an Invalid Date and was written to the column.
+  const parsed = await parseBody(req, z.object({
+    userId: z.string().min(1, 'userId required'),
+    reason: z.string().max(500).nullish(),
+    expiresAt: z.iso.datetime({ offset: true }).nullish(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { userId, reason, expiresAt } = parsed.data
 
   const ban = await prisma.chatBan.upsert({
     where: { tournamentId_userId: { tournamentId: id, userId } },
@@ -76,8 +85,9 @@ export async function DELETE(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const { userId } = await req.json()
-  if (!userId) return NextResponse.json({ error: 'userId required' }, { status: 400 })
+  const parsed = await parseBody(req, z.object({ userId: z.string().min(1, 'userId required') }))
+  if (!parsed.ok) return parsed.response
+  const { userId } = parsed.data
 
   await prisma.chatBan.deleteMany({
     where: { tournamentId: id, userId },

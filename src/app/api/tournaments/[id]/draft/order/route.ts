@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
 
@@ -15,11 +17,18 @@ export async function PUT(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = (await req.json()) as { order: string[]; turnSeconds?: number | null }
-  const { order, turnSeconds } = body
-  if (!Array.isArray(order) || order.length === 0) {
-    return NextResponse.json({ error: 'order must be a non-empty array of tournamentPlayerIds' }, { status: 400 })
-  }
+  const parsed = await parseBody(req, z.object({
+    order: z.array(z.string().min(1)).min(1, 'order must be a non-empty array of tournamentPlayerIds'),
+    // 0 is meaningful here — it disables the turn timer, same as null. Any
+        // other value must be a real 5..3600 duration.
+    turnSeconds: z.union([
+      z.literal(0),
+      z.number().int().min(5, 'turnSeconds must be an integer between 5 and 3600 (or null to disable).')
+        .max(3600, 'turnSeconds must be an integer between 5 and 3600 (or null to disable).'),
+    ]).nullish(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { order, turnSeconds } = parsed.data
 
   // Validate all IDs belong to this tournament
   const players = await prisma.tournamentPlayer.findMany({
@@ -32,17 +41,12 @@ export async function PUT(
     return NextResponse.json({ error: `Invalid player IDs: ${invalid.join(', ')}` }, { status: 400 })
   }
 
-  // Normalize turnSeconds: undefined = leave alone, null/0 = disable, positive int = enable.
+  // Normalize turnSeconds: undefined = leave alone, null/0 = disable, positive
+  // int = enable. Range is enforced by the schema above.
   let normalizedTurnSeconds: number | null | undefined = undefined
   if (turnSeconds === null || turnSeconds === 0) {
     normalizedTurnSeconds = null
   } else if (typeof turnSeconds === 'number') {
-    if (!Number.isInteger(turnSeconds) || turnSeconds < 5 || turnSeconds > 3600) {
-      return NextResponse.json(
-        { error: 'turnSeconds must be an integer between 5 and 3600 (or null to disable).' },
-        { status: 400 },
-      )
-    }
     normalizedTurnSeconds = turnSeconds
   }
 

@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody, HEX_COLOR, ISO_DATE } from '@/lib/parse-body'
+import { z } from 'zod'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
@@ -34,14 +36,21 @@ export async function PATCH(
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
-  const body = await request.json()
-
-  const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate, status, logo } = body
-
-  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
-  if ((primaryColor && !HEX_COLOR.test(primaryColor)) || (accentColor && !HEX_COLOR.test(accentColor))) {
-    return NextResponse.json({ error: 'Colors must be #RRGGBB' }, { status: 400 })
-  }
+  // status was previously written straight through with no enum check, so any
+  // string could land in the column; logo was an unvalidated free-text URL.
+  const parsed = await parseBody(request, z.object({
+    name: z.string().trim().min(1).max(200).optional(),
+    slug: z.string().trim().min(1).max(200).optional(),
+    primaryColor: HEX_COLOR.optional(),
+    accentColor: HEX_COLOR.optional(),
+    isOpenRegistration: z.boolean().optional(),
+    startDate: ISO_DATE.nullish(),
+    endDate: ISO_DATE.nullish(),
+    status: z.enum(['REGISTRATION', 'ACTIVE', 'COMPLETED']).optional(),
+    logo: z.string().url().max(2000).nullish(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate, status, logo } = parsed.data
 
   try {
     const tournament = await prisma.tournament.update({

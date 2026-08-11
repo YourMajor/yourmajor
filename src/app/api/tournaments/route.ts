@@ -1,4 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseBody, HEX_COLOR, ISO_DATE } from '@/lib/parse-body'
+import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
@@ -14,17 +16,19 @@ export async function POST(request: NextRequest) {
   const creator = await getUser()
   if (!creator) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
-  const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate } = body
-
-  if (!name || !slug) {
-    return NextResponse.json({ error: 'name and slug are required' }, { status: 400 })
-  }
-
-  const HEX_COLOR = /^#[0-9a-fA-F]{6}$/
-  if ((primaryColor && !HEX_COLOR.test(primaryColor)) || (accentColor && !HEX_COLOR.test(accentColor))) {
-    return NextResponse.json({ error: 'Colors must be #RRGGBB' }, { status: 400 })
-  }
+  // name/slug were previously length-unbounded, and the dates went to
+  // new Date() unchecked, so junk became an Invalid Date in the column.
+  const parsed = await parseBody(request, z.object({
+    name: z.string().trim().min(1, 'name and slug are required').max(200),
+    slug: z.string().trim().min(1, 'name and slug are required').max(200),
+    primaryColor: HEX_COLOR.optional(),
+    accentColor: HEX_COLOR.optional(),
+    isOpenRegistration: z.boolean().optional(),
+    startDate: ISO_DATE.nullish(),
+    endDate: ISO_DATE.nullish(),
+  }))
+  if (!parsed.ok) return parsed.response
+  const { name, slug, primaryColor, accentColor, isOpenRegistration, startDate, endDate } = parsed.data
 
   try {
     const joinCode = await generateJoinCode()
