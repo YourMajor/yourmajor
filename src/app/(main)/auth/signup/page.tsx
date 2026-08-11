@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthShell } from '../_shared/AuthShell'
 import { EmailSentCard } from '../_shared/EmailSentCard'
 import { SignupForm } from './SignupForm'
+import { checkRateLimitByIp, LIMITS } from '@/lib/rate-limit'
 
 async function signUp(formData: FormData) {
   'use server'
@@ -22,6 +23,13 @@ async function signUp(formData: FormData) {
   }
   if (password !== confirm) {
     redirect(`/auth/signup?error=${encodeURIComponent('Passwords don’t match.')}`)
+  }
+
+  // Each accepted signup sends a Supabase confirmation email, so an unlimited
+  // endpoint is both an account-spam and an email-reputation problem.
+  const rl = await checkRateLimitByIp('auth-signup', LIMITS.auth)
+  if (!rl.ok) {
+    redirect(`/auth/signup?error=${encodeURIComponent(`Too many attempts. Try again in ${Math.ceil(rl.retryAfter / 60)} minutes.`)}`)
   }
 
   const h = await headers()

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
+import { checkRateLimit, clientIp, rateLimitedResponse, LIMITS } from '@/lib/rate-limit'
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -32,6 +33,13 @@ function escapeHtml(text: string): string {
 }
 
 export async function POST(request: NextRequest) {
+  // This endpoint is deliberately unauthenticated so logged-out visitors can
+  // report problems — which also makes it the cheapest thing in the app to
+  // abuse, since every accepted call sends a billed Resend email.
+  const ip = clientIp(request.headers)
+  const limit = await checkRateLimit(`feedback:${ip}`, LIMITS.feedback)
+  if (!limit.ok) return rateLimitedResponse(limit.retryAfter)
+
   let body: unknown
   try {
     body = await request.json()

@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthShell } from '../_shared/AuthShell'
 import { OAuthButtons } from './OAuthButtons'
 import { PasswordForm } from './PasswordForm'
+import { checkRateLimitByIp, LIMITS } from '@/lib/rate-limit'
 
 async function signIn(formData: FormData) {
   'use server'
@@ -15,6 +16,19 @@ async function signIn(formData: FormData) {
   if (!email || !password) {
     const params = new URLSearchParams({ error: 'Email and password are required.' })
     if (email) params.set('email', email)
+    if (next) params.set('next', next)
+    redirect(`/auth/login?${params.toString()}`)
+  }
+
+  // Defence in depth against credential stuffing. Supabase throttles its own
+  // auth endpoints, but that throttle is per-account; this one is per-IP, so
+  // it also catches spraying one password across many accounts.
+  const rl = await checkRateLimitByIp('auth-login', LIMITS.auth)
+  if (!rl.ok) {
+    const params = new URLSearchParams({
+      error: `Too many sign-in attempts. Try again in ${Math.ceil(rl.retryAfter / 60)} minutes.`,
+      email,
+    })
     if (next) params.set('next', next)
     redirect(`/auth/login?${params.toString()}`)
   }
