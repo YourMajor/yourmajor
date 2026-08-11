@@ -76,13 +76,27 @@ export function ShotTracerChapter() {
           flight.style.strokeDashoffset = '1'
           const len = flight.getTotalLength()
 
-          // The shot plays itself when the section arrives; leaving upward
-          // resets it, so scrolling back replays. Never pins.
+          // The shot plays itself on a timer once triggered — never scrubbed,
+          // so it is already decoupled from scroll position. What matters is
+          // *when* it starts.
+          //
+          // Trigger off the graphic, not the section. Below lg the grid stacks
+          // and the hole map sits ~740px under the section top, so a
+          // section-based trigger fired the whole 2.4s flight while the map was
+          // still 400px below the fold: by the time a phone reached it the ball
+          // was already resting at the hole. `bottom bottom` waits until the
+          // map is fully on screen, which is self-adjusting — the map is capped
+          // at 74vh, so it always fits — and on desktop, where the map sits
+          // beside the rail, it lands at very nearly the old moment.
           const draw = { v: 1 }
           const tl = gsap.timeline({
             scrollTrigger: {
-              trigger: sectionRef.current,
-              start: 'top 60%',
+              trigger: svg,
+              // -=96 lifts the map clear of the sticky mobile CTA (75px tall).
+              // The tee sits at 85% of the viewBox, so at a bare `bottom
+              // bottom` the ball launches within 3px of that bar, and the map
+              // is sized off 74vh so that margin moves with the device.
+              start: 'bottom bottom-=96',
               toggleActions: 'play none none reset',
             },
           })
