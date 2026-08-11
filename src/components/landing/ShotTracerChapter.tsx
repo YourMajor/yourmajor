@@ -55,8 +55,19 @@ export function ShotTracerChapter() {
       media.add(
         // Runs on phones too: transform/opacity only, no pin, no scroll
         // hijack. The pinned chapters and ScrollSmoother stay desktop-only.
-        '(prefers-reduced-motion: no-preference)',
-        () => {
+        // Declared as conditions rather than read from window.matchMedia so
+        // GSAP rebuilds the triggers if the layout crosses the breakpoint.
+        {
+          motionOk: '(prefers-reduced-motion: no-preference)',
+          sideBySide: '(min-width: 1024px)',
+        },
+        (ctx) => {
+          const { motionOk, sideBySide } = ctx.conditions as {
+            motionOk: boolean
+            sideBySide: boolean
+          }
+          if (!motionOk) return
+
           const svg = svgRef.current
           const rail = railRef.current
           if (!svg || !rail) return
@@ -78,30 +89,34 @@ export function ShotTracerChapter() {
 
           // The shot plays itself on a timer once triggered — never scrubbed,
           // so it is already decoupled from scroll position. What matters is
-          // *when* it starts.
+          // *when* it starts, and that differs by layout.
           //
-          // Trigger off the graphic, not the section. Below lg the grid stacks
-          // and the hole map sits ~740px under the section top, so a
-          // section-based trigger fired the whole 2.4s flight while the map was
-          // still 400px below the fold: by the time a phone reached it the ball
-          // was already resting at the hole. `bottom bottom` waits until the
-          // map is fully on screen, which is self-adjusting — the map is capped
-          // at 74vh, so it always fits — and on desktop, where the map sits
-          // beside the rail, it lands at very nearly the old moment.
+          // At lg the rail and the map sit side by side, so one moment serves
+          // both. Below lg the grid stacks and they end up ~740px apart, which
+          // no single trigger can satisfy: firing on the rail plays the whole
+          // flight while the map is still below the fold, and firing on the map
+          // leaves the shot list sitting at 35% opacity for the entire time the
+          // visitor is reading it. So below lg each half is triggered by its
+          // own element and plays as it arrives.
+          const stacked = !sideBySide
+
+          // -=96 lifts the map clear of the sticky mobile CTA (75px tall). The
+          // tee sits at 85% of the viewBox, so at a bare `bottom bottom` the
+          // ball launches within 3px of that bar, and the map is sized off
+          // 74vh so that margin moves with the device. `bottom bottom` is
+          // self-adjusting: the map is capped at 74vh and always fits.
+          const mapStart = 'bottom bottom-=96'
+          const shared = { toggleActions: 'play none none reset' } as const
+
+          // Two timelines rather than one. Side by side they share a trigger
+          // and a start, so they fire together and the choreography is exactly
+          // what it was; stacked, each waits for its own half.
           const draw = { v: 1 }
-          const tl = gsap.timeline({
-            scrollTrigger: {
-              trigger: svg,
-              // -=96 lifts the map clear of the sticky mobile CTA (75px tall).
-              // The tee sits at 85% of the viewBox, so at a bare `bottom
-              // bottom` the ball launches within 3px of that bar, and the map
-              // is sized off 74vh so that margin moves with the device.
-              start: 'bottom bottom-=96',
-              toggleActions: 'play none none reset',
-            },
+          const flightTl = gsap.timeline({
+            scrollTrigger: { trigger: svg, start: mapStart, ...shared },
           })
-          tl.to(ball, { opacity: 1, ease: 'power2.in', duration: 0.12 }, 0.1)
-          tl.to(
+          flightTl.to(ball, { opacity: 1, ease: 'power2.in', duration: 0.12 }, 0.1)
+          flightTl.to(
             draw,
             {
               v: 0,
@@ -115,16 +130,25 @@ export function ShotTracerChapter() {
             },
             0.1,
           )
-          // The rail brightens shot by shot alongside the draw.
-          tl.to(
+          // The drop: a small pop as the ball reaches the hole.
+          flightTl.to(ball, { scale: 1.6, transformOrigin: '50% 50%', ease: 'power2.out', duration: 0.12 }, 1.92)
+          flightTl.to(ball, { scale: 1, ease: 'power2.in', duration: 0.16 }, 2.04)
+
+          // The rail brightens shot by shot — alongside the draw when they
+          // share a viewport, on its own arrival when they do not.
+          const railTl = gsap.timeline({
+            scrollTrigger: {
+              trigger: stacked ? rail : svg,
+              start: stacked ? 'top 70%' : mapStart,
+              ...shared,
+            },
+          })
+          railTl.to(
             rows,
             { opacity: 1, x: 0, ease: 'power2.out', duration: 0.3, stagger: 0.28 },
             0.25,
           )
-          // The drop: a small pop as the ball reaches the hole.
-          tl.to(ball, { scale: 1.6, transformOrigin: '50% 50%', ease: 'power2.out', duration: 0.12 }, 1.92)
-          tl.to(ball, { scale: 1, ease: 'power2.in', duration: 0.16 }, 2.04)
-          tl.to(result, { opacity: 1, y: 0, ease: 'power2.out', duration: 0.32 }, 2.0)
+          railTl.to(result, { opacity: 1, y: 0, ease: 'power2.out', duration: 0.32 }, 2.0)
 
           return () => {
             // Untracked writes from onUpdate: restore the static picture.
