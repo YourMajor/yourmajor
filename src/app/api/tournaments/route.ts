@@ -1,34 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 
-export async function GET() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-
-  const tournaments = await prisma.tournament.findMany({
-    orderBy: { createdAt: 'desc' },
-    select: {
-      id: true,
-      slug: true,
-      name: true,
-      status: true,
-      startDate: true,
-      endDate: true,
-      isOpenRegistration: true,
-      primaryColor: true,
-      accentColor: true,
-      logo: true,
-      createdAt: true,
-      _count: { select: { players: true, rounds: true } },
-    },
-  })
-
-  return NextResponse.json(tournaments)
-}
+// No GET here on purpose. There used to be one that returned every Tournament
+// row to any authenticated user with no visibility filter — it had no callers
+// anywhere in src/, so it was deleted rather than scoped. If a listing
+// endpoint is needed later, filter it to the caller's own memberships; see
+// tournaments/nearby for the PUBLIC-only variant.
 
 export async function POST(request: NextRequest) {
   // Any authenticated user can create a tournament
