@@ -9,7 +9,8 @@ import { ProfileEditForm } from './ProfileEditForm'
 import { Trophy, Zap, Crown } from 'lucide-react'
 import { IdentityHero } from '@/components/profile/IdentityHero'
 import { ScoringTrend } from '@/components/profile/ScoringTrend'
-import { InsightCallout } from '@/components/insight-callout'
+import { StatSheet } from '@/components/insights/StatSheet'
+import { computeRoundStats, statFindings } from '@/lib/round-stats'
 import { PushNotificationManager } from '@/components/pwa/PushNotificationManager'
 import { ThemeToggle } from '@/components/profile/ThemeToggle'
 
@@ -61,52 +62,39 @@ export default async function ProfilePage({
     ...standaloneScores.map(s => ({ strokes: s.strokes, par: s.par, putts: s.putts, fairwayHit: s.fairwayHit, gir: s.gir, roundId: s.standaloneRoundId })),
   ]
 
-  // Aggregate stats
+  const handicap = profile?.handicap ?? 0
   const totalHoles = allRows.length
 
-  // Score distribution
-  const eagles = allRows.filter(s => s.strokes - s.par <= -2).length
-  const birdies = allRows.filter(s => s.strokes - s.par === -1).length
-  const pars = allRows.filter(s => s.strokes - s.par === 0).length
-  const bogeys = allRows.filter(s => s.strokes - s.par === 1).length
-  const doubles = allRows.filter(s => s.strokes - s.par >= 2).length
+  // One shared module, so the career view and the per-round scorecard cannot
+  // drift apart the way the two hand-rolled copies of this maths had.
+  const careerStats = computeRoundStats(allRows)
+  const careerFindings = statFindings(careerStats, handicap)
 
-  // Fairway stats
-  const fairwayHoles = allRows.filter(s => s.par >= 4 && s.fairwayHit !== null)
-  const fairwaysHit = fairwayHoles.filter(s => s.fairwayHit === true).length
-  const fairwayPct = fairwayHoles.length > 0 ? Math.round((fairwaysHit / fairwayHoles.length) * 100) : null
+  const { eagle: eagles, birdie: birdies, par: pars, bogey: bogeys, double: doubles } = careerStats.counts
 
-  // GIR stats
-  const girHoles = allRows.filter(s => s.gir !== null)
-  const girsHit = girHoles.filter(s => s.gir === true).length
-  const girPct = girHoles.length > 0 ? Math.round((girsHit / girHoles.length) * 100) : null
+  const asPct = (r: { value: number } | null) => (r ? Math.round(r.value * 100) : null)
+  const fairwayPct = asPct(careerStats.fairways)
+  const girPct = asPct(careerStats.gir)
+  const scramblingPct = asPct(careerStats.scrambling)
+  const fairwayHoles = careerStats.fairways?.sample ?? 0
+  const fairwaysHit = Math.round(((careerStats.fairways?.value ?? 0) * fairwayHoles))
+  const girHoles = careerStats.gir?.sample ?? 0
+  const girsHit = Math.round(((careerStats.gir?.value ?? 0) * girHoles))
 
-  // Putting stats
-  const puttHoles = allRows.filter(s => s.putts !== null && s.putts !== undefined)
-  const totalPutts = puttHoles.reduce((sum, s) => sum + (s.putts ?? 0), 0)
-  const avgPutts = puttHoles.length > 0 ? (totalPutts / puttHoles.length).toFixed(1) : null
+  const par3Avg = careerStats.parType.par3?.value ?? null
+  const par4Avg = careerStats.parType.par4?.value ?? null
+  const par5Avg = careerStats.parType.par5?.value ?? null
+  const par3Count = careerStats.parType.par3?.sample ?? 0
+  const par4Count = careerStats.parType.par4?.sample ?? 0
+  const par5Count = careerStats.parType.par5?.sample ?? 0
 
-  // Par 3/4/5 performance
-  const par3s = allRows.filter(s => s.par === 3)
-  const par4s = allRows.filter(s => s.par === 4)
-  const par5s = allRows.filter(s => s.par === 5)
+  // Conditional splits the module does not carry: scoring with and without the
+  // fairway, and with and without the green.
   const avgVsPar = (rows: ScoreRow[]) => rows.length > 0 ? (rows.reduce((sum, s) => sum + (s.strokes - s.par), 0) / rows.length) : null
-  const par3Avg = avgVsPar(par3s)
-  const par4Avg = avgVsPar(par4s)
-  const par5Avg = avgVsPar(par5s)
-
-  // Overall avg score vs par
-  // Scoring when on fairway vs off
-  const onFairway = allRows.filter(s => s.fairwayHit === true)
-  const offFairway = allRows.filter(s => s.fairwayHit === false)
-  const avgOnFairway = avgVsPar(onFairway)
-  const avgOffFairway = avgVsPar(offFairway)
-
-  // Scoring when GIR vs miss
-  const onGir = allRows.filter(s => s.gir === true)
-  const offGir = allRows.filter(s => s.gir === false)
-  const avgOnGir = avgVsPar(onGir)
-  const avgOffGir = avgVsPar(offGir)
+  const avgOnFairway = avgVsPar(allRows.filter(s => s.fairwayHit === true))
+  const avgOffFairway = avgVsPar(allRows.filter(s => s.fairwayHit === false))
+  const avgOnGir = avgVsPar(allRows.filter(s => s.gir === true))
+  const avgOffGir = avgVsPar(allRows.filter(s => s.gir === false))
 
   // Round-level stats (best/worst/avg round)
   const roundGroups = new Map<string, ScoreRow[]>()
@@ -120,37 +108,6 @@ export default async function ProfilePage({
   const bestRound = roundVsPars.length > 0 ? Math.min(...roundVsPars) : null
   const avgRound = roundVsPars.length > 0 ? (roundVsPars.reduce((a, b) => a + b, 0) / roundVsPars.length) : null
 
-  // Insights
-  const insights: Array<{ type: 'strength' | 'weakness'; area: string; message: string }> = []
-
-  if (avgPutts !== null && parseFloat(avgPutts) <= 1.8 && puttHoles.length >= 36) {
-    insights.push({ type: 'strength', area: 'Putting', message: `Averaging ${avgPutts} putts/hole across ${puttHoles.length} holes. Elite-level putting.` })
-  } else if (avgPutts !== null && parseFloat(avgPutts) >= 2.2 && puttHoles.length >= 36) {
-    insights.push({ type: 'weakness', area: 'Putting', message: `Averaging ${avgPutts} putts/hole. Reducing to 2.0 would save ~${((parseFloat(avgPutts) - 2.0) * puttHoles.length / completedRounds.length).toFixed(1)} strokes/round.` })
-  }
-
-  if (fairwayPct !== null && fairwayPct >= 70 && fairwayHoles.length >= 28) {
-    insights.push({ type: 'strength', area: 'Accuracy', message: `Hitting ${fairwayPct}% of fairways across all rounds. Consistently finding the short grass.` })
-  } else if (fairwayPct !== null && fairwayPct < 50 && fairwayHoles.length >= 28 && avgOnFairway !== null && avgOffFairway !== null) {
-    const diff = avgOffFairway - avgOnFairway
-    insights.push({ type: 'weakness', area: 'Off the Tee', message: `Only ${fairwayPct}% FIR. When missing, you score ${diff.toFixed(1)} strokes worse per hole. Focus on accuracy over distance.` })
-  }
-
-  if (girPct !== null && girPct >= 55 && girHoles.length >= 36) {
-    insights.push({ type: 'strength', area: 'Approach Play', message: `${girPct}% greens in regulation. Strong iron play getting scoring opportunities.` })
-  } else if (girPct !== null && girPct < 35 && girHoles.length >= 36 && avgOffGir !== null) {
-    insights.push({ type: 'weakness', area: 'Approach Play', message: `${girPct}% GIR. When missing greens, averaging +${avgOffGir.toFixed(1)} vs par. Short game is being tested too often.` })
-  }
-
-  if (par5Avg !== null && par5Avg < 0.2 && par5s.length >= 8) {
-    insights.push({ type: 'strength', area: 'Par 5 Scoring', message: `Averaging ${par5Avg >= 0 ? '+' : ''}${par5Avg.toFixed(2)} on par 5s. Taking advantage of scoring holes.` })
-  }
-
-  if (par3Avg !== null && par3Avg > 0.8 && par3s.length >= 8) {
-    insights.push({ type: 'weakness', area: 'Par 3s', message: `Averaging +${par3Avg.toFixed(2)} on par 3s. Tee shot accuracy on shorter holes needs work.` })
-  }
-
-  const handicap = profile?.handicap ?? 0
   const initialName = profile?.displayName ?? user.name ?? user.email.split('@')[0]
   const initialAvatarUrl = profile?.avatar ?? user.image ?? null
 
@@ -302,13 +259,13 @@ export default async function ProfilePage({
             {/* Par breakdown */}
             <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
               {[
-                { label: 'Par 3s', avg: par3Avg, count: par3s.length },
-                { label: 'Par 4s', avg: par4Avg, count: par4s.length },
-                { label: 'Par 5s', avg: par5Avg, count: par5s.length },
+                { label: 'Par 3s', avg: par3Avg, count: par3Count },
+                { label: 'Par 4s', avg: par4Avg, count: par4Count },
+                { label: 'Par 5s', avg: par5Avg, count: par5Count },
               ].filter(d => d.count > 0).map(d => (
                 <div key={d.label} className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">{d.label}</p>
-                  <p className={`text-lg font-bold font-heading ${d.avg !== null && d.avg < 0 ? 'text-red-600' : ''}`}>
+                  <p className={`text-lg font-bold font-heading ${d.avg !== null && d.avg < 0 ? 'text-score-birdie' : ''}`}>
                     {d.avg !== null ? (d.avg >= 0 ? '+' : '') + d.avg.toFixed(2) : '—'}
                   </p>
                   <p className="text-[11px] text-muted-foreground">{d.count} holes</p>
@@ -316,27 +273,35 @@ export default async function ProfilePage({
               ))}
             </div>
 
-            {/* Key metrics */}
-            <div className="grid grid-cols-3 gap-1.5 sm:gap-2">
+            {/* Key metrics. Putts are reported per green in regulation, not per
+                hole — per hole rewards missing greens, which is backwards. */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 sm:gap-2">
               {fairwayPct !== null && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">FIR</p>
                   <p className="text-lg font-bold font-heading">{fairwayPct}%</p>
-                  <p className="text-[11px] text-muted-foreground">{fairwaysHit}/{fairwayHoles.length}</p>
+                  <p className="text-[11px] text-muted-foreground">{fairwaysHit}/{fairwayHoles}</p>
                 </div>
               )}
               {girPct !== null && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">GIR</p>
                   <p className="text-lg font-bold font-heading">{girPct}%</p>
-                  <p className="text-[11px] text-muted-foreground">{girsHit}/{girHoles.length}</p>
+                  <p className="text-[11px] text-muted-foreground">{girsHit}/{girHoles}</p>
                 </div>
               )}
-              {avgPutts !== null && (
+              {careerStats.puttsPerGir && (
                 <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
                   <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Putts</p>
-                  <p className="text-lg font-bold font-heading">{avgPutts}</p>
-                  <p className="text-[11px] text-muted-foreground">per hole</p>
+                  <p className="text-lg font-bold font-heading">{careerStats.puttsPerGir.value.toFixed(2)}</p>
+                  <p className="text-[11px] text-muted-foreground">per green hit</p>
+                </div>
+              )}
+              {scramblingPct !== null && (
+                <div className="rounded-lg border border-border p-2 sm:p-3 text-center">
+                  <p className="text-[11px] text-muted-foreground uppercase tracking-wider">Scrambling</p>
+                  <p className="text-lg font-bold font-heading">{scramblingPct}%</p>
+                  <p className="text-[11px] text-muted-foreground">up and down</p>
                 </div>
               )}
             </div>
@@ -346,13 +311,21 @@ export default async function ProfilePage({
               <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Score Distribution</p>
               <div className="flex gap-1.5 flex-wrap">
                 {[
-                  { label: 'Eagles', count: eagles, color: 'bg-yellow-100 text-yellow-700 border-yellow-300' },
-                  { label: 'Birdies', count: birdies, color: 'bg-red-100 text-red-700 border-red-300' },
-                  { label: 'Pars', count: pars, color: 'bg-muted text-foreground border-border' },
-                  { label: 'Bogeys', count: bogeys, color: 'bg-amber-100 text-amber-700 border-amber-300' },
-                  { label: 'Double+', count: doubles, color: 'bg-muted text-muted-foreground border-border' },
+                  { label: 'Eagles', count: eagles, tone: 'var(--score-eagle)' },
+                  { label: 'Birdies', count: birdies, tone: 'var(--score-birdie)' },
+                  { label: 'Pars', count: pars, tone: 'var(--score-par)' },
+                  { label: 'Bogeys', count: bogeys, tone: 'var(--score-bogey)' },
+                  { label: 'Double+', count: doubles, tone: 'var(--score-double)' },
                 ].filter(d => d.count > 0).map(d => (
-                  <div key={d.label} className={`px-2.5 py-1 rounded-full border text-xs font-medium ${d.color}`}>
+                  <div
+                    key={d.label}
+                    className="px-2.5 py-1 rounded-full border text-xs font-medium"
+                    style={{
+                      color: d.tone,
+                      borderColor: `color-mix(in oklch, ${d.tone} 40%, var(--border))`,
+                      background: `color-mix(in oklch, ${d.tone} 6%, var(--card))`,
+                    }}
+                  >
                     {d.count} {d.label}
                   </div>
                 ))}
@@ -364,14 +337,8 @@ export default async function ProfilePage({
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Scoring by Fairway</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-center">
-                    <p className="text-[11px] text-green-700 font-semibold">On Fairway</p>
-                    <p className="text-base font-bold text-green-800">{avgOnFairway >= 0 ? '+' : ''}{avgOnFairway.toFixed(2)}</p>
-                  </div>
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-center">
-                    <p className="text-[11px] text-red-700 font-semibold">Off Fairway</p>
-                    <p className="text-base font-bold text-red-800">{avgOffFairway >= 0 ? '+' : ''}{avgOffFairway.toFixed(2)}</p>
-                  </div>
+                  <SplitPlate label="On Fairway" value={avgOnFairway} better />
+                  <SplitPlate label="Off Fairway" value={avgOffFairway} />
                 </div>
               </div>
             )}
@@ -381,14 +348,8 @@ export default async function ProfilePage({
               <div>
                 <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Scoring by GIR</p>
                 <div className="grid grid-cols-2 gap-2">
-                  <div className="rounded-lg border border-green-200 bg-green-50 p-2.5 text-center">
-                    <p className="text-[11px] text-green-700 font-semibold">Hit Green</p>
-                    <p className="text-base font-bold text-green-800">{avgOnGir >= 0 ? '+' : ''}{avgOnGir.toFixed(2)}</p>
-                  </div>
-                  <div className="rounded-lg border border-red-200 bg-red-50 p-2.5 text-center">
-                    <p className="text-[11px] text-red-700 font-semibold">Missed Green</p>
-                    <p className="text-base font-bold text-red-800">{avgOffGir >= 0 ? '+' : ''}{avgOffGir.toFixed(2)}</p>
-                  </div>
+                  <SplitPlate label="Hit Green" value={avgOnGir} better />
+                  <SplitPlate label="Missed Green" value={avgOffGir} />
                 </div>
               </div>
             )}
@@ -398,16 +359,18 @@ export default async function ProfilePage({
 
       {/* Insights */}
       {userTier.tier === 'FREE' ? (
-        (insights.length > 0 || roundVsPars.length >= 2) && (
+        (careerFindings.length > 0 || roundVsPars.length >= 2) && (
           <Card className="border-dashed border-2 border-border shadow-none">
             <CardContent className="py-6 flex flex-col items-center text-center">
               <p className="font-heading font-semibold text-sm">Unlock Insights</p>
               <p className="text-xs text-muted-foreground mt-1">
-                Upgrade to Pro or Tour to see personalized strengths, weaknesses, and improvement tips.
+                Upgrade to Pro or Tour to see what your scoring is actually costing you, measured
+                against players off your handicap.
               </p>
               <Link
                 href="/pricing"
-                className="mt-3 inline-flex items-center gap-1.5 rounded-lg bg-[var(--color-primary)] text-white px-4 py-2 text-xs font-semibold hover:opacity-90 transition"
+                className="mt-3 inline-flex items-center gap-1.5 rounded-lg text-primary-foreground px-4 py-2 text-xs font-semibold hover:opacity-90 transition"
+                style={{ backgroundColor: 'var(--color-primary)' }}
               >
                 View Plans
               </Link>
@@ -415,24 +378,36 @@ export default async function ProfilePage({
           </Card>
         )
       ) : (
-        (insights.length > 0 || roundVsPars.length >= 2) && (
+        (careerFindings.length > 0 || roundVsPars.length >= 2) && (
           <Card>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base font-heading">Insights</CardTitle>
-            </CardHeader>
             <CardContent className="space-y-3">
-              <ScoringTrend roundVsPars={roundVsPars} />
-              {insights.filter(i => i.type === 'strength').map((ins, i) => (
-                <InsightCallout key={i} kind="strength" area={ins.area} message={ins.message} />
-              ))}
-              {insights.filter(i => i.type === 'weakness').map((ins, i) => (
-                <InsightCallout key={i} kind="weakness" area={ins.area} message={ins.message} />
-              ))}
+              <StatSheet findings={careerFindings} handicap={handicap} divided={false}>
+                {roundVsPars.length >= 2 && <ScoringTrend roundVsPars={roundVsPars} />}
+              </StatSheet>
             </CardContent>
           </Card>
         )
       )}
     </main>
     </>
+  )
+}
+
+/** One side of a conditional scoring split — with the fairway vs without, and so on. */
+function SplitPlate({ label, value, better }: { label: string; value: number; better?: boolean }) {
+  const tone = better ? 'var(--success)' : 'var(--warning)'
+  return (
+    <div
+      className="rounded-lg border p-2.5 text-center"
+      style={{
+        borderColor: `color-mix(in oklch, ${tone} 35%, var(--border))`,
+        background: `color-mix(in oklch, ${tone} 6%, var(--card))`,
+      }}
+    >
+      <p className="text-[11px] font-semibold text-muted-foreground">{label}</p>
+      <p className="tabular-data text-base font-bold" style={{ color: tone }}>
+        {value >= 0 ? '+' : ''}{value.toFixed(2)}
+      </p>
+    </div>
   )
 }
