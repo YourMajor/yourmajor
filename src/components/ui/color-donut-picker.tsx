@@ -73,7 +73,9 @@ export function ColorDonutPicker({
               onClick={() => selectPair(pair)}
               title={pair.label}
               className={cn(
-                'relative w-10 h-10 rounded-full transition-all focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
+                // ring-offset-background matters: the Tailwind default offset
+                // colour is literal white, which haloes on the night ground.
+                'relative w-10 h-10 rounded-full transition-all ring-offset-background focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-primary',
                 isSelected
                   ? 'ring-2 ring-foreground ring-offset-2 scale-110'
                   : 'hover:scale-105 hover:ring-1 hover:ring-border hover:ring-offset-1'
@@ -89,10 +91,16 @@ export function ColorDonutPicker({
                 className="absolute inset-[6px] rounded-full border-2 border-white"
                 style={{ backgroundColor: pair.accent }}
               />
-              {/* Check mark for selected */}
+              {/* Check mark for selected. It lands on the accent (the donut
+                  hole), and nine of these accents are light — a literal white
+                  tick read ~1.2:1 on Terracotta, Sage and Plum in both modes. */}
               {isSelected && (
                 <span className="absolute inset-0 flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white drop-shadow-md" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}>
+                  <svg
+                    className="w-4 h-4 drop-shadow-md"
+                    style={{ color: isLightColor(pair.accent) ? '#1A1A1A' : '#FFFFFF' }}
+                    fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={3}
+                  >
                     <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
                   </svg>
                 </span>

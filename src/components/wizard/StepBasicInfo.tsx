@@ -7,6 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { ColorDonutPicker } from '@/components/ui/color-donut-picker'
+import { Switch } from '@/components/ui/switch'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { createClient } from '@/utils/supabase/client'
 
@@ -194,10 +195,10 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
                 Leagues run on a recurring schedule without fixed start/end dates
               </p>
             </div>
-            <button
-              type="button"
-              onClick={() => {
-                const next = !value.isLeague
+            <Switch
+              checked={value.isLeague}
+              aria-label="Is this a league?"
+              onCheckedChange={(next) =>
                 onChange({
                   ...value,
                   isLeague: next,
@@ -205,15 +206,8 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
                   endDate: next ? '' : value.endDate,
                   numRounds: next ? 1 : value.numRounds,
                 })
-              }}
-              className={`relative w-11 h-6 rounded-full transition-colors shrink-0 ${
-                value.isLeague ? 'bg-[var(--color-primary)]' : 'bg-muted'
-              }`}
-            >
-              <span className={`absolute top-0.5 left-0.5 w-5 h-5 rounded-full bg-white transition-transform shadow-sm ${
-                value.isLeague ? 'translate-x-5' : ''
-              }`} />
-            </button>
+              }
+            />
           </div>
 
           {value.isLeague ? (
@@ -279,11 +273,13 @@ export function StepBasicInfo({ value, onChange, isFree = false, userTier = 'FRE
         </CardContent>
       </Card>
 
-      <Card className={isFree ? 'opacity-60' : ''}>
+      {/* No opacity fade on the free tier: the card already swaps its body for
+          the upsell copy, and the fade took the Upgrade link down with it. */}
+      <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base flex items-center gap-2">
             Branding
-            {isFree && <span className="text-xs font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Pro / Tour</span>}
+            {isFree && <span className="ym-label font-normal text-muted-foreground bg-muted px-2 py-0.5 rounded-full">Pro / Tour</span>}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">

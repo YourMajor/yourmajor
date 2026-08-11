@@ -49,11 +49,15 @@ function Switch({
       )}
       {...props}
     >
+      {/* The knob takes the guarded foreground when on, so it stays visible
+          against a light tournament brand colour; a literal white knob
+          disappeared on one. Off, it sits on the muted track instead. */}
       <span
         aria-hidden
         className={cn(
-          'pointer-events-none block rounded-full bg-white shadow-sm transition-transform duration-150',
+          'pointer-events-none block rounded-full shadow-sm transition-transform duration-150',
           sm ? 'size-4' : 'size-5',
+          isOn ? 'bg-primary-foreground' : 'bg-background',
           isOn ? (sm ? 'translate-x-[18px]' : 'translate-x-[22px]') : 'translate-x-0.5'
         )}
       />

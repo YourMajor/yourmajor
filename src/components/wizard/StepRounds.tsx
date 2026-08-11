@@ -56,7 +56,7 @@ export function StepRounds({ numRounds, value, onChange, isOpenRegistration = fa
   return (
     <div className="space-y-3">
       {value.slice(0, numRounds).map((round, i) => (
-        <Card key={i} className={cn('overflow-visible', openRound === i ? 'ring-2 ring-primary/30' : '')}>
+        <Card key={i} className={cn('overflow-visible', openRound === i ? 'ring-2 ring-[var(--color-primary)]' : '')}>
           <CardHeader
             className="pb-2 cursor-pointer select-none"
             onClick={() => setOpenRound(openRound === i ? -1 : i)}

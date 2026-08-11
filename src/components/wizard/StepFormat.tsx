@@ -102,7 +102,7 @@ export function StepFormat({ value, onChange, isFree = false }: Props) {
                       'group relative flex flex-col items-start text-left rounded-lg border p-3 transition-all',
                       'min-h-[78px]',
                       locked
-                        ? 'opacity-50 cursor-not-allowed border-border'
+                        ? 'bg-muted text-muted-foreground cursor-not-allowed border-border'
                         : selected
                           ? 'border-[var(--color-primary)] bg-[var(--color-primary)]/5 ring-1 ring-[var(--color-primary)] cursor-pointer'
                           : 'border-border hover:border-[var(--color-primary)]/40 hover:bg-muted/40 cursor-pointer',
@@ -115,14 +115,14 @@ export function StepFormat({ value, onChange, isFree = false }: Props) {
                       {f.description}
                     </span>
                     {locked && (
-                      <span className="absolute top-1.5 right-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground bg-muted px-1.5 py-0.5 rounded">
+                      <span className="ym-label absolute top-1.5 right-1.5 text-muted-foreground bg-background border border-border px-1.5 py-0.5 rounded">
                         Pro
                       </span>
                     )}
                     {selected && !locked && (
                       <span
                         aria-hidden
-                        className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-white text-[11px] leading-none"
+                        className="absolute top-1.5 right-1.5 inline-flex h-4 w-4 items-center justify-center rounded-full bg-[var(--color-primary)] text-primary-foreground text-[11px] leading-none"
                       >
                         ✓
                       </span>

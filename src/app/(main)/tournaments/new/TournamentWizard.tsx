@@ -311,7 +311,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
             This tournament used custom branding. To renew with branding, purchase a Pro tournament credit ($29) or upgrade to the Tour plan ($199/season).
           </p>
           <div className="flex gap-3 justify-center">
-            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] text-white px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
+            <Link href="/pricing" className="inline-flex items-center gap-2 rounded-lg bg-[var(--color-primary)] text-primary-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 transition">
               View Plans
             </Link>
             <Button variant="outline" onClick={() => router.back()}>Go Back</Button>
@@ -346,7 +346,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
             <div
               className={`flex items-center justify-center w-7 h-7 rounded-full text-xs font-semibold shrink-0 transition-colors ${
                 i < step
-                  ? 'bg-[var(--color-primary)] text-white'
+                  ? 'bg-[var(--color-primary)] text-primary-foreground'
                   : i === step
                   ? 'bg-[var(--color-primary)]/20 text-brand ring-2 ring-[var(--color-primary)]'
                   : 'bg-muted text-muted-foreground'
@@ -399,18 +399,12 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
             type="button"
             onClick={handleSubmit}
             disabled={isPending || imageUploading}
-            style={{ backgroundColor: 'var(--color-primary)' }}
-            className="text-white min-w-32"
+            className="min-w-32"
           >
             {isPending ? 'Creating...' : imageUploading ? 'Uploading…' : renewalDefaults ? 'Renew Tournament' : 'Create Tournament'}
           </Button>
         ) : (
-          <Button
-            type="button"
-            onClick={handleNext}
-            style={{ backgroundColor: 'var(--color-primary)' }}
-            className="text-white"
-          >
+          <Button type="button" onClick={handleNext}>
             Next: {steps[step + 1].label} →
           </Button>
         )}

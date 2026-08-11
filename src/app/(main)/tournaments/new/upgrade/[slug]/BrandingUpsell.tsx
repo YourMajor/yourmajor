@@ -95,7 +95,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
           <div className="relative h-20 overflow-hidden" style={{ background: `linear-gradient(135deg, ${PREVIEW.primary} 0%, ${PREVIEW.primary}dd 50%, ${PREVIEW.accent}40 100%)` }}>
             {/* Decorative overlay pattern */}
             <div className="absolute inset-0 opacity-10" style={{ backgroundImage: 'repeating-linear-gradient(45deg, transparent, transparent 10px, rgba(255,255,255,0.1) 10px, rgba(255,255,255,0.1) 20px)' }} />
-            <div className="absolute bottom-2 left-3 text-[8px] font-semibold uppercase tracking-widest text-white/60">Your banner image here</div>
+            <div className="ym-label absolute bottom-2 left-3 text-white/80">Your banner image here</div>
           </div>
           <div className="px-6 pb-6 flex flex-col items-center -mt-8 relative">
             {/* Logo mock */}
