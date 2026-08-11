@@ -100,7 +100,7 @@ export default async function BillingPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Receipt className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-semibold text-lg">Purchase History</h2>
+          <h2 className="font-sans font-semibold text-lg">Purchase History</h2>
         </div>
 
         {purchases.length === 0 ? (

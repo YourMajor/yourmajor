@@ -201,7 +201,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
 
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
-        <h3 className="text-lg font-semibold text-foreground">
+        <h3 className="font-sans text-lg font-semibold text-foreground">
           Round Summary
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">{courseName}</p>

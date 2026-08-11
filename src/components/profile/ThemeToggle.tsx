@@ -29,22 +29,22 @@ export function ThemeToggle() {
           type="button"
           aria-pressed={!dark}
           onClick={() => setTheme('light')}
-          className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold transition-colors ${
             !dark ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Sun className="w-3.5 h-3.5" />
+          <Sun className="w-4 h-4" />
           Light
         </button>
         <button
           type="button"
           aria-pressed={dark}
           onClick={() => setTheme('dark')}
-          className={`flex items-center gap-1.5 px-3 py-2 text-xs font-semibold transition-colors ${
+          className={`flex items-center gap-1.5 px-4 py-3 text-sm font-semibold transition-colors ${
             dark ? 'bg-primary text-primary-foreground' : 'text-muted-foreground hover:text-foreground'
           }`}
         >
-          <Moon className="w-3.5 h-3.5" />
+          <Moon className="w-4 h-4" />
           Dark
         </button>
       </div>

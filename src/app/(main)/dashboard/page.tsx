@@ -244,7 +244,7 @@ export default async function DashboardPage() {
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
             <Trophy className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-semibold text-lg">Your Tournaments</h2>
+            <h2 className="font-sans font-semibold text-lg">Your Tournaments</h2>
           </div>
           {hasMoreTournaments && (
             <Link href="/tournaments" className="text-sm text-muted-foreground hover:underline">
@@ -289,7 +289,7 @@ export default async function DashboardPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Repeat className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-semibold text-lg">Your Leagues</h2>
+            <h2 className="font-sans font-semibold text-lg">Your Leagues</h2>
           </div>
           {activeLeagues.map((m, i) => (
             <div key={m.id} className="card-rise" style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}>
@@ -304,7 +304,7 @@ export default async function DashboardPage() {
         <section className="space-y-3">
           <div className="flex items-center gap-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
-            <h2 className="font-semibold text-lg">Tournament History</h2>
+            <h2 className="font-sans font-semibold text-lg">Tournament History</h2>
           </div>
           {historyWithLeagues.map((m) => (
             <TournamentCard
@@ -324,7 +324,7 @@ export default async function DashboardPage() {
       <section className="space-y-3">
         <div className="flex items-center gap-2">
           <MapPin className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-semibold text-lg">Open Near You</h2>
+          <h2 className="font-sans font-semibold text-lg">Open Near You</h2>
         </div>
         <p className="text-sm text-muted-foreground">
           Jump into a public tournament at a course near you. Play your round anytime during the event window and see how you stack up against other local golfers.

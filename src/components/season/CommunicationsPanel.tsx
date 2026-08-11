@@ -159,7 +159,7 @@ export function CommunicationsPanel({
       {/* Composer */}
       <section className="rounded-xl border border-border p-5 space-y-4">
         <div>
-          <h3 className="text-sm font-semibold">Send announcement</h3>
+          <h3 className="font-sans text-sm font-semibold">Send announcement</h3>
           <p className="text-xs text-muted-foreground mt-0.5">
             Reach the league roster by email and/or SMS, immediately or on a schedule. Per-recipient delivery is logged below.
           </p>
@@ -322,7 +322,7 @@ export function CommunicationsPanel({
       <section className="space-y-3">
         <div className="flex items-end justify-between gap-3 flex-wrap">
           <div>
-            <h3 className="text-sm font-semibold">Communication history</h3>
+            <h3 className="font-sans text-sm font-semibold">Communication history</h3>
             <p className="text-xs text-muted-foreground mt-0.5">
               Outbound email/SMS, including admin announcements and tee-time notifications.
             </p>

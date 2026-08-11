@@ -1247,6 +1247,33 @@ main.marketing::after {
     font-weight: 600;
     line-height: 1.3;
   }
+
+  /* ── The 44px touch floor ──────────────────────────────
+     DESIGN.md's Operate constraints require >= 44px targets on
+     player-facing surfaces, but they also say density is a feature: the
+     default button is 40px and the compact one 32px, and simply inflating
+     them would cost the density the leaderboard and admin grids depend on.
+
+     So grow the *hit area*, not the control. A centred pseudo-element
+     stretches the tappable box to 44px while the button keeps its drawn
+     size. Gated to coarse pointers, so nothing changes on desktop.
+
+     The element needs a stacking context of its own; `relative` ships with
+     the class so no call site has to remember it. */
+  .tap-44 {
+    position: relative;
+  }
+  @media (pointer: coarse) {
+    .tap-44::after {
+      content: '';
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      height: max(100%, 44px);
+      width: max(100%, 44px);
+    }
+  }
 }
 
 /* ── iOS safe-area & mobile utilities ─────────────────── */

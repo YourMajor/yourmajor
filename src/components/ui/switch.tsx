@@ -40,13 +40,10 @@ function Switch({
       data-slot="switch"
       onClick={toggle}
       className={cn(
-        'relative inline-flex shrink-0 items-center rounded-full transition-colors duration-150',
+        // tap-44: the track is only 20-24px tall, well under the touch floor.
+        'tap-44 inline-flex shrink-0 items-center rounded-full transition-colors duration-150',
         'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring',
         'disabled:pointer-events-none disabled:opacity-50',
-        // The track is 20-24px tall, well under the 44px touch floor. Expand
-        // the hit area with a pseudo-element instead of the box, so the switch
-        // still reads as a switch but is thumb-sized on a phone.
-        "after:absolute after:left-1/2 after:top-1/2 after:-translate-x-1/2 after:-translate-y-1/2 after:h-11 after:w-full after:min-w-11 after:content-['']",
         sm ? 'h-5 w-9' : 'h-6 w-11',
         isOn ? 'bg-primary' : 'bg-muted-foreground/30',
         className

@@ -48,7 +48,7 @@ export default async function InvitesPage({
       {/* Pending invitations */}
       {pending.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
+          <h2 className="font-sans text-sm font-semibold flex items-center gap-2">
             <Clock className="w-4 h-4 text-muted-foreground" />
             Pending ({pending.length})
           </h2>
@@ -72,7 +72,7 @@ export default async function InvitesPage({
       {/* Accepted invitations */}
       {accepted.length > 0 && (
         <div className="space-y-3">
-          <h2 className="text-sm font-semibold flex items-center gap-2">
+          <h2 className="font-sans text-sm font-semibold flex items-center gap-2">
             <Check className="w-4 h-4 text-green-600" />
             Accepted ({accepted.length})
           </h2>

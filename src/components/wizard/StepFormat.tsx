@@ -82,7 +82,7 @@ export function StepFormat({ value, onChange, isFree = false }: Props) {
         return (
           <div key={g.key} className="space-y-2">
             <div>
-              <h3 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              <h3 className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 {g.label}
               </h3>
               <p className="text-[11px] text-muted-foreground/70">{g.description}</p>

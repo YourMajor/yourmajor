@@ -68,7 +68,7 @@ export function EventRoundsEditor({ rounds, scoresLocked }: Props) {
         return (
           <div key={round.id} className="space-y-2">
             <div className="flex items-baseline justify-between gap-3">
-              <h4 className="text-sm font-medium">
+              <h4 className="font-sans text-sm font-medium">
                 Round {round.roundNumber}
               </h4>
               {isPending && <span className="text-xs text-muted-foreground">Saving…</span>}

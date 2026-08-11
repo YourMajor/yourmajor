@@ -113,7 +113,7 @@ export function LeagueEventsTable({ events }: Props) {
     <div className="space-y-4">
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div>
-          <h3 className="text-sm font-semibold flex items-center gap-2">
+          <h3 className="font-sans text-sm font-semibold flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             Full season schedule
           </h3>

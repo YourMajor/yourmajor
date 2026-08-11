@@ -166,7 +166,7 @@ export default async function TeamDetailPage({
 
       {/* ── Roster ─────────────────────────────────────────────────────── */}
       <section className="mb-8">
-        <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Roster</h2>
+        <h2 className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">Roster</h2>
         <ul className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           {members.map((m) => (
             <li key={m.id} className="flex items-center gap-3 rounded-lg border border-border bg-card p-3">
@@ -197,7 +197,7 @@ export default async function TeamDetailPage({
       {/* ── Per-round totals ───────────────────────────────────────────── */}
       {standing && roundNumbers.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+          <h2 className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Round Totals
           </h2>
           <div className="rounded-lg overflow-hidden overflow-x-auto">
@@ -228,7 +228,7 @@ export default async function TeamDetailPage({
       {/* ── Best-ball contribution grid ────────────────────────────────── */}
       {isBestBall && courseHoles.length > 0 && (
         <section className="mb-8">
-          <h2 className="text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
+          <h2 className="font-sans text-xs font-semibold uppercase tracking-wide text-muted-foreground mb-3">
             Member Contributions (lowest score per hole)
           </h2>
           <div className="rounded-lg overflow-hidden overflow-x-auto">

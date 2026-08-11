@@ -424,13 +424,13 @@ export function DraftBoard({
 
         {/* Playing card hand (desktop fan + mobile horizontal scroll fallback) */}
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-center">Your Hand</h3>
+          <h3 className="font-sans text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-2 text-center">Your Hand</h3>
           <CardHand cards={myPicks.map((p) => ({ powerupId: p.powerupId, powerup: p.powerup }))} />
         </div>
 
         {/* Draft board inline */}
         <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-semibold text-foreground mb-3">Draft Board</h3>
+          <h3 className="font-sans text-lg font-semibold text-foreground mb-3">Draft Board</h3>
           <DraftPickList
             picks={state.draft.picks}
             players={state.players}
@@ -509,7 +509,7 @@ export function DraftBoard({
         <div className="hidden lg:block space-y-6 pt-6">
           {myPicks.length > 0 && (
             <div>
-              <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2 text-center">
+              <h3 className="font-sans text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2 text-center">
                 Your Hand ({myPicks.length})
               </h3>
               <CardHand
@@ -520,7 +520,7 @@ export function DraftBoard({
           )}
 
           <div>
-            <h3 className="text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Draft Board</h3>
+            <h3 className="font-sans text-xs font-semibold text-foreground/60 uppercase tracking-wider mb-2">Draft Board</h3>
             <DraftPickList
               picks={state.draft.picks}
               players={state.players}

@@ -25,7 +25,9 @@ export function SheetSweep() {
     () => {
       const media = gsap.matchMedia()
       media.add(
-        '(min-width: 1024px) and (prefers-reduced-motion: no-preference)',
+        // Runs on phones too: transform/opacity only, no pin, no scroll
+        // hijack. The pinned chapters and ScrollSmoother stay desktop-only.
+        '(prefers-reduced-motion: no-preference)',
         () => {
           gsap.fromTo(
             ref.current,

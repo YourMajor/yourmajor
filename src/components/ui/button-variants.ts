@@ -6,7 +6,9 @@ export const buttonVariants = cva(
   // fading a filled button composites its label toward the page ground as fast
   // as its fill, so a green primary at 50% became grey-on-grey (~1.9:1). A
   // muted plate with muted-foreground text reads as inactive and stays legible.
-  'inline-flex shrink-0 items-center justify-center rounded-lg text-sm font-semibold whitespace-nowrap transition-all select-none disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4',
+  // tap-44 grows the hit area to 44px on touch without changing the drawn
+  // size, so the compact sizes stay dense on desktop. See globals.css.
+  'tap-44 inline-flex shrink-0 items-center justify-center rounded-lg text-sm font-semibold whitespace-nowrap transition-all select-none disabled:pointer-events-none [&_svg]:pointer-events-none [&_svg]:shrink-0 [&_svg:not([class*="size-"])]:size-4',
   {
     variants: {
       variant: {

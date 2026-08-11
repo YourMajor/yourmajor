@@ -186,7 +186,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
       <div>
         <div className="flex items-center gap-2 mb-3">
           <Users className="w-4 h-4 text-muted-foreground" />
-          <h3 className="text-sm font-semibold text-foreground">Active Members ({activeMembers.length})</h3>
+          <h3 className="font-sans text-sm font-semibold text-foreground">Active Members ({activeMembers.length})</h3>
         </div>
         <div className="space-y-1">
           {activeMembers.map((member) => (
@@ -227,7 +227,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
       {/* Inactive members */}
       {inactiveMembers.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-muted-foreground mb-3">Inactive ({inactiveMembers.length})</h3>
+          <h3 className="font-sans text-sm font-semibold text-muted-foreground mb-3">Inactive ({inactiveMembers.length})</h3>
           <div className="space-y-1">
             {inactiveMembers.map((member) => (
               <div key={member.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-lg opacity-60 hover:opacity-100 transition-opacity">
@@ -706,7 +706,7 @@ function ScheduleEventsPanel({
       {/* Existing scheduled events */}
       {schedule.length > 0 && (
         <div>
-          <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+          <h3 className="font-sans text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
             <Calendar className="w-4 h-4 text-muted-foreground" />
             Scheduled Events
           </h3>
@@ -788,7 +788,7 @@ function AdjustmentsPanel({
     <div className="mt-10 pt-6 border-t border-border">
       <div className="flex items-center justify-between mb-3">
         <div>
-          <h3 className="text-sm font-semibold text-foreground">Manual Adjustments</h3>
+          <h3 className="font-sans text-sm font-semibold text-foreground">Manual Adjustments</h3>
           <p className="text-xs text-muted-foreground">Adjust an individual player&apos;s season total. Applies on top of computed standings.</p>
         </div>
         {!showForm && (

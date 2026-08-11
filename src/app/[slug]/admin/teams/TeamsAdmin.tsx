@@ -82,7 +82,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
       {/* ── Unassigned players ──────────────────────────────────────── */}
       <section className="rounded-lg border border-border bg-card p-4">
         <header className="flex items-center gap-2 mb-3">
-          <h2 className="text-base font-semibold">Unassigned players</h2>
+          <h2 className="font-sans text-base font-semibold">Unassigned players</h2>
           <span className="text-xs text-muted-foreground">
             ({unassignedPlayers.length})
           </span>
@@ -161,7 +161,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
       {showCreate ? (
         <form onSubmit={handleCreate} className="rounded-lg border border-border bg-card p-4 space-y-3">
           <div className="flex items-center justify-between">
-            <h2 className="text-base font-semibold">New Team</h2>
+            <h2 className="font-sans text-base font-semibold">New Team</h2>
             <button
               type="button"
               onClick={() => { setShowCreate(false); setError(null) }}
@@ -243,7 +243,7 @@ export function TeamsAdmin({ slug, teams, unassignedPlayers, recommendedTeamSize
                   style={{ backgroundColor: team.color ?? 'var(--color-primary)' }}
                   aria-hidden="true"
                 />
-                <h2 className="text-base font-semibold">{team.name}</h2>
+                <h2 className="font-sans text-base font-semibold">{team.name}</h2>
                 <span className="text-xs text-muted-foreground">
                   {team.members.length} member{team.members.length === 1 ? '' : 's'}
                   {recommendedTeamSize !== null && ` of ${recommendedTeamSize}`}
