@@ -49,7 +49,7 @@ export default async function SeasonPage({
     if (!seasonConfigured) {
       return (
         <main className="max-w-3xl mx-auto px-4 py-12 text-center">
-          <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Season Standings</h1>
+          <h1 className="text-2xl font-heading text-foreground mb-2">Season Standings</h1>
           <p className="text-muted-foreground">
             Season standings are available for leagues with multiple linked events.
             Renew your tournament to start building a season history.

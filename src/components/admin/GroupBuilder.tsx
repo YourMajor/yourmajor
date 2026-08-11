@@ -829,7 +829,7 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
           <ArrowLeft className="w-4 h-4" />
         </Link>
         <div className="min-w-0">
-          <h1 className="text-xl font-heading font-bold truncate">Manage Groups</h1>
+          <h1 className="text-xl font-heading truncate">Manage Groups</h1>
           <p className="text-xs text-muted-foreground">{tournamentName}</p>
         </div>
       </div>

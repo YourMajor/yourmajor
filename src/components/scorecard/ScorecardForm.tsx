@@ -271,7 +271,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
           <span className="text-sm text-muted-foreground">
             {playedHoles.length} hole{playedHoles.length !== 1 ? 's' : ''} · {playedScore} strokes
           </span>
-          <span className={`text-3xl font-bold font-heading ${diff < 0 ? 'text-score-birdie' : diff > 0 ? 'text-muted-foreground' : ''}`}>
+          <span className={`text-3xl font-heading ${diff < 0 ? 'text-score-birdie' : diff > 0 ? 'text-muted-foreground' : ''}`}>
             {diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff}
           </span>
         </div>

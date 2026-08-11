@@ -37,7 +37,7 @@ export default async function InvitesPage({
   return (
     <main className="max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Invite Players</h1>
+        <h1 className="text-2xl font-heading">Invite Players</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Send invitations by email. Players will receive a link to register.
         </p>

@@ -122,7 +122,7 @@ export default async function AdminDraftPage({
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
           {' › '}Powerup Draft
         </p>
-        <h1 className="text-2xl font-heading font-bold">Manage Draft</h1>
+        <h1 className="text-2xl font-heading">Manage Draft</h1>
       </div>
 
       <DraftAdmin

@@ -6,7 +6,7 @@ import { Zap } from 'lucide-react'
 export function UpgradeBanner({ reasons }: { reasons: string[] }) {
   return (
     <div className="mt-4 rounded-lg border border-accent/30 bg-accent/5 px-4 py-3 space-y-2">
-      <div className="flex items-center gap-2 text-sm font-heading font-semibold">
+      <div className="flex items-center gap-2 text-sm font-heading">
         <Zap className="w-4 h-4 text-accent" />
         Pro features selected
       </div>

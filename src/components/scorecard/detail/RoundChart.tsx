@@ -155,7 +155,7 @@ export function RoundChart({ holes }: { holes: HoleScore[] }) {
 
   return (
     <div ref={ref} className="space-y-3 pt-4 border-t border-border">
-      <h3 className="text-2xl font-heading font-bold">Round Performance</h3>
+      <h3 className="text-2xl font-heading">Round Performance</h3>
       <div className="overflow-x-auto">
         <svg viewBox={`0 0 ${w} ${h}`} className="w-full max-w-[600px]" style={{ minWidth: 400 }}>
           <line x1={pad.left} y1={yScale(0)} x2={w - pad.right} y2={yScale(0)} stroke="var(--border)" strokeWidth="1" />

@@ -162,7 +162,7 @@ export function HoleScoring({
         <div className="flex items-start justify-between">
           <div>
             <div className="flex items-center gap-3">
-              <h2 className="text-3xl font-heading font-bold text-white">
+              <h2 className="text-3xl font-heading text-white">
                 Hole {hole.number}
               </h2>
               {scoreLabel && (
@@ -203,7 +203,7 @@ export function HoleScoring({
               Your Score
             </p>
             {runningDiffText && (
-              <p className="text-lg font-heading font-bold text-white">
+              <p className="text-lg font-heading text-white">
                 {runningDiffText}
                 <span className="text-xs font-normal text-white/70 block">
                   After {runningScore.holesPlayed} hole

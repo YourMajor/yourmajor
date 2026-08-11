@@ -71,7 +71,7 @@ export function ChatModerationPanel({ tournamentId, initialBans, initialMessages
     <div className="space-y-8">
       {/* Banned Users */}
       <section className="space-y-3">
-        <h2 className="text-lg font-heading font-semibold">Banned Users</h2>
+        <h2 className="text-lg font-heading">Banned Users</h2>
         {bans.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No active bans</p>
         ) : (
@@ -109,7 +109,7 @@ export function ChatModerationPanel({ tournamentId, initialBans, initialMessages
 
       {/* Recent Messages */}
       <section className="space-y-3">
-        <h2 className="text-lg font-heading font-semibold">Recent Messages</h2>
+        <h2 className="text-lg font-heading">Recent Messages</h2>
         {messages.length === 0 ? (
           <p className="text-sm text-muted-foreground py-4">No messages</p>
         ) : (

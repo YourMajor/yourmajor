@@ -188,7 +188,7 @@ export default async function AdminDashboard({
             {league ? 'League Admin' : 'Admin Overview'}
           </p>
           <div className="flex items-center justify-between gap-4">
-            <h1 className="text-xl sm:text-2xl font-heading font-bold text-primary-foreground">{tournament.name}</h1>
+            <h1 className="text-xl sm:text-2xl font-heading text-primary-foreground">{tournament.name}</h1>
             <span className={`text-xs font-bold px-3 py-1 rounded-full whitespace-nowrap ${statusCfg.cls}`}>
               {statusCfg.label}
             </span>
@@ -470,7 +470,7 @@ function Stat({
       <p
         className={
           figure
-            ? 'text-2xl font-heading font-bold tabular-data'
+            ? 'text-2xl font-heading tabular-data'
             : 'text-base font-semibold text-foreground truncate'
         }
       >

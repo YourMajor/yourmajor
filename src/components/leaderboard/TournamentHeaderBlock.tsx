@@ -105,7 +105,7 @@ export function TournamentHeaderBlock({
           )}
           <div className="min-w-0 flex-1">
             <h1
-              className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold leading-tight"
+              className="text-2xl sm:text-3xl lg:text-4xl font-heading leading-tight"
               style={{ color: 'oklch(0.98 0.005 85)' }}
             >
               {name}
@@ -122,7 +122,7 @@ export function TournamentHeaderBlock({
           <div className="mt-4 flex items-center gap-3 flex-wrap">
             {meta && (
               <span
-                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-[0.6875rem] uppercase tracking-[0.14em] font-semibold"
+                className="inline-flex items-center gap-1.5 rounded-full border px-2.5 py-1 ym-label"
                 style={{
                   borderColor: 'color-mix(in oklab, var(--color-accent) 60%, transparent)',
                   backgroundColor: 'color-mix(in oklab, var(--color-accent) 18%, transparent)',
@@ -146,7 +146,7 @@ export function TournamentHeaderBlock({
             )}
             {dateLabel && (
               <span
-                className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em]"
+                className="ym-label"
                 style={{ color: 'oklch(0.98 0.005 85 / 0.75)' }}
               >
                 {dateLabel}

@@ -156,7 +156,7 @@ export function IdentityHero({
                     <Avatar className="h-36 w-36 sm:h-44 sm:w-44">
                       <AvatarImage src={avatarUrl ?? undefined} sizes="(min-width: 640px) 176px, 144px" className="object-cover" />
                       <AvatarFallback
-                        className="text-4xl sm:text-5xl font-heading font-bold"
+                        className="text-4xl sm:text-5xl font-heading"
                         style={{ backgroundColor: 'var(--primary)', color: 'var(--primary-foreground)' }}
                       >
                         {initials}
@@ -194,7 +194,7 @@ export function IdentityHero({
           )}
 
           <h1
-            className="mt-4 font-heading font-semibold text-foreground text-center"
+            className="mt-4 font-heading text-foreground text-center"
             style={{
               fontSize: 'clamp(1.875rem, 5vw, 3rem)',
               letterSpacing: '-0.035em',
@@ -283,7 +283,7 @@ function HeroStat({ label, value, decimals = 0, signed = false, muted = false, p
   return (
     <div className="text-center">
       <div
-        className={`font-heading font-semibold tabular-nums ${muted ? 'text-muted-foreground/60' : 'text-foreground'}`}
+        className={`font-heading tabular-nums ${muted ? 'text-muted-foreground/60' : 'text-foreground'}`}
         style={{
           fontSize: 'clamp(2rem, 5.5vw, 3.25rem)',
           letterSpacing: '-0.04em',

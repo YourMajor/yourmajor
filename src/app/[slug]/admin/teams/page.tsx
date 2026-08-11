@@ -100,7 +100,7 @@ export default async function TeamsAdminPage({
   return (
     <main className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
       <header className="mb-6">
-        <h1 className="text-2xl font-heading font-bold">Manage Teams</h1>
+        <h1 className="text-2xl font-heading">Manage Teams</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Create teams, assign members, and choose a captain. Captains are informational — any teammate can record scores in team-mode formats.
         </p>

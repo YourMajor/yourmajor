@@ -9,7 +9,7 @@ export default function PlayError({ error, reset }: { error: Error & { digest?: 
 
   return (
     <div className="flex flex-col items-center justify-center min-h-[50vh] gap-4 px-4">
-      <h2 className="text-xl font-heading font-bold">Scoring hit a snag</h2>
+      <h2 className="text-xl font-heading">Scoring hit a snag</h2>
       <p className="text-sm text-muted-foreground text-center max-w-md">
         Every score you saved is safe, and unsaved entries retry on their own
         once you&apos;re back. Reload to keep scoring.

@@ -94,7 +94,7 @@ export default async function TournamentSetup({
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
           {' › '}Settings
         </p>
-        <h1 className="text-2xl font-heading font-bold">Tournament Setup</h1>
+        <h1 className="text-2xl font-heading">Tournament Setup</h1>
       </div>
 
       {showRoundsEditor && (

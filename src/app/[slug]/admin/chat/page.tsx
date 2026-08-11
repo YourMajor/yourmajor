@@ -43,7 +43,7 @@ export default async function ChatModerationPage({
   return (
     <main className="max-w-3xl space-y-8">
       <div>
-        <h1 className="text-2xl font-heading font-bold">Chat Moderation</h1>
+        <h1 className="text-2xl font-heading">Chat Moderation</h1>
         <p className="text-sm text-muted-foreground mt-1">Manage banned users and moderate messages</p>
       </div>
 

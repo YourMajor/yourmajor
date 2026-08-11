@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 export default function TermsPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 sm:py-12">
-      <h1 className="text-3xl font-heading font-bold">Terms of Use</h1>
+      <h1 className="text-3xl font-heading">Terms of Use</h1>
       <p className="text-sm text-muted-foreground mt-2">Last updated: April 15, 2026</p>
 
       <div className="mt-8 space-y-8 text-sm leading-relaxed text-foreground/90">
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">1. Acceptance of Terms</h2>
+          <h2 className="text-xl font-heading mt-0">1. Acceptance of Terms</h2>
           <p className="mt-3">
             By accessing or using YourMajor, you agree to be bound by these Terms of Use.
             If you do not agree to these terms, please do not use our platform. Your
@@ -23,7 +23,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">2. Description of Service</h2>
+          <h2 className="text-xl font-heading mt-0">2. Description of Service</h2>
           <p className="mt-3">
             YourMajor is a golf tournament management platform that provides live scoring,
             leaderboards, powerup drafts, photo galleries, and chat features. The platform
@@ -33,7 +33,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">3. Account Registration &amp; Security</h2>
+          <h2 className="text-xl font-heading mt-0">3. Account Registration &amp; Security</h2>
           <p className="mt-3">
             YourMajor uses magic link email authentication to verify your identity. You are
             responsible for maintaining the security of the email account associated with
@@ -44,7 +44,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">4. User Content</h2>
+          <h2 className="text-xl font-heading mt-0">4. User Content</h2>
           <p className="mt-3">
             You may submit content to the platform including scores, photos, and messages.
             You retain ownership of all content you submit. By posting content on YourMajor,
@@ -54,7 +54,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">5. Acceptable Use</h2>
+          <h2 className="text-xl font-heading mt-0">5. Acceptable Use</h2>
           <p className="mt-3">You agree not to:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Submit false or manipulated scores</li>
@@ -67,7 +67,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">6. Intellectual Property</h2>
+          <h2 className="text-xl font-heading mt-0">6. Intellectual Property</h2>
           <p className="mt-3">
             The YourMajor name, logo, branding, and platform design are proprietary and
             protected by applicable intellectual property laws. You may not reproduce,
@@ -77,7 +77,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">7. Disclaimer of Warranties</h2>
+          <h2 className="text-xl font-heading mt-0">7. Disclaimer of Warranties</h2>
           <p className="mt-3">
             Tournament scores displayed on YourMajor are entered by users and are not
             independently verified by the platform. YourMajor makes no guarantees regarding
@@ -89,7 +89,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">8. Limitation of Liability</h2>
+          <h2 className="text-xl font-heading mt-0">8. Limitation of Liability</h2>
           <p className="mt-3">
             To the fullest extent permitted by law, YourMajor and its operators shall not be
             liable for any indirect, incidental, special, consequential, or punitive damages
@@ -101,7 +101,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">9. Termination</h2>
+          <h2 className="text-xl font-heading mt-0">9. Termination</h2>
           <p className="mt-3">
             YourMajor reserves the right to suspend or terminate your account at any time if
             you violate these Terms of Use. Upon termination, your right to use the platform
@@ -111,7 +111,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">10. Governing Law</h2>
+          <h2 className="text-xl font-heading mt-0">10. Governing Law</h2>
           <p className="mt-3">
             These Terms of Use shall be governed by and construed in accordance with the
             laws of the United States. Any disputes arising from these terms or your use of
@@ -120,7 +120,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">11. Changes to Terms</h2>
+          <h2 className="text-xl font-heading mt-0">11. Changes to Terms</h2>
           <p className="mt-3">
             We may update these Terms of Use from time to time. When we make material
             changes, we will notify users via email or a prominent notice on the platform.
@@ -130,7 +130,7 @@ export default function TermsPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">12. Contact</h2>
+          <h2 className="text-xl font-heading mt-0">12. Contact</h2>
           <p className="mt-3">
             If you have questions about these Terms of Use, please contact us at{' '}
             <a

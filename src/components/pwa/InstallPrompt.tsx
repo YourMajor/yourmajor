@@ -56,7 +56,7 @@ export function InstallPrompt() {
       >
         <X className="w-4 h-4" />
       </button>
-      <p className="text-sm font-heading font-semibold pr-6">Install YourMajor</p>
+      <p className="text-sm font-heading pr-6">Install YourMajor</p>
       <p className="text-xs text-muted-foreground mt-1">
         Add to your home screen for fullscreen access and push notifications.
       </p>

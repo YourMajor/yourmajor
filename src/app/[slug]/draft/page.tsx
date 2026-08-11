@@ -105,7 +105,7 @@ export default async function DraftPage({
     return (
       <main className="max-w-2xl mx-auto px-4 py-8 space-y-6">
         <div className="text-center">
-          <h1 className="text-2xl font-heading font-bold">Your Powerups</h1>
+          <h1 className="text-2xl font-heading">Your Powerups</h1>
           <p className="text-sm text-muted-foreground mt-1">
             {myPowerups.length} card{myPowerups.length !== 1 ? 's' : ''} dealt to you
           </p>
@@ -189,7 +189,7 @@ export default async function DraftPage({
       style={brandVars(tournament.primaryColor, tournament.accentColor)}
     >
       <div className="text-center">
-        <h1 className="text-2xl font-heading font-bold">{tournament.name} — Powerup Draft</h1>
+        <h1 className="text-2xl font-heading">{tournament.name} — Powerup Draft</h1>
         <p className="text-sm text-muted-foreground mt-1">
           {draft.format} draft &middot; {tournament.powerupsPerPlayer} picks per player
         </p>

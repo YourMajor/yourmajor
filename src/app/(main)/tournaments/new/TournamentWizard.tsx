@@ -306,7 +306,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     return (
       <main className="max-w-xl mx-auto px-4 py-8">
         <div className="text-center space-y-4">
-          <h1 className="text-2xl font-heading font-bold">Upgrade Required</h1>
+          <h1 className="text-2xl font-heading">Upgrade Required</h1>
           <p className="text-muted-foreground">
             This tournament used custom branding. To renew with branding, purchase a Pro tournament credit ($29) or upgrade to the Tour plan ($199/season).
           </p>
@@ -325,7 +325,7 @@ export function TournamentWizard({ renewalDefaults, hasLeague, userTier = 'FREE'
     <main className="max-w-xl mx-auto px-4 py-8">
       {/* Header */}
       <div className="mb-6">
-        <h1 className="text-2xl font-heading font-bold">
+        <h1 className="text-2xl font-heading">
           {renewalDefaults ? 'Renew Tournament/League' : 'Create Tournament/League'}
         </h1>
         <p className="text-sm text-muted-foreground mt-1">Step {step + 1} of {steps.length}</p>

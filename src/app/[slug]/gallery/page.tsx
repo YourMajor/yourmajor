@@ -23,7 +23,7 @@ export default async function GalleryPage({
   if (maxPhotos <= 0) {
     return (
       <main className="max-w-5xl mx-auto px-4 py-8 text-center">
-        <h1 className="text-2xl font-heading font-bold mb-4">Gallery</h1>
+        <h1 className="text-2xl font-heading mb-4">Gallery</h1>
         <p className="text-muted-foreground">Photo gallery is available on Pro, Club, and Tour plans.</p>
       </main>
     )
@@ -63,7 +63,7 @@ export default async function GalleryPage({
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-heading font-bold mb-6">Gallery</h1>
+      <h1 className="text-2xl font-heading mb-6">Gallery</h1>
       <PhotoGallery
         tournamentId={tournament.id}
         currentUserId={user?.id ?? null}

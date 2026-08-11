@@ -19,13 +19,13 @@ export function TeamNameEditor({ slug, teamId, initialName, canEdit }: Props) {
   const [pending, startTransition] = useTransition()
 
   if (!canEdit) {
-    return <h1 className="text-2xl font-heading font-bold">{name}</h1>
+    return <h1 className="text-2xl font-heading">{name}</h1>
   }
 
   if (!editing) {
     return (
       <div className="flex items-center gap-2">
-        <h1 className="text-2xl font-heading font-bold">{name}</h1>
+        <h1 className="text-2xl font-heading">{name}</h1>
         <button
           type="button"
           onClick={() => {
@@ -81,7 +81,7 @@ export function TeamNameEditor({ slug, teamId, initialName, canEdit }: Props) {
               setError(null)
             }
           }}
-          className="rounded-md border border-border bg-background px-2 py-1 text-2xl font-heading font-bold focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40"
+          className="rounded-md border border-border bg-background px-2 py-1 text-2xl font-heading focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/40"
           aria-label="Team name"
         />
         <button

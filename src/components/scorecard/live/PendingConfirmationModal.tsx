@@ -98,7 +98,7 @@ export function PendingConfirmationModal({ confirmation, onAnswer, onDefer }: Pr
                 ? `${attackerName} attacked you · Hole ${confirmation.contextHoleNumber}`
                 : `Confirm result · Hole ${confirmation.contextHoleNumber}`}
             </p>
-            <DialogTitle className="text-lg font-heading font-bold text-white leading-snug mt-0.5">
+            <DialogTitle className="text-lg font-heading text-white leading-snug mt-0.5">
               {confirmation.name}
             </DialogTitle>
           </div>

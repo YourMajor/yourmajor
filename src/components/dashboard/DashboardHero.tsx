@@ -104,7 +104,7 @@ export function DashboardHero({
       <div className="relative max-w-4xl mx-auto px-4 sm:px-6 pt-12 pb-10 sm:pt-16 sm:pb-14">
         <div className="text-center space-y-3">
           <h1
-            className="font-heading font-semibold"
+            className="font-heading"
             style={{
               fontSize: 'clamp(2.5rem, 4.5vw, 4rem)',
               letterSpacing: '-0.015em',
@@ -140,7 +140,7 @@ export function DashboardHero({
                 <p className="flex items-center gap-2 text-sm font-semibold truncate">
                   {round.live && (
                     <span
-                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-primary-foreground"
+                      className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 ym-label text-primary-foreground"
                       style={{ background: 'var(--primary)' }}
                     >
                       <span aria-hidden className="size-1.5 rounded-full bg-current motion-safe:animate-pulse" />
@@ -220,7 +220,7 @@ function PlateStat({ label, value, decimals = 0, signed = false, placeholder, go
       >
         {placeholder ?? <CountUp to={value} decimals={decimals} signed={signed} />}
       </dd>
-      <dt className="mt-1.5 text-[0.6875rem] uppercase tracking-[0.14em] text-muted-foreground font-semibold">
+      <dt className="mt-1.5 ym-label text-muted-foreground font-semibold">
         {label}
       </dt>
     </div>

@@ -8,12 +8,12 @@ export const metadata: Metadata = {
 export default function PrivacyPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 sm:py-12">
-      <h1 className="text-3xl font-heading font-bold">Privacy Policy</h1>
+      <h1 className="text-3xl font-heading">Privacy Policy</h1>
       <p className="text-sm text-muted-foreground mt-2">Last updated: April 15, 2026</p>
 
       <div className="mt-8 space-y-8 text-sm leading-relaxed text-foreground/90">
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">1. Introduction</h2>
+          <h2 className="text-xl font-heading mt-0">1. Introduction</h2>
           <p className="mt-3">
             YourMajor (&quot;we,&quot; &quot;us,&quot; or &quot;our&quot;) is committed to
             protecting your privacy. This Privacy Policy explains what information we
@@ -24,7 +24,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">2. Information We Collect</h2>
+          <h2 className="text-xl font-heading mt-0">2. Information We Collect</h2>
           <p className="mt-3">We collect the following types of information:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li><strong>Email address</strong> &mdash; used for authentication and communication</li>
@@ -38,7 +38,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">3. How We Use Information</h2>
+          <h2 className="text-xl font-heading mt-0">3. How We Use Information</h2>
           <p className="mt-3">We use the information we collect to:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Create and manage your account</li>
@@ -50,7 +50,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">4. Information Sharing</h2>
+          <h2 className="text-xl font-heading mt-0">4. Information Sharing</h2>
           <p className="mt-3">
             We do not sell your personal data to third parties. Your information may be
             shared in the following limited circumstances:
@@ -63,7 +63,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">5. Data Retention</h2>
+          <h2 className="text-xl font-heading mt-0">5. Data Retention</h2>
           <p className="mt-3">
             We retain your personal data for as long as your account is active or as needed
             to provide services. You may request deletion of your account and associated
@@ -74,7 +74,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">6. Your Rights (CCPA)</h2>
+          <h2 className="text-xl font-heading mt-0">6. Your Rights (CCPA)</h2>
           <p className="mt-3">
             If you are a California resident, the California Consumer Privacy Act (CCPA)
             provides you with the following rights:
@@ -95,7 +95,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">7. Your Rights (GDPR)</h2>
+          <h2 className="text-xl font-heading mt-0">7. Your Rights (GDPR)</h2>
           <p className="mt-3">
             If you are located in the European Union, you have the following rights under
             the General Data Protection Regulation (GDPR):
@@ -117,7 +117,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">8. Cookies &amp; Tracking</h2>
+          <h2 className="text-xl font-heading mt-0">8. Cookies &amp; Tracking</h2>
           <p className="mt-3">
             YourMajor uses Supabase session cookies for authentication purposes only. These
             cookies are essential for keeping you signed in and ensuring the security of
@@ -127,7 +127,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">9. Children&apos;s Privacy</h2>
+          <h2 className="text-xl font-heading mt-0">9. Children&apos;s Privacy</h2>
           <p className="mt-3">
             YourMajor is not directed at children under the age of 13. We do not knowingly
             collect personal information from children under 13. If we become aware that we
@@ -142,7 +142,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">10. Security</h2>
+          <h2 className="text-xl font-heading mt-0">10. Security</h2>
           <p className="mt-3">
             We take the security of your data seriously. YourMajor employs the following
             measures to protect your information:
@@ -160,7 +160,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">11. Changes to Privacy Policy</h2>
+          <h2 className="text-xl font-heading mt-0">11. Changes to Privacy Policy</h2>
           <p className="mt-3">
             We may update this Privacy Policy from time to time. When we make changes, we
             will revise the &quot;Last updated&quot; date at the top of this page and notify
@@ -171,7 +171,7 @@ export default function PrivacyPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">12. Contact</h2>
+          <h2 className="text-xl font-heading mt-0">12. Contact</h2>
           <p className="mt-3">
             If you have questions about this Privacy Policy or how your data is handled,
             please contact us at{' '}

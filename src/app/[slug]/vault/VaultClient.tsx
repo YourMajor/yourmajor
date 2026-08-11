@@ -68,7 +68,7 @@ export function VaultClient({ entries }: Props) {
             <Trophy className="w-5 h-5 text-yellow-500 shrink-0" />
             <div>
               <p className="text-xs text-muted-foreground uppercase tracking-wide font-semibold">Champion</p>
-              <p className="font-heading font-bold text-lg">{selected.championName}</p>
+              <p className="font-heading text-lg">{selected.championName}</p>
             </div>
           </CardContent>
         </Card>

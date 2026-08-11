@@ -82,7 +82,7 @@ export function SeasonDashboard({
       <div>
         <div className="flex items-center gap-3 mb-1">
           <Trophy className="w-6 h-6 text-brand" />
-          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading font-bold text-foreground">
+          <h1 className="text-2xl sm:text-3xl lg:text-4xl font-heading text-foreground">
             Season Standings
           </h1>
         </div>

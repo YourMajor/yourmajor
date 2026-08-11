@@ -175,7 +175,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
           className="mx-2 mt-3 rounded-md border p-4 text-center"
           style={{ borderColor: 'var(--color-accent)', background: 'color-mix(in oklab, var(--color-accent) 10%, transparent)' }}
         >
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="ym-label text-muted-foreground">
             Round posted
           </p>
           <p className="mt-1 font-mono tabular-nums text-4xl font-semibold score-post">
@@ -201,7 +201,7 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
 
       {/* Header */}
       <div className="px-4 pt-4 pb-3">
-        <h3 className="text-lg font-heading font-bold text-foreground">
+        <h3 className="text-lg font-heading text-foreground">
           Round Summary
         </h3>
         <p className="text-xs text-muted-foreground mt-0.5">{courseName}</p>
@@ -231,28 +231,28 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
       <div className="mx-4 mt-4 flex items-center justify-between rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
         <div className="text-center flex-1 py-3">
           <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Gross</p>
-          <p className="text-2xl font-heading font-bold text-primary-foreground">
+          <p className="text-2xl font-heading text-primary-foreground">
             {totalPlayed > 0 ? totalStrokes : '-'}
           </p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
           <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Par</p>
-          <p className="text-2xl font-heading font-bold text-primary-foreground">{coursePar}</p>
+          <p className="text-2xl font-heading text-primary-foreground">{coursePar}</p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
           <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">vs Par</p>
           {/* On the branded plate the sign carries under-par, not colour:
               --score-birdie red would land on bone in dark mode. */}
-          <p className="text-2xl font-heading font-bold text-primary-foreground">
+          <p className="text-2xl font-heading text-primary-foreground">
             {formatVsPar(diff)}
           </p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
           <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">Holes</p>
-          <p className="text-2xl font-heading font-bold text-primary-foreground">{totalPlayed}</p>
+          <p className="text-2xl font-heading text-primary-foreground">{totalPlayed}</p>
         </div>
       </div>
 

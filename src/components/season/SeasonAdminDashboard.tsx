@@ -584,7 +584,7 @@ function ScheduleEventsPanel({
       <div className="rounded-xl border border-border overflow-hidden">
         <div className="px-6 py-5" style={{ backgroundColor: 'var(--color-primary)' }}>
           <p className="text-xs font-semibold uppercase tracking-widest text-white/60 mb-1">Schedule Next Event</p>
-          <p className="text-lg font-heading font-bold text-white">{leagueInfo.leagueName}</p>
+          <p className="text-lg font-heading text-white">{leagueInfo.leagueName}</p>
         </div>
 
         <div className="px-6 py-5 space-y-4">

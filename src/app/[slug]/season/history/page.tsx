@@ -34,7 +34,7 @@ export default async function SeasonHistoryPage({
   if (!TIER_LIMITS[tier].seasonOverSeasonTracking) {
     return (
       <main className="max-w-2xl mx-auto px-4 py-12 text-center space-y-4">
-        <h1 className="text-2xl font-heading font-bold">Season History</h1>
+        <h1 className="text-2xl font-heading">Season History</h1>
         <p className="text-muted-foreground">
           Season-over-season player tracking is available on the Club and Tour plans.
         </p>
@@ -55,7 +55,7 @@ export default async function SeasonHistoryPage({
           <Link href={`/${slug}/season`} className="hover:text-foreground transition-colors">Season</Link>
           {' › '}History
         </p>
-        <h1 className="text-2xl font-heading font-bold">Season History</h1>
+        <h1 className="text-2xl font-heading">Season History</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Top finishers from each season of this league, going back through the renewal chain.
         </p>

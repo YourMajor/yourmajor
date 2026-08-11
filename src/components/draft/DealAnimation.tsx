@@ -84,7 +84,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
                 </div>
               ))}
             </div>
-            <p className="text-xl font-heading font-bold text-white animate-pulse">
+            <p className="text-xl font-heading text-white animate-pulse">
               Shuffling...
             </p>
           </>
@@ -114,7 +114,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
                   </span>
                 </div>
               )}
-              <p className="text-lg font-heading font-bold text-white">
+              <p className="text-lg font-heading text-white">
                 {currentPlayer.user.name ?? 'Player'}
               </p>
             </div>
@@ -137,7 +137,7 @@ export function DealAnimation({ players, totalCards, onComplete }: DealAnimation
         {phase === 'done' && (
           <>
             <div className="text-5xl">🎴</div>
-            <p className="text-2xl font-heading font-bold text-white">
+            <p className="text-2xl font-heading text-white">
               Cards Dealt!
             </p>
             <p className="text-sm text-white/60">

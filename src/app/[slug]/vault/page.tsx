@@ -57,7 +57,7 @@ export default async function VaultPage({
 
   return (
     <main className="max-w-5xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-heading font-bold mb-6">Tournament Vault</h1>
+      <h1 className="text-2xl font-heading mb-6">Tournament Vault</h1>
       <VaultClient entries={vaultEntries} />
     </main>
   )

@@ -90,7 +90,7 @@ export function StatSheet({
 
   return (
     <section className={`space-y-4 ${divided ? 'pt-4 border-t border-border' : ''}`}>
-      <h3 className="text-2xl font-heading font-bold">{heading}</h3>
+      <h3 className="text-2xl font-heading">{heading}</h3>
 
       {verdict && (
         <div>

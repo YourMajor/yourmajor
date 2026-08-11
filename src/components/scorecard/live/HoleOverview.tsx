@@ -58,13 +58,15 @@ export function HoleOverview({ hole, teeName, teeColor, courseLatitude, courseLo
         {/* Hero yardage */}
         {hole.yards ? (
           <>
-            <p className="text-8xl font-heading font-black text-white tabular-nums leading-none drop-shadow-lg">
+            {/* No weight class: Libre Caslon Display ships 400 only, so a
+                bold utility here made the browser synthesise the weight. */}
+            <p className="text-8xl font-heading text-white tabular-nums leading-none drop-shadow-lg">
               {hole.yards}
             </p>
             <p className="text-lg text-white/80 font-medium mt-2 drop-shadow">yards</p>
           </>
         ) : (
-          <p className="text-4xl font-heading font-bold text-white/70">
+          <p className="text-4xl font-heading text-white/70">
             No yardage data
           </p>
         )}

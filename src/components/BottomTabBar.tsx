@@ -54,7 +54,7 @@ export function BottomTabBar() {
           <div className="absolute inset-0 bg-black/40" onClick={closeMore} />
           <div className="absolute bottom-0 left-0 right-0 bg-background rounded-t-2xl border-t border-border pb-[env(safe-area-inset-bottom,0px)] animate-in slide-in-from-bottom duration-200">
             <div className="flex items-center justify-between px-5 pt-4 pb-2">
-              <h3 className="font-heading font-semibold text-base">More</h3>
+              <h3 className="font-heading text-base">More</h3>
               <button
                 onClick={() => setMoreOpen(false)}
                 className="p-2 -mr-2 rounded-full text-muted-foreground hover:bg-muted transition-colors"

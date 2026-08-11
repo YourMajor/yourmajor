@@ -82,7 +82,7 @@ export default async function BillingPage() {
             <div className="w-10 h-10 rounded-full bg-muted flex items-center justify-center mb-2">
               <Crown className="w-5 h-5 text-muted-foreground" />
             </div>
-            <p className="font-heading font-semibold text-sm">No active subscription</p>
+            <p className="font-heading text-sm">No active subscription</p>
             <p className="text-xs text-muted-foreground mt-1">
               Upgrade to The Club or The Tour for more tournaments.
             </p>
@@ -100,7 +100,7 @@ export default async function BillingPage() {
       <div className="space-y-3">
         <div className="flex items-center gap-2">
           <Receipt className="w-4 h-4 text-muted-foreground" />
-          <h2 className="font-heading font-semibold text-lg">Purchase History</h2>
+          <h2 className="font-heading text-lg">Purchase History</h2>
         </div>
 
         {purchases.length === 0 ? (

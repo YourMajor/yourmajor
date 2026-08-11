@@ -169,7 +169,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
 
   return (
     <div className="mt-6 space-y-3 pt-5 border-t border-border">
-      <h3 className="text-lg sm:text-xl font-heading font-bold text-foreground">
+      <h3 className="text-lg sm:text-xl font-heading text-foreground">
         Score Progression
       </h3>
       <p className="text-xs text-muted-foreground">

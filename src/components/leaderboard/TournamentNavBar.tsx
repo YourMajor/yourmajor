@@ -286,7 +286,7 @@ export function TournamentNavBar({
                       {STATUS_LABELS[status] ?? status}
                     </p>
                   )}
-                  <p className={`font-heading font-bold text-lg leading-tight ${menuText}`}>
+                  <p className={`font-heading text-lg leading-tight ${menuText}`}>
                     {tournamentName}
                   </p>
                   {!isLeague && startDate && (
@@ -361,7 +361,7 @@ export function TournamentNavBar({
                           </span>
                         </div>
                         <div className="min-w-0 flex-1">
-                          <p className={`font-heading font-bold text-sm leading-tight ${menuText}`}>{c.championName}</p>
+                          <p className={`font-heading text-sm leading-tight ${menuText}`}>{c.championName}</p>
                           <p className={`text-[11px] ${menuTextMuted} mt-0.5`}>
                             {c.year === new Date().getFullYear() && c.startDate
                               ? `${c.tournamentName} — ${new Date(c.startDate).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`

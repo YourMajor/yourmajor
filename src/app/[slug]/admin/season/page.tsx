@@ -92,7 +92,7 @@ export default async function AdminSeasonPage({
     <main className="space-y-8">
       <div>
         <p className="text-xs font-semibold uppercase tracking-widest text-muted-foreground mb-1">Season Management</p>
-        <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">{tournament.name}</h1>
+        <h1 className="text-xl sm:text-2xl font-heading text-foreground">{tournament.name}</h1>
       </div>
 
       <SeasonAdminDashboard

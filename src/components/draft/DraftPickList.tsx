@@ -261,7 +261,7 @@ export function DraftPickList({
                     <SlugIcon slug={slug} isAttack={isAttack} className="w-8 h-8 text-powerup-stock" />
                     <div className="flex-1 min-w-0">
                       <p className="text-[11px] font-bold uppercase tracking-widest text-powerup-stock/70">{selectedPick.powerup.type}</p>
-                      <p className="text-xl font-heading font-bold text-powerup-stock leading-tight">{selectedPick.powerup.name}</p>
+                      <p className="text-xl font-heading text-powerup-stock leading-tight">{selectedPick.powerup.name}</p>
                     </div>
                   </div>
                 </div>

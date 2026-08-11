@@ -38,7 +38,7 @@ export function TournamentMessage({
           </div>
         </div>
       )}
-      <h1 className="text-2xl font-heading font-bold text-foreground">{heading}</h1>
+      <h1 className="text-2xl font-heading text-foreground">{heading}</h1>
       {description && (
         <p className="text-sm text-muted-foreground max-w-sm">{description}</p>
       )}

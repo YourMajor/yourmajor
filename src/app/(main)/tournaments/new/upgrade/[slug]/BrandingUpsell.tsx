@@ -58,7 +58,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
           <Crown className="w-3.5 h-3.5" />
           Tournament Created
         </div>
-        <h1 className="text-2xl sm:text-3xl font-heading font-bold text-foreground">
+        <h1 className="text-2xl sm:text-3xl font-heading text-foreground">
           Make it yours
         </h1>
         <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
@@ -75,12 +75,12 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
           </div>
           <div className="p-6 flex flex-col items-center">
             <div
-              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-heading font-bold text-white"
+              className="w-16 h-16 rounded-full flex items-center justify-center text-2xl font-heading text-white"
               style={{ backgroundColor: DEFAULT.primary }}
             >
               {initial}
             </div>
-            <p className="mt-3 text-sm font-heading font-bold text-foreground">{tournamentName}</p>
+            <p className="mt-3 text-sm font-heading text-foreground">{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-2" style={{ backgroundColor: DEFAULT.accent }} />
             <p className="text-[11px] text-muted-foreground mt-2">Default colors &middot; No logo</p>
           </div>
@@ -110,7 +110,7 @@ export function BrandingUpsell({ tournamentId, tournamentName, slug, proCredits 
                 <path d="M10 22 C14 18, 16 24, 20 18 C24 24, 26 18, 30 22" stroke="white" strokeWidth="1" opacity="0.4" fill="none" />
               </svg>
             </div>
-            <p className="mt-2 text-sm font-heading font-bold" style={{ color: PREVIEW.primary }}>{tournamentName}</p>
+            <p className="mt-2 text-sm font-heading" style={{ color: PREVIEW.primary }}>{tournamentName}</p>
             <div className="w-8 h-0.5 rounded-full mt-1.5" style={{ backgroundColor: PREVIEW.accent }} />
             <p className="text-[11px] mt-1.5" style={{ color: PREVIEW.accent }}>Your colors &middot; Your logo</p>
           </div>

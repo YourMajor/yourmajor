@@ -121,7 +121,7 @@ export default async function PlayerScorecardPage({
           </AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-3xl sm:text-4xl font-heading font-bold">{playerName}</h1>
+          <h1 className="text-3xl sm:text-4xl font-heading">{playerName}</h1>
           <p className="text-base font-semibold text-muted-foreground mt-1">Handicap {player.handicap}</p>
         </div>
       </div>

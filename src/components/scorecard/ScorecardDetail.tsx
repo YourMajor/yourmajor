@@ -149,13 +149,13 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       <div className="flex items-center justify-between rounded-xl border border-border p-3" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
         <div className="text-center flex-1">
           <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">Gross</p>
-          <p className="text-2xl font-heading font-bold">{totalGross}</p>
+          <p className="text-2xl font-heading">{totalGross}</p>
         </div>
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1">
           <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">Net</p>
           <div className="flex items-center justify-center gap-1">
-            <p className="text-2xl font-heading font-bold">{totalNet}</p>
+            <p className="text-2xl font-heading">{totalNet}</p>
             {isComplete && (
               <button
                 type="button"
@@ -171,7 +171,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1">
           <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">vs Par</p>
-          <p className="text-2xl font-heading font-bold">
+          <p className="text-2xl font-heading">
             {diffGross >= 0 ? '+' : ''}{diffGross}
           </p>
         </div>
@@ -255,7 +255,7 @@ function NetBreakdownModal({
           className="-mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 px-5 py-4 flex items-center justify-between rounded-t-xl"
           style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
         >
-          <DialogTitle className="font-heading font-bold text-lg text-primary-foreground">Net Score Breakdown</DialogTitle>
+          <DialogTitle className="font-heading text-lg text-primary-foreground">Net Score Breakdown</DialogTitle>
           <DialogClose
             aria-label="Close"
             className="p-1 rounded-full text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"

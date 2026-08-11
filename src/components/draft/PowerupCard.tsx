@@ -115,7 +115,7 @@ export function PowerupCard({
       {/* Center — name */}
       <div className="flex-1 flex flex-col items-center justify-center px-2 py-1">
         <div className={`w-full border-t border-b py-2 ${c.divider}`}>
-          <p className={`font-heading font-bold text-center leading-tight ${nameFontSize[size]} ${c.name}`}>
+          <p className={`font-heading text-center leading-tight ${nameFontSize[size]} ${c.name}`}>
             {powerup.name}
           </p>
         </div>
@@ -220,7 +220,7 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
 
         {/* Name + teaser */}
         <div className="px-2.5 pb-1.5">
-          <p className={`font-heading font-bold leading-tight text-[12px] line-clamp-2 ${c.name}`}>
+          <p className={`font-heading leading-tight text-[12px] line-clamp-2 ${c.name}`}>
             {powerup.name}
           </p>
           {teaser && (

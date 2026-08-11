@@ -135,7 +135,7 @@ export function PreDraftPowerupPreview({
           </div>
         </div>
         <div className="flex-1">
-          <h1 className="text-xl sm:text-2xl font-heading font-bold text-foreground">{heading}</h1>
+          <h1 className="text-xl sm:text-2xl font-heading text-foreground">{heading}</h1>
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
           <p className="text-xs text-muted-foreground/80 mt-2">
             Browse the powerup pool below — tap the heart on any card to favourite it for the draft.

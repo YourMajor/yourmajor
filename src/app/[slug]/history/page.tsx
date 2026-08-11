@@ -35,14 +35,14 @@ export default async function HistoryPage({
       <SponsorStrip tournamentId={tournament.id} />
 
       <header>
-        <h1 className="text-2xl font-heading font-bold">History</h1>
+        <h1 className="text-2xl font-heading">History</h1>
         <p className="text-sm text-muted-foreground mt-1">
           Past podiums and the all-time roster across every edition of {tournament.name}.
         </p>
       </header>
 
       <section className="space-y-4">
-        <h2 className="text-base font-heading font-bold">Past Editions</h2>
+        <h2 className="text-base font-heading">Past Editions</h2>
         {podiums.length === 0 ? (
           <p className="text-sm text-muted-foreground">
             No completed past editions yet. Once a previous tournament wraps up, its podium will appear here.
@@ -57,7 +57,7 @@ export default async function HistoryPage({
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-base font-heading font-bold">All-Time Roster</h2>
+        <h2 className="text-base font-heading">All-Time Roster</h2>
         <HistoryRosterTable
           entries={roster.entries}
           totalYears={roster.totalYearsInChain}

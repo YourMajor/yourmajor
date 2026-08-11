@@ -369,7 +369,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
           revealing live would give away which holes the handicap depends on. */}
       {peoriaReveal && peoriaReveal.length > 0 && (
         <div className="mb-4 rounded-lg border border-border bg-muted/30 px-3 py-2.5 text-xs sm:text-sm">
-          <div className="font-semibold text-foreground mb-1.5 uppercase tracking-[0.14em] text-[0.6875rem]">
+          <div className="ym-label text-foreground mb-1.5">
             Peoria secret holes
           </div>
           <ul className="space-y-1">

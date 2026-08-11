@@ -48,7 +48,7 @@ export function StepperInput({
           &minus;
         </button>
         <span
-          className={`${valueSize} font-heading font-bold text-white text-center tabular-nums`}
+          className={`${valueSize} font-heading text-white text-center tabular-nums`}
         >
           {/* Keyed on value so each change re-stamps the number. */}
           <span key={value ?? 'empty'} className={value !== null ? 'score-post' : undefined}>

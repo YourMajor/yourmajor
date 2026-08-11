@@ -42,7 +42,7 @@ export function PlayerSeasonHub({ stats, slug }: PlayerSeasonHubProps) {
           <AvatarFallback>{getInitials(stats.playerName)}</AvatarFallback>
         </Avatar>
         <div>
-          <h1 className="text-2xl font-heading font-bold text-foreground">{stats.playerName}</h1>
+          <h1 className="text-2xl font-heading text-foreground">{stats.playerName}</h1>
           <p className="text-sm text-muted-foreground">
             Season Rank: <span className="font-semibold text-foreground">{ordinal(stats.seasonRank)}</span>
             {' '}&middot;{' '}

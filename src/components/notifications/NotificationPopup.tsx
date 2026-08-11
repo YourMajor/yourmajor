@@ -211,7 +211,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
               <p className="text-xs text-red-400 uppercase tracking-wider font-bold mb-1">
                 You&apos;ve been attacked!
               </p>
-              <h3 className="text-xl font-heading font-bold text-white">
+              <h3 className="text-xl font-heading text-white">
                 {payload.powerupName}
               </h3>
             </div>
@@ -268,7 +268,7 @@ export function NotificationPopup({ tournamentId, tournamentPlayerId, slug }: No
             <p className="text-xs text-amber-300 uppercase tracking-wider font-bold mb-1">
               Powerup Draft
             </p>
-            <h3 className="text-xl font-heading font-bold text-white">
+            <h3 className="text-xl font-heading text-white">
               You&apos;re on the clock
             </h3>
           </div>

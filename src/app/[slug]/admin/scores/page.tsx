@@ -68,7 +68,7 @@ export default async function AdminScoresPage({
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
           {' › '}Score Management
         </p>
-        <h1 className="text-2xl font-bold font-heading">{tournament.name} — Scores</h1>
+        <h1 className="text-2xl font-heading">{tournament.name} — Scores</h1>
       </div>
       {leagueEvents.length > 0 && (
         <LeagueScoreSelector

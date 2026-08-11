@@ -110,10 +110,10 @@ export function AdminSidebar({ slug, tournamentName, tournamentType, isLeague, p
         className="hidden lg:flex lg:flex-col lg:sticky lg:top-0 lg:h-screen lg:overflow-y-auto lg:border-r lg:border-border lg:bg-muted/20"
       >
         <div className="px-5 pt-6 pb-4 border-b border-border">
-          <p className="text-[0.6875rem] font-semibold uppercase tracking-[0.14em] text-muted-foreground">
+          <p className="ym-label text-muted-foreground">
             Admin
           </p>
-          <p className="mt-1 text-sm font-heading font-bold truncate" title={tournamentName}>
+          <p className="mt-1 text-sm font-heading truncate" title={tournamentName}>
             {tournamentName}
           </p>
         </div>

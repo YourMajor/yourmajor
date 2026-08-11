@@ -126,7 +126,7 @@ export function TournamentStats({ standings, roundNumbers, powerupsEnabled, atta
 
   return (
     <section className="mt-10">
-      <h2 className="text-xl sm:text-2xl font-heading font-bold mb-5">
+      <h2 className="text-xl sm:text-2xl font-heading mb-5">
         Tournament Superlatives
       </h2>
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
@@ -148,7 +148,7 @@ export function TournamentStats({ standings, roundNumbers, powerupsEnabled, atta
                   {s.label}
                 </p>
                 <p className="text-sm font-medium text-foreground truncate">{s.playerName}</p>
-                <p className="text-base font-heading font-bold leading-tight text-brand">
+                <p className="text-base font-heading leading-tight text-brand">
                   {s.value}
                 </p>
               </div>

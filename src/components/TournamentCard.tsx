@@ -127,14 +127,14 @@ export function TournamentCard({
                 />
               ) : (
                 <div
-                  className="tcard-badge h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading font-bold text-white shrink-0 border-2"
+                  className="tcard-badge h-9 w-9 sm:h-10 sm:w-10 rounded-full flex items-center justify-center text-base font-heading text-white shrink-0 border-2"
                   style={{ backgroundColor: `${t.primaryColor}80`, borderColor: t.accentColor }}
                 >
                   {t.name.charAt(0).toUpperCase()}
                 </div>
               )}
               <div className="min-w-0">
-                <p className="font-heading font-semibold text-white truncate text-sm sm:text-base">{t.name}</p>
+                <p className="font-heading text-white truncate text-sm sm:text-base">{t.name}</p>
                 <p className="text-[11px] text-white/70 truncate">
                   {courseName ? `${courseName} (Par ${coursePar})` : `${t._count.players} player${t._count.players !== 1 ? 's' : ''}`}
                 </p>

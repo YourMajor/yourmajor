@@ -29,7 +29,7 @@ export function ScorecardStats({ scores }: { scores: HoleScore[] }) {
 
   return (
     <div className="space-y-5 pt-4 border-t border-border">
-      <h3 className="text-2xl font-heading font-bold">Statistics</h3>
+      <h3 className="text-2xl font-heading">Statistics</h3>
       <div className="flex flex-col sm:flex-row gap-8 items-start">
         <div className="flex flex-col items-center gap-4 shrink-0">
           <DonutChart counts={counts} total={total} />
@@ -58,7 +58,7 @@ export function ScorecardStats({ scores }: { scores: HoleScore[] }) {
               >
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{s.label}</p>
                 <div className="flex items-end gap-1 mt-1">
-                  <span className="text-4xl font-bold font-heading leading-none" style={{ color: s.tone }}>{count}</span>
+                  <span className="text-4xl font-heading leading-none" style={{ color: s.tone }}>{count}</span>
                   <span className="text-xs text-muted-foreground mb-1 ml-0.5">/ {total}</span>
                 </div>
                 <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">

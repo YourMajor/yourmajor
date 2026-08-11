@@ -405,7 +405,7 @@ export function DraftBoard({
   if (draftReset) {
     return (
       <div className="text-center py-12 space-y-4">
-        <p className="text-lg font-heading font-bold text-foreground">Draft Has Been Reset</p>
+        <p className="text-lg font-heading text-foreground">Draft Has Been Reset</p>
         <p className="text-sm text-muted-foreground">The admin has reset the draft. The page will refresh momentarily.</p>
         <Button onClick={() => window.location.reload()} variant="outline">
           Refresh Now
@@ -418,7 +418,7 @@ export function DraftBoard({
     return (
       <div className="space-y-8">
         <div className="text-center py-2">
-          <h2 className="text-xl font-heading font-bold text-foreground">Draft Complete!</h2>
+          <h2 className="text-xl font-heading text-foreground">Draft Complete!</h2>
           <p className="text-sm text-muted-foreground mt-1">Your hand is ready to play.</p>
         </div>
 
@@ -430,7 +430,7 @@ export function DraftBoard({
 
         {/* Draft board inline */}
         <div className="border-t border-border pt-6">
-          <h3 className="text-lg font-heading font-bold text-foreground mb-3">Draft Board</h3>
+          <h3 className="text-lg font-heading text-foreground mb-3">Draft Board</h3>
           <DraftPickList
             picks={state.draft.picks}
             players={state.players}

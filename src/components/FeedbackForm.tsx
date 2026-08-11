@@ -93,7 +93,7 @@ export function FeedbackForm({ defaultEmail }: FeedbackFormProps) {
     return (
       <div className="flex flex-col items-center justify-center py-12 text-center">
         <CheckCircle className="h-16 w-16 text-primary mb-4" />
-        <h2 className="text-xl font-heading font-bold">
+        <h2 className="text-xl font-heading">
           Thank you for your feedback!
         </h2>
         <p className="text-sm text-muted-foreground mt-2">

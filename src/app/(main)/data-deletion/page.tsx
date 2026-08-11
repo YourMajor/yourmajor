@@ -10,12 +10,12 @@ export const metadata: Metadata = {
 export default function DataDeletionPage() {
   return (
     <main className="max-w-3xl mx-auto px-4 py-8 sm:px-6 sm:py-12">
-      <h1 className="text-3xl font-heading font-bold">Data Deletion Instructions</h1>
+      <h1 className="text-3xl font-heading">Data Deletion Instructions</h1>
       <p className="text-sm text-muted-foreground mt-2">Last updated: May 7, 2026</p>
 
       <div className="mt-8 space-y-8 text-sm leading-relaxed text-foreground/90">
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">1. Your right to deletion</h2>
+          <h2 className="text-xl font-heading mt-0">1. Your right to deletion</h2>
           <p className="mt-3">
             You can request deletion of your YourMajor account and any personal data we hold
             about you at any time. This applies to data you provided directly (name, email,
@@ -25,7 +25,7 @@ export default function DataDeletionPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">2. How to request deletion</h2>
+          <h2 className="text-xl font-heading mt-0">2. How to request deletion</h2>
           <p className="mt-3">
             To request deletion, send an email to{' '}
             <a
@@ -59,7 +59,7 @@ export default function DataDeletionPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">3. What gets deleted</h2>
+          <h2 className="text-xl font-heading mt-0">3. What gets deleted</h2>
           <p className="mt-3">When we process your deletion request, we remove:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>Your account record (email, display name, profile image)</li>
@@ -73,7 +73,7 @@ export default function DataDeletionPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">4. What may be retained</h2>
+          <h2 className="text-xl font-heading mt-0">4. What may be retained</h2>
           <p className="mt-3">In a small number of cases we may retain limited information:</p>
           <ul className="list-disc pl-5 mt-2 space-y-1">
             <li>
@@ -92,7 +92,7 @@ export default function DataDeletionPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">
+          <h2 className="text-xl font-heading mt-0">
             5. Disconnecting third-party sign-in
           </h2>
           <p className="mt-3">
@@ -125,7 +125,7 @@ export default function DataDeletionPage() {
         </section>
 
         <section>
-          <h2 className="text-xl font-heading font-semibold mt-0">6. Questions</h2>
+          <h2 className="text-xl font-heading mt-0">6. Questions</h2>
           <p className="mt-3">
             If you have questions about this process or about the data we hold, contact us at{' '}
             <a

@@ -163,7 +163,7 @@ export default async function LeaderboardPage({
         <div className="mb-6 rounded-xl overflow-hidden" style={{ backgroundColor: 'var(--color-primary)' }}>
           <div className="px-5 py-4">
             <p className="ym-label text-primary-foreground/80 mb-1">League Event</p>
-            <h2 className="font-heading font-bold text-lg text-primary-foreground">
+            <h2 className="font-heading text-lg text-primary-foreground">
               {tournament.startDate ? fmtEventDate(tournament.startDate) : 'Date TBD'}
             </h2>
             {eventCourseName && (

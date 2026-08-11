@@ -37,7 +37,7 @@ export default async function PlayerSeasonPage({
   if (!stats) {
     return (
       <main className="max-w-3xl mx-auto px-4 py-12 text-center">
-        <h1 className="text-2xl font-heading font-bold text-foreground mb-2">Player Not Found</h1>
+        <h1 className="text-2xl font-heading text-foreground mb-2">Player Not Found</h1>
         <p className="text-muted-foreground">This player hasn&apos;t participated in any events this season.</p>
       </main>
     )
