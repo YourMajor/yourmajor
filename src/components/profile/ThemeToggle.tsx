@@ -16,15 +16,20 @@ export function ThemeToggle() {
     setDark(next === 'dark')
   }
 
+  // Stacks on a phone. Side by side, the light-mode copy (11 characters longer
+  // than the dark copy) squeezed the group until overflow-hidden clipped
+  // "Dark" — in light mode only, which is what made the bug look mode-specific.
+  // Giving the description the full width beats wrapping it into a four-line
+  // column beside the control.
   return (
-    <div className="flex items-center justify-between gap-4">
-      <div>
+    <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-4">
+      <div className="min-w-0">
         <p className="text-sm font-semibold">Appearance</p>
         <p className="text-xs text-muted-foreground mt-0.5">
           {dark ? 'Dusk — the course after sundown.' : 'Daylight — bone paper and tournament green.'}
         </p>
       </div>
-      <div role="group" aria-label="Theme" className="flex rounded-md border border-border overflow-hidden">
+      <div role="group" aria-label="Theme" className="flex shrink-0 rounded-md border border-border overflow-hidden">
         <button
           type="button"
           aria-pressed={!dark}

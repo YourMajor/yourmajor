@@ -4,8 +4,8 @@
   "description": "Live tournament scoring, leaderboards, and more.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#1A3260",
-  "theme_color": "#1A3260",
+  "background_color": "#041e0f",
+  "theme_color": "#041e0f",
   "icons": [
     {
       "src": "/icons/icon-192x192.png",
