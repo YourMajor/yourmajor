@@ -68,6 +68,25 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Scope roundId and holeId to the player's tournament. Both are caller-
+  // supplied and reach the upsert unmodified; without this a legitimate player
+  // could post their own tournamentPlayerId against a hole from another
+  // course, and getLeaderboard reads par off the score's own hole — so a
+  // par-5 hole with strokes:3 improves their net. Same reason and same shape
+  // as the scoping in powerups/activate. findFirst, not findUnique: there is
+  // no compound unique on (id, tournamentId).
+  const round = await prisma.tournamentRound.findFirst({
+    where: { id: roundId, tournamentId: tp.tournamentId },
+    select: { courseId: true },
+  })
+  if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+
+  const hole = await prisma.hole.findFirst({
+    where: { id: holeId, courseId: round.courseId },
+    select: { id: true },
+  })
+  if (!hole) return NextResponse.json({ error: 'Hole not found' }, { status: 404 })
+
   // Check if this is a new score (not an update) to trigger round-start message
   const existingScore = await prisma.score.findUnique({
     where: { tournamentPlayerId_holeId_roundId: { tournamentPlayerId, holeId, roundId } },
