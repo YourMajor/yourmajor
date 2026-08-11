@@ -5,7 +5,15 @@ import { getUser } from '@/lib/auth'
 import type { SupabaseClient } from '@supabase/supabase-js'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
-const ALLOWED_TYPES = ['image/jpeg', 'image/png', 'image/gif', 'image/webp']
+const MIME_TO_EXT: Record<string, string> = {
+  'image/jpeg': 'jpg',
+  'image/png': 'png',
+  'image/gif': 'gif',
+  'image/webp': 'webp',
+}
+// Note: image/svg+xml deliberately excluded — SVGs can embed <script> and
+// would execute as XSS when served from this public bucket.
+const ALLOWED_TYPES = Object.keys(MIME_TO_EXT)
 const BUCKET = 'avatars'
 
 // Run bucket provisioning at most once per server process.
@@ -63,7 +71,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  const ext = file.name.split('.').pop() ?? 'jpg'
+  // Derive the extension from the validated MIME type, not the user-supplied
+  // filename — otherwise the filename's tail is concatenated straight into the
+  // storage key, allowing arbitrary extensions (<uuid>.html, <uuid>.svg) and
+  // traversal-shaped keys in this public bucket. Same fix as photos/route.ts.
+  const ext = MIME_TO_EXT[file.type] ?? 'bin'
   const path = `${user.id}.${ext}`
   const buffer = Buffer.from(await file.arrayBuffer())
 
