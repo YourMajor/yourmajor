@@ -5,12 +5,18 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthShell } from '../_shared/AuthShell'
 import { OAuthButtons } from './OAuthButtons'
 import { PasswordForm } from './PasswordForm'
+import { safeNextPath } from '@/lib/safe-redirect'
 
 async function signIn(formData: FormData) {
   'use server'
   const email = (formData.get('email') as string | null)?.trim()
   const password = formData.get('password') as string | null
-  const next = formData.get('next') as string | null
+  // Sanitize once, here: `next` round-trips from the query string through a
+  // hidden field, and is passed to redirect() below. An absolute URL would
+  // send the user off-domain immediately after they submit credentials.
+  // Empty-string fallback so an unsafe value collapses to null and the error
+  // paths below simply omit the param, rather than echoing it back.
+  const next = safeNextPath(formData.get('next') as string | null, '') || null
 
   if (!email || !password) {
     const params = new URLSearchParams({ error: 'Email and password are required.' })
