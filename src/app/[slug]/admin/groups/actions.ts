@@ -1,10 +1,10 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 import { after } from 'next/server'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, escapeHtml } from '@/lib/email'
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
 import { autoAssign, type AssignMode, type AssignablePlayer } from '@/lib/group-assignment'
@@ -111,18 +111,20 @@ async function dispatchTeeTimeMessages(
   await Promise.all(
     dispatches.map(async (d) => {
       if (d.email) {
-        const membersHtml = d.memberNames.map((n) => `<li>${n}</li>`).join('')
+        // Player display names, the tournament name and the group name are all
+        // user-supplied and land in another player's inbox.
+        const membersHtml = d.memberNames.map((n) => `<li>${escapeHtml(n)}</li>`).join('')
         try {
           await sendEmail(
             d.email,
             `Your tee time for ${d.tournamentName}`,
-            `<h2>${d.tournamentName}</h2>
-            <p>Your group: <strong>${d.groupName}</strong></p>
-            ${d.teeTimeStr ? `<p>Tee time: <strong>${d.teeTimeStr}</strong></p>` : ''}
-            ${d.startingHole ? `<p>Starting hole: <strong>#${d.startingHole}</strong></p>` : ''}
+            `<h2>${escapeHtml(d.tournamentName)}</h2>
+            <p>Your group: <strong>${escapeHtml(d.groupName)}</strong></p>
+            ${d.teeTimeStr ? `<p>Tee time: <strong>${escapeHtml(d.teeTimeStr)}</strong></p>` : ''}
+            ${d.startingHole ? `<p>Starting hole: <strong>#${escapeHtml(d.startingHole)}</strong></p>` : ''}
             <p>Playing with:</p>
             <ul>${membersHtml}</ul>
-            <p><a href="${domain}/${slug}">View Tournament</a></p>`,
+            <p><a href="${domain}/${escapeHtml(slug)}">View Tournament</a></p>`,
           )
           deliveries.push({ userId: d.userId, channel: 'EMAIL', status: 'SENT' })
         } catch (e) {
@@ -167,18 +169,13 @@ async function dispatchTeeTimeMessages(
   return deliveries
 }
 
+// Signature and throw-on-failure contract kept so the 15 call sites below are
+// untouched; only the definition of "admin" changes. isTournamentAdmin also
+// honours account-level co-admins, matching the admin layout that let them in.
 async function requireTournamentAdmin(tournamentId: string) {
   const user = await getUser()
   if (!user) throw new Error('Unauthorized')
-
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) throw new Error('Forbidden')
-  }
-
+  if (!(await isTournamentAdmin(user.id, tournamentId))) throw new Error('Forbidden')
   return user
 }
 

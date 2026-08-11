@@ -2,7 +2,7 @@
 // Reminder rules (auto-trigger before events) intentionally deferred.
 
 import { prisma } from '@/lib/prisma'
-import { sendEmail } from '@/lib/email'
+import { sendEmail, escapeHtml } from '@/lib/email'
 import { sendSMS } from '@/lib/sms'
 import { getLeagueRootId } from '@/lib/league-events'
 
@@ -391,10 +391,8 @@ export async function listAnnouncements(tournamentId: string): Promise<Announcem
 }
 
 function htmlBody(body: string, subject: string): string {
-  const escaped = body
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/\n/g, '<br />')
-  return `<h2>${subject.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</h2><div>${escaped}</div>`
+  // Escape first, then turn real newlines into <br /> — doing it the other way
+  // round would escape the tags we just inserted.
+  const escaped = escapeHtml(body).replace(/\n/g, '<br />')
+  return `<h2>${escapeHtml(subject)}</h2><div>${escaped}</div>`
 }

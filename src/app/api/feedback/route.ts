@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { checkRateLimit, clientIp, rateLimitedResponse, LIMITS } from '@/lib/rate-limit'
+import { escapeHtml } from '@/lib/email'
 
 const feedbackSchema = z.object({
   rating: z.number().min(1).max(5),
@@ -23,14 +24,6 @@ function buildStars(rating: number): string {
   return '★'.repeat(rating) + '☆'.repeat(5 - rating)
 }
 
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;')
-}
 
 export async function POST(request: NextRequest) {
   // This endpoint is deliberately unauthenticated so logged-out visitors can

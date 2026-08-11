@@ -2,7 +2,7 @@ import { NextRequest, NextResponse, after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { computeCurrentTurn } from '@/lib/draft-utils'
-import { sendEmailToMany, domain } from '@/lib/email'
+import { sendEmailToMany, domain, escapeHtml } from '@/lib/email'
 import { sendPushToUser } from '@/lib/push'
 
 export async function POST(
@@ -87,9 +87,9 @@ export async function POST(
         allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
         `Draft started — ${tournament?.name ?? 'Tournament'}`,
         () =>
-          `<h2>${tournament?.name ?? 'Tournament'}</h2>
+          `<h2>${escapeHtml(tournament?.name ?? 'Tournament')}</h2>
           <p>The powerup draft has started! Keep an eye out for your turn.</p>
-          <p><a href="${domain}/${tournament?.slug}/draft">View Draft</a></p>`,
+          <p><a href="${domain}/${escapeHtml(tournament?.slug)}/draft">View Draft</a></p>`,
       )
     } catch (err) {
       console.error('[draft/start] email dispatch failed', err)

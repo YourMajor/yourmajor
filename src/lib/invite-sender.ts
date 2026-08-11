@@ -3,6 +3,7 @@
 
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
+import { escapeHtml } from '@/lib/email'
 
 export interface InvitationToSend {
   email?: string | null
@@ -17,6 +18,10 @@ interface SendInvitationsOptions {
 }
 
 function inviteEmailHtml(tournamentName: string, slug: string, token: string, domain: string): string {
+  // tournamentName is chosen by whoever created the tournament and is rendered
+  // in every invitee's inbox; slug and token land inside href attributes.
+  const name = escapeHtml(tournamentName)
+  const link = `${domain}/${escapeHtml(slug)}/register?token=${escapeHtml(token)}`
   return `<!DOCTYPE html>
 <html>
 <head><meta charset="utf-8"></head>
@@ -25,13 +30,13 @@ function inviteEmailHtml(tournamentName: string, slug: string, token: string, do
     <tr><td align="center" style="padding:40px 20px;">
       <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="background-color:#ffffff;border-radius:8px;max-width:600px;">
         <tr><td style="padding:40px 30px;font-family:Arial,Helvetica,sans-serif;font-size:16px;line-height:1.5;color:#333333;">
-          <p style="margin:0 0 20px;">You have been invited to join <strong>${tournamentName}</strong>.</p>
+          <p style="margin:0 0 20px;">You have been invited to join <strong>${name}</strong>.</p>
           <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 0 20px;">
             <tr><td align="center" style="background:#006747;border-radius:4px;">
-              <a href="${domain}/${slug}/register?token=${token}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;text-decoration:none;">Accept Invitation</a>
+              <a href="${link}" style="display:inline-block;padding:12px 24px;color:#ffffff;font-family:Arial,Helvetica,sans-serif;font-size:16px;font-weight:bold;text-decoration:none;">Accept Invitation</a>
             </td></tr>
           </table>
-          <p style="margin:0;font-size:14px;color:#666666;">Or copy this link: <a href="${domain}/${slug}/register?token=${token}" style="color:#006747;word-break:break-all;">${domain}/${slug}/register?token=${token}</a></p>
+          <p style="margin:0;font-size:14px;color:#666666;">Or copy this link: <a href="${link}" style="color:#006747;word-break:break-all;">${link}</a></p>
         </td></tr>
       </table>
     </td></tr>
