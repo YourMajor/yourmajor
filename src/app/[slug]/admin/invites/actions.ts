@@ -6,6 +6,7 @@ import { getUser } from '@/lib/auth'
 import { sendInviteEmails } from '@/lib/invite-sender'
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
+import { checkRateLimit, LIMITS } from '@/lib/rate-limit'
 
 export async function resendInvite(invitationId: string) {
   const user = await getUser()
@@ -38,6 +39,14 @@ export async function resendInvite(invitationId: string) {
   })
   if (!membership?.isAdmin && user.role !== 'ADMIN') {
     throw new Error('Forbidden')
+  }
+
+  // Each resend fires a real Twilio SMS and/or a billed Resend email, and the
+  // button is one click. Keyed on the caller (already authenticated and
+  // authorised above) so nobody can burn another admin's budget.
+  const limit = await checkRateLimit(`invite-resend:${user.id}`, LIMITS.inviteResend)
+  if (!limit.ok) {
+    throw new Error(`Too many resends. Try again in ${Math.ceil(limit.retryAfter / 60)} minutes.`)
   }
 
   const { tournament } = invitation

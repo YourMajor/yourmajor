@@ -6,21 +6,35 @@ import { AuthShell } from '../_shared/AuthShell'
 import { OAuthButtons } from './OAuthButtons'
 import { PasswordForm } from './PasswordForm'
 import { safeNextPath } from '@/lib/safe-redirect'
+import { checkRateLimitByIp, LIMITS } from '@/lib/rate-limit'
 
 async function signIn(formData: FormData) {
   'use server'
   const email = (formData.get('email') as string | null)?.trim()
   const password = formData.get('password') as string | null
   // Sanitize once, here: `next` round-trips from the query string through a
-  // hidden field, and is passed to redirect() below. An absolute URL would
-  // send the user off-domain immediately after they submit credentials.
-  // Empty-string fallback so an unsafe value collapses to null and the error
-  // paths below simply omit the param, rather than echoing it back.
+  // hidden field and is passed to redirect() below, so an absolute URL would
+  // send the user off-domain immediately after they submit credentials. The
+  // empty-string fallback collapses an unsafe value to null, so the error
+  // paths below omit the param rather than echoing it back.
   const next = safeNextPath(formData.get('next') as string | null, '') || null
 
   if (!email || !password) {
     const params = new URLSearchParams({ error: 'Email and password are required.' })
     if (email) params.set('email', email)
+    if (next) params.set('next', next)
+    redirect(`/auth/login?${params.toString()}`)
+  }
+
+  // Defence in depth against credential stuffing. Supabase throttles its own
+  // auth endpoints, but that throttle is per-account; this one is per-IP, so
+  // it also catches spraying one password across many accounts.
+  const rl = await checkRateLimitByIp('auth-login', LIMITS.auth)
+  if (!rl.ok) {
+    const params = new URLSearchParams({
+      error: `Too many sign-in attempts. Try again in ${Math.ceil(rl.retryAfter / 60)} minutes.`,
+      email,
+    })
     if (next) params.set('next', next)
     redirect(`/auth/login?${params.toString()}`)
   }

@@ -33,6 +33,12 @@ const prismaMock = {
       return null
     }),
   },
+  // The route is rate-limited; give the limiter a working store so these
+  // tests exercise the real path rather than its fail-open fallback.
+  rateLimit: {
+    deleteMany: vi.fn(async () => ({ count: 0 })),
+    upsert: vi.fn(async () => ({ count: 1, expiresAt: new Date(Date.now() + 600_000) })),
+  },
   tournamentPlayer: {
     upsert: vi.fn(
       async ({

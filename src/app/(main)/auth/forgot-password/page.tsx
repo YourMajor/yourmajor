@@ -6,6 +6,7 @@ import { Card, CardContent } from '@/components/ui/card'
 import { AuthShell } from '../_shared/AuthShell'
 import { EmailSentCard } from '../_shared/EmailSentCard'
 import { ForgotPasswordForm } from './ForgotPasswordForm'
+import { checkRateLimitByIp, LIMITS } from '@/lib/rate-limit'
 
 async function resolveOrigin() {
   const h = await headers()
@@ -14,12 +15,25 @@ async function resolveOrigin() {
   return `${proto}://${host}`
 }
 
+// Both actions below send an email to an address the caller chooses, which
+// makes them an email-bombing vector against a third party as well as a drain
+// on sending reputation. They share one bucket so switching between the two
+// forms doesn't double the budget.
+async function guardEmailRate() {
+  const rl = await checkRateLimitByIp('auth-email', LIMITS.auth)
+  if (!rl.ok) {
+    const message = `Too many requests. Try again in ${Math.ceil(rl.retryAfter / 60)} minutes.`
+    redirect(`/auth/forgot-password?error=${encodeURIComponent(message)}`)
+  }
+}
+
 async function sendReset(formData: FormData) {
   'use server'
   const email = (formData.get('email') as string | null)?.trim()
   if (!email) {
     redirect(`/auth/forgot-password?error=${encodeURIComponent('Email is required.')}`)
   }
+  await guardEmailRate()
 
   const origin = await resolveOrigin()
   const callbackUrl = `${origin}/api/auth/callback?next=${encodeURIComponent('/auth/reset-password')}`
@@ -43,6 +57,7 @@ async function sendMagicLink(formData: FormData) {
   if (!email) {
     redirect(`/auth/forgot-password?error=${encodeURIComponent('Email is required.')}`)
   }
+  await guardEmailRate()
 
   const origin = await resolveOrigin()
   const callbackUrl = `${origin}/api/auth/callback`
