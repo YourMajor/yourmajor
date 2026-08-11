@@ -28,7 +28,7 @@ export function DonutChart({ counts, total }: { counts: Record<string, number>; 
         )
       })}
       <text x={c} y={c + 6} textAnchor="middle"
-        style={{ fontSize: '1rem', fontWeight: 600, fill: 'var(--foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}>
+        style={{ fontSize: '1rem', fontWeight: 600, fill: 'var(--foreground)', fontFamily: 'var(--font-google-sans-code), ui-monospace, monospace' }}>
         {total}
       </text>
     </svg>

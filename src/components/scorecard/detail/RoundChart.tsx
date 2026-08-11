@@ -79,7 +79,7 @@ function trendLine(points: Array<{ x: number; y: number }>): { x1: number; y1: n
   }
 }
 
-const MONO = 'var(--font-geist-mono), ui-monospace, monospace'
+const MONO = 'var(--font-google-sans-code), ui-monospace, monospace'
 
 /**
  * The round, read aloud: the score line draws itself hole by hole once the

@@ -43,28 +43,45 @@ typography:
     fontSize: "clamp(1.75rem, 3.5vw, 3rem)"
     fontWeight: 400
     lineHeight: 1.15
+  title:
+    fontFamily: "Google Sans, system-ui, sans-serif"
+    fontSize: "1.125rem"
+    fontWeight: 600
+    lineHeight: 1.3
+    note: "Card and panel headings, where a sans title outranks running copy but is not a section opener. Implemented as .ym-title"
   body:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "Google Sans, system-ui, sans-serif"
     fontSize: "1rem"
     fontWeight: 400
     lineHeight: 1.6
   body-sm:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "Google Sans, system-ui, sans-serif"
     fontSize: "0.875rem"
     fontWeight: 400
     lineHeight: 1.5
     note: "Secondary copy: captions, FAQ answers, plate feature lists, the skip link. Tailwind text-sm; already ubiquitous on the surface"
   label:
-    fontFamily: "Geist, system-ui, sans-serif"
+    fontFamily: "Google Sans, system-ui, sans-serif"
     fontSize: "0.6875rem"
     fontWeight: 600
     letterSpacing: "0.14em"
-    note: "Implemented as the .mk-label class; uppercase; color stays with the call site"
+    note: "Implemented as the .ym-label class; uppercase; color stays with the call site. .mk-label and .masters-table thead th compose it"
   data:
-    fontFamily: "Geist Mono, ui-monospace, monospace"
+    fontFamily: "Google Sans Code, ui-monospace, monospace"
     fontSize: "1rem"
     fontWeight: 600
     fontFeature: "tnum"
+  micro:
+    fontFamily: "Google Sans, system-ui, sans-serif"
+    fontSize: "0.75rem"
+    fontWeight: 500
+    note: "The legibility floor. Tailwind text-xs. Nothing smaller ships; text-[8px] is a defect"
+weights:
+  regular: 400
+  medium: 500
+  semibold: 600
+  bold: 700
+  note: "Four weights, one meaning each. 400 body and Caslon display; 500 UI labels, nav, secondary buttons; 600 sans headings, primary button labels, table headers; 700 data that must pop. 800 and 900 are retired from the Operate surface"
 rounded:
   sm: "2px"
   md: "4px"
@@ -246,31 +263,70 @@ a destructive action on any marketing surface.
 ## Typography
 
 **Display Font:** Libre Caslon Display (with Georgia, serif)
-**Body Font:** Geist (with system-ui, sans-serif)
-**Data Font:** Geist Mono (with ui-monospace, monospace)
+**Body Font:** Google Sans (with system-ui, sans-serif)
+**Data Font:** Google Sans Code (with ui-monospace, monospace)
 
 **Character:** Caslon is the serif of classic club and sporting print, which is
 the heritage this category actually draws on, and it carries the canon without
 reaching for the display serifs that signal a machine picked them. Against it,
-Geist stays completely neutral so that the data typography can do broadcast work.
+Google Sans stays neutral so that the data typography can do broadcast work: a
+geometric humanist sans with open apertures, which is what holds up at arm's
+length in sunlight on a phone. Google Sans Code is its monospace sibling, so the
+sans and the data face are one superfamily rather than two unrelated licences.
 The pairing is deliberately unequal: the serif is ceremonial and appears rarely,
 the sans and mono carry nearly all the words.
 
+Google Sans was released under the SIL Open Font License in January 2026 and is
+loaded through `next/font/google` like every other face here. Both it and Google
+Sans Code are present in the font list Next bundles, so neither needs a
+self-hosted fallback.
+
 ### Hierarchy
-- **Display** (400, `clamp(2.5rem, 4.5vw, 4rem)`, 1.05): the hero headline and
-  major section openers only. Regular weight, not bold; Caslon at display size
-  does not need weight to carry.
-- **Headline** (400, `clamp(1.75rem, 3.5vw, 3rem)`, 1.15): section headings.
-- **Body** (400, `1rem`, 1.6, max 65ch): all running copy. On green, white at 80%
-  for lead and 65% for secondary.
-- **Label** (600, `0.6875rem`, `0.14em`, uppercase): eyebrows and table headers,
-  set in gold.
-- **Data** (600, `1rem`, tabular figures): every score, position, and statistic.
+
+One scale, marketing and app both. The class named in each step is the only
+implementation; a hand-rolled equivalent at the call site is drift.
+
+| Step | Class | Family | Size | Weight | Use |
+|---|---|---|---|---|---|
+| Display | `font-heading` | Libre Caslon | `clamp(2.5rem, 4.5vw, 4rem)` / 1.05 | 400 | Hero headline and major section openers only |
+| Headline | `font-heading` | Libre Caslon | `clamp(1.75rem, 3.5vw, 3rem)` / 1.15 | 400 | Section headings, and every `h1`-`h4` |
+| Title | `.ym-title` | Google Sans | `1.125rem` / 1.3 | 600 | Card and panel headings |
+| Body | default | Google Sans | `1rem` / 1.6, max 65ch | 400 | All running copy |
+| Body-sm | `text-sm` | Google Sans | `0.875rem` / 1.5 | 400 | Secondary copy, captions |
+| Label | `.ym-label` | Google Sans | `0.6875rem`, `0.14em`, uppercase | 600 | Eyebrows and table headers |
+| Data | `.tabular-data` | Google Sans Code | `1rem`, `tnum` | 600 | Every score, position, statistic |
+| Micro | `text-xs` | Google Sans | `0.75rem` | 500 | The floor |
+
+Caslon at display size does not need weight to carry, which is why both serif
+steps are 400. On green, body copy is white at 80% for lead and 65% for
+secondary; inside the app the One Muted Step Rule applies instead.
 
 ### Named Rules
 
+**The Four Weights Rule.** Emphasis runs on exactly four weights, each with one
+meaning, and Google Sans ships precisely those four:
+
+- **400** body copy, and Caslon at both serif steps
+- **500** UI labels, nav items, secondary button text
+- **600** sans headings, primary button labels, table headers, `.ym-label`
+- **700** data that must pop: score values, leaderboard positions
+
+`font-extrabold` and `font-black` are retired from the Operate surface. Three
+competing mid-weights with no rule about which means what is not a hierarchy, it
+is an accident, and it is what the pre-2026-08-10 surface had.
+
+**The Legibility Floor Rule.** `0.75rem` (`text-xs`) is the smallest type that
+ships in the DOM, and the label step at `0.6875rem` is a sanctioned exception
+because it is uppercase and tracked, which buys back the height. `text-[8px]` is
+a defect. Players read this surface outdoors, in sunlight, one-handed.
+
+The one further exception is **SVG axis ticks inside a chart** (currently `9`
+in `ComparativeScoreChart` and the donut centre label). Those are reference
+marks sitting immediately beside the value they annotate, not reading copy, and
+raising them crowds the plot. They are exempt; nothing else in an SVG is.
+
 **The Tabular Rule.** Any number a visitor might compare vertically is set in
-Geist Mono with `tnum` on. Positions, scores, yardages, prices. A column of
+Google Sans Code with `tnum` on. Positions, scores, yardages, prices. A column of
 proportional figures in a leaderboard is a defect.
 
 **The Rare Serif Rule.** The display serif appears at most twice per viewport. It
@@ -339,7 +395,7 @@ The system's primary container, replacing the incumbent's translucent white card
 ### Navigation
 - Sticky, 72px tall, one line at desktop, transparent over the hero and settling
   into deep green with a gold hairline past 80px of scroll.
-- Labels in Geist at label size, not serif.
+- Labels in Google Sans at label size, not serif.
 
 ### Signature Component — the Leaderboard Plate
 The product's strongest asset and the direct expression of the North Star. A bone
@@ -361,7 +417,7 @@ collapses to static under `prefers-reduced-motion`.
 ### Do:
 - **Do** keep green as the page ground on every marketing surface, so the four
   routes read as one world.
-- **Do** set every comparable number in Geist Mono with tabular figures.
+- **Do** set every comparable number in Google Sans Code with tabular figures.
 - **Do** tint every shadow toward the green ground.
 - **Do** use real course photography, and label anything synthetic as a
   demonstration.
@@ -404,7 +460,7 @@ face too; Playfair is retired. Playful drench, dusk/night atmosphere, poster
 moments, grain, and MOTION_INTENSITY 7 remain marketing-only.
 
 Rules that carry over unchanged:
-- **Tabular:** any vertically comparable number is Geist Mono `tnum`
+- **Tabular:** any vertically comparable number is Google Sans Code `tnum`
   (`.tabular-data`). A leaderboard column of proportional figures is a defect.
 - **Red Means Under Par** for scores (`--score-birdie`). Unlike marketing, the
   app does keep `--destructive` red for errors — score red is distinguished by
@@ -418,6 +474,78 @@ Operate constraints (from the mode, binding here):
   position change. No orchestrated page-load choreography.
 - Density is a feature: tables and standings stay dense and legible.
 - Touch targets ≥ 44px on player-facing surfaces (sunlight, one-handed).
+
+### Light and dark, side by side
+
+The app ships both modes. Dark is not an afterthought recolour: it is the
+marketing dusk, lived in. Mode rides a cookie (`ym-theme`) so SSR paints the
+right one with no flash, and the class lands on `<html>` in `layout.tsx`. There
+is no `prefers-color-scheme` query and no system following; the toggle in
+`src/components/profile/ThemeToggle.tsx` is the only switch.
+
+**Tokens that flip.** Everything below is defined twice, in `:root` and `.dark`:
+
+| Token | Light | Dark |
+|---|---|---|
+| `--background` | `oklch(0.97 0.008 85)` warm paper | `oklch(0.16 0.025 262)` night |
+| `--foreground` | `oklch(0.22 0.02 150)` ink | `oklch(0.95 0.012 85)` bone |
+| `--card` | `oklch(0.995 0.004 85)` | `oklch(0.21 0.028 262)` |
+| `--primary` | `oklch(0.27 0.055 155)` deep green | `oklch(0.50 0.11 155)` lit green |
+| `--primary-foreground` | bone | bone |
+| `--secondary` | `oklch(0.93 0.015 150)` | `oklch(0.26 0.030 262)` |
+| `--muted-foreground` | `oklch(0.47 0.02 150)` | `oklch(0.76 0.014 130)` |
+| `--accent` | `oklch(0.72 0.11 78)` gold | `oklch(0.72 0.11 78)` gold |
+| `--gold-ink` | `oklch(0.45 0.10 78)` | `oklch(0.72 0.11 78)` |
+| `--border` / `--input` | `oklch(0.87 0.012 120)` | `oklch(0.32 0.03 262)` |
+| `--ring` | deep green | gold |
+| `--surface-deep` | `oklch(0.21 0.045 155)` | `oklch(0.13 0.02 262)` |
+| score ramp | measured 5.45:1 to 7.65:1 | measured 4.82:1 to 10.46:1 |
+
+**Tokens that deliberately do not flip**, and why. This list is load-bearing:
+reading it is how you know a value is intentionally mode-invariant rather than
+an omission.
+
+- `--radius` (`0.375rem`). Shape is not a function of light level.
+- `--brand-ink` and `--brand-bone`. These are the two endpoints `brandVars()`
+  picks between. If they flipped, the guard would have nothing stable to
+  resolve to.
+- The whole powerup register except `--powerup-active`. Powerup cards are
+  physical objects; a game piece does not change colour when the room does.
+  Only the live-on-this-hole glow brightens.
+- `--club` and `--tour`, the tier colours. They are identity, not surface.
+- `--sunset`. Atmosphere, marketing-only, and never a UI colour in either mode.
+- The `.marketing` scope in its entirety. It is a third, fixed token world for
+  public routes and does not respond to `.dark` at all. A marketing surface
+  looks the same to a visitor whatever their system is set to.
+
+**The Primary Means One Thing Rule.** `--primary` is the green brand action in
+both modes, and `--primary-foreground` is bone in both. Dark shifts the green
+lighter rather than inverting it, so a filled primary reads as the same object
+in either mode.
+
+Until 2026-08-10 dark `--primary` flipped to the bone plate
+(`oklch(0.95 0.012 85)`). That inversion is retired and must not be reinstated.
+It meant "primary" named two different colours depending on mode, and eleven
+components had hardcoded a foreground against it: `text-white` on bone measured
+**1.16:1**. The whole create-tournament flow was unreadable in dark.
+
+The replacement is bounded on both sides by measurement, not taste. Bone text on
+it is **4.91:1** (AA body), it holds **3.42:1** against the night ground and
+**3.12:1** on a card (both clear the 3:1 floor for a non-text UI boundary).
+Those two constraints pull in opposite directions and `oklch(0.50 0.11 155)` sits
+near the only band satisfying both. The useful consequence is that
+`--primary-foreground` is now bone in *both* modes, so even a stray hardcoded
+`text-white` renders approximately right instead of catastrophically wrong.
+
+**The Guard Runs Everywhere Rule.** `brandVars()` only executes where it is
+spread: `[slug]/layout.tsx`, the draft page, and `TournamentBottomBar`. Every
+other route, including the whole `(main)` tree, reads the unguarded app token.
+So any surface that touches `--color-primary` must either sit inside a guarded
+subtree or take its foreground from `text-primary-foreground`. Hardcoding
+`text-white` against a brand variable is a defect in every case, and it is the
+specific defect that produced this section. A brand *fill* is safe because it
+pairs with the guarded foreground; brand *text* is not, which is what
+`.text-brand` exists to solve.
 
 **The branding contract.** Inside `/[slug]`, per-tournament branding is exactly
 two variables — `--color-primary` and `--color-accent`, injected inline by the

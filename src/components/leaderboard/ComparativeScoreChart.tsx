@@ -204,7 +204,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
                 x={pad.left - 8}
                 y={yScale(v) + 3.5}
                 textAnchor="end"
-                style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}
+                style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-google-sans-code), ui-monospace, monospace' }}
               >
                 {v === 0 ? 'E' : v > 0 ? `+${v}` : `${v}`}
               </text>
@@ -217,7 +217,7 @@ export function ComparativeScoreChart({ standings, roundNumber }: Props) {
               x={xScale(hole)}
               y={h - pad.bottom + 14}
               textAnchor="middle"
-              style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}
+              style={{ fontSize: 9, fill: 'var(--muted-foreground)', fontFamily: 'var(--font-google-sans-code), ui-monospace, monospace' }}
             >
               {hole}
             </text>
