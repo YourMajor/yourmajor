@@ -189,8 +189,8 @@ export function GenerateScheduleDialog({ tournamentId, open, onOpenChange, defau
         )}
 
         {done && (
-          <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3 space-y-1">
-            <p className="text-sm font-semibold text-green-800">
+          <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3 space-y-1">
+            <p className="text-sm font-semibold text-foreground">
               {done.generated} event{done.generated === 1 ? '' : 's'} created.
             </p>
             <p className="text-xs text-foreground">

@@ -293,7 +293,7 @@ export function CommunicationsPanel({
           <div
             className={`rounded-lg border px-3 py-2 text-sm flex items-start gap-2 ${
               result.type === 'success'
-                ? 'border-green-300 bg-green-50 text-green-800'
+                ? 'border-success/40 bg-success/10 text-foreground'
                 : 'border-destructive/40 bg-destructive/10 text-destructive'
             }`}
           >

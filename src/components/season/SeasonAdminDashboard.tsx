@@ -241,7 +241,7 @@ function RosterPanel({ tournamentId, roster }: { tournamentId: string; roster: R
                 <button
                   disabled={isPending}
                   onClick={() => startTransition(() => updateRosterMemberStatus(tournamentId, member.id, 'ACTIVE'))}
-                  className="p-1.5 rounded text-muted-foreground hover:text-green-600 hover:bg-green-50 transition-colors"
+                  className="p-1.5 rounded text-muted-foreground hover:text-foreground hover:bg-success/10 transition-colors"
                   title="Reactivate"
                 >
                   <UserPlus className="w-3.5 h-3.5" />
@@ -673,8 +673,8 @@ function ScheduleEventsPanel({
             {error && <p className="text-xs text-red-500">{error}</p>}
 
             {createdSlug && (
-              <div className="rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-                <p className="text-sm font-medium text-green-800">
+              <div className="rounded-lg border border-success/40 bg-success/10 px-4 py-3">
+                <p className="text-sm font-medium text-foreground">
                   Event created! All active roster members have been registered.
                 </p>
                 <a

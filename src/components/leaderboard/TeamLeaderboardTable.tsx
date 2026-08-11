@@ -97,7 +97,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
                               {isCaptain && (
                                 <span
                                   title={`${m.name} (Captain)`}
-                                  className="absolute -top-1 -right-1 inline-flex items-center justify-center w-3 h-3 rounded-full bg-yellow-400 text-yellow-900 ring-1 ring-background text-[8px] font-bold"
+                                  className="absolute -top-1 -right-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-accent text-accent-foreground ring-1 ring-background text-xs font-bold leading-none"
                                 >
                                   C
                                 </span>
