@@ -1,9 +1,10 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { Info, X } from 'lucide-react'
 import { allocateHandicapStrokes, callawayDeduction, getCallawayAdjustment, CALLAWAY_TABLE } from '@/lib/scoring-utils'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
+import { Dialog, DialogClose, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import { NineTable } from './detail/NineTable'
 import { RoundChart } from './detail/RoundChart'
 import { RoundInsights } from './detail/RoundInsights'
@@ -147,29 +148,29 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       {/* Totals bar */}
       <div className="flex items-center justify-between rounded-xl border border-border p-3" style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}>
         <div className="text-center flex-1">
-          <p className="text-[11px] uppercase tracking-wider text-white/70">Gross</p>
+          <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">Gross</p>
           <p className="text-2xl font-heading font-bold">{totalGross}</p>
         </div>
-        <div className="w-px h-10 bg-white/20" />
+        <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1">
-          <p className="text-[11px] uppercase tracking-wider text-white/70">Net</p>
+          <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">Net</p>
           <div className="flex items-center justify-center gap-1">
             <p className="text-2xl font-heading font-bold">{totalNet}</p>
             {isComplete && (
               <button
                 type="button"
                 onClick={() => setShowNetBreakdown(true)}
-                className="w-5 h-5 rounded-full bg-white/25 hover:bg-white/40 flex items-center justify-center transition-colors shrink-0 ml-0.5"
+                className="w-5 h-5 rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 flex items-center justify-center transition-colors shrink-0 ml-0.5 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"
                 aria-label="Net score breakdown"
               >
-                <Info className="w-3 h-3 text-white" />
+                <Info className="w-3 h-3 text-primary-foreground" />
               </button>
             )}
           </div>
         </div>
-        <div className="w-px h-10 bg-white/20" />
+        <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1">
-          <p className="text-[11px] uppercase tracking-wider text-white/70">vs Par</p>
+          <p className="text-[11px] uppercase tracking-wider text-primary-foreground/80">vs Par</p>
           <p className="text-2xl font-heading font-bold">
             {diffGross >= 0 ? '+' : ''}{diffGross}
           </p>
@@ -208,7 +209,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
       )}
 
       {scoredHoles.length >= 9 && <RoundChart holes={scoredHoles} />}
-      {scoredHoles.length >= 9 && <RoundInsights holes={scoredHoles} />}
+      {scoredHoles.length >= 9 && <RoundInsights holes={scoredHoles} handicap={handicap} />}
       <ScorecardStats scores={scores} />
     </div>
   )
@@ -247,33 +248,23 @@ function NetBreakdownModal({
   scoredHolesCount, playedPar, totalGross, powerupModifier, adjustedGross,
   handicap, isCallaway, callawayBreakdown, totalNet, diffNet, strokeHoles, sorted,
 }: NetBreakdownProps) {
-  // Hand-rolled modal, so Escape isn't handled for us the way ui/dialog does it.
-  useEffect(() => {
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    document.addEventListener('keydown', onKeyDown)
-    return () => document.removeEventListener('keydown', onKeyDown)
-  }, [onClose])
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4" onClick={onClose}>
-      <div className="absolute inset-0 bg-black/40" />
-      <div
-        role="dialog"
-        aria-modal="true"
-        aria-labelledby="net-breakdown-title"
-        className="relative bg-background rounded-xl border border-border shadow-xl max-w-sm w-full overflow-hidden flex flex-col max-h-[90dvh]"
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="shrink-0 px-5 py-4 flex items-center justify-between" style={{ backgroundColor: 'var(--color-primary)' }}>
-          <h3 id="net-breakdown-title" className="font-heading font-bold text-white text-lg">Net Score Breakdown</h3>
-          <button type="button" onClick={onClose} aria-label="Close" className="p-1 rounded-full text-white/60 hover:text-white hover:bg-white/10">
+    <Dialog open onOpenChange={(next) => { if (!next) onClose() }}>
+      <DialogContent showCloseButton={false} className="max-w-sm">
+        <div
+          className="-mx-4 sm:-mx-6 -mt-4 sm:-mt-6 mb-4 px-5 py-4 flex items-center justify-between rounded-t-xl"
+          style={{ backgroundColor: 'var(--color-primary)', color: 'var(--primary-foreground)' }}
+        >
+          <DialogTitle className="font-heading font-bold text-lg text-primary-foreground">Net Score Breakdown</DialogTitle>
+          <DialogClose
+            aria-label="Close"
+            className="p-1 rounded-full text-primary-foreground/80 hover:text-primary-foreground hover:bg-primary-foreground/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-foreground"
+          >
             <X className="w-4 h-4" />
-          </button>
+          </DialogClose>
         </div>
 
-        <div className="px-5 py-4 space-y-4 overflow-y-auto flex-1 min-h-0">
+        <div className="space-y-4">
           <div className="flex items-center gap-2">
             <span className="text-xs font-semibold px-2.5 py-1 rounded-full border border-border text-muted-foreground">
               {handicapSystem === 'NONE' ? 'No Handicap (Gross)' :
@@ -344,7 +335,7 @@ function NetBreakdownModal({
             </div>
             <div className="flex justify-between text-sm font-bold">
               <span>Net vs Par</span>
-              <span className={diffNet < 0 ? 'text-red-600' : ''}>
+              <span className={diffNet < 0 ? 'text-score-birdie' : ''}>
                 {diffNet >= 0 ? '+' : ''}{diffNet}
               </span>
             </div>
@@ -360,8 +351,8 @@ function NetBreakdownModal({
             <StrokeAllocationDetail handicap={handicap} strokeHoles={strokeHoles} sorted={sorted} />
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   )
 }
 

@@ -1,3 +1,4 @@
+import { scoreName } from '@/lib/scoring-utils'
 import { getScoreType, SCORE_STYLE } from './score-styles'
 
 interface HoleScore {
@@ -28,17 +29,20 @@ export function NineTable({
   return (
     <div className="rounded-xl border border-border shadow-sm overflow-hidden">
       <table className="w-full text-sm border-collapse table-fixed">
+        <caption className="sr-only">
+          {label === 'Out' ? 'Front nine' : 'Back nine'} — par, stroke index and score for each hole.
+        </caption>
         <thead>
           <tr style={{ backgroundColor: 'var(--color-primary)' }}>
-            <th className="px-1 sm:px-2 py-2 sm:py-3 text-left text-[11px] font-bold text-primary-foreground uppercase tracking-wider sm:tracking-widest w-[13%]">
+            <th scope="col" className="px-1 sm:px-2 py-2 sm:py-3 text-left text-[11px] font-bold text-primary-foreground uppercase tracking-wider sm:tracking-widest w-[13%]">
               Hole
             </th>
             {holes.map((s) => (
-              <th key={s.holeNumber} className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-primary-foreground font-mono tabular-nums">
+              <th key={s.holeNumber} scope="col" className="py-2 sm:py-3 text-center text-[11px] sm:text-xs font-extrabold text-primary-foreground font-mono tabular-nums">
                 {s.holeNumber}
               </th>
             ))}
-            <th className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[11px] font-bold text-primary-foreground/80 border-l border-primary-foreground/20 uppercase tracking-wider w-[11%]">
+            <th scope="col" className="px-1 sm:px-2 py-2 sm:py-3 text-center text-[11px] font-bold text-primary-foreground/80 border-l border-primary-foreground/20 uppercase tracking-wider w-[11%]">
               {label}
             </th>
           </tr>
@@ -46,7 +50,7 @@ export function NineTable({
         <tbody>
           {/* Par row */}
           <tr className="border-b border-border bg-muted/20">
-            <td className="px-1 sm:px-2 py-1.5 sm:py-2 text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">Par</td>
+            <th scope="row" className="px-1 sm:px-2 py-1.5 sm:py-2 text-left text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">Par</th>
             {holes.map((s) => (
               <td key={s.holeNumber} className="text-center py-1.5 sm:py-2 text-[11px] sm:text-xs font-semibold font-mono tabular-nums">{s.par}</td>
             ))}
@@ -54,7 +58,7 @@ export function NineTable({
           </tr>
           {/* HCP row */}
           <tr className="border-b border-border">
-            <td className="px-1 sm:px-2 py-1 sm:py-1.5 text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">HCP</td>
+            <th scope="row" className="px-1 sm:px-2 py-1 sm:py-1.5 text-left text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">HCP</th>
             {holes.map((s) => (
               <td key={s.holeNumber} className="text-center py-1 sm:py-1.5 text-[11px] text-muted-foreground">
                 {s.handicapIndex ?? '—'}
@@ -64,7 +68,7 @@ export function NineTable({
           </tr>
           {/* Score row */}
           <tr>
-            <td className="px-1 sm:px-2 py-2 sm:py-2.5 text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">Score</td>
+            <th scope="row" className="px-1 sm:px-2 py-2 sm:py-2.5 text-left text-[11px] font-bold uppercase tracking-wider sm:tracking-widest text-muted-foreground">Score</th>
             {holes.map((s) => {
               if (!s.hasScore) {
                 return (
@@ -78,25 +82,33 @@ export function NineTable({
               const type = getScoreType(s.strokes, s.par)
               const style = SCORE_STYLE[type]
               const receivesStroke = strokeHoles.has(s.holeNumber)
+              // Score type is carried by border shape and hue; neither reaches a
+              // screen reader, so name it (WCAG 1.4.1). The stroke dot rides along
+              // here rather than on a title=, which AT does not reliably announce.
+              const srText = `${scoreName(s.strokes - s.par)}${receivesStroke ? ', handicap stroke' : ''}`
+              const strokeDot = (offset: string) =>
+                receivesStroke && (
+                  <span
+                    aria-hidden="true"
+                    className={`absolute ${offset} w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]`}
+                  />
+                )
               return (
                 <td key={s.holeNumber} className="py-2 sm:py-2.5 text-center">
                   {style.doubleRing ? (
                     <div className={`size-7 sm:size-10 mx-auto flex items-center justify-center p-0.5 ${style.doubleRing}`}>
                       <div className={`w-full h-full flex items-center justify-center relative font-bold font-mono tabular-nums text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
                         {s.strokes}
-                        {receivesStroke && (
-                          <span className="absolute -top-1.5 -right-1.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" title="Handicap stroke" />
-                        )}
+                        {strokeDot('-top-1.5 -right-1.5')}
                       </div>
                     </div>
                   ) : (
                     <div className={`size-6 sm:size-8 mx-auto flex items-center justify-center relative font-bold font-mono tabular-nums text-[11px] sm:text-xs ${style.cell} ${style.text}`}>
                       {s.strokes}
-                      {receivesStroke && (
-                        <span className="absolute -top-0.5 -right-0.5 w-1.5 h-1.5 rounded-full bg-[var(--color-primary)]" title="Handicap stroke" />
-                      )}
+                      {strokeDot('-top-0.5 -right-0.5')}
                     </div>
                   )}
+                  <span className="sr-only">{srText}</span>
                 </td>
               )
             })}
