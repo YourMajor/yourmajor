@@ -52,8 +52,8 @@ export const metadata: Metadata = {
   description: 'Live tournament scoring, leaderboards, and more.',
   manifest: '/manifest.json',
   icons: {
-    icon: '/icons/icon-192x192.png',
-    apple: '/icons/apple-touch-icon.png',
+    icon: '/icons/icon-192x192.png?v=2',
+    apple: '/icons/apple-touch-icon.png?v=2',
   },
   appleWebApp: {
     capable: true,
