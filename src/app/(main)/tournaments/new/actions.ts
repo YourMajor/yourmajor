@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { Prisma, type User } from '@/generated/prisma/client'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
@@ -497,11 +497,7 @@ export async function sendLateInvites(
   if (!tournament) return
 
   // Verify caller is a tournament admin
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') return
+  if (!(await isTournamentAdmin(user.id, tournamentId))) return
 
   const emailEntries = entries.filter((e) => e.type === 'email')
   const phoneEntries = entries.filter((e) => e.type === 'phone')
@@ -562,11 +558,7 @@ export async function setTournamentStatus(tournamentId: string, newStatus: strin
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     throw new Error('Forbidden')
   }
 

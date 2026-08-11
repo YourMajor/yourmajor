@@ -41,24 +41,23 @@ export async function requireAdmin(): Promise<User> {
  * Gate a server action on tournament-level admin. Sends unauthenticated
  * callers to login; throws for authenticated non-admins.
  *
- * Note this is the *narrow* check — direct TournamentPlayer.isAdmin only.
- * `isTournamentAdmin` below additionally honours account-level co-admins.
- * The two are deliberately not merged: widening this one would grant
- * co-admins access to every action that calls it.
+ * Changed 2026-08-10: this used to be a deliberately *narrow* check (direct
+ * TournamentPlayer.isAdmin only), kept separate from `isTournamentAdmin` so
+ * that widening it would not hand co-admins access to every calling action.
  *
- * API route handlers use `isTournamentAdmin` directly instead, matching the
- * admin layout — see the routes under api/tournaments/[id]/draft.
+ * That split produced a visible inconsistency: the admin layout and every API
+ * route gate on `isTournamentAdmin`, which honours account-level co-admins, so
+ * a co-admin could open the admin screens and then be refused by the server
+ * actions behind them. Resolved in favour of the wide check — co-admins now
+ * genuinely administer the tournaments they co-own, and one definition of
+ * "tournament admin" applies everywhere.
  */
 export async function requireTournamentAdmin(tournamentId: string): Promise<User> {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) throw new Error('Forbidden')
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
+    throw new Error('Forbidden')
   }
   return user
 }

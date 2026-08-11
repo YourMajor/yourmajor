@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { scheduleLeagueEvent } from '@/lib/league-event-actions'
 import { computeScheduleDates, type DayOfWeek, type ScheduleFrequency } from '@/lib/season-schedule'
 
@@ -30,11 +30,7 @@ export async function generateSeasonSchedule(
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     throw new Error('Only admins can generate a season schedule.')
   }
 

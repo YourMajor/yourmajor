@@ -2,7 +2,7 @@
 
 import { after } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { sendInviteEmails } from '@/lib/invite-sender'
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
@@ -28,16 +28,7 @@ export async function resendInvite(invitationId: string) {
   if (invitation.acceptedAt) throw new Error('Invitation already accepted')
 
   // Verify caller is a tournament admin
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: {
-      tournamentId_userId: {
-        tournamentId: invitation.tournament.id,
-        userId: user.id,
-      },
-    },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, invitation.tournament.id))) {
     throw new Error('Forbidden')
   }
 

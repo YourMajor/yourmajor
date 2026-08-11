@@ -3,7 +3,7 @@
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { getLeagueRootId } from '@/lib/league-events'
 import {
   sendAnnouncement as sendAnnouncementImpl,
@@ -30,12 +30,7 @@ async function assertAdmin(tournamentId: string): Promise<{ userId: string } | {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  if (user.role === 'ADMIN') return { userId: user.id }
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin) {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     return { error: 'Only league admins can manage announcements.' }
   }
   return { userId: user.id }

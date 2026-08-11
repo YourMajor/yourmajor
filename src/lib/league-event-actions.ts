@@ -3,7 +3,7 @@
 import { redirect } from 'next/navigation'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { getUserTier, consumeProCredit } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
@@ -38,11 +38,7 @@ export async function scheduleLeagueEvent(
   if (!user) redirect('/auth/login')
 
   // Verify admin
-  const membership = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId, userId: user.id } },
-    select: { isAdmin: true },
-  })
-  if (!membership?.isAdmin && user.role !== 'ADMIN') {
+  if (!(await isTournamentAdmin(user.id, tournamentId))) {
     throw new Error('Only admins can schedule league events.')
   }
 
@@ -243,14 +239,8 @@ export async function deleteLeagueEvent(
   if (!event) return { ok: false, error: 'Event not found.' }
 
   // Admin check — must be admin of THIS event (or super-admin).
-  if (user.role !== 'ADMIN') {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: eventId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) {
-      return { ok: false, error: 'Only league admins can delete events.' }
-    }
+  if (!(await isTournamentAdmin(user.id, eventId))) {
+    return { ok: false, error: 'Only league admins can delete events.' }
   }
 
   // Block root deletion — that's the whole league.

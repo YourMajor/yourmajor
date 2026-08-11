@@ -1,7 +1,7 @@
 'use server'
 
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { revalidatePath } from 'next/cache'
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
@@ -16,14 +16,10 @@ async function requireTournamentAdmin(slug: string): Promise<
     select: { id: true },
   })
   if (!tournament) return { error: 'Tournament not found' }
-  const isGlobalAdmin = user.role === 'ADMIN'
-  if (!isGlobalAdmin) {
-    const membership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: tournament.id, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!membership?.isAdmin) return { error: 'Forbidden' }
-  }
+  // isTournamentAdmin covers the global-ADMIN role, the direct isAdmin
+  // membership and account-level co-admins in one place. Return-shape kept so
+  // callers keep their `{ ok }` / `{ error }` handling.
+  if (!(await isTournamentAdmin(user.id, tournament.id))) return { error: 'Forbidden' }
   return { ok: true, tournamentId: tournament.id, userId: user.id }
 }
 
@@ -212,14 +208,7 @@ export async function setTeamCaptain(input: {
   if (!team) return { error: 'Team not found' }
   if (team.tournament.slug !== input.slug) return { error: 'Team does not belong to this tournament' }
 
-  const isGlobalAdmin = user.role === 'ADMIN'
-  if (!isGlobalAdmin) {
-    const adminMembership = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: team.tournamentId, userId: user.id } },
-      select: { isAdmin: true },
-    })
-    if (!adminMembership?.isAdmin) return { error: 'Forbidden' }
-  }
+  if (!(await isTournamentAdmin(user.id, team.tournamentId))) return { error: 'Forbidden' }
 
   const target = team.members.find((m) => m.tournamentPlayerId === input.newCaptainPlayerId)
   if (!target) return { error: 'Player is not on this team' }
