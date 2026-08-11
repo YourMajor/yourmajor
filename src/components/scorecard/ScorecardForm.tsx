@@ -7,6 +7,7 @@ import {
   getScoreType as getSharedScoreType,
   type ScoreType as SharedScoreType,
 } from '@/components/scorecard/detail/score-styles'
+import { ScorecardStats } from '@/components/scorecard/detail/ScorecardStats'
 
 interface HoleData {
   id: string
@@ -45,111 +46,6 @@ function getScoreType(strokes: number | undefined, par: number): ScoreType {
 const SCORE_STYLE: Record<ScoreType, { cell: string; text: string; dot: string; doubleRing?: string }> = {
   ...SHARED_SCORE_STYLE,
   empty: { cell: 'border border-border/30 rounded', text: 'text-foreground', dot: 'var(--border)' },
-}
-
-// ─── SVG Donut Chart ───────────────────────────────────────────────────────
-
-function DonutChart({ counts, total }: { counts: Record<string, number>; total: number }) {
-  const r = 46, size = 120, c = size / 2
-  const circ = 2 * Math.PI * r
-
-  const segs = [
-    { key: 'eagle',  color: SCORE_STYLE.eagle.dot  },
-    { key: 'birdie', color: SCORE_STYLE.birdie.dot },
-    { key: 'par',    color: SCORE_STYLE.par.dot    },
-    { key: 'bogey',  color: SCORE_STYLE.bogey.dot  },
-    { key: 'double', color: SCORE_STYLE.double.dot },
-  ].filter((s) => (counts[s.key] ?? 0) > 0)
-
-  let cum = 0
-  return (
-    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
-      <circle cx={c} cy={c} r={r} fill="none" stroke="var(--muted)" strokeWidth="14" />
-      {segs.map((seg) => {
-        const len = (counts[seg.key] / total) * circ
-        const off = circ * 0.25 - cum
-        cum += len
-        return (
-          <circle key={seg.key} cx={c} cy={c} r={r}
-            fill="none" stroke={seg.color} strokeWidth="14"
-            strokeDasharray={`${len} ${circ}`} strokeDashoffset={off}
-            style={{ transition: 'all 0.5s ease' }}
-          />
-        )
-      })}
-      <text x={c} y={c + 6} textAnchor="middle"
-        style={{ fontSize: '1rem', fontWeight: 600, fill: 'var(--foreground)', fontFamily: 'var(--font-geist-mono), ui-monospace, monospace' }}>
-        {total}
-      </text>
-    </svg>
-  )
-}
-
-// ─── Statistics Section ────────────────────────────────────────────────────
-
-function ScorecardStats({ holes, scores }: { holes: HoleData[]; scores: Record<string, number> }) {
-  const played = holes.filter((h) => scores[h.id] != null)
-  const total = played.length
-  if (total === 0) return null
-
-  const counts: Record<string, number> = {
-    eagle:  played.filter((h) => scores[h.id] - h.par <= -2).length,
-    birdie: played.filter((h) => scores[h.id] - h.par === -1).length,
-    par:    played.filter((h) => scores[h.id] - h.par === 0).length,
-    bogey:  played.filter((h) => scores[h.id] - h.par === 1).length,
-    double: played.filter((h) => scores[h.id] - h.par >= 2).length,
-  }
-
-  const statDefs = [
-    { key: 'eagle',  label: 'Eagles',  border: 'border-yellow-400', bg: 'bg-yellow-50',  barColor: SCORE_STYLE.eagle.dot,  textColor: SCORE_STYLE.eagle.dot  },
-    { key: 'birdie', label: 'Birdies', border: 'border-red-400',    bg: 'bg-red-50',     barColor: SCORE_STYLE.birdie.dot, textColor: SCORE_STYLE.birdie.dot },
-    { key: 'par',    label: 'Pars',    border: 'border-gray-300',   bg: 'bg-gray-50',    barColor: SCORE_STYLE.par.dot,    textColor: SCORE_STYLE.par.dot    },
-    { key: 'bogey',  label: 'Bogeys',  border: 'border-gray-500',   bg: 'bg-gray-100',   barColor: SCORE_STYLE.bogey.dot,  textColor: SCORE_STYLE.bogey.dot  },
-    { key: 'double', label: 'Double+', border: 'border-gray-700',   bg: 'bg-gray-200',   barColor: SCORE_STYLE.double.dot, textColor: SCORE_STYLE.double.dot },
-  ]
-
-  return (
-    <div className="space-y-5 pt-4 border-t border-border">
-      <h3 className="text-2xl font-heading font-bold">Statistics</h3>
-      <div className="flex flex-col sm:flex-row gap-8 items-start">
-        {/* Donut + legend */}
-        <div className="flex flex-col items-center gap-4 shrink-0">
-          <DonutChart counts={counts} total={total} />
-          <div className="space-y-1.5">
-            {statDefs.filter((s) => counts[s.key] > 0).map((s) => (
-              <div key={s.key} className="flex items-center gap-2 text-sm">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.barColor }} />
-                <span className="text-muted-foreground">{s.label}</span>
-                <span className="font-semibold ml-0.5">({counts[s.key]})</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Stat cards grid */}
-        <div className="flex-1 grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 w-full">
-          {statDefs.map((s) => {
-            const count = counts[s.key]
-            const pct = Math.round((count / total) * 100)
-            return (
-              <div key={s.key} className={`rounded-xl border-2 p-4 ${s.border} ${s.bg}`}>
-                <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{s.label}</p>
-                <div className="flex items-end gap-1 mt-1">
-                  <span className="text-4xl font-bold font-heading leading-none" style={{ color: s.textColor }}>{count}</span>
-                  <span className="text-xs text-muted-foreground mb-1 ml-0.5">/ {total}</span>
-                </div>
-                <div className="mt-3 h-1.5 rounded-full bg-white/60 overflow-hidden">
-                  <div className="h-full rounded-full transition-all duration-700"
-                    style={{ width: `${pct}%`, backgroundColor: s.barColor }} />
-                </div>
-                <p className="text-xs font-semibold mt-1" style={{ color: s.textColor }}>{pct}%</p>
-              </div>
-            )
-          })}
-        </div>
-      </div>
-    </div>
-  )
 }
 
 // ─── Main Form ─────────────────────────────────────────────────────────────
@@ -240,6 +136,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
         type="number"
         min={1}
         max={20}
+        aria-label={`Hole ${h.number}, par ${h.par}, strokes`}
         value={s ?? ''}
         onChange={(e) => {
           const v = parseInt(e.target.value)
@@ -258,7 +155,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
           const v = parseInt(e.target.value)
           if (!isNaN(v) && v > 0) flushHoleSave(h.id, v)
         }}
-        className={`absolute inset-0 w-full h-full text-center bg-transparent focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:ring-inset rounded-[inherit] text-sm font-bold [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${style.text}`}
+        className={`absolute inset-0 w-full h-full text-center bg-transparent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-inset rounded-[inherit] text-sm font-bold [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none ${style.text}`}
       />
     )
     return (
@@ -286,11 +183,12 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
       {/* Header */}
       <div className="flex items-center justify-between">
         <p className="text-sm font-medium text-muted-foreground">{courseName}</p>
-        <span className={`text-xs font-semibold transition-all px-2.5 py-1 rounded-full ${
-          saveStatus === 'idle'   ? 'opacity-0' :
-          saveStatus === 'saving' ? 'bg-amber-100 text-amber-700 opacity-100' :
-                                    'bg-green-100 text-green-700 opacity-100'
-        }`}>
+        <span
+          role="status"
+          className={`text-xs font-semibold transition-all px-2.5 py-1 rounded-full border border-border bg-card text-muted-foreground ${
+            saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           {saveStatus === 'saving' ? 'Saving…' : '✓ Saved'}
         </span>
       </div>
@@ -299,8 +197,14 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
       <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1 mb-1">
         <span aria-hidden="true">&larr;</span> Scroll to see all holes <span aria-hidden="true">&rarr;</span>
       </p>
-      <div className="overflow-x-auto overscroll-x-contain rounded-xl border border-border shadow-sm">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Scorecard, scrolls horizontally"
+        className="overflow-x-auto overscroll-x-contain rounded-xl border border-border shadow-sm focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <table className="w-full text-sm border-collapse" style={{ minWidth: '560px' }}>
+          <caption className="sr-only">Scorecard for {courseName}. Enter your strokes for each hole.</caption>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
               <th className="px-4 py-4 text-left text-xs font-bold text-primary-foreground uppercase tracking-widest w-20">Hole</th>
@@ -332,7 +236,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
           <tbody>
             {/* Par row */}
             <tr className="border-b border-border bg-muted/20">
-              <td className="px-4 py-2.5 text-xs font-bold uppercase tracking-widest text-muted-foreground">Par</td>
+              <th scope="row" className="px-4 py-2.5 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Par</th>
               {front.map((h) => <td key={h.id} className="text-center py-2.5 text-sm font-semibold">{h.par}</td>)}
               <td className={summaryTd}>{frontPar}</td>
               {back.map((h) => <td key={h.id} className="text-center py-2.5 text-sm font-semibold">{h.par}</td>)}
@@ -341,7 +245,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
             </tr>
             {/* HCP row */}
             <tr className="border-b border-border">
-              <td className="px-4 py-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">HCP</td>
+              <th scope="row" className="px-4 py-2 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">HCP</th>
               {front.map((h) => <td key={h.id} className="text-center py-2 text-xs text-muted-foreground">{h.handicap ?? '—'}</td>)}
               <td className={summaryTd + ' !font-normal text-muted-foreground text-xs'}>—</td>
               {back.map((h) => <td key={h.id} className="text-center py-2 text-xs text-muted-foreground">{h.handicap ?? '—'}</td>)}
@@ -350,7 +254,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
             </tr>
             {/* Score row */}
             <tr>
-              <td className="px-4 py-3 text-xs font-bold uppercase tracking-widest text-muted-foreground">Score</td>
+              <th scope="row" className="px-4 py-3 text-left text-xs font-bold uppercase tracking-widest text-muted-foreground">Score</th>
               {front.map(renderScoreCell)}
               <td className={summaryTd + ' text-base'}>{frontScore > 0 ? frontScore : '—'}</td>
               {back.map(renderScoreCell)}
@@ -367,7 +271,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
           <span className="text-sm text-muted-foreground">
             {playedHoles.length} hole{playedHoles.length !== 1 ? 's' : ''} · {playedScore} strokes
           </span>
-          <span className={`text-3xl font-bold font-heading ${diff < 0 ? 'text-red-600' : diff > 0 ? 'text-muted-foreground' : ''}`}>
+          <span className={`text-3xl font-bold font-heading ${diff < 0 ? 'text-score-birdie' : diff > 0 ? 'text-muted-foreground' : ''}`}>
             {diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff}
           </span>
         </div>
@@ -383,7 +287,9 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
       </Button>
 
       {/* Statistics */}
-      <ScorecardStats holes={holes} scores={scores} />
+      <ScorecardStats
+        scores={playedHoles.map((h) => ({ holeNumber: h.number, par: h.par, strokes: scores[h.id] }))}
+      />
     </div>
   )
 }

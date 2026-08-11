@@ -1,27 +1,14 @@
 'use client'
 
-import { formatVsPar } from '@/lib/scoring-utils'
+import { formatVsPar, scoreName } from '@/lib/scoring-utils'
+import {
+  getScoreType as getSharedScoreType,
+  LIVE_SCORE_STYLE as CELL_STYLE,
+} from '@/components/scorecard/detail/score-styles'
 import type { HoleData, HoleScore } from './useLiveScoringState'
 
-type ScoreType = 'eagle' | 'birdie' | 'par' | 'bogey' | 'double' | 'empty'
-
-function getScoreType(strokes: number | null, par: number): ScoreType {
-  if (strokes == null) return 'empty'
-  const d = strokes - par
-  if (d <= -2) return 'eagle'
-  if (d === -1) return 'birdie'
-  if (d === 0) return 'par'
-  if (d === 1) return 'bogey'
-  return 'double'
-}
-
-const CELL_STYLE: Record<ScoreType, string> = {
-  eagle: 'text-brand border-2 border-[var(--color-primary)] rounded-full font-extrabold',
-  birdie: 'text-brand border-2 border-[var(--color-primary)] rounded-full',
-  par: 'text-foreground',
-  bogey: 'text-foreground border border-foreground/40',
-  double: 'text-foreground/70 border-2 border-foreground/40',
-  empty: 'text-muted-foreground',
+function getScoreType(strokes: number | null, par: number) {
+  return strokes == null ? ('empty' as const) : getSharedScoreType(strokes, par)
 }
 
 interface RoundSummaryProps {
@@ -142,14 +129,21 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
                   <button
                     type="button"
                     onClick={() => handleHoleClick(h.number)}
-                    className={`w-7 h-7 mx-auto flex items-center justify-center font-bold text-xs transition-transform active:scale-90 touch-manipulation relative ${CELL_STYLE[type]} ${onHoleSelect ? 'cursor-pointer' : ''}`}
+                    aria-label={
+                      strokes == null
+                        ? `Hole ${h.number}, par ${h.par}, not yet played`
+                        : `Hole ${h.number}, par ${h.par}, ${strokes} strokes, ${scoreName(strokes - h.par)}` +
+                          (hasPowerup ? ', powerup active' : '') +
+                          (hasAttack ? ', attacked' : '')
+                    }
+                    className={`w-7 h-7 mx-auto flex items-center justify-center font-bold text-xs transition-transform active:scale-90 touch-manipulation relative focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring ${CELL_STYLE[type]} ${onHoleSelect ? 'cursor-pointer' : ''}`}
                   >
                     {strokes ?? '-'}
                     {hasPowerup && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-active">&#9733;</span>
+                      <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-active">&#9733;</span>
                     )}
                     {hasAttack && (
-                      <span className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-attack">&#9733;</span>
+                      <span aria-hidden="true" className="absolute -top-1.5 -right-1.5 text-[11px] leading-none text-powerup-attack">&#9733;</span>
                     )}
                   </button>
                 </td>
@@ -166,10 +160,10 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
 
   // Legend items
   const legendItems = [
-    { label: 'Eagle', className: 'border-2 border-[var(--color-primary)] rounded-full' },
-    { label: 'Birdie', className: 'border-2 border-[var(--color-primary)] rounded-full' },
-    { label: 'Bogey', className: 'border border-foreground/40' },
-    { label: 'D Bogey +', className: 'border-2 border-foreground/40' },
+    { label: 'Eagle', className: CELL_STYLE.eagle },
+    { label: 'Birdie', className: CELL_STYLE.birdie },
+    { label: 'Bogey', className: CELL_STYLE.bogey },
+    { label: 'D Bogey +', className: CELL_STYLE.double },
   ]
 
   return (
@@ -249,9 +243,9 @@ export function RoundSummary({ holes, scores, courseName, playerName, onHoleSele
         <div className="w-px h-10 bg-primary-foreground/20" />
         <div className="text-center flex-1 py-3">
           <p className="text-[11px] text-primary-foreground/80 uppercase tracking-wider">vs Par</p>
-          <p className={`text-2xl font-heading font-bold ${
-            diff !== null && diff < 0 ? 'text-red-300' : 'text-primary-foreground'
-          }`}>
+          {/* On the branded plate the sign carries under-par, not colour:
+              --score-birdie red would land on bone in dark mode. */}
+          <p className="text-2xl font-heading font-bold text-primary-foreground">
             {formatVsPar(diff)}
           </p>
         </div>

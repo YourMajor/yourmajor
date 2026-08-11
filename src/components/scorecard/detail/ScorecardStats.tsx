@@ -20,11 +20,11 @@ export function ScorecardStats({ scores }: { scores: HoleScore[] }) {
   }
 
   const statDefs = [
-    { key: 'eagle',  label: 'Eagles',  border: 'border-yellow-400', bg: 'bg-yellow-50',  barColor: SCORE_STYLE.eagle.dot,  textColor: SCORE_STYLE.eagle.dot  },
-    { key: 'birdie', label: 'Birdies', border: 'border-red-400',    bg: 'bg-red-50',     barColor: SCORE_STYLE.birdie.dot, textColor: SCORE_STYLE.birdie.dot },
-    { key: 'par',    label: 'Pars',    border: 'border-gray-300',   bg: 'bg-gray-50',    barColor: SCORE_STYLE.par.dot,    textColor: SCORE_STYLE.par.dot    },
-    { key: 'bogey',  label: 'Bogeys',  border: 'border-gray-500',   bg: 'bg-gray-100',   barColor: SCORE_STYLE.bogey.dot,  textColor: SCORE_STYLE.bogey.dot  },
-    { key: 'double', label: 'Double+', border: 'border-gray-700',   bg: 'bg-gray-200',   barColor: SCORE_STYLE.double.dot, textColor: SCORE_STYLE.double.dot },
+    { key: 'eagle',  label: 'Eagles',  tone: SCORE_STYLE.eagle.dot  },
+    { key: 'birdie', label: 'Birdies', tone: SCORE_STYLE.birdie.dot },
+    { key: 'par',    label: 'Pars',    tone: SCORE_STYLE.par.dot    },
+    { key: 'bogey',  label: 'Bogeys',  tone: SCORE_STYLE.bogey.dot  },
+    { key: 'double', label: 'Double+', tone: SCORE_STYLE.double.dot },
   ]
 
   return (
@@ -36,7 +36,7 @@ export function ScorecardStats({ scores }: { scores: HoleScore[] }) {
           <div className="space-y-1.5">
             {statDefs.filter((s) => counts[s.key] > 0).map((s) => (
               <div key={s.key} className="flex items-center gap-2 text-sm">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.barColor }} />
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: s.tone }} aria-hidden="true" />
                 <span className="text-muted-foreground">{s.label}</span>
                 <span className="font-semibold ml-0.5">({counts[s.key]})</span>
               </div>
@@ -48,16 +48,23 @@ export function ScorecardStats({ scores }: { scores: HoleScore[] }) {
             const count = counts[s.key]
             const pct = Math.round((count / total) * 100)
             return (
-              <div key={s.key} className={`rounded-xl border-2 p-4 ${s.border} ${s.bg}`}>
+              <div
+                key={s.key}
+                className="rounded-xl border-2 p-4"
+                style={{
+                  borderColor: `color-mix(in oklch, ${s.tone} 40%, var(--border))`,
+                  background: `color-mix(in oklch, ${s.tone} 6%, var(--card))`,
+                }}
+              >
                 <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">{s.label}</p>
                 <div className="flex items-end gap-1 mt-1">
-                  <span className="text-4xl font-bold font-heading leading-none" style={{ color: s.textColor }}>{count}</span>
+                  <span className="text-4xl font-bold font-heading leading-none" style={{ color: s.tone }}>{count}</span>
                   <span className="text-xs text-muted-foreground mb-1 ml-0.5">/ {total}</span>
                 </div>
-                <div className="mt-3 h-1.5 rounded-full bg-white/60 overflow-hidden">
-                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: s.barColor }} />
+                <div className="mt-3 h-1.5 rounded-full bg-muted overflow-hidden">
+                  <div className="h-full rounded-full" style={{ width: `${pct}%`, backgroundColor: s.tone }} />
                 </div>
-                <p className="text-xs font-semibold mt-1" style={{ color: s.textColor }}>{pct}%</p>
+                <p className="text-xs font-semibold mt-1" style={{ color: s.tone }}>{pct}%</p>
               </div>
             )
           })}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
+import { getScoreType, SCORE_STYLE } from '@/components/scorecard/detail/score-styles'
 
 interface Hole { id: string; number: number; par: number }
 interface Round { id: string; roundNumber: number; courseName: string; holes: Hole[] }
@@ -11,14 +12,15 @@ interface Props {
   players: Player[]
 }
 
-function scoreCellClass(diff: number | null): string {
-  const base = 'w-10 h-10 sm:w-9 sm:h-8 text-center text-xs font-bold bg-transparent focus:outline-none focus:ring-1 focus:ring-[var(--color-primary)] transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none border'
-  if (diff === null)  return `${base} border-border/30 rounded`
-  if (diff <= -2)     return `${base} rounded-full border-yellow-400 text-yellow-700 bg-yellow-50`
-  if (diff === -1)    return `${base} rounded-full border-red-500 text-red-600 bg-red-50`
-  if (diff === 0)     return `${base} border-border/30 rounded`
-  if (diff === 1)     return `${base} border-2 border-gray-700 rounded-none`
-  return `${base} border-2 border-gray-400 text-gray-400 rounded-none`
+// Sizing and spinner suppression are this grid's own; the score-type styling
+// comes from the canonical map so admin, scorecard and play page agree.
+const CELL_BASE =
+  'w-10 h-10 sm:w-9 sm:h-8 text-center text-xs font-bold bg-transparent transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+
+function scoreCellClass(strokes: number | null, par: number): string {
+  if (strokes == null) return `${CELL_BASE} border border-border/30 rounded`
+  const style = SCORE_STYLE[getScoreType(strokes, par)]
+  return `${CELL_BASE} ${style.cell} ${style.text}`
 }
 
 export function AdminScorecardEditor({ rounds, players }: Props) {
@@ -89,11 +91,12 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
 
       <div className="flex items-center justify-between">
         <p className="text-sm text-muted-foreground font-medium">{round.courseName} · Par {roundPar}</p>
-        <span className={`text-xs font-semibold transition-all px-2.5 py-1 rounded-full ${
-          saveStatus === 'idle'   ? 'opacity-0' :
-          saveStatus === 'saving' ? 'bg-amber-100 text-amber-700 opacity-100' :
-                                    'bg-green-100 text-green-700 opacity-100'
-        }`}>
+        <span
+          role="status"
+          className={`text-xs font-semibold transition-all px-2.5 py-1 rounded-full border border-border bg-card text-muted-foreground ${
+            saveStatus === 'idle' ? 'opacity-0' : 'opacity-100'
+          }`}
+        >
           {saveStatus === 'saving' ? 'Saving…' : '✓ Saved'}
         </span>
       </div>
@@ -103,8 +106,14 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
         <span aria-hidden="true">&larr;</span> Scroll to see all holes <span aria-hidden="true">&rarr;</span>
       </p>
       <div className="relative">
-      <div className="overflow-x-auto rounded-xl border border-border shadow-sm overscroll-x-contain">
+      <div
+        tabIndex={0}
+        role="region"
+        aria-label="Scorecard grid, scrolls horizontally"
+        className="overflow-x-auto rounded-xl border border-border shadow-sm overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      >
         <table className="w-full text-sm border-collapse" style={{ minWidth: `${120 + round.holes.length * 44 + 80}px` }}>
+          <caption className="sr-only">Scores for every player, round {round.roundNumber} at {round.courseName}.</caption>
           <thead>
             <tr style={{ backgroundColor: 'var(--color-primary)' }}>
               <th className="px-3 py-3 text-left text-xs font-bold text-primary-foreground uppercase tracking-widest sticky left-0 z-10 min-w-[140px]"
@@ -120,7 +129,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
             </tr>
             {/* Par row */}
             <tr className="bg-muted/30 border-b border-border">
-              <td className="px-3 py-1.5 text-xs font-semibold text-muted-foreground sticky left-0 bg-muted/30">Par</td>
+              <th scope="row" className="px-3 py-1.5 text-left text-xs font-semibold text-muted-foreground sticky left-0 bg-muted/30">Par</th>
               <td className="px-2 py-1.5 text-center text-xs text-muted-foreground">—</td>
               {round.holes.map((h) => (
                 <td key={h.id} className="py-1.5 text-center text-xs font-semibold text-muted-foreground">{h.par}</td>
@@ -145,13 +154,13 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
                   <td className="px-2 py-2.5 text-center text-xs text-muted-foreground">{p.handicap}</td>
                   {round.holes.map((h) => {
                     const s = playerScores[h.id]
-                    const d = s != null ? s - h.par : null
                     return (
                       <td key={h.id} className="py-2.5 text-center px-0.5">
                         <input
                           type="number"
                           min={1}
                           max={20}
+                          aria-label={`${p.name}, hole ${h.number}, par ${h.par}, strokes`}
                           value={s ?? ''}
                           onChange={(e) => {
                             const v = parseInt(e.target.value)
@@ -172,7 +181,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
                             const v = parseInt(e.target.value)
                             if (!isNaN(v) && v > 0) flushScore(p.id, round.id, h.id, v)
                           }}
-                          className={scoreCellClass(d)}
+                          className={scoreCellClass(s ?? null, h.par)}
                         />
                       </td>
                     )
@@ -182,7 +191,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
                   </td>
                   <td className={`px-3 py-2.5 text-center font-bold text-sm ${
                     diff === null ? 'text-muted-foreground' :
-                    diff < 0 ? 'text-red-600' :
+                    diff < 0 ? 'text-score-birdie' :
                     diff > 0 ? 'text-muted-foreground' : ''
                   }`}>
                     {diff === null ? '—' : diff === 0 ? 'E' : diff > 0 ? `+${diff}` : diff}
