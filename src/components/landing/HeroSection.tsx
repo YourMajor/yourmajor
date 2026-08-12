@@ -321,12 +321,17 @@ export function HeroSection() {
             )}
           </ClickSpark>
 
-          {/* The price of entry, stated where the decision happens: the
-              first "free" signal otherwise sits several thousand pixels
-              down the page. Facts match the pricing tiers. */}
-          <p className="mt-4 text-sm" style={{ color: 'var(--mk-text-subtle)' }}>
-            Free for groups up to 16. No card required.
-          </p>
+          {/* No price here. Pricing is stated once, on /pricing, so there is
+              exactly one place it can go stale. */}
+
+          {/* Mobile-only scroll cue. Desktop has the pinned hero sequence and
+              the Front Nine rail to say the page continues; a phone had
+              nothing at all, on a page that runs several thousand pixels.
+              No JS: it lives inside #hero and scrolls away with it. */}
+          <div aria-hidden className="mk-scroll-cue mt-14 lg:hidden">
+            <span className="mk-scroll-cue-rule" />
+            <span className="mk-label">Scroll</span>
+          </div>
         </div>
       </div>
     </section>

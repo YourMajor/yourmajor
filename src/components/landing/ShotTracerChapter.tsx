@@ -66,7 +66,11 @@ export function ShotTracerChapter() {
             motionOk: boolean
             sideBySide: boolean
           }
-          if (!motionOk) return
+          // Below lg both the shot list and the hole map are display:none,
+          // so there is nothing to play. The `stacked` path further down is
+          // unreachable while that holds; it stays because it is the correct
+          // trigger arrangement the moment either half ships to mobile again.
+          if (!motionOk || !sideBySide) return
 
           const svg = svgRef.current
           const rail = railRef.current
@@ -165,8 +169,11 @@ export function ShotTracerChapter() {
   )
 
   return (
-    <section ref={sectionRef} id="tracer" className="relative mt-24 flex min-h-[100dvh] items-center lg:mt-32">
-      <div className="mk-container w-full py-16">
+    // Same rhythm as every other chapter: mt-16/lg:mt-32 and nothing else.
+    // It used to reserve a full viewport and add its own py on top, which
+    // made it the one section that sat in a clearing of its own.
+    <section ref={sectionRef} id="tracer" className="relative mt-16 lg:mt-32">
+      <div className="mk-container w-full">
         <div className="grid items-center gap-12 lg:grid-cols-12 lg:gap-10">
           {/* Data rail */}
           <div ref={railRef} className="lg:col-span-5">
@@ -179,7 +186,11 @@ export function ShotTracerChapter() {
               board and the stats are live before the group reaches the next tee.
             </p>
 
-            <div className="mt-10">
+            {/* Desktop only, with the hole map beside it. The shot list and
+                the map together were the tallest thing between the hero and
+                the features run on a phone, for a chapter whose claim the
+                heading already makes. Below lg the chapter is the claim. */}
+            <div className="hidden lg:mt-10 lg:block">
               <div
                 className="flex items-baseline justify-between pb-3"
                 style={{ borderBottom: '2px solid var(--mk-gold)' }}
@@ -243,7 +254,7 @@ export function ShotTracerChapter() {
               flights traced over it in the photo's own coordinate space.
               Height is capped so the pinned viewport never crops the tee
               off the bottom. */}
-          <div className="mx-auto w-full lg:col-span-7">
+          <div className="mx-auto hidden w-full lg:col-span-7 lg:block">
             <div
               className="relative mx-auto overflow-hidden"
               style={{

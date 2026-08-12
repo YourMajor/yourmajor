@@ -664,10 +664,24 @@ export function FeatureSplits() {
   )
 
   return (
-    <div ref={rootRef} className="mk-container space-y-24 pt-24 lg:space-y-32 lg:pt-36">
-      {SPLIT_FEATURES.map((feature, i) => (
-        <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
-      ))}
+    <div ref={rootRef} className="mk-container pt-16 lg:pt-36">
+      {/* The run's opener. Until now the only heading covering the whole
+          features stretch was the poster's, several sections earlier — a
+          visitor scrolling past mockups was never told what they were. */}
+      <h2>How a round gets scored</h2>
+      <p
+        className="mt-4 max-w-[65ch] text-pretty text-base lg:text-lg"
+        style={{ color: 'var(--mk-text-muted)' }}
+      >
+        Two boards, one round: what the group shot, and what it shot after
+        handicaps.
+      </p>
+
+      <div className="mt-14 space-y-16 lg:mt-20 lg:space-y-32">
+        {SPLIT_FEATURES.map((feature, i) => (
+          <FeatureSplit key={feature.title} feature={feature} reverse={i % 2 === 1} />
+        ))}
+      </div>
     </div>
   )
 }
@@ -719,8 +733,30 @@ export function FeatureBento() {
   )
 
   return (
-    <div ref={rootRef} id="bento" className="mk-container mt-24 lg:mt-32">
-      <div className="grid gap-x-16 gap-y-20 lg:grid-cols-2">
+    <div ref={rootRef} id="bento" className="mk-container mt-16 lg:mt-32">
+      {/* Neither the heading nor the line below it claims what a tier
+          includes. Both did: "Built into every tournament" over "no add-ons
+          and no upgrade path, every event gets all of it" — and branding and
+          chat are not on the free tier. What each tier carries is stated
+          once, on /pricing, and nowhere else. */}
+      <h2>More than a scoreboard</h2>
+      {/* text-pretty: this line orphaned its last word on a narrow column.
+          The wrap is the browser's job, so hand it the rule rather than
+          hand-tuning a break that only holds at one width. */}
+      <p
+        className="mt-4 max-w-[65ch] text-pretty text-base lg:text-lg"
+        style={{ color: 'var(--mk-text-muted)' }}
+      >
+        The parts that make an event feel like yours rather than a shared
+        spreadsheet.
+      </p>
+
+      {/* Two-up on a phone as well as desktop. The four visuals are the
+          tallest things in the features run and they are illustration, not
+          proof — the two split mockups above carry that. Below lg they are
+          dropped rather than shrunk, which is what turns four screens of
+          scrolling into one. */}
+      <div className="mt-12 grid grid-cols-2 gap-x-6 gap-y-10 lg:mt-16 lg:gap-x-16 lg:gap-y-20">
           {BENTO_FEATURES.map((feature, i) => (
             <ScrollReveal key={feature.title} direction="up" delay={i * 60} duration={600}>
               {/* The rule is a background, not a border, so it can draw
@@ -734,7 +770,7 @@ export function FeatureBento() {
                 >
                   {feature.description}
                 </p>
-                <div className="mt-7">{feature.visual}</div>
+                <div className="mt-7 hidden lg:block">{feature.visual}</div>
               </div>
             </ScrollReveal>
           ))}
@@ -746,13 +782,16 @@ export function FeatureBento() {
 /** Ruled list. Ten capabilities that need naming, not illustrating. */
 export function FeatureList() {
   return (
-    <div className="mk-container mt-24 lg:mt-32">
-      <h3 className="text-2xl lg:text-3xl">Also included</h3>
-      <div className="mt-10 grid gap-x-16 sm:grid-cols-2">
+    <div className="mk-container mt-16 lg:mt-32">
+      <h2>Also included</h2>
+      {/* Two-up from the smallest screen, and the gloss is desktop-only:
+          ten single-column rows carrying a sentence each is a thousand
+          pixels of list. The titles alone still name every capability. */}
+      <div className="mt-8 grid grid-cols-2 gap-x-6 sm:gap-x-16 lg:mt-10">
         {LIST_FEATURES.map((feature, i) => (
           <ScrollReveal key={feature.title} direction="up" delay={i * 30} duration={500}>
             <div
-              className="flex items-start gap-4 py-5"
+              className="flex items-start gap-3 py-4 sm:gap-4 lg:py-5"
               style={{ borderTop: '1px solid var(--mk-rule-light)' }}
             >
               <feature.icon
@@ -761,11 +800,14 @@ export function FeatureList() {
                 aria-hidden
               />
               <div className="min-w-0">
-                <span className="block text-base font-semibold" style={{ color: 'var(--mk-text)' }}>
+                <span
+                  className="block text-sm font-semibold sm:text-base"
+                  style={{ color: 'var(--mk-text)' }}
+                >
                   {feature.title}
                 </span>
                 <span
-                  className="mt-1 block text-sm leading-relaxed"
+                  className="mt-1 hidden text-sm leading-relaxed sm:block"
                   style={{ color: 'var(--mk-text-subtle)' }}
                 >
                   {feature.desc}

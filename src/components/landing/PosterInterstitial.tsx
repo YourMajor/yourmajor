@@ -29,8 +29,14 @@ export function PosterInterstitial() {
     // Tall enough for the photograph to be a stage rather than a strip, and
     // for the worm tube to complete its run inside this section. No
     // overflow clip: the tube is meant to overhang the top edge.
+    //
+    // Desktop only. The whole set piece — the 88rem stage, the 26rem of
+    // headroom above the flag, the full-bleed photograph — exists to hold
+    // TubeRun, which is itself `hidden lg:block`. On a phone what was left
+    // was poster type and one sentence standing in a field of green, and it
+    // read as a stray page rather than a beat between chapters.
     <div
-      className="relative flex min-h-[88rem] flex-col justify-center pt-[26rem] pb-24"
+      className="relative hidden min-h-[88rem] flex-col justify-center pt-[26rem] pb-40 lg:flex"
       style={{ width: '100vw', marginLeft: 'calc(50% - 50vw)' }}
     >
       {/* Media stage: same drop-in contract as the hero's. The photo (and

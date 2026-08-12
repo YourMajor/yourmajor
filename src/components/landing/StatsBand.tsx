@@ -143,7 +143,7 @@ export function StatsBand() {
     <section
       ref={bandRef}
       id="stats"
-      className="mk-rule-soft-t mk-rule-soft-b relative mt-24 overflow-hidden lg:mt-32"
+      className="mk-rule-soft-t mk-rule-soft-b relative mt-16 overflow-hidden lg:mt-32"
       style={{
         // The raised ground blends in and out of the page green so the band
         // never starts or ends as a hard background line.
@@ -170,7 +170,12 @@ export function StatsBand() {
         )}
       </div>
 
-      <div className="mk-container relative grid grid-cols-2 gap-y-12 py-16 lg:grid-cols-4 lg:py-20">
+      <div className="mk-container relative py-16 lg:py-20">
+        {/* The band had no heading at all — four odometers and four gold
+            captions, with nothing saying what was being counted. */}
+        <h2 className="text-center">By the numbers</h2>
+
+        <div className="mt-12 grid grid-cols-2 gap-y-12 lg:mt-16 lg:grid-cols-4">
         {STATS.map((stat, i) => (
           <ScrollReveal key={stat.label} direction="up" delay={i * 80} duration={600}>
             <div className="text-center">
@@ -184,6 +189,7 @@ export function StatsBand() {
             </div>
           </ScrollReveal>
         ))}
+        </div>
       </div>
     </section>
   )

@@ -29,9 +29,16 @@ export function MobileCta() {
 
   return (
     <div ref={ref} data-visible="false" className="mk-mobile-cta lg:hidden">
-      <Link href="/auth/signup" className="mk-btn mk-btn-primary w-full">
-        Create a tournament
-      </Link>
+      {/* Both hero paths in the thumb zone: organizers create, players who
+          were sent a link browse. No price: pricing lives on /pricing. */}
+      <div className="flex gap-2">
+        <Link href="/auth/signup" className="mk-btn mk-btn-primary flex-1">
+          Create a tournament
+        </Link>
+        <Link href="/#clubhouse" className="mk-btn mk-btn-secondary">
+          Browse
+        </Link>
+      </div>
     </div>
   )
 }

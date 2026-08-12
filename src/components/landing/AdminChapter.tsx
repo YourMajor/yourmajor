@@ -41,7 +41,7 @@ const CONTROLS: Array<{ name: string; detail: string }> = [
 
 export function AdminChapter() {
   return (
-    <section id="admin" className="mt-24 lg:mt-32">
+    <section id="admin" className="mt-16 lg:mt-32">
       <div className="mk-container">
         {/* Same studio-band idiom as the lead-change chapter: a deep panel
             on the page ground, gold-ruled. */}
