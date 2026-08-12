@@ -1,3 +1,4 @@
+import Link from 'next/link'
 import { redirect } from 'next/navigation'
 import { getUser } from '@/lib/auth'
 import { HeroSection } from '@/components/landing/HeroSection'
@@ -12,14 +13,10 @@ import { ShotTracerChapter } from '@/components/landing/ShotTracerChapter'
 import { DraftChapter } from '@/components/landing/DraftChapter'
 import { AdminChapter } from '@/components/landing/AdminChapter'
 import { StatsBand } from '@/components/landing/StatsBand'
-import { SeasonStrip } from '@/components/landing/SeasonStrip'
 import { ScorecardRail } from '@/components/landing/ScorecardRail'
 import { SmoothScroll } from '@/components/landing/SmoothScroll'
-import { ClosingChapter } from '@/components/landing/ClosingChapter'
 import { MobileCta } from '@/components/landing/MobileCta'
-import { PricingSummary } from '@/components/landing/PricingSummary'
-import { FeaturedTournaments } from '@/components/landing/FeaturedTournaments'
-import { NearbyTournamentsSection } from '@/components/landing/NearbyTournamentsSection'
+import { TournamentsSection } from '@/components/landing/TournamentsSection'
 
 export default async function Home() {
   const user = await getUser()
@@ -41,6 +38,32 @@ export default async function Home() {
           PosterInterstitial. */}
       <PosterInterstitial />
 
+      {/* The clubhouse, early: real public events are the only proof on this
+          page that isn't a mockup, and browsing one is the only action a
+          visitor can take without an account. It used to sit past pricing,
+          ~13,000px down on a phone. One heading, one list. */}
+      <section
+        id="clubhouse"
+        className="mk-clubhouse-band mb-12 scroll-mt-24 lg:mb-20"
+      >
+        <div className="mk-container">
+          {/* The name this section already carries everywhere else: the
+              #clubhouse anchor, the rail's ninth tick, the footer link. Nav
+              still says "Tournaments" — that label is for a stranger deciding
+              whether to click; this is the room they arrive in. */}
+          <h2>The clubhouse</h2>
+          <p
+            className="mt-4 max-w-[65ch] text-pretty text-base lg:text-lg"
+            style={{ color: 'var(--mk-text-muted)' }}
+          >
+            Public events taking entries, and whatever is running near you.
+          </p>
+          <div className="mt-10">
+            <TournamentsSection />
+          </div>
+        </div>
+      </section>
+
       <LeadChangeChapter />
 
       {/* The same sections /features renders, inlined here so the landing
@@ -56,27 +79,39 @@ export default async function Home() {
           <ShotTracerChapter />
         </div>
         <DraftChapter />
+
+        {/* Mobile-only mid-run CTA. The draft is the chapter that sells the
+            product (social before competitive, PRODUCT.md), and on a phone
+            the next CTA after it is thousands of pixels away. No price here:
+            pricing lives on /pricing and nowhere else. */}
+        <div className="mk-container mt-16 lg:hidden">
+          <div
+            className="flex flex-col items-start px-6 py-8"
+            style={{
+              border: '1px dashed var(--mk-rule-gold)',
+              borderRadius: 'var(--mk-radius-lg)',
+            }}
+          >
+            <p className="text-base leading-relaxed" style={{ color: 'var(--mk-text-muted)' }}>
+              Set one up in five steps.
+            </p>
+            <Link href="/auth/signup" className="mk-btn mk-btn-primary mt-6">
+              Create a tournament
+            </Link>
+          </div>
+        </div>
+
         <FeatureBento />
         <AdminChapter />
         <StatsBand />
         <FeatureList />
       </section>
 
-      <PricingSummary />
-
-      {/* Nightfall: from here the evening comes down for good, ending in
-          the footer's end plate. The last memory of a full scroll is the
-          18th and the invitation, per peak-end. */}
-      <div className="mk-night-zone">
-        <div id="clubhouse" className="mk-container scroll-mt-24">
-          <FeaturedTournaments />
-          <NearbyTournamentsSection />
-        </div>
-
-        <SeasonStrip />
-
-        <ClosingChapter />
-      </div>
+      {/* The page ends on the features run and hands straight to the footer's
+          end plate, which is the closing set piece: night ground, the
+          wordmark, the credits line. The nightfall zone that used to sit here
+          carried a pricing summary, a season strip and the 18th; all three
+          are gone, and a gradient wrapper with nothing in it is not a beat. */}
 
       {/* The page as a front nine: desktop-only chapter rail. */}
       <ScorecardRail />

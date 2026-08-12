@@ -16,14 +16,16 @@ import { ScrollSmoother } from 'gsap/ScrollSmoother'
 
 const HOLES: Array<{ id: string; label: string }> = [
   { id: 'hero', label: 'First tee' },
+  { id: 'clubhouse', label: 'The clubhouse' },
   { id: 'lead', label: 'The lead change' },
   { id: 'features', label: 'The game' },
   { id: 'tracer', label: 'Shot tracer' },
   { id: 'draft', label: 'The draft' },
+  // Took the ninth slot when the pricing summary left the page. It is a
+  // chapter in its own right now that it carries its own heading.
+  { id: 'bento', label: 'Beyond the card' },
   { id: 'admin', label: 'The committee' },
   { id: 'stats', label: 'By the numbers' },
-  { id: 'pricing', label: 'Pricing' },
-  { id: 'clubhouse', label: 'The clubhouse' },
 ]
 
 export function ScorecardRail() {

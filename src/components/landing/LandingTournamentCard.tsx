@@ -24,12 +24,17 @@ interface LandingTournamentCardProps {
   startDate: string | null
   endDate: string | null
   playerCount: number
+  featured?: boolean
 }
 
 /**
  * A real tournament, on a bone plate. The previous version filled half the card
  * with a navy gradient and an outsized initial; DESIGN.md is explicit that a
  * gradient never stands in for a picture, so the card carries information only.
+ *
+ * Featured events are marked by the plate's own hairline turning gold and a
+ * word in the meta line — not a second pill. One card already carries a
+ * status chip, and two chips side by side is a badge shelf, not a card.
  */
 export function LandingTournamentCard({
   slug,
@@ -40,6 +45,7 @@ export function LandingTournamentCard({
   startDate,
   endDate,
   playerCount,
+  featured,
 }: LandingTournamentCardProps) {
   const isLive = status === 'ACTIVE'
 
@@ -47,6 +53,7 @@ export function LandingTournamentCard({
     <Link
       href={`/${slug}`}
       className="mk-plate mk-sheen block p-5 transition-shadow hover:shadow-[var(--mk-shadow-plate-hover)]"
+      style={featured ? { borderColor: 'var(--mk-gold)' } : undefined}
     >
       <div className="flex items-start gap-4">
         {logo && (
@@ -84,6 +91,12 @@ export function LandingTournamentCard({
           </div>
 
           <p className="mt-1.5 text-xs" style={{ color: 'var(--mk-over-par)' }}>
+            {featured && (
+              /* The darkened gold: bright gold on bone measures 2.2:1. */
+              <span className="font-semibold" style={{ color: 'var(--mk-gold-on-bone)' }}>
+                Featured ·{' '}
+              </span>
+            )}
             <span className="mk-data">{playerCount}</span> player
             {playerCount !== 1 ? 's' : ''}
             {` · ${formatDateRange(startDate, endDate)}`}

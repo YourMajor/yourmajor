@@ -14,9 +14,11 @@ const APP_LINKS: { label: string; href: string }[] = [
   { label: 'Tournaments', href: '/tournaments' },
   { label: 'Pricing', href: '/pricing' },
 ]
+// Order matches the landing page's own order: the clubhouse now sits
+// directly after the poster, ahead of the features run.
 const VISITOR_LINKS: { label: string; href: string }[] = [
-  { label: 'Features', href: '/#features' },
   { label: 'Tournaments', href: '/#clubhouse' },
+  { label: 'Features', href: '/#features' },
   { label: 'Pricing', href: '/pricing' },
 ]
 

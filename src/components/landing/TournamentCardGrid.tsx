@@ -4,7 +4,7 @@ import { useState, useMemo } from 'react'
 import { DateFilterTabs } from './DateFilterTabs'
 import { LandingTournamentCard } from './LandingTournamentCard'
 
-interface TournamentData {
+export interface TournamentData {
   id: string
   slug: string
   name: string
@@ -14,6 +14,8 @@ interface TournamentData {
   startDate: string | null
   endDate: string | null
   playerCount: number
+  /** A tournament we pushed out for everyone, not one found by proximity. */
+  featured?: boolean
 }
 
 interface TournamentCardGridProps {
@@ -71,6 +73,7 @@ export function TournamentCardGrid({ tournaments, emptyMessage }: TournamentCard
               startDate={t.startDate}
               endDate={t.endDate}
               playerCount={t.playerCount}
+              featured={t.featured}
             />
           ))}
         </div>
