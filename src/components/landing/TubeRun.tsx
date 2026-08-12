@@ -37,6 +37,11 @@ const BALL_R = 50 // diameter ≈ 76% of the bore, like theirs
 
 const CUP = { x: 1700, y: 90 } // the flagged hole: balls in, then two back out
 const EXIT = { x: 320, y: 1215 } // where the run resolves, bottom left under the copy
+const CUP_RX = 135
+const CUP_RY = 12
+// How far past the lip a ball travels before the throat mask has eaten all
+// of it: r plus a margin, so the last frame is empty rather than a sliver.
+const SINK = BALL_R + 24
 
 // The visible tube: mouth to mouth.
 const TUBE =
@@ -52,7 +57,10 @@ const TUBE =
 // the exit hole. One tween per ball, no chaining and no relative values —
 // relative offsets recorded on first render are exactly what made a
 // scrubbed ball drop twice and fly off on the way back up.
-const TRAVEL = `M ${CUP.x} ${CUP.y} ${TUBE.slice(TUBE.indexOf('L'))} L ${EXIT.x} ${EXIT.y}`
+// The last leg runs SINK past the exit's centre, not to it: the throat mask
+// there swallows the ball as it descends, which is what makes it drop into
+// the hole instead of shrinking on top of it.
+const TRAVEL = `M ${CUP.x} ${CUP.y} ${TUBE.slice(TUBE.indexOf('L'))} L ${EXIT.x} ${EXIT.y + SINK}`
 
 // Where each ball of the volley hangs at progress 0, relative to the cup.
 // Where the volley lies scattered across the green before the scroll draws
@@ -62,8 +70,7 @@ const TRAVEL = `M ${CUP.x} ${CUP.y} ${TUBE.slice(TUBE.indexOf('L'))} L ${EXIT.x}
 // Every value stays inside the viewBox — an SVG clips whatever leaves it,
 // and a ball whose scatter point is outside simply never appears.
 // Every one sits ABOVE the cup: a ball drawn in from below would rise up
-// through the oval, and a ball that has not finished sinking would show
-// beneath the lip.
+// through the oval.
 const RAIN = [
   { dx: -1280, dy: -560, spin: -120 },
   { dx: -840, dy: -300, spin: -70 },
@@ -136,7 +143,20 @@ export function TubeRun() {
               },
               at,
             )
-            tl.to(ball, { scale: 0.3, autoAlpha: 0, ease: 'power1.in', duration: 0.06 }, at + 0.28)
+            // And down the hole. It used to shrink and fade on the spot at
+            // the cup's centre, which left the bottom third of a 100px ball
+            // sitting below a 24px lip for the whole fade. Now it keeps
+            // falling and mk-cup-mask eats it on the way. Absolute y, never
+            // relative — relative offsets recorded on first render are the
+            // exact thing that made a scrubbed ball drop twice.
+            tl.to(
+              ball,
+              { y: -dy + SINK, ease: 'power2.in', duration: 0.1 },
+              at + 0.28,
+            )
+            // Insurance for the far side of the scrub: the mask has already
+            // hidden it, this only guarantees a clean state to wind back from.
+            tl.set(ball, { autoAlpha: 0 }, at + 0.38)
           })
 
           // Two of them come back out of the same cup and take the tube.
@@ -167,11 +187,9 @@ export function TubeRun() {
               { autoAlpha: 1, scale: 1, ease: 'power1.out', duration: 0.05, immediateRender: false },
               at,
             )
-            tl.to(
-              ball,
-              { scale: 0.3, autoAlpha: 0, ease: 'power1.in', duration: 0.06 },
-              at + RUN - 0.06,
-            )
+            // No scale-down at the exit either: TRAVEL now runs SINK past
+            // the hole's centre and mk-exit-mask does the swallowing.
+            tl.set(ball, { autoAlpha: 0 }, at + RUN)
           })
           tl.to({}, { duration: 0.04 })
 
@@ -256,6 +274,41 @@ export function TubeRun() {
             />
           </filter>
           <GolfBallDefs id="mk-worm-ball" r={BALL_R} />
+
+          {/* The throats. Paint order alone could never hide a sinking ball:
+              the lip is a 24px-tall ellipse, the ball is 100px across, and
+              this SVG is transparent over the poster photograph, so the
+              belly hanging below the rim painted straight onto the picture.
+              An opaque occluder is not available for the same reason — it
+              would read as a dark slab on the photo.
+
+              So each hole subtracts its own interior from a full-viewBox
+              white field: sweep-flag 0 walks the ellipse's LOWER arc (SVG's
+              y grows downward), then the shape drops away below. A ball
+              crossing that arc is eaten by the front lip exactly as it would
+              be by a real one, and the mask is bounded to the hole's own
+              footprint, so a ball still flying in several hundred units to
+              the left is untouched. */}
+          {([['mk-cup-mask', CUP], ['mk-exit-mask', EXIT]] as const).map(([id, c]) => (
+            <mask
+              key={id}
+              id={id}
+              maskUnits="userSpaceOnUse"
+              x={VB.x}
+              y={VB.y}
+              width={VB.w}
+              height={VB.h}
+            >
+              <rect x={VB.x} y={VB.y} width={VB.w} height={VB.h} fill="white" />
+              <path
+                d={`M ${c.x - CUP_RX} ${c.y}
+                    A ${CUP_RX} ${CUP_RY} 0 0 0 ${c.x + CUP_RX} ${c.y}
+                    L ${c.x + CUP_RX} ${c.y + 400}
+                    L ${c.x - CUP_RX} ${c.y + 400} Z`}
+                fill="black"
+              />
+            </mask>
+          ))}
         </defs>
 
         {/* The flagstick over the cup, and its waving pennant. */}
@@ -295,26 +348,38 @@ export function TubeRun() {
         {/* Home position is baked into the ball's own coordinates, never a
             transform attribute on the group: GSAP owns that attribute and
             overwrites it, which flung the whole volley off to the left. */}
-        {RAIN.map((ball, i) => (
-          <g key={`rain-${i}`} data-rain>
-            <GolfBall
-              defsId="mk-worm-ball"
-              cx={CUP.x + ball.dx}
-              cy={CUP.y + ball.dy}
-              r={BALL_R}
-            />
-          </g>
-        ))}
-        {[0, 1].map((i) => (
-          <g key={i} data-ball>
-            <GolfBall defsId="mk-worm-ball" cx={0} cy={0} r={BALL_R} />
-          </g>
-        ))}
+        {/* The mask goes on a static wrapper, never on the animated group:
+            a mask resolves in its own element's post-transform user space,
+            so on the ball itself it would travel along with it and clip
+            nothing. The volley falls into CUP, so it wears that throat. */}
+        <g mask="url(#mk-cup-mask)">
+          {RAIN.map((ball, i) => (
+            <g key={`rain-${i}`} data-rain>
+              <GolfBall
+                defsId="mk-worm-ball"
+                cx={CUP.x + ball.dx}
+                cy={CUP.y + ball.dy}
+                r={BALL_R}
+              />
+            </g>
+          ))}
+        </g>
+        {/* The two travellers wear the EXIT throat only. They emerge from
+            CUP and are meant to be visible in the gap between its lip and
+            the tube mouth at y=210; masking them there would erase it. */}
+        <g mask="url(#mk-exit-mask)">
+          {[0, 1].map((i) => (
+            <g key={i} data-ball>
+              <GolfBall defsId="mk-worm-ball" cx={0} cy={0} r={BALL_R} />
+            </g>
+          ))}
+        </g>
 
         {/* The cup itself, and the hole the run resolves into. Drawn last so
-            a ball sinking into either passes behind the lip. */}
-        <ellipse cx={CUP.x} cy={CUP.y} rx="135" ry="12" fill="var(--mk-cup)" />
-        <ellipse cx={EXIT.x} cy={EXIT.y} rx="135" ry="12" fill="var(--mk-cup)" />
+            the rim reads in front of whatever is still above it; the throat
+            masks above are what actually swallow a sinking ball. */}
+        <ellipse cx={CUP.x} cy={CUP.y} rx={CUP_RX} ry={CUP_RY} fill="var(--mk-cup)" />
+        <ellipse cx={EXIT.x} cy={EXIT.y} rx={CUP_RX} ry={CUP_RY} fill="var(--mk-cup)" />
       </svg>
     </div>
   )
