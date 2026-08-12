@@ -1,6 +1,8 @@
 'use client'
 
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import Image from 'next/image'
+import draftCourse from '../../../public/images/marketing/draft-course.png'
 import gsap from 'gsap'
 import { Flip } from 'gsap/Flip'
 import { createDraggable, type Draggable } from 'animejs'
@@ -330,16 +332,57 @@ export function DraftChapter() {
   return (
     <section
       id="draft"
-      className="mt-24 lg:mt-32"
-      style={{
-        // Deep ground blends in from and back out to the page green: no
-        // hard background line at either edge of the chapter.
-        background:
-          'linear-gradient(to bottom, var(--mk-green-ground), var(--mk-green-deep) 12%, var(--mk-green-deep) 88%, var(--mk-green-ground))',
-      }}
+      className="relative mt-10 lg:mt-20"
       aria-label="Powerup draft demonstration"
     >
-      <div className="mk-container py-20 lg:py-28">
+      {/* This chapter used to sit on a flat --mk-green-deep gradient, which
+          made it the darkest, greenest stretch of the page. It carries a
+          dusk course photograph now, on the same drop-in contract the hero
+          and the poster use: the image dissolves at both ends by mask, so
+          the page green runs into it and out of it with no seam, and no
+          overflow clip is needed (which would have caught a dragged card).
+          No parallax — a data-speed drift on a layer with a hard sky edge
+          sweeps that edge through the section as a flashing hairline. */}
+      <div
+        className="absolute inset-0"
+        aria-hidden
+        style={{
+          WebkitMaskImage:
+            'linear-gradient(to bottom, transparent 0%, black 14%, black 84%, transparent 100%)',
+          maskImage:
+            'linear-gradient(to bottom, transparent 0%, black 14%, black 84%, transparent 100%)',
+        }}
+      >
+        <Image
+          src={draftCourse}
+          alt=""
+          fill
+          sizes="100vw"
+          className="object-cover"
+          placeholder="blur"
+        />
+        {/* Two scrims, both tinted to the world, never neutral black: a
+            directional one so the copy at the left reads against the sky's
+            orange band (same angle and stops as the hero's), and a flat one
+            so the card faces below keep their plate contrast. */}
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              'linear-gradient(115deg, oklch(0.21 0.045 155 / 0.82) 0%, oklch(0.21 0.045 155 / 0.42) 48%, oklch(0.21 0.045 155 / 0.18) 72%)',
+          }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{
+            background: 'color-mix(in oklch, var(--mk-green-deep) 44%, transparent)',
+          }}
+        />
+      </div>
+
+      {/* py is the band's breathing room, not a gap. It was py-12/lg:py-28
+          and read as a chapter sitting apart from the run. */}
+      <div className="mk-container relative py-8 lg:py-16">
         <div className="max-w-[60ch]">
           <Zap className="h-5 w-5" style={{ color: 'var(--mk-gold)' }} aria-hidden />
           {/* h2: this is a chapter between h2 siblings; it was an h3, which
