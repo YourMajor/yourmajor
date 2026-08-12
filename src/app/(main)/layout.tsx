@@ -16,9 +16,12 @@ export default function MainLayout({ children }: { children: React.ReactNode }) 
           ancestor breaks fixed/sticky positioning. */}
       <div id="smooth-wrapper" className="flex flex-1 flex-col">
         <div id="smooth-content" className="flex flex-1 flex-col">
-          {/* pb clears the fixed BottomTabBar, which is lg:hidden. This said
-              md:pb-0, so the bar overlapped content between md and lg. */}
-          <div className="flex-1 pb-20 lg:pb-0">{children}</div>
+          {/* No padding here. Clearance for the fixed BottomTabBar lives in
+              Footer, on an element that actually paints a background: this
+              wrapper is transparent, so 80px of it below the page's own
+              ground showed as a band of app paper — a white strip under the
+              green on every marketing route, phone only. */}
+          <div className="flex-1">{children}</div>
           <Footer />
         </div>
       </div>

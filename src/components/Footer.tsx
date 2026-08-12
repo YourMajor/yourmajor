@@ -27,6 +27,10 @@ export function Footer() {
 
   if (!marketing) {
     return (
+      // The app footer is lg:block, so on a phone nothing paints down here
+      // and the tab-bar clearance has to be its own box. On marketing routes
+      // the end plate carries the same padding on its own dark ground.
+      <div className="pb-20 lg:pb-0">
       <footer className="footer-masters hidden lg:block">
         <div className="max-w-5xl mx-auto px-6 py-3 flex items-center justify-center gap-4 text-xs">
           {LINKS.map((link) => (
@@ -40,6 +44,7 @@ export function Footer() {
           ))}
         </div>
       </footer>
+      </div>
     )
   }
 

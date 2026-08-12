@@ -26,7 +26,16 @@ export default function FooterEndPlate() {
   return (
     <footer
       className="marketing relative overflow-hidden"
-      style={{ background: 'var(--mk-night)' }}
+      style={{
+        // The end plate carries its own nightfall now. Every marketing route
+        // ends on the green ground, and a flat --mk-night starting at this
+        // element's first pixel met that green as a hard line — the ramp the
+        // landing page's night zone used to provide before it was removed.
+        // oklab: green and night sit far apart in hue and the sRGB path
+        // between them sags through a muddy grey that bands.
+        background:
+          'linear-gradient(in oklab to bottom, var(--mk-green-ground) 0, var(--mk-night) 16rem)',
+      }}
     >
       {/* Painterly texture: the dusk photograph, crushed dark, masked so it
           fades up from nothing at the footer's top edge and dissolves into
@@ -52,7 +61,9 @@ export default function FooterEndPlate() {
       {/* The sunset ember rises behind the title. */}
       <div aria-hidden className="mk-footer-horizon" />
 
-      <div className="mk-container relative flex flex-col items-center gap-9 pt-16 pb-10 text-center lg:pt-24">
+      {/* pb-30 below lg is pb-10 plus the fixed BottomTabBar's clearance,
+          paid on the night ground so the page never ends on app paper. */}
+      <div className="mk-container relative flex flex-col items-center gap-9 pt-16 pb-30 text-center lg:pt-24 lg:pb-10">
         <p
           className="max-w-[40ch] text-base italic"
           style={{
