@@ -126,6 +126,16 @@ export async function createTournamentFromWizard(data: WizardPayload): Promise<{
 }
 
 async function _createTournament(data: WizardPayload, user: User): Promise<{ slug: string } | { error: string }> {
+  // parentTournamentId is client-supplied. Everything downstream trusts it —
+  // the round-count grandfathering, the participant carry-over, the parent's
+  // league roster, and the league chain that season-scoped actions resolve
+  // through getRootTournamentId — so the caller must administer the parent
+  // before we link to it. Reject rather than silently drop the link, so a
+  // legitimate renewal never quietly becomes a detached tournament.
+  if (data.parentTournamentId && !(await isTournamentAdmin(user.id, data.parentTournamentId))) {
+    return { error: 'Forbidden' }
+  }
+
   // Language filter for publicly discoverable tournaments
   if (data.tournamentType === 'PUBLIC') {
     if (containsProfanity(data.name)) {

@@ -2,10 +2,34 @@
 
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { requireTournamentAdmin } from '@/lib/auth'
+import { requireTournamentAdmin, isTournamentAdmin } from '@/lib/auth'
 import { getRootTournamentId } from '@/lib/league-chain'
 
-
+/**
+ * Every function here reads or writes SeasonAdjustment rows keyed on the league
+ * *root*, but the caller supplies a leaf id. Proving admin on the leaf alone is
+ * not enough: the root is resolved by walking `parentTournamentId`, so a caller
+ * who administers any tournament grafted under a foreign league would inherit
+ * that league's adjustments — read, add and delete. Authorize against the record
+ * actually being operated on by re-checking the caller on the resolved root.
+ *
+ * The leaf check is kept as-is (it also handles the unauthenticated redirect),
+ * so this only narrows: admin of leaf AND of root. Root admins, account-level
+ * co-admins (they inherit admin on the root itself) and site ADMINs are
+ * unaffected; a per-event admin with no rights on the league root is not.
+ *
+ * Deliberately NOT named `requireLeagueRootAdmin` — roster-actions.ts has its
+ * own module-local helper by that name. Not exported: in a `'use server'`
+ * module every export is a public endpoint.
+ */
+async function requireAdjustmentRootAdmin(tournamentId: string) {
+  const user = await requireTournamentAdmin(tournamentId)
+  const rootId = await getRootTournamentId(tournamentId)
+  if (rootId !== tournamentId && !(await isTournamentAdmin(user.id, rootId))) {
+    throw new Error('Forbidden')
+  }
+  return { user, rootId }
+}
 
 export interface AdjustmentRow {
   id: string
@@ -19,8 +43,7 @@ export interface AdjustmentRow {
 }
 
 export async function listSeasonAdjustments(tournamentId: string): Promise<AdjustmentRow[]> {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const { rootId } = await requireAdjustmentRootAdmin(tournamentId)
 
   const rows = await prisma.seasonAdjustment.findMany({
     where: { rootTournamentId: rootId },
@@ -61,8 +84,7 @@ export async function addSeasonAdjustment(
   tournamentId: string,
   payload: { userId: string; delta: number; reason: string },
 ) {
-  const user = await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const { user, rootId } = await requireAdjustmentRootAdmin(tournamentId)
 
   if (!Number.isFinite(payload.delta) || payload.delta === 0) {
     throw new Error('Adjustment delta must be a non-zero number.')
@@ -99,8 +121,7 @@ export async function addSeasonAdjustment(
 }
 
 export async function deleteSeasonAdjustment(tournamentId: string, adjustmentId: string) {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const { rootId } = await requireAdjustmentRootAdmin(tournamentId)
 
   // Confirm the adjustment belongs to this root before deleting.
   const adj = await prisma.seasonAdjustment.findUnique({

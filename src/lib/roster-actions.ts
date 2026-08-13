@@ -7,6 +7,24 @@ import { requireTournamentAdmin } from '@/lib/auth'
 import { sendInvitations } from '@/lib/invite-sender'
 import { getRootTournamentId } from '@/lib/league-chain'
 
+/**
+ * Resolve the league root for `tournamentId` and prove the caller administers
+ * that root — not just the tournament id they handed us.
+ *
+ * Every write in this module is keyed on the resolved root, but
+ * `requireTournamentAdmin` matches the exact id it is given and never walks the
+ * chain. Authorizing only the caller-supplied leaf therefore let an admin of
+ * any descendant event steer these actions at another organizer's league root.
+ * The leaf check is kept as well, so this can only ever refuse access, never
+ * grant it.
+ */
+async function requireLeagueRootAdmin(tournamentId: string): Promise<string> {
+  await requireTournamentAdmin(tournamentId)
+  const rootId = await getRootTournamentId(tournamentId)
+  if (rootId !== tournamentId) await requireTournamentAdmin(rootId)
+  return rootId
+}
+
 async function revalidateRosterScope(tournamentId: string, rootId: string) {
   // Revalidate the entered slug (where the action originated) plus the league
   // root's slug so the season dashboard reflects the change. Avoids the
@@ -23,7 +41,7 @@ async function revalidateRosterScope(tournamentId: string, rootId: string) {
 
 
 export async function getOrCreateRoster(tournamentId: string) {
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   let roster = await prisma.leagueRoster.findUnique({
     where: { rootTournamentId: rootId },
@@ -116,8 +134,7 @@ export async function updateRosterMemberStatus(
   memberId: string,
   status: 'ACTIVE' | 'INACTIVE'
 ) {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   // Scope the write to this league's roster — being an admin of one league
   // must not let a caller pass a memberId belonging to another league.
@@ -131,8 +148,7 @@ export async function updateRosterMemberStatus(
 }
 
 export async function removeRosterMember(tournamentId: string, memberId: string) {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   const { count } = await prisma.leagueRosterMember.deleteMany({
     where: { id: memberId, roster: { rootTournamentId: rootId } },
@@ -143,8 +159,7 @@ export async function removeRosterMember(tournamentId: string, memberId: string)
 }
 
 export async function toggleAutoAddNew(tournamentId: string, autoAddNew: boolean) {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   await prisma.leagueRoster.update({
     where: { rootTournamentId: rootId },
@@ -165,8 +180,7 @@ export async function updateSeasonConfig(
     seasonTiebreakers?: string[] | null
   },
 ) {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   await prisma.tournament.update({
     where: { id: rootId },
@@ -225,8 +239,7 @@ export async function importRosterCsv(
   tournamentId: string,
   rows: CsvRosterRow[],
 ): Promise<CsvImportResult> {
-  await requireTournamentAdmin(tournamentId)
-  const rootId = await getRootTournamentId(tournamentId)
+  const rootId = await requireLeagueRootAdmin(tournamentId)
 
   const result: CsvImportResult = {
     added: 0,
