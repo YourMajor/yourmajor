@@ -89,30 +89,52 @@ export async function scheduleLeagueEvent(
 
   const joinCode = template.isOpenRegistration ? await generateJoinCode() : null
 
-  // Create the new event
-  const newEvent = await prisma.tournament.create({
-    data: {
-      slug,
-      joinCode,
-      name: template.name,
-      description: template.description,
-      logo: template.logo,
-      headerImage: template.headerImage,
-      primaryColor: template.primaryColor,
-      accentColor: template.accentColor,
-      status: 'REGISTRATION',
-      tournamentType: template.tournamentType,
-      isOpenRegistration: template.isOpenRegistration,
-      handicapSystem: template.handicapSystem,
-      powerupsEnabled: template.powerupsEnabled,
-      powerupsPerPlayer: template.powerupsPerPlayer,
-      maxAttacksPerPlayer: template.maxAttacksPerPlayer,
-      distributionMode: template.distributionMode,
-      startDate: eventDate,
-      endDate: eventDate,
-      parentTournamentId: latestId,
-      isLeague: true,
-    },
+  // Does this event carry paid features? Decided from the template, before
+  // anything is written, so the charge can gate the creation instead of
+  // trailing it.
+  const needsPro =
+    template.rounds.length > TIER_LIMITS.FREE.maxRounds ||
+    template.powerupsEnabled
+  const requiresCredit = needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB'
+
+  // Create the new event, consuming a Pro credit in the same transaction so the
+  // event only exists if the charge landed — same shape as the tournament
+  // wizard (src/app/(main)/tournaments/new/actions.ts). Every child row below
+  // hangs off this event, so a rolled-back create leaves nothing behind.
+  const newEvent = await prisma.$transaction(async (tx) => {
+    const event = await tx.tournament.create({
+      data: {
+        slug,
+        joinCode,
+        name: template.name,
+        description: template.description,
+        logo: template.logo,
+        headerImage: template.headerImage,
+        primaryColor: template.primaryColor,
+        accentColor: template.accentColor,
+        status: 'REGISTRATION',
+        tournamentType: template.tournamentType,
+        isOpenRegistration: template.isOpenRegistration,
+        handicapSystem: template.handicapSystem,
+        powerupsEnabled: template.powerupsEnabled,
+        powerupsPerPlayer: template.powerupsPerPlayer,
+        maxAttacksPerPlayer: template.maxAttacksPerPlayer,
+        distributionMode: template.distributionMode,
+        startDate: eventDate,
+        endDate: eventDate,
+        parentTournamentId: latestId,
+        isLeague: true,
+      },
+    })
+
+    if (requiresCredit) {
+      const consumed = await consumeProCredit(user.id, event.id, tx)
+      if (!consumed) {
+        throw new Error('No Pro credits available. Purchase a credit to schedule this event.')
+      }
+    }
+
+    return event
   })
 
   // Clone rounds — use override course if provided, otherwise same as template
@@ -187,16 +209,6 @@ export async function scheduleLeagueEvent(
         })),
       }).catch(() => {})
     }
-  }
-
-  // Consume a Pro credit for this league event (same as any tournament)
-  const needsPro =
-    template.rounds.length > TIER_LIMITS.FREE.maxRounds ||
-    template.powerupsEnabled
-  if (needsPro && userTier.tier !== 'LEAGUE' && userTier.tier !== 'CLUB') {
-    await consumeProCredit(user.id, newEvent.id).catch(() => {
-      console.warn(`[scheduleLeagueEvent] No pro credit to consume for event ${newEvent.id}`)
-    })
   }
 
   if (rootSlug) revalidatePath(`/${rootSlug}`, 'layout')

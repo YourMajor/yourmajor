@@ -39,11 +39,15 @@ export async function POST(request: NextRequest) {
         if (existing) break
 
         if (purchaseType === 'EVENT') {
-          // tournamentId may be null for "credit" purchases from the pricing page
+          // tournamentId may be null for "credit" purchases from the pricing page.
+          // When it is set, the purchase was bought against that tournament and is
+          // spent the moment it lands, so stamp consumedAt with it — deleting the
+          // tournament nulls the FK (ON DELETE SET NULL) and would otherwise turn
+          // the row back into an unused credit.
           await prisma.purchase.create({
             data: {
               userId,
-              ...(tournamentId ? { tournamentId } : {}),
+              ...(tournamentId ? { tournamentId, consumedAt: new Date() } : {}),
               type: 'EVENT',
               status: 'ACTIVE',
               stripeSessionId: session.id,

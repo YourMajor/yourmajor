@@ -7,9 +7,26 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, isTournamentAdmin } from '@/lib/auth'
 import { containsProfanity, ProfanityError } from '@/lib/content-moderation'
 import { getFormat } from '@/lib/formats/registry'
+import { getTournamentTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import type { FormatId } from '@/lib/formats/types'
 
 const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
+
+// Tier gate messages. Creation blocks powerups with this exact string
+// (tournaments/new/actions.ts) and silently strips branding; on the update path
+// branding is an explicit error instead, matching the sibling sponsor/subdomain
+// actions rather than saving with a silent no-op.
+const POWERUPS_TIER_ERROR =
+  'Powerups require a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,999/year).'
+const BRANDING_TIER_ERROR =
+  'Custom branding requires a paid plan. Purchase a Pro credit ($29), subscribe to Club ($99/mo), or upgrade to Tour ($1,999/year).'
+
+// The palette creation forces on unbranded tiers — resetting back to it stays
+// allowed so a lapsed subscriber can undo their custom colors.
+const FREE_TIER_COLORS = { primaryColor: '#006747', accentColor: '#C9A84C' } as const
+
+const sameColor = (a: string, b: string) => a.toLowerCase() === b.toLowerCase()
 
 const FORMAT_IDS: [FormatId, ...FormatId[]] = [
   'STROKE_PLAY',
@@ -106,6 +123,24 @@ export async function updateTournament(
     if (containsProfanity(parsed.description)) throw new ProfanityError('Tournament description')
   }
 
+  // Tier gates. Creation enforces the whole matrix; this action writes the same
+  // columns, and consumption never re-resolves the tier — it reads what is
+  // stored. Resolve per-tournament (not per-user) so a Pro credit bought for
+  // this event counts, exactly as the sponsor/subdomain actions do. Every gate
+  // below blocks the *transition* that would grant an unentitled paid feature:
+  // turning a feature off, or clearing it, always stays possible.
+  const tier = await getTournamentTier(tournamentId)
+  const tierLimits = TIER_LIMITS[tier]
+
+  if (!tierLimits.customBranding) {
+    for (const field of ['primaryColor', 'accentColor'] as const) {
+      const next = parsed[field]
+      if (!sameColor(next, currentTournament![field]) && !sameColor(next, FREE_TIER_COLORS[field])) {
+        throw new Error(BRANDING_TIER_ERROR)
+      }
+    }
+  }
+
   const serverScoreCount = await prisma.score.count({
     where: { round: { tournamentId } },
   })
@@ -129,9 +164,15 @@ export async function updateTournament(
     serverHasScores && requestedStatus === 'REGISTRATION'
       ? currentTournament!.status
       : requestedStatus
-  const handicapSystem = serverHasScores
-    ? currentTournament!.handicapSystem
-    : (formatDef.impliedHandicap ?? 'NONE')
+  // FREE is gross-only (creation forces NONE), so a format whose implied
+  // handicap is anything else must not move the stored value. An implied NONE
+  // always writes through: that keeps a leftover handicap clearable and stops a
+  // lapsed subscriber silently scoring net on a gross format.
+  const impliedHandicap = formatDef.impliedHandicap ?? 'NONE'
+  const handicapSystem =
+    serverHasScores || (tier === 'FREE' && impliedHandicap !== 'NONE')
+      ? currentTournament!.handicapSystem
+      : impliedHandicap
 
   // If powerups are locked (draft started or cards dealt), preserve existing values
   const currentDraft = await prisma.draft.findUnique({ where: { tournamentId } })
@@ -144,6 +185,13 @@ export async function updateTournament(
   const powerupsPerPlayer = isLocked ? currentTournament!.powerupsPerPlayer : parsed.powerupsPerPlayer
   const maxAttacksPerPlayer = isLocked ? currentTournament!.maxAttacksPerPlayer : parsed.maxAttacksPerPlayer
   const distributionMode = isLocked ? currentTournament!.distributionMode : parsed.distributionMode
+
+  // Only the off->on flip is blocked — an unentitled admin must still be able to
+  // switch powerups back off (including one left on by an earlier bypass).
+  if (!tierLimits.powerups && powerupsEnabled && !currentTournament!.powerupsEnabled) {
+    throw new Error(POWERUPS_TIER_ERROR)
+  }
+
   const logoFile = formData.get('logo') as File | null
   const headerFile = formData.get('headerImage') as File | null
 
@@ -161,7 +209,13 @@ export async function updateTournament(
     return createHash('sha256').update(buf).digest('hex').slice(0, 12)
   }
 
+  // A submitted file is the only thing that moves logoUrl/headerImageUrl off the
+  // stored value, so refusing the upload here is the same transition gate the
+  // colors get: leaving the existing image alone still saves, and clearing it
+  // back to null stays possible. Checked before the upload so no orphaned
+  // object is written to storage.
   if (logoFile && logoFile.size > 0) {
+    if (!tierLimits.customBranding) throw new Error(BRANDING_TIER_ERROR)
     const ext = logoFile.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
       throw new Error(`Logo must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)
@@ -185,6 +239,7 @@ export async function updateTournament(
   }
 
   if (headerFile && headerFile.size > 0) {
+    if (!tierLimits.customBranding) throw new Error(BRANDING_TIER_ERROR)
     const ext = headerFile.name.split('.').pop()?.toLowerCase() ?? ''
     if (!ALLOWED_IMAGE_EXTS.includes(ext)) {
       throw new Error(`Header image must be one of: ${ALLOWED_IMAGE_EXTS.join(', ')}`)

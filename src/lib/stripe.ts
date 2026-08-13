@@ -266,7 +266,10 @@ export async function createPortalSession(userId: string, returnUrl: string) {
 
 /**
  * Count unused Pro tournament credits for a user.
- * An unused credit is an EVENT purchase with no tournamentId attached.
+ * An unused credit is an EVENT purchase that has never been consumed and has no
+ * tournamentId attached. consumedAt is the durable half of that test: deleting a
+ * tournament nulls tournamentId (ON DELETE SET NULL) but leaves consumedAt set,
+ * so a spent credit stays spent.
  */
 export async function getUnusedProCredits(userId: string): Promise<number> {
   return prisma.purchase.count({
@@ -275,6 +278,7 @@ export async function getUnusedProCredits(userId: string): Promise<number> {
       type: 'EVENT',
       status: 'ACTIVE',
       tournamentId: null,
+      consumedAt: null,
     },
   })
 }
@@ -348,17 +352,18 @@ export async function consumeProCredit(
       type: 'EVENT',
       status: 'ACTIVE',
       tournamentId: null,
+      consumedAt: null,
     },
     orderBy: { createdAt: 'asc' },
   })
 
   if (!credit) return false
 
-  // Guard on tournamentId still being null so two concurrent calls can't both
+  // Guard on the row still being unclaimed so two concurrent calls can't both
   // claim the same credit row (findFirst → update is a TOCTOU race).
   const result = await db.purchase.updateMany({
-    where: { id: credit.id, tournamentId: null },
-    data: { tournamentId },
+    where: { id: credit.id, tournamentId: null, consumedAt: null },
+    data: { tournamentId, consumedAt: new Date() },
   })
 
   return result.count > 0

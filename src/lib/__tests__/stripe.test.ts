@@ -6,25 +6,31 @@ type MockPurchase = {
   type: string
   status: string
   tournamentId: string | null
+  consumedAt: Date | null
   createdAt: Date
 }
 
 const purchaseStore: MockPurchase[] = []
+
+// An undefined key is "no filter", same as Prisma — so a dropped predicate
+// widens the match here exactly as it would against the database.
+function matches(p: MockPurchase, where: Partial<MockPurchase>) {
+  return (Object.keys(where) as (keyof MockPurchase)[]).every(
+    (k) => where[k] === undefined || p[k] === where[k],
+  )
+}
 
 const prismaMock = {
   purchase: {
     findFirst: vi.fn(async ({ where }: { where: Partial<MockPurchase> }) => {
       return (
         purchaseStore
-          .filter(
-            (p) =>
-              p.userId === where.userId &&
-              p.type === where.type &&
-              p.status === where.status &&
-              p.tournamentId === where.tournamentId,
-          )
+          .filter((p) => matches(p, where))
           .sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime())[0] ?? null
       )
+    }),
+    count: vi.fn(async ({ where }: { where: Partial<MockPurchase> }) => {
+      return purchaseStore.filter((p) => matches(p, where)).length
     }),
     // Atomic check-and-set: the filter and the write happen with no await in between,
     // which is what the real single-statement UPDATE ... WHERE gives us.
@@ -33,13 +39,19 @@ const prismaMock = {
         where,
         data,
       }: {
-        where: { id: string; tournamentId: string | null }
-        data: { tournamentId: string }
+        where: { id: string; tournamentId: string | null; consumedAt: Date | null }
+        data: { tournamentId: string; consumedAt: Date }
       }) => {
         const rows = purchaseStore.filter(
-          (p) => p.id === where.id && p.tournamentId === where.tournamentId,
+          (p) =>
+            p.id === where.id &&
+            p.tournamentId === where.tournamentId &&
+            p.consumedAt === where.consumedAt,
         )
-        for (const row of rows) row.tournamentId = data.tournamentId
+        for (const row of rows) {
+          row.tournamentId = data.tournamentId
+          row.consumedAt = data.consumedAt
+        }
         return { count: rows.length }
       },
     ),
@@ -55,6 +67,7 @@ function seedCredit(id: string): MockPurchase {
     type: 'EVENT',
     status: 'ACTIVE',
     tournamentId: null,
+    consumedAt: null,
     createdAt: new Date('2026-01-01'),
   }
   purchaseStore.push(row)
@@ -115,5 +128,31 @@ describe('consumeProCredit — concurrent consumption', () => {
     expect(await consumeProCredit('user_1', 'tourn_a')).toBe(true)
     expect(older.tournamentId).toBe('tourn_a')
     expect(newer.tournamentId).toBeNull()
+  })
+})
+
+describe('Pro credit consumption survives tournament deletion', () => {
+  it('a spent credit is not refunded when the tournament FK is nulled', async () => {
+    const { consumeProCredit, getUnusedProCredits } = await import('@/lib/stripe')
+    const row = seedCredit('pur_1')
+
+    expect(await getUnusedProCredits('user_1')).toBe(1)
+    expect(await consumeProCredit('user_1', 'tourn_a')).toBe(true)
+    expect(row.consumedAt).toBeInstanceOf(Date)
+    expect(await getUnusedProCredits('user_1')).toBe(0)
+
+    // Deleting the tournament fires ON DELETE SET NULL on Purchase.tournamentId.
+    row.tournamentId = null
+
+    expect(await getUnusedProCredits('user_1')).toBe(0)
+    expect(await consumeProCredit('user_1', 'tourn_b')).toBe(false)
+  })
+
+  it('an unconsumed credit is still spendable', async () => {
+    const { consumeProCredit, getUnusedProCredits } = await import('@/lib/stripe')
+    seedCredit('pur_1')
+
+    expect(await getUnusedProCredits('user_1')).toBe(1)
+    expect(await consumeProCredit('user_1', 'tourn_a')).toBe(true)
   })
 })

@@ -892,6 +892,10 @@ model Purchase {
   id              String         @id @default(cuid())
   userId          String
   tournamentId    String?        @unique
+  // When an EVENT credit was spent. The tournament FK is ON DELETE SET NULL, so
+  // tournamentId alone can't record consumption — deleting the tournament would
+  // clear it and hand the credit back. This column outlives the tournament row.
+  consumedAt      DateTime?
   type            PurchaseType
   status          PurchaseStatus @default(ACTIVE)
   stripeSessionId String?        @unique
