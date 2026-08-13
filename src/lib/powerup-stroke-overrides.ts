@@ -2,7 +2,8 @@
  * Powerup stroke overrides — three cards replace a player's recorded strokes
  * on a specific hole rather than modifying the net score:
  *
- *   • can-i-get-your-number → strokes become metadata.numberValue (1–10).
+ *   • can-i-get-your-number → strokes become metadata.numberValue, which must
+ *     be a legal hole score (see isValidStrokeOverrideValue).
  *   • concede               → if GIR on the activation hole, strokes become par - 1.
  *   • parent-trap           → activator's and target's strokes on the hole are swapped.
  *
@@ -12,7 +13,28 @@
 
 import { prisma } from '@/lib/prisma'
 
-const OVERRIDE_SLUGS = ['can-i-get-your-number', 'concede', 'parent-trap'] as const
+/** The one override slug whose replacement stroke count comes from the body. */
+export const NUMBER_OVERRIDE_SLUG = 'can-i-get-your-number'
+
+const OVERRIDE_SLUGS = [NUMBER_OVERRIDE_SLUG, 'concede', 'parent-trap'] as const
+
+/**
+ * A stroke count this engine is willing to write over a recorded score. Same
+ * bound the scores API enforces for a hand-entered hole score
+ * (src/app/api/scores/route.ts: integer 1–20), because that is exactly what
+ * this value becomes on the leaderboard.
+ */
+export const MIN_OVERRIDE_STROKES = 1
+export const MAX_OVERRIDE_STROKES = 20
+
+export function isValidStrokeOverrideValue(value: unknown): value is number {
+  return (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    value >= MIN_OVERRIDE_STROKES &&
+    value <= MAX_OVERRIDE_STROKES
+  )
+}
 
 export interface ScoreInput {
   tournamentPlayerId: string
@@ -67,9 +89,12 @@ export async function buildStrokeOverrideMap(
     const slug = ov.powerup.slug
     const aKey = `${ov.tournamentPlayerId}:${ov.holeNumber}`
 
-    if (slug === 'can-i-get-your-number') {
-      const num = (ov.metadata as { numberValue?: number } | null)?.numberValue
-      if (typeof num === 'number' && Number.isFinite(num)) {
+    if (slug === NUMBER_OVERRIDE_SLUG) {
+      const num = (ov.metadata as { numberValue?: unknown } | null)?.numberValue
+      // Rows written before the activation route validated this could hold any
+      // number at all. Ignore an out-of-range one — the player's recorded
+      // strokes stand — rather than replacing their score with it.
+      if (isValidStrokeOverrideValue(num)) {
         map.set(aKey, num)
       }
     } else if (slug === 'concede') {

@@ -57,7 +57,7 @@ export type PendingMutation = ScoreMutation | PowerupMutation
 
 export interface OfflineQueueHandlers {
   onScoreSuccess?: (payload: ScoreMutationPayload, response: ScoreSuccessResponse) => void
-  onScoreSettled?: (payload: ScoreMutationPayload, result: { ok: boolean; queued: boolean }) => void
+  onScoreSettled?: (payload: ScoreMutationPayload, result: { ok: boolean; queued: boolean; error?: string }) => void
   onPowerupSuccess?: (payload: PowerupActivatePayload, response: unknown) => void
   onPowerupAlreadyUsed?: (payload: PowerupActivatePayload) => void
   onPowerupTerminalFailure?: (payload: PowerupActivatePayload, error: string) => void
@@ -251,6 +251,18 @@ export function createOfflineQueue(
         reschedule(item.id)
         handlers.onScoreSettled?.(item.payload, { ok: false, queued: true })
         stop()
+        return
+      }
+      if (res.status === 409) {
+        // The event is closed (/api/scores refuses writes on a COMPLETED
+        // tournament). Retrying can never succeed, but unlike a 400 this is a
+        // real score the player entered — dropping it silently is data loss, so
+        // pass the server's reason up for the UI to show instead of "Saved".
+        let msg = 'Tournament completed — scores are final.'
+        try { const j = await res.json(); if (j?.error) msg = String(j.error) } catch { /* noop */ }
+        console.error('[offline-queue] score POST rejected (event closed):', msg, item.payload)
+        removeById(item.id)
+        handlers.onScoreSettled?.(item.payload, { ok: false, queued: false, error: msg })
         return
       }
       if (res.status >= 400 && res.status < 500) {

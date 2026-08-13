@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { isSingleTeamScoreFormat } from '@/lib/formats'
+import { isSingleTeamScoreFormat, isMatchFormat } from '@/lib/formats'
 
 export async function POST(request: NextRequest) {
   const dbUser = await getUser()
@@ -35,7 +35,9 @@ export async function POST(request: NextRequest) {
     select: {
       userId: true,
       tournamentId: true,
+      isAdmin: true,
       teamMembership: { select: { teamId: true } },
+      tournament: { select: { status: true } },
     },
   })
   if (!tp) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
@@ -68,6 +70,22 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
   }
 
+  // Completion freezes the card. Nothing else did: this route busts the
+  // leaderboard cache tag on every write and season standings include
+  // COMPLETED events, so a player (or their teammate) could still rewrite a
+  // finished leaderboard. Admins keep writing — the admin scorecard editor
+  // posts to this same route and corrections after the fact are its job.
+  // `tp.isAdmin` is the target row's flag, so it only stands in for the writer
+  // when the writer is the target (isOwn); otherwise isTournamentAdmin above
+  // is the caller's own flag.
+  const writerIsAdmin = isGlobalAdmin || isTournamentAdmin || (isOwn && tp.isAdmin)
+  if (tp.tournament.status === 'COMPLETED' && !writerIsAdmin) {
+    return NextResponse.json(
+      { error: 'Tournament completed — scores are final.' },
+      { status: 409 },
+    )
+  }
+
   // Scope roundId and holeId to the player's tournament. Both are caller-
   // supplied and reach the upsert unmodified; without this a legitimate player
   // could post their own tournamentPlayerId against a hole from another
@@ -86,6 +104,28 @@ export async function POST(request: NextRequest) {
     select: { id: true },
   })
   if (!hole) return NextResponse.json({ error: 'Hole not found' }, { status: 404 })
+
+  // A hole may only be conceded in a match-play format. This rule used to live
+  // only in the client (LiveScoring renders the Concede button behind the same
+  // predicate), so a caller posting `conceded: true` by hand unlocked the 0-
+  // stroke branch above in any format — and strokePlay/stableford still count
+  // the hole's par, so a 0-stroke round scored top of the leaderboard. Same
+  // predicate as the UI: FORMATS' own `kind: 'match'` (MATCH_PLAY, RYDER_CUP,
+  // NASSAU), which are exactly the formats whose strategies read `conceded`.
+  // Separate lookup rather than a join on the findUnique above so the two
+  // reads stay independent.
+  if (isConceded) {
+    const tournament = await prisma.tournament.findUnique({
+      where: { id: tp.tournamentId },
+      select: { tournamentFormat: true },
+    })
+    if (!isMatchFormat(tournament?.tournamentFormat)) {
+      return NextResponse.json(
+        { error: 'A hole can only be conceded in a match-play format' },
+        { status: 400 },
+      )
+    }
+  }
 
   // Check if this is a new score (not an update) to trigger round-start message
   const existingScore = await prisma.score.findUnique({

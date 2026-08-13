@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
 import { canActivate, computeActivationModifier, computeAttackTargetHole, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import { MAX_OVERRIDE_STROKES, MIN_OVERRIDE_STROKES, NUMBER_OVERRIDE_SLUG, isValidStrokeOverrideValue } from '@/lib/powerup-stroke-overrides'
 import { sendPushToUser } from '@/lib/push'
 import { broadcastNotification } from '@/lib/notification-broadcast'
 
@@ -74,6 +75,22 @@ export async function POST(
   const activation = canActivate(effect, { par: hole.par, number: hole.number })
   if (!activation.allowed) {
     return NextResponse.json({ error: activation.reason }, { status: 400 })
+  }
+
+  // Can I Get Your Number replaces the player's strokes on this hole with
+  // metadata.numberValue (powerup-stroke-overrides.ts). computeActivationModifier
+  // returns null for stroke-override slugs and the card needs no second-party
+  // confirmation, so the body's number is never inspected anywhere else on the
+  // way in — it has to be a legal hole score here or it reaches the leaderboard
+  // verbatim.
+  if (
+    playerPowerup.powerup.slug === NUMBER_OVERRIDE_SLUG &&
+    !isValidStrokeOverrideValue(metadata?.numberValue)
+  ) {
+    return NextResponse.json(
+      { error: `Number must be a whole number between ${MIN_OVERRIDE_STROKES} and ${MAX_OVERRIDE_STROKES}` },
+      { status: 400 },
+    )
   }
 
   // Validate target for ATTACK cards

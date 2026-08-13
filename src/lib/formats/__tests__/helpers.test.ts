@@ -9,7 +9,7 @@ import {
   bestBallSelect,
   matchPlayStatus,
 } from '@/lib/scoring-utils'
-import { isSingleTeamScoreFormat } from '@/lib/formats'
+import { isSingleTeamScoreFormat, isMatchFormat } from '@/lib/formats'
 
 describe('stablefordPoints (default table)', () => {
   it('eagle = 4, birdie = 3, par = 2, bogey = 1, double+ = 0', () => {
@@ -215,5 +215,33 @@ describe('isSingleTeamScoreFormat', () => {
     expect(isSingleTeamScoreFormat(null)).toBe(false)
     expect(isSingleTeamScoreFormat(undefined)).toBe(false)
     expect(isSingleTeamScoreFormat('')).toBe(false)
+  })
+})
+
+// isMatchFormat also gates hole concession: the Concede button in LiveScoring
+// and the `conceded: true` write in /api/scores both read it. Only the match
+// strategies consult Score.conceded — every other format counts the row's
+// strokes and par, so a conceded 0-stroke hole elsewhere is a scoring exploit.
+describe('isMatchFormat (concession gate)', () => {
+  it('admits the match formats', () => {
+    expect(isMatchFormat('MATCH_PLAY')).toBe(true)
+    expect(isMatchFormat('RYDER_CUP')).toBe(true)
+    expect(isMatchFormat('NASSAU')).toBe(true)
+  })
+  it('does NOT admit stroke-counting formats', () => {
+    expect(isMatchFormat('STROKE_PLAY')).toBe(false)
+    expect(isMatchFormat('STROKE_PLAY_NET')).toBe(false)
+    expect(isMatchFormat('STABLEFORD')).toBe(false)
+    expect(isMatchFormat('MODIFIED_STABLEFORD')).toBe(false)
+    expect(isMatchFormat('SKINS')).toBe(false)
+    expect(isMatchFormat('QUOTA')).toBe(false)
+    expect(isMatchFormat('SCRAMBLE')).toBe(false)
+    expect(isMatchFormat('BEST_BALL_2')).toBe(false)
+  })
+  it('falls back to stroke play (not a match format) for unknown input', () => {
+    expect(isMatchFormat(null)).toBe(false)
+    expect(isMatchFormat(undefined)).toBe(false)
+    expect(isMatchFormat('')).toBe(false)
+    expect(isMatchFormat('NOT_A_FORMAT')).toBe(false)
   })
 })

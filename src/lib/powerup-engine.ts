@@ -104,6 +104,16 @@ function applyMagnitudeCap(raw: number, cap: number): number {
 const STROKE_OVERRIDE_SLUGS = ['can-i-get-your-number'] as const
 
 /**
+ * Hard bound on a client-supplied metadata.numberValue. Most number_input
+ * effects declare no `cap`, so without this an activation could post any count
+ * and persist an arbitrary scoreModifier straight onto the leaderboard.
+ * 20 mirrors COUNT_INPUT_MAX in variable-powerup-evaluator.ts, which bounds the
+ * same class of value on the resolve endpoint (z.number().int().min(-20).max(20)).
+ * The activation UI's own input is min 1 / max 18, so no legitimate entry moves.
+ */
+const NUMBER_INPUT_MAX = 20
+
+/**
  * Compute the score modifier to record at activation time.
  *
  * Handles three cases:
@@ -134,10 +144,14 @@ export function computeActivationModifier(
     if (typeof n !== 'number' || !Number.isFinite(n)) return null
 
     if (effect.scoring.modifier === null) {
-      return n
+      // The entered value IS the modifier — bound its magnitude both ways.
+      return Math.min(Math.max(n, -NUMBER_INPUT_MAX), NUMBER_INPUT_MAX)
     }
 
-    const raw = n * effect.scoring.modifier
+    // Bound the count before multiplying: `cap` is optional in the seed, so it
+    // cannot be the only ceiling. Negative counts would invert the card's
+    // direction, so the floor is 0.
+    const raw = Math.min(Math.max(n, 0), NUMBER_INPUT_MAX) * effect.scoring.modifier
     const capped = typeof effect.scoring.cap === 'number' ? applyMagnitudeCap(raw, effect.scoring.cap) : raw
     // Normalize -0 → 0 so downstream === 0 / Object.is checks behave.
     return capped === 0 ? 0 : capped

@@ -13,6 +13,7 @@ import type { HoleData, ExistingScore } from './useLiveScoringState'
 import type { PlayerPowerupData } from './PowerupTray'
 import type { PowerupEffect } from '@/lib/powerup-engine'
 import { isVariablePowerup } from '@/lib/powerup-engine'
+import { isMatchFormat } from '@/lib/formats/registry'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -119,10 +120,9 @@ export function LiveScoring({
   teamMode,
   tournamentFormat,
 }: LiveScoringProps) {
-  const isMatchPlayFormat =
-    tournamentFormat === 'MATCH_PLAY'
-    || tournamentFormat === 'RYDER_CUP'
-    || tournamentFormat === 'NASSAU'
+  // Concession is match-play only. Shared with the write path in
+  // /api/scores, which rejects `conceded: true` on the same predicate.
+  const isMatchPlayFormat = isMatchFormat(tournamentFormat)
 
   const state = useLiveScoringState({
     tournamentPlayerId,
@@ -678,7 +678,7 @@ export function LiveScoring({
                 onPrev={state.prevHole}
                 onNext={state.nextHole}
                 onFinishRound={handleFinishRound}
-                finishError={finishError}
+                finishError={finishError ?? state.saveError}
                 hasPrev={state.currentHoleIndex > 0}
                 hasNext={
                   state.currentHoleIndex < state.sortedHoles.length - 1

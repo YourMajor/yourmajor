@@ -108,6 +108,22 @@ describe('offline-queue', () => {
       expect(q.size()).toBe(0)
       expect(onScoreSettled).toHaveBeenCalledWith(scorePayload, { ok: false, queued: false })
     })
+
+    it('reports the reason on 409 instead of dropping the score silently', async () => {
+      const onScoreSettled = vi.fn()
+      const fetchFn = vi.fn().mockResolvedValue(
+        jsonResponse(409, { error: 'Tournament completed — scores are final.' }),
+      )
+      const q = createOfflineQueue('r1', { onScoreSettled }, { storage, fetchFn })
+      q.enqueueScore(scorePayload)
+      await q.drain()
+      expect(q.size()).toBe(0)
+      expect(onScoreSettled).toHaveBeenCalledWith(scorePayload, {
+        ok: false,
+        queued: false,
+        error: 'Tournament completed — scores are final.',
+      })
+    })
   })
 
   describe('drain - retry succeeds after transient failure', () => {

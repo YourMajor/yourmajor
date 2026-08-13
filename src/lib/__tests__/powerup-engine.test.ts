@@ -189,6 +189,26 @@ describe('computeActivationModifier', () => {
     expect(computeActivationModifier(effect, { numberValue: 7 })).toBe(3)
   })
 
+  it('bounds an uncapped count card so numberValue cannot forge a modifier', () => {
+    // Shots for Shots / Bunker Buster: -1 each, no cap in the seed.
+    const effect = makeEffect({
+      scoring: { mode: 'manual', modifier: -1, conditionalKey: 'drink_count' },
+      input: { type: 'number_input', label: 'How many shots?', count: null },
+    })
+    expect(computeActivationModifier(effect, { numberValue: 1_000_000 })).toBe(-20)
+    expect(computeActivationModifier(effect, { numberValue: -1_000_000 })).toBe(0)
+    expect(computeActivationModifier(effect, { numberValue: 3 })).toBe(-3) // in range, untouched
+  })
+
+  it('bounds a direct-modifier card (modifier null) both ways', () => {
+    const effect = makeEffect({
+      scoring: { mode: 'manual', modifier: null, conditionalKey: 'sand_save' },
+      input: { type: 'number_input', label: 'Sand save? -3 if yes', count: null },
+    })
+    expect(computeActivationModifier(effect, { numberValue: -1_000_000 })).toBe(-20)
+    expect(computeActivationModifier(effect, { numberValue: 1_000_000 })).toBe(20)
+  })
+
   it('returns null when number_input card has no numberValue in metadata', () => {
     const effect = makeEffect({
       scoring: { mode: 'manual', modifier: null, conditionalKey: 'pin_proximity' },

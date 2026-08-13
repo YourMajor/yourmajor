@@ -180,6 +180,9 @@ export function useLiveScoringState({
   const [saveStatus, setSaveStatus] = useState<'idle' | 'pending' | 'saving' | 'saved'>(
     'idle',
   )
+  // Set when the queue gives up on a save for a reason retrying can't fix
+  // (the event completed), so the player isn't left thinking it saved.
+  const [saveError, setSaveError] = useState<string | null>(null)
   const [activeVariablePowerups, setActiveVariablePowerups] = useState<VariablePowerupState[]>([])
   const [powerupMessage, setPowerupMessage] = useState<PowerupMessage | null>(null)
   const powerupMsgTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
@@ -261,6 +264,7 @@ export function useLiveScoringState({
           },
         }
       })
+      setSaveError(null)
       setSaveStatus('saved')
       if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
       saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
@@ -269,10 +273,12 @@ export function useLiveScoringState({
   )
 
   const handleScoreSettled = useCallback(
-    (payload: ScoreMutationPayload, result: { ok: boolean; queued: boolean }) => {
-      // For any failed attempt (whether queued for retry or terminal), clear
-      // the in-flight visual state. The queue keeps trying invisibly.
+    (payload: ScoreMutationPayload, result: { ok: boolean; queued: boolean; error?: string }) => {
+      // For any failed attempt, clear the in-flight visual state. While the
+      // attempt is still queued the queue keeps trying invisibly; when it is
+      // dropped with a reason (the event completed), say so instead.
       if (result.ok) return
+      if (!result.queued && result.error) setSaveError(result.error)
       const holeId = payload.holeId
       setScores((prev) => {
         if (!prev[holeId]) return prev
@@ -663,6 +669,7 @@ export function useLiveScoringState({
     scores,
     rejection,
     saveStatus,
+    saveError,
     sortedHoles: sorted,
 
     // Score actions

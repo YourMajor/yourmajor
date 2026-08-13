@@ -57,17 +57,34 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
     return m
   })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  // The POST can be refused (409 once the tournament is completed). Show why
+  // rather than the "✓ Saved" pill, which would be a lie.
+  async function readError(res: Response): Promise<string> {
+    try {
+      const j = await res.json()
+      if (j?.error) return String(j.error)
+    } catch { /* noop */ }
+    return `Save failed (HTTP ${res.status})`
+  }
 
   async function saveHole(holeId: string, strokes: number) {
     if (!strokes || strokes < 1) return
     setSaveStatus('saving')
-    await fetch('/api/scores', {
+    const res = await fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tournamentPlayerId, holeId, roundId, strokes }),
     })
+    if (!res.ok) {
+      setSaveError(await readError(res))
+      setSaveStatus('idle')
+      return
+    }
+    setSaveError(null)
     setSaveStatus('saved')
     if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
     saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2500)
@@ -93,7 +110,7 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
     const pending = holes.filter((h) => scores[h.id])
     if (pending.length === 0) return
     setSaveStatus('saving')
-    await Promise.all(
+    const results = await Promise.all(
       pending.map((h) => {
         if (debounceTimers.current[h.id]) {
           clearTimeout(debounceTimers.current[h.id])
@@ -106,6 +123,13 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
         })
       })
     )
+    const failed = results.find((r) => !r.ok)
+    if (failed) {
+      setSaveError(await readError(failed))
+      setSaveStatus('idle')
+      return
+    }
+    setSaveError(null)
     setSaveStatus('saved')
     if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
     saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2500)
@@ -192,6 +216,12 @@ export function ScorecardForm({ tournamentPlayerId, roundId, holes, existingScor
           {saveStatus === 'saving' ? 'Saving…' : '✓ Saved'}
         </span>
       </div>
+
+      {saveError && (
+        <p role="alert" className="text-xs font-semibold text-destructive">
+          {saveError}
+        </p>
+      )}
 
       {/* Full-width scorecard table */}
       <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1 mb-1">

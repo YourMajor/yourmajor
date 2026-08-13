@@ -31,6 +31,7 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
     return m
   })
   const [saveStatus, setSaveStatus] = useState<'idle' | 'saving' | 'saved'>('idle')
+  const [saveError, setSaveError] = useState<string | null>(null)
   const debounceTimers = useRef<Record<string, ReturnType<typeof setTimeout>>>({})
   const saveStatusTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
 
@@ -38,11 +39,21 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
 
   async function saveScore(tournamentPlayerId: string, roundId: string, holeId: string, strokes: number) {
     setSaveStatus('saving')
-    await fetch('/api/scores', {
+    const res = await fetch('/api/scores', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tournamentPlayerId, holeId, roundId, strokes }),
     })
+    // A refused write (e.g. 409 on a completed tournament) must not read
+    // "✓ Saved" — the grid would show a number the server never took.
+    if (!res.ok) {
+      let msg = `Save failed (HTTP ${res.status})`
+      try { const j = await res.json(); if (j?.error) msg = String(j.error) } catch { /* noop */ }
+      setSaveError(msg)
+      setSaveStatus('idle')
+      return
+    }
+    setSaveError(null)
     setSaveStatus('saved')
     if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
     saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
@@ -100,6 +111,12 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
           {saveStatus === 'saving' ? 'Saving…' : '✓ Saved'}
         </span>
       </div>
+
+      {saveError && (
+        <p role="alert" className="text-xs font-semibold text-destructive">
+          {saveError}
+        </p>
+      )}
 
       {/* Scroll hint for mobile */}
       <p className="text-xs text-muted-foreground sm:hidden flex items-center gap-1 mb-1">

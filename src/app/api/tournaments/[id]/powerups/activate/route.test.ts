@@ -21,6 +21,14 @@ const ATTACK_EFFECT = {
 
 const BOOST_EFFECT = { ...ATTACK_EFFECT, requiresTarget: false }
 
+// Can I Get Your Number — the number in metadata becomes the player's stroke
+// count for the hole, so it is a score, not a modifier.
+const NUMBER_EFFECT = {
+  ...BOOST_EFFECT,
+  scoring: { mode: 'manual', modifier: null, conditionalKey: 'random_number' },
+  input: { type: 'number_input', label: 'What number did they pick? (1-10)', count: null },
+}
+
 const HOLES = [
   { id: 'h1', number: 1, par: 4 },
   { id: 'h2', number: 2, par: 4 },
@@ -46,7 +54,7 @@ const prismaMock = {
       status: 'AVAILABLE',
       powerup: {
         id: 'p_1',
-        slug: 'out-of-bounds',
+        slug: currentSlug,
         name: 'Out of Bounds',
         type: currentPowerupType,
         description: 'd',
@@ -66,6 +74,7 @@ const prismaMock = {
 
 let currentPowerupType = 'ATTACK'
 let currentEffect: unknown = ATTACK_EFFECT
+let currentSlug = 'out-of-bounds'
 
 // `after()` throws outside a request scope, so run the callback inline. That
 // also lets the push/broadcast assertions below see it.
@@ -84,6 +93,7 @@ beforeEach(() => {
   authMock.getUser.mockResolvedValue({ id: 'user_caller' })
   currentPowerupType = 'ATTACK'
   currentEffect = ATTACK_EFFECT
+  currentSlug = 'out-of-bounds'
   roundRow = { id: 'round_1', course: { holes: HOLES } }
   targetPlayerRow = {
     id: 'tp_target',
@@ -181,5 +191,43 @@ describe('POST /api/tournaments/[id]/powerups/activate — cross-tournament scop
     // they're on (computeAttackTargetHole: unscored[1] ?? unscored[0]).
     expect(data.targetHoleNumber).toBe(2)
     expect(prismaMock.notification.create).toHaveBeenCalledTimes(1)
+  })
+})
+
+// Can I Get Your Number writes metadata.numberValue straight through to the
+// row, and the stroke-override engine later uses it *as* the player's score
+// for the hole. Nothing between those two points bounds it, so the route has
+// to. Range is the scores API's legal hole score: an integer 1–20.
+describe('POST /api/tournaments/[id]/powerups/activate — stroke-override number', () => {
+  const numberBody = (numberValue: unknown) => ({
+    playerPowerupId: 'pp_1',
+    roundId: 'round_1',
+    holeNumber: 1,
+    metadata: { numberValue },
+  })
+
+  beforeEach(() => {
+    currentPowerupType = 'BOOST'
+    currentEffect = NUMBER_EFFECT
+    currentSlug = 'can-i-get-your-number'
+  })
+
+  it.each([[-500], [0], [21], [3.5], ['4'], [undefined]])(
+    'rejects numberValue %p without writing the row',
+    async (numberValue) => {
+      const { POST } = await import('./route')
+      const res = await POST(req(numberBody(numberValue)), ctx())
+
+      expect(res.status).toBe(400)
+      expect(prismaMock.playerPowerup.updateMany).not.toHaveBeenCalled()
+    },
+  )
+
+  it('accepts a legal hole score and stores it untouched', async () => {
+    const { POST } = await import('./route')
+    const res = await POST(req(numberBody(7)), ctx())
+
+    expect(res.status).toBe(200)
+    expect((claimWrites[0].metadata as { numberValue: number }).numberValue).toBe(7)
   })
 })
