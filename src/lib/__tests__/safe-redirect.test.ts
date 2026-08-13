@@ -27,6 +27,17 @@ describe('safeNextPath', () => {
     expect(safeNextPath('/\\evil.com')).toBe('/dashboard')
   })
 
+  // The WHATWG URL parser strips ASCII tab, LF and CR before parsing, so these
+  // resolve to //evil.com in the browser even though the raw string looks like
+  // a single-slash path. Any raw tab/LF/CR is rejected, not stripped.
+  it('rejects tab / newline / carriage return smuggled into the path', () => {
+    expect(safeNextPath('/\t/evil.com')).toBe('/dashboard')
+    expect(safeNextPath('/\n/evil.com')).toBe('/dashboard')
+    expect(safeNextPath('/\r/evil.com')).toBe('/dashboard')
+    expect(safeNextPath('/\t\\evil.com')).toBe('/dashboard')
+    expect(safeNextPath('/dash\tboard')).toBe('/dashboard')
+  })
+
   it('rejects absolute URLs', () => {
     expect(safeNextPath('https://evil.com')).toBe('/dashboard')
     expect(safeNextPath('http://evil.com')).toBe('/dashboard')

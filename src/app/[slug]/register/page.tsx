@@ -49,8 +49,10 @@ export default async function RegisterPage({
     )
   }
 
-  // Invite-only: require valid token or matching email
-  let resolvedToken = token
+  // Invite-only: require a valid invitation token. Never match on the caller's
+  // own email or phone — neither is verified, so either would let anyone claim
+  // someone else's invitation just by typing their address or number.
+  const resolvedToken = token
   if (!tournament.isOpenRegistration) {
     if (token) {
       // Validate the provided token
@@ -92,35 +94,6 @@ export default async function RegisterPage({
         )
       }
 
-    } else if (dbUser) {
-      // No token — check if the user's email or phone matches a pending invitation
-      const orConditions = [
-        ...(dbUser.email ? [{ email: dbUser.email }] : []),
-        ...(dbUser.phone ? [{ phone: dbUser.phone }] : []),
-      ]
-      const matchingInvitation = orConditions.length > 0
-        ? await prisma.invitation.findFirst({
-            where: {
-              tournamentId: tournament.id,
-              acceptedAt: null,
-              OR: orConditions,
-            },
-            select: { token: true },
-          })
-        : null
-
-      if (matchingInvitation) {
-        resolvedToken = matchingInvitation.token
-      } else {
-        return (
-          <TournamentMessage
-            icon={Mail}
-            heading="Invitation Required"
-            description="This tournament requires an invitation. Please use the link from your invite email or text."
-            backHref={`/${slug}`}
-          />
-        )
-      }
     } else {
       return (
         <TournamentMessage

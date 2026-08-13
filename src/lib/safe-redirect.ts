@@ -10,9 +10,16 @@
  *                     `https://yourmajor.club@evil.com`, where the real host is
  *                     evil.com and our domain is just the userinfo component
  *   - `https://…`   — absolute URL passed straight to redirect()
+ *   - `/<TAB>/evil.com` — the WHATWG URL parser strips ASCII tab, LF and CR
+ *                     anywhere in the string before parsing, so this resolves
+ *                     to `//evil.com`; checking the raw string would approve a
+ *                     value the browser never sees
  */
 export function safeNextPath(next: string | null | undefined, fallback = '/dashboard'): string {
   if (!next) return fallback
+  // Reject before the checks below, so the string they approve is the string
+  // the browser resolves. Rejecting rather than stripping keeps that identical.
+  if (/[\t\n\r]/.test(next)) return fallback
   if (!next.startsWith('/')) return fallback
   if (next.startsWith('//') || next.startsWith('/\\')) return fallback
   return next
