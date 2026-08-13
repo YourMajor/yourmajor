@@ -3,9 +3,11 @@
 import { revalidatePath } from 'next/cache'
 import { Prisma } from '@/generated/prisma/client'
 import { prisma } from '@/lib/prisma'
-import { requireTournamentAdmin } from '@/lib/auth'
-import { sendInvitations } from '@/lib/invite-sender'
+import { requireTournamentAdmin, getUser } from '@/lib/auth'
+import { sendInvitations, invitationToken } from '@/lib/invite-sender'
 import { getRootTournamentId } from '@/lib/league-chain'
+import { checkRateLimit, LIMITS } from '@/lib/rate-limit'
+import { TIER_LIMITS } from '@/lib/tiers'
 
 /**
  * Resolve the league root for `tournamentId` and prove the caller administers
@@ -227,6 +229,14 @@ const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const PHONE_RE = /^\+?[0-9\s\-()]{7,}$/
 
 /**
+ * Rows one import may carry. Sourced from the largest field the product sells —
+ * TIER_LIMITS.LEAGUE.maxPlayers, 144 players per event — so no roster a real
+ * league can run hits it in a single upload. A bigger list imports in
+ * successive batches.
+ */
+const MAX_IMPORT_ROWS = TIER_LIMITS.LEAGUE.maxPlayers
+
+/**
  * Bulk-import roster members from a parsed CSV. Run inside a single transaction:
  * upsert User → upsert PlayerProfile.handicap → create LeagueRosterMember →
  * create Invitation rows. Invite emails + SMS are sent post-commit via the
@@ -250,6 +260,28 @@ export async function importRosterCsv(
     invitedPhones: 0,
     duplicateEmails: [],
     duplicatePhones: [],
+  }
+
+  // One import fans out as far as the CSV is long — invite-sender bills a
+  // Resend email and/or a Twilio SMS per row — so bound it at the trust
+  // boundary: a per-call row cap, then the same per-caller limiter resendInvite
+  // uses for its single recipient. Both gates run before any read, write or
+  // send, so a refusal costs the caller nothing already in flight: the roster is
+  // exactly as it was and the whole CSV can be re-submitted.
+  if (rows.length > MAX_IMPORT_ROWS) {
+    throw new Error(
+      `Too many rows: ${rows.length}. Import at most ${MAX_IMPORT_ROWS} players at a time.`,
+    )
+  }
+  const caller = await getUser()
+  const importLimit = await checkRateLimit(
+    `roster-import:${caller?.id ?? 'unknown'}`,
+    LIMITS.rosterImport,
+  )
+  if (!importLimit.ok) {
+    throw new Error(
+      `Too many roster imports. Try again in ${Math.ceil(importLimit.retryAfter / 60)} minutes.`,
+    )
   }
 
   // Validate + normalise.
@@ -412,6 +444,7 @@ export async function importRosterCsv(
         data: newEmailInvites.map((r) => ({
           tournamentId: rootId,
           email: r.email,
+          token: invitationToken(),
           expiresAt,
         })),
       })
@@ -421,6 +454,7 @@ export async function importRosterCsv(
         data: newPhoneInvites.map((r) => ({
           tournamentId: rootId,
           phone: r.phone,
+          token: invitationToken(),
           expiresAt,
         })),
       })

@@ -24,6 +24,11 @@ export const LIMITS = {
   joinCodeLookup: { limit: 20, windowSeconds: 600 },
   /** Fires a real Twilio SMS and/or Resend email per call. */
   inviteResend: { limit: 10, windowSeconds: 3600 },
+  /** Bulk roster CSV import: a Twilio SMS and/or Resend email per *row*, so one
+   *  call costs as much as a whole roster. Lower than inviteResend for that
+   *  reason — an admin uploads a season roster once and retries a couple of
+   *  times after fixing columns; five an hour covers that and nothing more. */
+  rosterImport: { limit: 5, windowSeconds: 3600 },
   /** Credential stuffing. Supabase throttles too; this is defence in depth. */
   auth: { limit: 10, windowSeconds: 900 },
 } as const

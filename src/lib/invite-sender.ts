@@ -1,6 +1,7 @@
 // Shared invite delivery: email (Resend) + SMS (Twilio).
 // Three call sites: createTournamentFromWizard, sendLateInvites, importRosterCsv.
 
+import { randomBytes } from 'crypto'
 import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
 import { escapeHtml } from '@/lib/email'
@@ -9,6 +10,22 @@ export interface InvitationToSend {
   email?: string | null
   phone?: string | null
   token: string
+}
+
+/**
+ * Generate the token for a new Invitation row.
+ *
+ * randomBytes, not the schema's old cuid() default — same reasoning as the join
+ * code in join-code.ts. This token is a pure bearer credential: `?token=` is the
+ * only proof of invitation the register page accepts for an invite-only
+ * tournament. Prisma generates cuid in JavaScript, and its random block is two
+ * Math.random draws (~41 bits); the rest is a timestamp, a counter and a process
+ * fingerprint, all inferable from any sibling cuid the same process handed out —
+ * so one invitee holding their own link could search for other people's.
+ * 32 bytes = 256 bits from the CSPRNG, base64url so it survives a query string.
+ */
+export function invitationToken(): string {
+  return randomBytes(32).toString('base64url')
 }
 
 interface SendInvitationsOptions {

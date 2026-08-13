@@ -519,7 +519,12 @@ model Invitation {
   tournamentId String
   email        String?
   phone        String?
-  token        String    @unique @default(cuid())
+  // No default: this token is a bearer credential, and cuid() is generated in
+  // JavaScript from Math.random. Every create site must pass invitationToken()
+  // from lib/invite-sender.ts, and dropping the default makes that a compile
+  // error rather than a silently weak token. Client-side default, so removing
+  // it changes no SQL — existing rows keep their cuid tokens and stay valid.
+  token        String    @unique
   userId       String?
   acceptedAt   DateTime?
   expiresAt    DateTime?

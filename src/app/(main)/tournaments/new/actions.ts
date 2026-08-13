@@ -9,7 +9,7 @@ import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { generateJoinCode } from '@/lib/join-code'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { getUserTier, consumeProCredit, getUnusedProCredits } from '@/lib/stripe'
-import { sendInvitations } from '@/lib/invite-sender'
+import { sendInvitations, invitationToken } from '@/lib/invite-sender'
 import { containsProfanity } from '@/lib/content-moderation'
 import { selectPeoriaHoles } from '@/lib/peoria'
 
@@ -351,6 +351,7 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
           tournamentId: t.id,
           email: entry.type === 'email' ? entry.value : null,
           phone: entry.type === 'phone' ? entry.value : null,
+          token: invitationToken(),
           expiresAt,
         })),
       })
@@ -541,6 +542,7 @@ export async function sendLateInvites(
       tournamentId,
       email: entry.type === 'email' ? entry.value : null,
       phone: entry.type === 'phone' ? entry.value : null,
+      token: invitationToken(),
       expiresAt,
     })),
   })
