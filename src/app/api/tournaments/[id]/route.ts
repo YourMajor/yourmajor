@@ -10,18 +10,100 @@ export async function GET(
   { params }: { params: Promise<{ id: string }> }
 ) {
   const { id } = await params
+  // Explicit select, not the whole row: every column published here is a
+  // deliberate choice. joinCode stays out (it's the invite secret), and
+  // rounds.peoriaHoles stays out — those are the six secret Peoria holes the
+  // leaderboard only reveals once a round is complete (lib/formats/strokePlay.ts),
+  // so handing them to any caller mid-round breaks the format's scoring.
   const tournament = await prisma.tournament.findUnique({
     where: { id },
-    include: {
-      rounds: { include: { course: true } },
+    select: {
+      id: true,
+      slug: true,
+      name: true,
+      description: true,
+      logo: true,
+      headerImage: true,
+      primaryColor: true,
+      accentColor: true,
+      status: true,
+      tournamentType: true,
+      isOpenRegistration: true,
+      registrationClosed: true,
+      handicapSystem: true,
+      tournamentFormat: true,
+      formatConfig: true,
+      teamsEnabled: true,
+      teamSize: true,
+      powerupsEnabled: true,
+      powerupsPerPlayer: true,
+      maxAttacksPerPlayer: true,
+      distributionMode: true,
+      startDate: true,
+      endDate: true,
+      registrationDeadline: true,
+      createdAt: true,
+      sponsorName: true,
+      sponsorLogoUrl: true,
+      sponsorBannerUrl: true,
+      sponsorLink: true,
+      subdomain: true,
+      parentTournamentId: true,
+      championUserId: true,
+      championName: true,
+      isLeague: true,
+      leagueEndDate: true,
+      seasonScoringMethod: true,
+      seasonBestOf: true,
+      seasonPointsTable: true,
+      seasonDropLowest: true,
+      seasonTiebreakers: true,
+      seasonAttendanceBonus: true,
+      rounds: {
+        select: {
+          id: true,
+          tournamentId: true,
+          roundNumber: true,
+          date: true,
+          courseId: true,
+          teeMode: true,
+          roundStartAnnouncedAt: true,
+          course: {
+            select: {
+              id: true,
+              externalId: true,
+              name: true,
+              location: true,
+              latitude: true,
+              longitude: true,
+              par: true,
+              isCustom: true,
+            },
+          },
+        },
+      },
       _count: { select: { players: true } },
     },
   })
   if (!tournament) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  // Never leak joinCode on a public endpoint — it's used as an invite secret.
-  const { joinCode: _joinCode, ...safe } = tournament
-  void _joinCode
-  return NextResponse.json(safe)
+
+  // Same visibility gate the leaderboard route applies: anonymous spectating is
+  // a real feature, so gate on visibility rather than requiring auth outright.
+  // INVITE is the codebase's notion of private (see tournaments/find, which
+  // excludes exactly that type from join-code lookup).
+  if (tournament.tournamentType === 'INVITE') {
+    const user = await getUser()
+    if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    const membership = await prisma.tournamentPlayer.findUnique({
+      where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
+      select: { id: true },
+    })
+    if (!membership && user.role !== 'ADMIN') {
+      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+    }
+  }
+
+  return NextResponse.json(tournament)
 }
 
 export async function PATCH(

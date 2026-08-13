@@ -91,16 +91,6 @@ export default async function LeaderboardPage({
     }
   }
 
-  // Invite token for invite-only tournaments
-  let inviteToken: string | null = null
-  if (user && !isRegistered && !tournament.isOpenRegistration && effectiveStatus === 'REGISTRATION') {
-    const invitation = await prisma.invitation.findFirst({
-      where: { tournamentId: tournament.id, email: user.email, acceptedAt: null },
-      select: { token: true },
-    })
-    inviteToken = invitation?.token ?? null
-  }
-
   // Defending champion
   let defendingChampionPlayerId: string | null = null
   if (tournament.parentTournamentId) {
@@ -197,8 +187,7 @@ export default async function LeaderboardPage({
             isParticipant={membership?.isParticipant ?? false}
             isLoggedIn={!!user}
             status={effectiveStatus}
-            canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
-            inviteToken={inviteToken}
+            canRegister={tournament.isOpenRegistration}
             registrationClosed={tournament.registrationClosed}
             currentPlayerHolesPlayed={currentPlayerHolesPlayed}
           />

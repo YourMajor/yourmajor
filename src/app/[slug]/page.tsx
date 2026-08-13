@@ -137,25 +137,6 @@ export default async function TournamentPage({
     }
   }
 
-  let inviteToken: string | null = null
-  if (user && !isRegistered && !tournament.isOpenRegistration && effectiveStatus === 'REGISTRATION') {
-    const orConditions = [
-      ...(user.email ? [{ email: user.email }] : []),
-      ...(user.phone ? [{ phone: user.phone }] : []),
-    ]
-    const invitation = orConditions.length > 0
-      ? await prisma.invitation.findFirst({
-          where: {
-            tournamentId: tournament.id,
-            acceptedAt: null,
-            OR: orConditions,
-          },
-          select: { token: true },
-        })
-      : null
-    inviteToken = invitation?.token ?? null
-  }
-
   // Public watchers — anyone who looked up this tournament by code while logged
   // in (and isn't a registered participant or admin). Shown as a small strip
   // below the leaderboard so the room can see who's spectating.
@@ -210,8 +191,7 @@ export default async function TournamentPage({
             isParticipant={membership?.isParticipant ?? false}
             isLoggedIn={!!user}
             status={effectiveStatus}
-            canRegister={tournament.isOpenRegistration || tournament.tournamentType !== 'INVITE' || !!inviteToken}
-            inviteToken={inviteToken}
+            canRegister={tournament.isOpenRegistration}
             registrationClosed={tournament.registrationClosed}
             currentPlayerHolesPlayed={currentPlayerHolesPlayed}
           />

@@ -14,8 +14,8 @@ export default async function DashboardPage() {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
-  // Fetch profile + memberships + invitations + round counts in parallel
-  const [profile, memberships, pendingInvitations, standaloneCount] = await Promise.all([
+  // Fetch profile + memberships + round counts in parallel
+  const [profile, memberships, standaloneCount] = await Promise.all([
     prisma.playerProfile.findUnique({ where: { userId: user.id } }),
     prisma.tournamentPlayer.findMany({
       where: { userId: user.id },
@@ -49,44 +49,6 @@ export default async function DashboardPage() {
         },
       },
       orderBy: { createdAt: 'desc' },
-    }),
-    prisma.invitation.findMany({
-      where: {
-        acceptedAt: null,
-        OR: [
-          { email: user.email },
-          ...(user.phone ? [{ phone: user.phone }] : []),
-        ],
-      },
-      include: {
-        tournament: {
-          select: {
-            id: true,
-            slug: true,
-            name: true,
-            description: true,
-            handicapSystem: true,
-            status: true,
-            startDate: true,
-            endDate: true,
-            primaryColor: true,
-            accentColor: true,
-            logo: true,
-            headerImage: true,
-            registrationDeadline: true,
-            registrationClosed: true,
-            isOpenRegistration: true,
-            tournamentType: true,
-            isLeague: true,
-            leagueEndDate: true,
-            parentTournamentId: true,
-            rounds: {
-              select: { course: { select: { name: true, par: true } } },
-            },
-            _count: { select: { players: true, rounds: true } },
-          },
-        },
-      },
     }),
     prisma.standaloneRound.count({ where: { userId: user.id } }),
   ])
@@ -189,12 +151,10 @@ export default async function DashboardPage() {
     return m.tournament.status === 'COMPLETED'
   })
 
-  // Pending invitations — show as "Invited" tournaments (exclude already-registered ones)
-  const registeredTournamentIds = new Set(memberships.map((m) => m.tournament.id))
-  const invitedTournaments = pendingInvitations
-    .filter((inv) => !registeredTournamentIds.has(inv.tournament.id) && inv.tournament.status !== 'COMPLETED')
-    .map((inv) => ({ tournament: inv.tournament, token: inv.token }))
-
+  // Pending invitations are deliberately not listed here: they could only be
+  // matched to this user by their unverified email or phone, and the invite
+  // token that card carried was the tournament's only access control.
+  // The emailed/texted invite link remains the way in.
   const yourTournaments = activeMemberships.slice(0, 5)
   const hasMoreTournaments = activeMemberships.length > 5
 
@@ -252,20 +212,11 @@ export default async function DashboardPage() {
             </Link>
           )}
         </div>
-        {yourTournaments.length > 0 || invitedTournaments.length > 0 ? (
+        {yourTournaments.length > 0 ? (
           <>
             {yourTournaments.map((m, i) => (
               <div key={m.id} className="card-rise" style={{ animationDelay: `${Math.min(i, 6) * 70}ms` }}>
                 <TournamentCard t={m.tournament} showAdmin={m.isAdmin} isRegistered />
-              </div>
-            ))}
-            {invitedTournaments.map((inv, i) => (
-              <div
-                key={`inv-${inv.tournament.id}`}
-                className="card-rise"
-                style={{ animationDelay: `${Math.min(yourTournaments.length + i, 8) * 70}ms` }}
-              >
-                <TournamentCard t={inv.tournament} showAdmin={false} inviteToken={inv.token} />
               </div>
             ))}
           </>
