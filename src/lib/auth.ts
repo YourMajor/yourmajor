@@ -1,6 +1,8 @@
 import { redirect } from 'next/navigation'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
+import { getUserTier } from '@/lib/stripe'
+import { TIER_LIMITS } from '@/lib/tiers'
 import type { User } from '../generated/prisma/client'
 
 export async function getUser(): Promise<User | null> {
@@ -73,7 +75,9 @@ export async function isTournamentAdmin(userId: string, tournamentId: string): P
   if (membership?.isAdmin) return true
 
   // Account-level co-admin: a user is an admin on this tournament if they are
-  // an AccountAdmin of any user who has a direct TournamentPlayer.isAdmin row.
+  // an AccountAdmin of any user who has a direct TournamentPlayer.isAdmin row,
+  // and that row is still inside the owner's paid seat count (see
+  // seatGrantsAdmin below — the mere existence of the row is not enough).
   // Co-admins inherit admin rights on every tournament owned by the account holder.
   //
   // We don't filter on AccountAdmin.acceptedAt — the current invite flow in
@@ -87,12 +91,52 @@ export async function isTournamentAdmin(userId: string, tournamentId: string): P
   })
   if (ownerAdmins.length === 0) return false
 
-  const coAdminLink = await prisma.accountAdmin.findFirst({
+  const coAdminLinks = await prisma.accountAdmin.findMany({
     where: {
       adminUserId: userId,
       ownerUserId: { in: ownerAdmins.map((a) => a.userId) },
     },
+    select: { id: true, ownerUserId: true },
+  })
+
+  // The cap is per owner, so each candidate is resolved against its own tier.
+  // Cost: this loop only runs for users who actually hold a co-admin row, and
+  // there is normally exactly one such row — everyone else pays nothing beyond
+  // the findMany above, which is the same single query the old findFirst was.
+  for (const link of coAdminLinks) {
+    if (await seatGrantsAdmin(link.ownerUserId, link.id)) return true
+  }
+  return false
+}
+
+/**
+ * Whether an AccountAdmin row still sits inside a seat the owner's *current*
+ * plan pays for. Seats are honoured oldest first: the owner occupies one of the
+ * plan's seats, so the first `maxAdminSeats - 1` rows by createdAt grant admin
+ * and anything past that is dormant.
+ *
+ * This is the read-side twin of the seat check in
+ * src/app/(main)/team/actions.ts. Without it the write-time limit is the only
+ * limit: a Club owner could fill their seats, cancel the subscription — which
+ * drops getUserTier to FREE but leaves every AccountAdmin row in place, since
+ * the Stripe webhook only flips Purchase.status — and keep handing out admin on
+ * every tournament they administer.
+ *
+ * Nothing is deleted on a downgrade, deliberately: a dormant row starts
+ * granting admin again the moment the plan is restored, with no re-invite.
+ */
+async function seatGrantsAdmin(ownerUserId: string, accountAdminId: string): Promise<boolean> {
+  const { tier } = await getUserTier(ownerUserId)
+  const honouredSeats = TIER_LIMITS[tier].maxAdminSeats - 1
+  if (honouredSeats <= 0) return false
+
+  // At most 4 rows (Tour's 5 seats minus the owner). `id` is the tiebreak so
+  // rows sharing a createdAt still rank deterministically.
+  const honoured = await prisma.accountAdmin.findMany({
+    where: { ownerUserId },
+    orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+    take: honouredSeats,
     select: { id: true },
   })
-  return !!coAdminLink
+  return honoured.some((row) => row.id === accountAdminId)
 }
