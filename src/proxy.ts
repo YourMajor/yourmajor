@@ -17,13 +17,32 @@ const ROOT_DOMAIN = process.env.NEXT_PUBLIC_ROOT_DOMAIN ?? 'yourmajor.club'
 //
 // Negative results (no league, or tier doesn't grant customSubdomain) are
 // cached too so a misconfigured / hostile subdomain can't hammer the DB.
-type CachedResolution = { slug: string | null; expiresAt: number }
+//
+// The two populations are kept in separate maps because they have very
+// different growth properties, and only one of them needs a bound:
+//
+//   subdomainCache (positive) — a key only lands here if it matched a row on
+//     the unique `subdomain` column, so the map is bounded by the number of
+//     Tour-tier leagues in the database. No unauthenticated party can add to
+//     it. Append-only and never evicted, exactly as before.
+//
+//   negativeCache — the only population a rotating Host header can grow, so
+//     it carries the cap. Confining eviction to this map means an attacker's
+//     inserts can only ever displace other negative entries: they can never
+//     evict a real tenant's resolved slug and force its lookups back onto the
+//     request hot path.
+type CachedResolution = { slug: string; expiresAt: number }
 const SUBDOMAIN_CACHE_TTL_MS = 5 * 60 * 1000
+const MAX_NEGATIVE_CACHE_ENTRIES = 1000
 const subdomainCache = new Map<string, CachedResolution>()
+const negativeCache = new Map<string, number>() // subdomain → expiresAt
 
 async function resolveSubdomainSlug(subdomain: string): Promise<string | null> {
+  const now = Date.now()
   const cached = subdomainCache.get(subdomain)
-  if (cached && cached.expiresAt > Date.now()) return cached.slug
+  if (cached && cached.expiresAt > now) return cached.slug
+  const negativeUntil = negativeCache.get(subdomain)
+  if (negativeUntil !== undefined && negativeUntil > now) return null
 
   const league = await prisma.tournament.findUnique({
     where: { subdomain },
@@ -36,7 +55,20 @@ async function resolveSubdomainSlug(subdomain: string): Promise<string | null> {
       slug = league.slug
     }
   }
-  subdomainCache.set(subdomain, { slug, expiresAt: Date.now() + SUBDOMAIN_CACHE_TTL_MS })
+
+  if (slug) {
+    subdomainCache.set(subdomain, { slug, expiresAt: now + SUBDOMAIN_CACHE_TTL_MS })
+  } else {
+    // Oldest-first: a Map iterates in insertion order, so one delete per new
+    // key holds the ceiling. Evict exactly one entry, and only ever from this
+    // map — never a bulk clear, which would hand an unauthenticated caller the
+    // power to flush every tenant's cached resolution on demand.
+    if (negativeUntil === undefined && negativeCache.size >= MAX_NEGATIVE_CACHE_ENTRIES) {
+      const oldest = negativeCache.keys().next().value
+      if (oldest !== undefined) negativeCache.delete(oldest)
+    }
+    negativeCache.set(subdomain, now + SUBDOMAIN_CACHE_TTL_MS)
+  }
   return slug
 }
 

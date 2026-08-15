@@ -67,5 +67,18 @@ export function extractLeagueSubdomain(host: string, rootDomain: string): string
   if (subdomainPart.includes('.')) return null // multi-level subdomains not supported
   if (RESERVED_SUBDOMAINS.has(subdomainPart)) return null
 
+  // A label that can't be a *stored* subdomain can't resolve to a league:
+  // updateLeagueSubdomain is the only writer of Tournament.subdomain and it
+  // only ever persists a validateSubdomain-normalized value. So rejecting the
+  // label here changes no resolution — it just keeps junk out of the caller's
+  // cache and off the database.
+  //
+  // Return the RAW label, never validation.normalized. normalized is trimmed,
+  // and trimming widens resolution: a Host padded with U+00A0 survives header
+  // normalization and would otherwise trim down to a league it doesn't own.
+  // The equality guard makes that impossible.
+  const validation = validateSubdomain(subdomainPart)
+  if (!validation.valid || validation.normalized !== subdomainPart) return null
+
   return subdomainPart
 }
