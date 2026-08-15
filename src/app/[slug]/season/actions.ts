@@ -8,6 +8,7 @@ import { getUser, isTournamentAdmin } from '@/lib/auth'
 import { getLeagueEvents } from '@/lib/league-events'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { snapshotHandicapOnActivation } from '@/lib/handicap-snapshot'
 
 /**
  * Gate a first-time join on the same conditions the register page enforces
@@ -128,6 +129,17 @@ export async function setEventParticipation(
       where: { id: existing.id },
       data: { isParticipant: going },
     })
+    // Joining on an existing row (a watcher, or a reversed opt-out) — it was
+    // created with the default 0 handicap and needs the snapshot the create
+    // branch below takes. A row already holding a real handicap or any scores
+    // keeps what it has.
+    if (going) {
+      const profile = await prisma.playerProfile.findUnique({
+        where: { userId: user.id },
+        select: { handicap: true },
+      })
+      await snapshotHandicapOnActivation(prisma, existing.id, profile?.handicap ?? 0)
+    }
   } else if (going) {
     const gate = await canJoinEvent(user, event)
     if (!gate.ok) return gate

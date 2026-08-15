@@ -9,6 +9,7 @@ import { sendSMS } from '@/lib/sms'
 import { getAppUrl } from '@/lib/app-url'
 import { autoAssign, type AssignMode, type AssignablePlayer } from '@/lib/group-assignment'
 import { getRecentPartners, getLeagueRootId } from '@/lib/league-events'
+import { snapshotHandicapOnActivation } from '@/lib/handicap-snapshot'
 import {
   logOutboundCommunication,
   type AnnouncementChannel,
@@ -542,7 +543,20 @@ export async function addLatePlayer(
       where: { id: existing.id },
       data: { isParticipant: true },
     })
-    return { ok: true, player: { id: existing.id, name: user.name ?? user.email, handicap: existing.handicap } }
+    // The row was created as a non-participant and carries the default 0
+    // handicap; take the same profile snapshot the create branch below takes.
+    // Refused if the row already holds a real handicap or any scores, in which
+    // case the stored value is reported unchanged.
+    const profileHandicap = user.profile?.handicap ?? 0
+    const snapshotted = await snapshotHandicapOnActivation(prisma, existing.id, profileHandicap)
+    return {
+      ok: true,
+      player: {
+        id: existing.id,
+        name: user.name ?? user.email,
+        handicap: snapshotted ? profileHandicap : existing.handicap,
+      },
+    }
   }
 
   const tp = await prisma.tournamentPlayer.create({

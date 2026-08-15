@@ -45,9 +45,20 @@ export async function POST(request: NextRequest) {
       },
     })
 
-    // Auto-enroll creator as admin (and player) in their own tournament
+    // Auto-enroll creator as admin (and player) in their own tournament.
+    // The handicap is snapshotted from their profile here: the row defaults to
+    // 0 otherwise, and scoring no longer falls back to the live profile value.
+    const creatorProfile = await prisma.playerProfile.findUnique({
+      where: { userId: creator.id },
+      select: { handicap: true },
+    })
     await prisma.tournamentPlayer.create({
-      data: { tournamentId: tournament.id, userId: creator.id, isAdmin: true },
+      data: {
+        tournamentId: tournament.id,
+        userId: creator.id,
+        isAdmin: true,
+        handicap: creatorProfile?.handicap ?? 0,
+      },
     })
 
     return NextResponse.json(tournament, { status: 201 })

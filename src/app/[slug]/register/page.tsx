@@ -4,6 +4,7 @@ import { createClient } from '@/utils/supabase/server'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { snapshotHandicapOnActivation } from '@/lib/handicap-snapshot'
 import { TournamentMessage } from '@/components/ui/tournament-message'
 import { Lock, ShieldX, ShieldCheck, Mail, Users } from 'lucide-react'
 
@@ -146,11 +147,17 @@ export default async function RegisterPage({
     })
     if (freshCount >= maxPlayers) return false
 
-    await tx.tournamentPlayer.upsert({
+    const tp = await tx.tournamentPlayer.upsert({
       where: { tournamentId_userId: { tournamentId: tournament.id, userId: dbUser!.id } },
       create: { tournamentId: tournament.id, userId: dbUser!.id, handicap: profileHandicap, isParticipant: true },
       update: { isParticipant: true },
     })
+
+    // The update branch reached an existing row — a watcher, an admin, or an
+    // earlier opt-out — which was created with the default 0 handicap and never
+    // took a snapshot. Write one now; a row already holding a real handicap or
+    // any scores is left untouched.
+    await snapshotHandicapOnActivation(tx, tp.id, profileHandicap)
 
     if (resolvedToken) {
       await tx.invitation.updateMany({

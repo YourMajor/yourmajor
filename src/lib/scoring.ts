@@ -177,7 +177,13 @@ export async function getLeaderboard(
     players: players.map((p) => {
       const name = p.user.name ?? p.user.email.split('@')[0]
       const avatarUrl = p.user.profile?.avatar ?? p.user.image ?? null
-      const effectiveHandicap = p.handicap || p.user.profile?.handicap || 0
+      // The stored snapshot is the only source. This used to read
+      // `p.handicap || p.user.profile?.handicap || 0`, and since the column is
+      // Float @default(0) that falsy check sent every scratch player through to
+      // their *live* profile handicap — so freezing the snapshot would have
+      // been a no-op for exactly those rows. Registration, activation and the
+      // 20260815000000 backfill are what put a real value on the row now.
+      const effectiveHandicap = p.handicap ?? 0
       const ownBoostModifier = p.playerPowerups.reduce(
         (sum: number, pp: { scoreModifier: number | null }) => sum + (pp.scoreModifier ?? 0),
         0,

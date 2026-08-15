@@ -74,10 +74,22 @@ export async function updateProfile(
       create: { userId: user.id, ...profileData },
     })
 
-    // Sync handicap to all tournament memberships so scorecards stay current
+    // Sync handicap to tournament memberships that have not started scoring.
+    //
+    // This used to be a bare `where: { userId }`. TournamentPlayer.handicap is
+    // the snapshot every net score and rank is computed from, and season points
+    // are derived from those ranks, so an unscoped write let a profile edit
+    // reorder a finished leaderboard and the season standings behind it. The
+    // fan-out now stops at events that are still open and rows with no scores
+    // on them; a completed event, or a card already in progress, keeps the
+    // handicap it was played under.
     if (profileData.handicap !== undefined) {
       await prisma.tournamentPlayer.updateMany({
-        where: { userId: user.id },
+        where: {
+          userId: user.id,
+          tournament: { status: { not: 'COMPLETED' } },
+          scores: { none: {} },
+        },
         data: { handicap: profileData.handicap },
       })
     }
