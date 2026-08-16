@@ -1,12 +1,20 @@
 import { redirect } from 'next/navigation'
-import { prisma } from '@/lib/prisma'
 import { createClient } from '@/utils/supabase/server'
 import { getUser } from '@/lib/auth'
-import { getTournamentTier } from '@/lib/stripe'
-import { TIER_LIMITS } from '@/lib/tiers'
-import { snapshotHandicapOnActivation } from '@/lib/handicap-snapshot'
+import { safeNextPath } from '@/lib/safe-redirect'
 import { TournamentMessage } from '@/components/ui/tournament-message'
+import { Button } from '@/components/ui/button'
 import { Lock, ShieldX, ShieldCheck, Mail, Users } from 'lucide-react'
+import { registerHref, resolveRegistration, tournamentHref, type RefusalIcon } from './registration'
+import { confirmRegistration } from './actions'
+
+const REFUSAL_ICONS: Record<RefusalIcon, typeof Lock> = {
+  closed: Lock,
+  invalid: ShieldX,
+  accepted: ShieldCheck,
+  required: Mail,
+  full: Users,
+}
 
 export default async function RegisterPage({
   params,
@@ -21,164 +29,42 @@ export default async function RegisterPage({
   const supabase = await createClient()
   const { data: { user: authUser } } = await supabase.auth.getUser()
 
-  if (!authUser) redirect(`/auth/login?next=${encodeURIComponent(`/${slug}/register${token ? `?token=${token}` : ''}`)}`)
+  if (!authUser) return redirect(`/auth/login?next=${encodeURIComponent(safeNextPath(registerHref(slug, token), '/'))}`)
 
+  const dbUser = await getUser()
+  const resolution = await resolveRegistration({ slug, token, user: dbUser })
 
-  const [tournament, dbUser] = await Promise.all([
-    prisma.tournament.findUnique({
-      where: { slug },
-      include: {
-        _count: { select: { players: true } },
-      },
-    }),
-    getUser(),
-  ])
+  if (resolution.status === 'not-found') return null
+  if (resolution.status === 'redirect') return redirect(safeNextPath(resolution.href, '/'))
 
-  if (!tournament) return null
-
-  // Registration is closed if: admin manually closed it, or tournament is completed
-  if (tournament.status === 'COMPLETED' || tournament.registrationClosed) {
+  if (resolution.status === 'refused') {
     return (
       <TournamentMessage
-        icon={Lock}
-        heading="Registration Closed"
-        description={tournament.status === 'COMPLETED'
-          ? 'This tournament has been completed. Registration is no longer available.'
-          : 'Registration is currently closed. Contact the tournament admin if you need to register.'}
-        backHref={`/${slug}`}
+        icon={REFUSAL_ICONS[resolution.icon]}
+        heading={resolution.heading}
+        description={resolution.description}
+        backHref={resolution.backHref}
       />
     )
   }
 
-  // Invite-only: require a valid invitation token. Never match on the caller's
-  // own email or phone — neither is verified, so either would let anyone claim
-  // someone else's invitation just by typing their address or number.
-  const resolvedToken = token
-  if (!tournament.isOpenRegistration) {
-    if (token) {
-      // Validate the provided token
-      const invitation = await prisma.invitation.findUnique({
-        where: { token },
-        select: { id: true, acceptedAt: true, tournamentId: true, expiresAt: true },
-      })
+  // This render writes nothing. It used to run the registration transaction
+  // inline, so any top-level cross-site navigation — Supabase session cookies
+  // are SameSite=Lax and ride along with those — joined a logged-in victim to
+  // the tournament and burned their invitation without a click. The write is
+  // now an explicit POST the user confirms below. The token travels as a bound
+  // server-action argument, so it never reaches the client payload or the DOM.
+  const confirm = confirmRegistration.bind(null, { slug, token })
 
-      if (!invitation || invitation.tournamentId !== tournament.id) {
-        return (
-          <TournamentMessage
-            icon={ShieldX}
-            heading="Invalid Invitation"
-            description="This invitation link is invalid or has expired."
-            backHref={`/${slug}`}
-          />
-        )
-      }
-
-      if (invitation.expiresAt && invitation.expiresAt < new Date()) {
-        return (
-          <TournamentMessage
-            icon={ShieldX}
-            heading="Invitation Expired"
-            description="This invitation has expired. Ask the tournament admin to send a new one."
-            backHref={`/${slug}`}
-          />
-        )
-      }
-
-      if (invitation.acceptedAt) {
-        return (
-          <TournamentMessage
-            icon={ShieldCheck}
-            heading="Invitation Already Used"
-            description="This invitation has already been accepted."
-            backHref={`/${slug}`}
-          />
-        )
-      }
-
-    } else {
-      return (
-        <TournamentMessage
-          icon={Mail}
-          heading="Invitation Required"
-          description="This tournament requires an invitation. Please use the link from your invite email or text."
-          backHref={`/${slug}`}
-        />
-      )
-    }
-  }
-
-  // Already registered as participant → redirect to hub
-  // (admins with isParticipant=false should still be able to register)
-  if (dbUser) {
-    const existing = await prisma.tournamentPlayer.findUnique({
-      where: { tournamentId_userId: { tournamentId: tournament.id, userId: dbUser.id } },
-    })
-    if (existing?.isParticipant) redirect(`/${slug}`)
-  }
-
-  // Player limit enforcement based on tier
-  const tier = await getTournamentTier(tournament.id)
-  const maxPlayers = TIER_LIMITS[tier].maxPlayers
-  if (tournament._count.players >= maxPlayers) {
-    return (
-      <TournamentMessage
-        icon={Users}
-        heading="Tournament Full"
-        description={`This tournament has reached the ${maxPlayers}-player limit for its current plan. The organizer can upgrade to allow more players.`}
-        backHref={`/${slug}`}
-      />
-    )
-  }
-
-  // Fetch user's profile handicap to use as default
-  const userProfile = dbUser
-    ? await prisma.playerProfile.findUnique({
-        where: { userId: dbUser.id },
-        select: { handicap: true },
-      })
-    : null
-  const profileHandicap = userProfile?.handicap ?? 0
-
-  // Register inside a transaction with an atomic count re-check to prevent
-  // race conditions where two users pass the above limit check simultaneously.
-  const registered = await prisma.$transaction(async (tx) => {
-    const freshCount = await tx.tournamentPlayer.count({
-      where: { tournamentId: tournament.id },
-    })
-    if (freshCount >= maxPlayers) return false
-
-    const tp = await tx.tournamentPlayer.upsert({
-      where: { tournamentId_userId: { tournamentId: tournament.id, userId: dbUser!.id } },
-      create: { tournamentId: tournament.id, userId: dbUser!.id, handicap: profileHandicap, isParticipant: true },
-      update: { isParticipant: true },
-    })
-
-    // The update branch reached an existing row — a watcher, an admin, or an
-    // earlier opt-out — which was created with the default 0 handicap and never
-    // took a snapshot. Write one now; a row already holding a real handicap or
-    // any scores is left untouched.
-    await snapshotHandicapOnActivation(tx, tp.id, profileHandicap)
-
-    if (resolvedToken) {
-      await tx.invitation.updateMany({
-        where: { token: resolvedToken, tournamentId: tournament.id, acceptedAt: null },
-        data: { acceptedAt: new Date(), userId: dbUser!.id },
-      })
-    }
-
-    return true
-  })
-
-  if (!registered) {
-    return (
-      <TournamentMessage
-        icon={Users}
-        heading="Tournament Full"
-        description={`This tournament has reached the ${maxPlayers}-player limit for its current plan. The organizer can upgrade to allow more players.`}
-        backHref={`/${slug}`}
-      />
-    )
-  }
-
-  redirect(`/${slug}`)
+  return (
+    <TournamentMessage
+      icon={ShieldCheck}
+      heading="Confirm Registration"
+      backHref={tournamentHref(slug)}
+    >
+      <form action={confirm}>
+        <Button type="submit">Join Tournament</Button>
+      </form>
+    </TournamentMessage>
+  )
 }
