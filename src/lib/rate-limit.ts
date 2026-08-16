@@ -31,6 +31,11 @@ export const LIMITS = {
   rosterImport: { limit: 5, windowSeconds: 3600 },
   /** Credential stuffing. Supabase throttles too; this is defence in depth. */
   auth: { limit: 10, windowSeconds: 900 },
+  /** Sends one Supabase confirmation email per call, to a caller-supplied
+   *  address, on the project's shared sender reputation and mail quota. A real
+   *  person changes their email once and maybe retries a typo; three an hour
+   *  covers that and leaves nothing worth spamming through. */
+  emailChange: { limit: 3, windowSeconds: 3600 },
 } as const
 
 /**

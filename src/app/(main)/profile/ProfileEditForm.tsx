@@ -26,7 +26,7 @@ export function ProfileEditForm({ initialName, initialEmail, initialHandicap, in
   const [phone, setPhone] = useState(initialPhone)
   const [smsNotifications, setSmsNotifications] = useState(initialSmsNotifications)
   const [saving, setSaving] = useState(false)
-  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
+  const [message, setMessage] = useState<{ type: 'success' | 'error' | 'notice'; text: string } | null>(null)
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault()
@@ -46,6 +46,11 @@ export function ProfileEditForm({ initialName, initialEmail, initialHandicap, in
 
     if ('error' in result) {
       setMessage({ type: 'error', text: result.error })
+    } else if (result.notice) {
+      // The profile saved, but the email change is either pending a
+      // confirmation link or was refused. Not the success colour: nothing
+      // about the address has actually changed yet.
+      setMessage({ type: 'notice', text: result.notice })
     } else {
       setMessage({ type: 'success', text: 'Profile updated' })
     }
@@ -150,7 +155,15 @@ export function ProfileEditForm({ initialName, initialEmail, initialHandicap, in
           </div>
 
           {message && (
-            <p className={`text-sm ${message.type === 'error' ? 'text-destructive' : 'text-green-600'}`}>
+            <p
+              className={`text-sm ${
+                message.type === 'error'
+                  ? 'text-destructive'
+                  : message.type === 'notice'
+                    ? 'text-warning'
+                    : 'text-green-600'
+              }`}
+            >
               {message.text}
             </p>
           )}

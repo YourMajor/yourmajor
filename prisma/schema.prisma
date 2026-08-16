@@ -149,6 +149,12 @@ enum RSVPStatus {
 
 model User {
   id            String    @id @default(cuid())
+  // Supabase auth user id — the identity this row mirrors. Nullable because
+  // rows created before id-mirroring, and CSV-imported ones, carry a random
+  // uuid as their primary key instead; claimMirrorUser (src/lib/auth.ts)
+  // stamps them on first authenticated resolve. Unique so one auth identity
+  // can never own two mirror rows.
+  authUserId    String?   @unique
   email         String    @unique
   emailVerified DateTime?
   name          String?

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/utils/supabase/server'
 import { prisma } from '@/lib/prisma'
 import { safeNextPath } from '@/lib/safe-redirect'
+import { claimMirrorUser } from '@/lib/auth'
 
 function errorRedirect(origin: string, reason: string) {
   return NextResponse.redirect(`${origin}/auth/login?error=${encodeURIComponent(reason)}`)
@@ -43,21 +44,25 @@ export async function GET(request: NextRequest) {
   const avatarUrl = meta.avatar_url ?? meta.picture ?? null
 
   // Sync user to Prisma DB before redirecting — the dashboard server-renders
-  // getUser() which looks the user up by email, so the row must exist first.
+  // getUser(), so the row must exist first.
+  //
+  // The auth identity is resolved *before* anything keyed on the email. This
+  // callback is also where a confirmed email change lands, and there the
+  // address is new while the row is not: an email-keyed upsert would find
+  // nothing and try to create a second row on a primary key the account
+  // already holds.
   try {
-    const user = await prisma.user.upsert({
-      where: { email: data.user.email! },
-      create: {
-        id: data.user.id,
-        email: data.user.email!,
-        name,
-        image: avatarUrl,
-      },
-      update: {
-        name: undefined,
-        image: undefined,
-      },
-    })
+    const user =
+      (await claimMirrorUser(data.user.id, data.user.email!)) ??
+      (await prisma.user.create({
+        data: {
+          id: data.user.id,
+          authUserId: data.user.id,
+          email: data.user.email!,
+          name,
+          image: avatarUrl,
+        },
+      }))
 
     const updates: { name?: string; image?: string } = {}
     if (!user.name && name) updates.name = name

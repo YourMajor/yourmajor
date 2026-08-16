@@ -5,23 +5,90 @@ import { getUserTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
 import type { User } from '../generated/prisma/client'
 
+/**
+ * Resolve the Prisma mirror row for a Supabase auth identity, claiming it the
+ * first time that identity is seen.
+ *
+ * Rows created at signup use the auth id as their primary key. Legacy and
+ * CSV-imported rows do not — their `id` is a random uuid — so they are matched
+ * by email exactly once, while still unclaimed, and stamped with `authUserId`
+ * from then on. After that the email is free to change without moving which
+ * row an identity resolves to, which is the whole point: an address is no
+ * longer proof of who you are.
+ *
+ * Declines (returns null) rather than resolving anything it cannot claim
+ * outright — a row already claimed by another identity, or a unique collision
+ * on the claim. It never renames, blanks or otherwise frees a row held by
+ * someone else.
+ */
+export async function claimMirrorUser(
+  authUserId: string,
+  email: string | null,
+): Promise<User | null> {
+  const claimed = await prisma.user.findUnique({ where: { authUserId } })
+  if (claimed) return claimed
+
+  const candidate =
+    (await prisma.user.findUnique({ where: { id: authUserId } })) ??
+    // `authUserId: null` narrows the legacy fallback to rows nobody has
+    // claimed. Without it, a confirmed email change would let one identity
+    // resolve onto another account's row simply by arriving at its address.
+    (email ? await prisma.user.findFirst({ where: { email, authUserId: null } }) : null)
+  if (!candidate) return null
+  if (candidate.authUserId && candidate.authUserId !== authUserId) return null
+
+  try {
+    // Monotonic, and in a statement of its own: the stamp is never overwritten
+    // (the filter requires it to still be null) and never shares a write with
+    // the email reconcile, so a collision on the address cannot suppress the
+    // claim.
+    await prisma.user.updateMany({
+      where: { id: candidate.id, authUserId: null },
+      data: { authUserId },
+    })
+  } catch (err) {
+    // Any P2002 is a conflict this code must not try to resolve. Keyed on the
+    // error code rather than on the target field, so no raw Prisma text can
+    // escape — the auth callback echoes what it catches into /auth/login?error=.
+    if ((err as { code?: string }).code === 'P2002') return null
+    throw err
+  }
+  return { ...candidate, authUserId }
+}
+
 export async function getUser(): Promise<User | null> {
   try {
     const supabase = await createClient()
     const { data: { user } } = await supabase.auth.getUser()
     if (!user?.id) return null
-    // Prisma User.id mirrors Supabase user.id (set at signup in
-    // /api/auth/callback). Looking up by id avoids the email-rebinding
-    // fragility where a changed Supabase email could match a different
-    // Prisma user row.
-    const byId = await prisma.user.findUnique({ where: { id: user.id } })
-    if (byId) return byId
-    // Legacy fallback: older rows may predate id-mirroring. Match by email
-    // only when no id match exists.
-    if (user.email) {
-      return await prisma.user.findUnique({ where: { email: user.email } })
+
+    const mirror = await claimMirrorUser(user.id, user.email ?? null)
+    if (!mirror) return null
+
+    // Supabase is the only place an email is ever proven: a changed address
+    // lands on the auth user only after the confirmation link is opened. The
+    // mirror follows it here, and nowhere else, so it can never run ahead of
+    // that verification.
+    //
+    // Here rather than in the auth callback deliberately: the PKCE code
+    // verifier for the confirmation only exists on the device that requested
+    // the change, so a link opened on a phone when the change was made on a
+    // laptop never completes a callback exchange — but the session on the
+    // laptop still reports the new address the next time it calls getUser().
+    if (user.email && user.email !== mirror.email) {
+      try {
+        return await prisma.user.update({
+          where: { id: mirror.id },
+          data: { email: user.email },
+        })
+      } catch (err) {
+        // Another row holds the address. Decline — nothing here frees an email
+        // held by someone else — and keep the caller on the row they own.
+        console.error('[auth] email mirror reconcile failed for user', mirror.id, err)
+        return mirror
+      }
     }
-    return null
+    return mirror
   } catch {
     return null
   }

@@ -6,6 +6,8 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { createClient } from '@/utils/supabase/server'
 import { normalizePhone } from '@/lib/phone'
+import { checkRateLimit, LIMITS } from '@/lib/rate-limit'
+import { getAppUrl } from '@/lib/app-url'
 
 type ActionResult = { ok: true } | { ok: false; error: string }
 
@@ -20,7 +22,7 @@ const profileSchema = z.object({
 
 export async function updateProfile(
   formData: FormData
-): Promise<{ success: true } | { error: string }> {
+): Promise<{ success: true; notice?: string } | { error: string }> {
   const user = await getUser()
   if (!user) return { error: 'Unauthorized' }
 
@@ -44,23 +46,50 @@ export async function updateProfile(
   const fullName = [firstName, lastName].filter(Boolean).join(' ')
 
   try {
+    // The email change is one field of this form, and it is the only one that
+    // can fail for reasons outside the caller's control — a mistyped address
+    // that already has an account, or the hourly send limit below. Every exit
+    // from the branch (sent, rate-limited, or refused by Supabase) therefore
+    // leaves a notice and falls through: none of them may discard the name,
+    // handicap, phone and SMS edits saved further down. The notice always
+    // names the email specifically and never claims a change that did not
+    // happen.
+    let notice: string | undefined
+
     if (email !== user.email) {
       const supabase = await createClient()
       const { data: { user: authUser } } = await supabase.auth.getUser()
       if (!authUser) return { error: 'Session expired. Please sign in again.' }
 
-      const { getSupabaseAdmin } = await import('@/lib/supabase')
-      const supabaseAdmin = getSupabaseAdmin()
-      const { error: authError } = await supabaseAdmin.auth.admin.updateUserById(
-        authUser.id,
-        { email }
-      )
-      if (authError) return { error: 'Failed to update email. It may already be in use.' }
+      // One outbound confirmation email per call, to an address the caller
+      // supplies — keyed on the caller, not the IP, so a shared network or a
+      // rotating address buys nothing.
+      const { ok } = await checkRateLimit(`email-change:${user.id}`, LIMITS.emailChange)
+      if (!ok) {
+        notice =
+          'Your profile was saved, but the email change was not sent — too many attempts. Try again in an hour.'
+      } else {
+        // User-scoped, not the service-role admin API. This mails a
+        // confirmation link to the new address and the account keeps its
+        // current sign-in email until that link is opened; the admin API
+        // rebound the login address on the spot, with no proof the caller
+        // owned it and no mail sent.
+        const { error: authError } = await supabase.auth.updateUser(
+          { email },
+          { emailRedirectTo: `${getAppUrl()}/api/auth/callback` },
+        )
+        notice = authError
+          ? 'Your profile was saved, but the email could not be changed. That address may already be in use.'
+          : `Your profile was saved. Check ${email} for a confirmation link — you sign in with your current email until you open it.`
+      }
     }
 
     await prisma.user.update({
       where: { id: user.id },
-      data: { name: fullName, email, phone, smsNotifications },
+      // No email here, on purpose: the mirror follows the verified address in
+      // getUser() once the confirmation link is opened, so it can never move
+      // ahead of the verification.
+      data: { name: fullName, phone, smsNotifications },
     })
 
     const profileData: { displayName: string; handicap?: number } = { displayName: fullName }
@@ -95,7 +124,7 @@ export async function updateProfile(
     }
 
     revalidatePath('/profile')
-    return { success: true }
+    return { success: true, notice }
   } catch {
     return { error: 'Something went wrong. Please try again.' }
   }
