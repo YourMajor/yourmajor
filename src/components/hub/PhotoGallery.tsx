@@ -5,6 +5,7 @@ import Link from 'next/link'
 import Image from 'next/image'
 import { Input } from '@/components/ui/input'
 import { Trash2 } from 'lucide-react'
+import { needsDownscale, downscaleImageBlob } from '@/lib/crop-image'
 
 interface Photo {
   id: string
@@ -64,8 +65,23 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
     setPhotos((prev) => [skeletonPhoto, ...prev])
 
     try {
+      // Shrink big or non-renderable picks (library photos, HEIC) in the
+      // browser so they don't bounce off the server's 10 MB cap or land as a
+      // format next/image can't decode. Server-side validation still applies.
+      let upload: Blob | File = pendingFile
+      let filename = pendingFile.name
+      if (needsDownscale(pendingFile.type, pendingFile.size)) {
+        try {
+          upload = await downscaleImageBlob(pendingFile)
+          filename = 'photo.jpg'
+        } catch {
+          // Browser couldn't decode it (e.g. HEIC outside Safari) — send the
+          // original and let the server produce the error message.
+        }
+      }
+
       const form = new FormData()
-      form.append('file', pendingFile)
+      form.append('file', upload, filename)
       if (caption.trim()) form.append('caption', caption.trim())
 
       const res = await fetch(`/api/tournaments/${tournamentId}/photos`, {
@@ -180,15 +196,19 @@ export function PhotoGallery({ tournamentId, currentUserId, isRegistered, isAdmi
             >
               + Add Photo
             </button>
-            <span className="text-xs text-muted-foreground text-center sm:text-right">Max 10 MB · JPEG, PNG, GIF, WebP, HEIC</span>
+            <span className="text-xs text-muted-foreground text-center sm:text-right">JPEG, PNG, GIF, WebP · large photos are shrunk automatically</span>
           </div>
 
-          {/* Hidden file input */}
+          {/*
+            Hidden file input. No `capture` attribute — it forced the camera and
+            made the photo library unreachable on mobile; the native picker still
+            offers the camera. HEIC omitted from `accept` deliberately: iOS Safari
+            then hands over a transcoded JPEG instead of an unrenderable .heic.
+          */}
           <Input
             ref={fileRef}
             type="file"
-            accept="image/jpeg,image/png,image/gif,image/webp,image/heic,image/heif,image/bmp,image/tiff,image/avif,image/*"
-            capture="environment"
+            accept="image/jpeg,image/png,image/gif,image/webp,image/avif"
             className="hidden"
             onChange={onFileChange}
           />
