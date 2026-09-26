@@ -300,9 +300,11 @@ export default async function TournamentSetup({
           {(draft?.status === 'ACTIVE' || draft?.status === 'COMPLETED') && (
             <div className="space-y-2">
               <p className="text-sm text-muted-foreground">
-                Reset the powerup draft back to setup. All picks will be deleted and players will lose their drafted cards.
+                {draft.currentRound > 1
+                  ? `Reset the Round ${draft.currentRound} draft back to setup. That round's picks are deleted and players lose the unused cards they drafted in it. Cards from earlier rounds are kept.`
+                  : 'Reset the powerup draft back to setup. All picks will be deleted and players will lose their drafted cards.'}
               </p>
-              <ResetDraftButton tournamentId={tournament.id} />
+              <ResetDraftButton tournamentId={tournament.id} currentRound={draft.currentRound} />
             </div>
           )}
           <div className="space-y-2">

@@ -13,6 +13,8 @@ interface PowerupBrowseGridProps {
   selectedId: string | null
   hasFilters: boolean
   onSelect: (p: PowerupCardData) => void
+  /** Tapping a card someone already drafted opens it read-only. */
+  onViewPicked?: (p: PowerupCardData) => void
   onClearFilters: () => void
   /** Pass favouriteIds + onToggleFavorite together to render heart buttons. */
   favoriteIds?: Set<string>
@@ -25,6 +27,7 @@ export function PowerupBrowseGrid({
   selectedId,
   hasFilters,
   onSelect,
+  onViewPicked,
   onClearFilters,
   favoriteIds,
   onToggleFavorite,
@@ -80,8 +83,12 @@ export function PowerupBrowseGrid({
             state={state}
             pickedBy={pickedBy}
             size="browse"
-            onClick={() => { if (!isPicked) onSelect(powerup) }}
-            disabled={isPicked}
+            onClick={() => {
+              if (!isPicked) onSelect(powerup)
+              else onViewPicked?.(powerup)
+            }}
+            disabled={isPicked && !onViewPicked}
+            viewablePicked={!!onViewPicked}
             isFavorite={favoriteIds?.has(powerup.id) ?? false}
             onToggleFavorite={onToggleFavorite ? () => onToggleFavorite(powerup.id) : undefined}
           />

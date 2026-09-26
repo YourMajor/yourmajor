@@ -3,7 +3,7 @@ import { parseBody } from '@/lib/parse-body'
 import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { getUser, isTournamentAdmin } from '@/lib/auth'
-import { canPickPowerup } from '@/lib/draft-utils'
+import { canPickPowerup, picksForRound } from '@/lib/draft-utils'
 
 export async function PATCH(
   req: NextRequest,
@@ -59,14 +59,18 @@ export async function PATCH(
       if (!newPowerup) throw new Error('Replacement powerup not found.')
 
       // Block override if the player has already activated/used this card.
-      // The PlayerPowerup row that mirrors this DraftPick is matched on
-      // (tournamentPlayerId, current powerupId).
-      const playerPowerup = await tx.playerPowerup.findFirst({
-        where: {
-          tournamentPlayerId: pick.tournamentPlayerId,
-          powerupId: pick.powerupId,
-        },
-      })
+      // Picks link to the card they created via draftPickId; picks made before
+      // that link existed fall back to matching on (player, powerupId), which
+      // was unambiguous while a card could only be drafted once.
+      const playerPowerup =
+        (await tx.playerPowerup.findUnique({ where: { draftPickId: pick.id } })) ??
+        (await tx.playerPowerup.findFirst({
+          where: {
+            tournamentPlayerId: pick.tournamentPlayerId,
+            powerupId: pick.powerupId,
+            draftPickId: null,
+          },
+        }))
       if (!playerPowerup) {
         throw new Error('No matching PlayerPowerup record for this pick.')
       }
@@ -78,7 +82,8 @@ export async function PATCH(
 
       // Build a pick history that EXCLUDES the pick being edited so the
       // attack-budget and "already picked" checks treat the swap correctly.
-      const history = pick.draft.picks
+      // Only picks from the same tournament round's draft compete with it.
+      const history = picksForRound(pick.draft.picks, pick.tournamentRound)
         .filter((p) => p.id !== pick.id)
         .map((p) => ({
           tournamentPlayerId: p.tournamentPlayerId,
@@ -110,7 +115,7 @@ export async function PATCH(
 
       await tx.playerPowerup.update({
         where: { id: playerPowerup.id },
-        data: { powerupId: newPowerupId },
+        data: { powerupId: newPowerupId, draftPickId: pick.id },
       })
 
       return { ok: true, unchanged: false as const, pick: updatedPick }

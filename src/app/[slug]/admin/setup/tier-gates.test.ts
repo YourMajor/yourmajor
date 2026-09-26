@@ -35,6 +35,7 @@ const uploadMock = vi.fn(async () => ({ error: null }))
 const supabaseMock = {
   getSupabaseAdmin: () => ({
     storage: {
+      listBuckets: async () => ({ data: [{ name: 'logos' }, { name: 'headers' }], error: null }),
       from: () => ({
         upload: uploadMock,
         getPublicUrl: (path: string) => ({ data: { publicUrl: `https://cdn.test/${path}` } }),

@@ -5,7 +5,7 @@ import { TournamentMessage } from '@/components/ui/tournament-message'
 import { DraftBoard } from '@/components/draft/DraftBoard'
 import { PowerupCard } from '@/components/draft/PowerupCard'
 import { PreDraftPowerupPreview } from '@/components/draft/PreDraftPowerupPreview'
-import { computeCurrentTurn } from '@/lib/draft-utils'
+import { computeCurrentTurn, picksForRound } from '@/lib/draft-utils'
 import { brandVars } from '@/lib/utils'
 import { Swords, Clock } from 'lucide-react'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
@@ -154,12 +154,17 @@ export default async function DraftPage({
   }
 
   if (draft.status === 'PENDING') {
+    const laterRound = draft.currentRound > 1
     return (
       <PreDraftPowerupPreview
         powerups={allPowerups}
         initialFavoriteIds={favoriteIds}
-        heading="Powerup Draft"
-        description="Waiting for the admin to set the draft order and start the draft."
+        heading={laterRound ? `Round ${draft.currentRound} Powerup Draft` : 'Powerup Draft'}
+        description={
+          laterRound
+            ? `Waiting for the admin to set the order and start the Round ${draft.currentRound} draft. The whole pool is back in play, and any cards you haven't used are still yours.`
+            : 'Waiting for the admin to set the draft order and start the draft.'
+        }
         backHref={`/${slug}`}
         adminCta={isAdmin ? { href: `/${slug}/admin/draft`, label: 'Set Order & Start Draft' } : undefined}
       />
@@ -172,7 +177,9 @@ export default async function DraftPage({
     orderBy: { createdAt: 'asc' },
   })
 
-  const pickedIds = new Set(draft.picks.map((p) => p.powerupId))
+  // Only the live round's draft is on the board.
+  const roundPicks = picksForRound(draft.picks, draft.currentRound)
+  const pickedIds = new Set(roundPicks.map((p) => p.powerupId))
   const availablePowerups = allPowerups.filter((p) => !pickedIds.has(p.id))
 
   const draftOrder = (draft.draftOrder as string[]) ?? []
@@ -189,7 +196,9 @@ export default async function DraftPage({
       style={brandVars(tournament.primaryColor, tournament.accentColor)}
     >
       <div className="text-center">
-        <h1 className="text-2xl font-heading">{tournament.name} — Powerup Draft</h1>
+        <h1 className="text-2xl font-heading">
+          {tournament.name} — {draft.currentRound > 1 ? `Round ${draft.currentRound} ` : ''}Powerup Draft
+        </h1>
         <p className="text-sm text-muted-foreground mt-1">
           {draft.format} draft &middot; {tournament.powerupsPerPlayer} picks per player
         </p>
@@ -209,7 +218,8 @@ export default async function DraftPage({
             currentPick: draft.currentPick,
             turnSeconds: draft.turnSeconds,
             turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
-            picks: draft.picks as unknown as DraftPick[],
+            currentRound: draft.currentRound,
+            picks: roundPicks as unknown as DraftPick[],
           },
           currentTurn,
           availablePowerups,

@@ -10,6 +10,7 @@ import { getFormat } from '@/lib/formats/registry'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
 import type { FormatId } from '@/lib/formats/types'
+import { ensurePublicBucket } from '@/lib/storage-buckets'
 
 const ALLOWED_IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'gif', 'webp']
 
@@ -224,6 +225,8 @@ export async function updateTournament(
     const hash = await hashBuffer(buffer)
     const path = `${tournamentId}-${hash}.${ext}`
 
+    await ensurePublicBucket(supabaseAdmin, 'logos').catch((err) =>
+      console.error('[setup] could not provision logos bucket', err))
     const { error } = await supabaseAdmin.storage
       .from('logos')
       .upload(path, buffer, {
@@ -248,6 +251,8 @@ export async function updateTournament(
     const hash = await hashBuffer(buffer)
     const path = `${tournamentId}-${hash}.${ext}`
 
+    await ensurePublicBucket(supabaseAdmin, 'headers').catch((err) =>
+      console.error('[setup] could not provision headers bucket', err))
     const { error } = await supabaseAdmin.storage
       .from('headers')
       .upload(path, buffer, {

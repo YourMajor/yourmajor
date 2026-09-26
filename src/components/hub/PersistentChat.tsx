@@ -13,11 +13,14 @@ interface PersistentChatProps {
   currentUserId: string | null
   currentUserName: string | null
   isRegistered: boolean
+  /** Signed-in viewer allowed to post — players, and bystanders on non-INVITE
+   *  tournaments. Defaults to isRegistered. */
+  canPost?: boolean
   isAdmin?: boolean
   label?: string
 }
 
-export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered, isAdmin, label }: PersistentChatProps) {
+export function PersistentChat({ tournamentId, currentUserId, currentUserName, isRegistered, canPost = isRegistered, isAdmin, label }: PersistentChatProps) {
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasAttack, setHasAttack] = useState(false)
@@ -199,7 +202,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
           </div>
 
           {/* Input */}
-          {isRegistered && isBanned ? (
+          {canPost && isBanned ? (
             <div
               className="shrink-0 border-t border-border px-4 sm:px-3 py-3 sm:py-2 text-center"
               style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
@@ -213,7 +216,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
                 )}
               </p>
             </div>
-          ) : isRegistered ? (
+          ) : canPost ? (
             <div
               className="shrink-0 border-t border-border px-4 sm:px-3 py-3 sm:py-2 flex gap-2 items-end"
               style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
@@ -239,6 +242,13 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
               >
                 <Send className="w-4 h-4 sm:w-3.5 sm:h-3.5" />
               </button>
+            </div>
+          ) : !currentUserId ? (
+            <div
+              className="shrink-0 border-t border-border px-4 sm:px-3 py-3 sm:py-2 text-center"
+              style={{ paddingBottom: 'calc(0.75rem + env(safe-area-inset-bottom, 0px))' }}
+            >
+              <p className="text-xs text-muted-foreground">Sign in to join the chat.</p>
             </div>
           ) : null}
         </div>

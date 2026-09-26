@@ -3,7 +3,8 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { DraftAdmin } from '@/components/draft/DraftAdmin'
-import { computeCurrentTurn } from '@/lib/draft-utils'
+import { canOpenNextRoundDraft, computeCurrentTurn, picksForRound } from '@/lib/draft-utils'
+import { getRoundFinishProgress } from '@/lib/draft-round-progress'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
 
 interface Player {
@@ -36,6 +37,7 @@ export default async function AdminDraftPage({
       powerupsPerPlayer: true,
       maxAttacksPerPlayer: true,
       distributionMode: true,
+      rounds: { select: { roundNumber: true }, orderBy: { roundNumber: 'asc' } },
     },
   })
   if (!tournament || !tournament.powerupsEnabled) return null
@@ -76,7 +78,9 @@ export default async function AdminDraftPage({
     },
   })
 
-  const pickedIds = new Set(draft?.picks.map((p) => p.powerupId) ?? [])
+  // The board shows the live draft only — the one for draft.currentRound.
+  const roundPicks = draft ? picksForRound(draft.picks, draft.currentRound) : []
+  const pickedIds = new Set(roundPicks.map((p) => p.powerupId))
   const availablePowerups = tournamentPowerups
     .filter((tp) => !pickedIds.has(tp.powerupId))
     .map((tp) => tp.powerup as PowerupCardData)
@@ -111,9 +115,23 @@ export default async function AdminDraftPage({
         currentPick: draft.currentPick,
         turnSeconds: draft.turnSeconds,
         turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
-        picks: draft.picks as unknown as DraftPick[],
+        currentRound: draft.currentRound,
+        picks: roundPicks as unknown as DraftPick[],
       }
     : null
+
+  // Next-round draft: offered once this round's draft is done and the
+  // tournament has another round. Progress on the current round is only a
+  // warning for the admin, not a gate.
+  const roundNumbers = tournament.rounds.map((r) => r.roundNumber)
+  const nextRoundCheck = draft ? canOpenNextRoundDraft(draft, roundNumbers) : null
+  const nextRound =
+    draft && nextRoundCheck?.allowed
+      ? {
+          roundNumber: nextRoundCheck.nextRound,
+          progress: await getRoundFinishProgress(tournament.id, draft.currentRound),
+        }
+      : null
 
   return (
     <main className="space-y-6">
@@ -122,7 +140,12 @@ export default async function AdminDraftPage({
           <Link href={`/${slug}/admin`} className="hover:text-foreground transition-colors">Admin</Link>
           {' › '}Powerup Draft
         </p>
-        <h1 className="text-2xl font-heading">Manage Draft</h1>
+        <h1 className="text-2xl font-heading">
+          Manage Draft
+          {draft && roundNumbers.length > 1 && (
+            <span className="text-muted-foreground"> · Round {draft.currentRound}</span>
+          )}
+        </h1>
       </div>
 
       <DraftAdmin
@@ -137,6 +160,7 @@ export default async function AdminDraftPage({
         currentTurn={currentTurn}
         isAdmin={true}
         favoriteIds={favoriteIds}
+        nextRound={nextRound}
       />
     </main>
   )

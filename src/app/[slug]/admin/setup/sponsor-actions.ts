@@ -6,6 +6,7 @@ import { prisma } from '@/lib/prisma'
 import { requireAuth, isTournamentAdmin } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
+import { ensurePublicBucket } from '@/lib/storage-buckets'
 
 // SponsorStrip renders sponsor.link directly as <a href>, so a javascript:
 // URL would execute on click. z.string().url() accepts any well-formed URL
@@ -40,6 +41,8 @@ async function uploadImage(
 
   const { getSupabaseAdmin } = await import('@/lib/supabase')
   const supabaseAdmin = getSupabaseAdmin()
+  await ensurePublicBucket(supabaseAdmin, 'logos').catch((err) =>
+    console.error('[sponsor] could not provision logos bucket', err))
   const { error } = await supabaseAdmin.storage
     .from('logos')
     .upload(path, buffer, {

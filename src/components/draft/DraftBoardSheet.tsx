@@ -28,6 +28,8 @@ interface DraftBoardSheetProps {
   picksPerPlayer: number
   currentRound: number | null
   currentPlayerId: string | null
+  /** Tap a drafted card to see what it does. */
+  onSelectPick?: (pick: DraftPick) => void
 }
 
 function getOrderedPlayerIdsForRound(
@@ -51,6 +53,7 @@ export function DraftBoardSheet({
   picksPerPlayer,
   currentRound,
   currentPlayerId,
+  onSelectPick,
 }: DraftBoardSheetProps) {
   const totalRounds = Math.max(picksPerPlayer, 1)
   const [activeRound, setActiveRound] = useState<number>(currentRound ?? 1)
@@ -178,18 +181,26 @@ export function DraftBoardSheet({
               {/* Pick (or placeholder) */}
               <div className="shrink-0 text-right max-w-[45%]">
                 {pick ? (
-                  <div className="flex items-center gap-1.5 justify-end">
+                  <button
+                    type="button"
+                    onClick={() => onSelectPick?.(pick)}
+                    disabled={!onSelectPick}
+                    aria-label={`${pick.powerup.name}, drafted by ${name}. View card`}
+                    className={`flex items-center gap-1.5 justify-end max-w-full min-h-9 -my-1 px-2 -mr-2 rounded-md border ${
+                      powerupStyles(pick.powerup.type === 'ATTACK').soft
+                    } ${powerupStyles(pick.powerup.type === 'ATTACK').divider} active:opacity-70 transition-opacity`}
+                  >
                     <SlugIcon
                       slug={pick.powerup.slug}
                       isAttack={pick.powerup.type === 'ATTACK'}
-                      className={`w-4 h-4 ${powerupStyles(pick.powerup.type === 'ATTACK').ink}`}
+                      className={`w-4 h-4 shrink-0 ${powerupStyles(pick.powerup.type === 'ATTACK').ink}`}
                     />
                     <span className={`text-xs font-bold leading-tight truncate ${
                       powerupStyles(pick.powerup.type === 'ATTACK').name
                     }`}>
                       {pick.powerup.name}
                     </span>
-                  </div>
+                  </button>
                 ) : (
                   <span className="text-xs text-muted-foreground/50">—</span>
                 )}

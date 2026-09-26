@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import Image from 'next/image'
 import type { ChatMessage } from '@/hooks/useChat'
+import { isContinuation } from '@/lib/chat-grouping'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Trash2, Ban } from 'lucide-react'
 
@@ -85,7 +86,8 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
         </div>
       )}
 
-      {messages.map((m) => {
+      {messages.map((m, i) => {
+        const continued = isContinuation(messages[i - 1], m)
         const initials = (m.user.name ?? '?').charAt(0).toUpperCase()
         const time = new Date(m.createdAt).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })
         const isOwnMessage = currentUserId && m.userId === currentUserId
@@ -114,6 +116,54 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
           )
         }
 
+        const adminControls = showAdminControls && (
+          <span className="opacity-0 group-hover:opacity-100 focus-within:opacity-100 transition-opacity flex items-center gap-1 ml-auto shrink-0">
+            {onDeleteMessage && (
+              <button
+                type="button"
+                onClick={() => onDeleteMessage(m.id)}
+                className="p-0.5 rounded hover:bg-black/10"
+                title="Delete message"
+                aria-label="Delete message"
+              >
+                <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
+              </button>
+            )}
+            {onBanUser && (
+              <button
+                type="button"
+                onClick={() => setConfirmBan({ userId: m.userId, name: m.user.name ?? 'this user' })}
+                className="p-0.5 rounded hover:bg-black/10"
+                title="Ban user from chat"
+                aria-label={`Ban ${m.user.name ?? 'this user'} from chat`}
+              >
+                <Ban className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
+              </button>
+            )}
+          </span>
+        )
+
+        if (continued) {
+          // Same sender as the message above: no avatar or name, tucked up
+          // under the previous line. The time shows on hover instead.
+          return (
+            <div key={m.id} className="group flex items-start gap-3 mt-0.5!">
+              <div className="w-8 shrink-0 text-right pt-1" aria-hidden="true">
+                <span className={`text-[10px] opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'text-white/40' : 'text-muted-foreground'}`}>
+                  {time.replace(/\s?[AP]M$/i, '')}
+                </span>
+              </div>
+              <div className="flex-1 min-w-0 flex items-start gap-2">
+                <p className={`text-sm break-words flex-1 min-w-0 ${isDark ? 'text-white/80' : ''}`}>
+                  <span className="sr-only">{m.user.name ?? 'Player'} at {time}: </span>
+                  {m.content}
+                </p>
+                {adminControls}
+              </div>
+            </div>
+          )
+        }
+
         return (
           <div key={m.id} className="group flex items-start gap-3">
             {isDark ? (
@@ -134,32 +184,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
               <div className="flex items-baseline gap-2">
                 <span className={`text-sm font-semibold ${isDark ? 'text-white' : ''}`}>{m.user.name ?? 'Player'}</span>
                 <span className={`text-xs ${isDark ? 'text-white/40' : 'text-muted-foreground'}`}>{time}</span>
-                {showAdminControls && (
-                  <span className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-auto">
-                    {onDeleteMessage && (
-                      <button
-                        type="button"
-                        onClick={() => onDeleteMessage(m.id)}
-                        className="p-0.5 rounded hover:bg-black/10"
-                        title="Delete message"
-                        aria-label="Delete message"
-                      >
-                        <Trash2 className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
-                      </button>
-                    )}
-                    {onBanUser && (
-                      <button
-                        type="button"
-                        onClick={() => setConfirmBan({ userId: m.userId, name: m.user.name ?? 'this user' })}
-                        className="p-0.5 rounded hover:bg-black/10"
-                        title="Ban user from chat"
-                        aria-label={`Ban ${m.user.name ?? 'this user'} from chat`}
-                      >
-                        <Ban className="w-3.5 h-3.5 text-muted-foreground hover:text-red-500" />
-                      </button>
-                    )}
-                  </span>
-                )}
+                {adminControls}
               </div>
               <p className={`text-sm mt-0.5 break-words ${isDark ? 'text-white/80' : ''}`}>{m.content}</p>
             </div>

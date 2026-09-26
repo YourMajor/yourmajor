@@ -6,7 +6,15 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { DraftBoard } from './DraftBoard'
 import { DealAnimation } from './DealAnimation'
-import { GripVertical, Loader2, Shuffle, Play } from 'lucide-react'
+import { GripVertical, Loader2, Shuffle, Play, ArrowRight } from 'lucide-react'
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from '@/components/ui/dialog'
 import {
   DndContext,
   closestCenter,
@@ -47,6 +55,17 @@ interface DraftData {
   picks: DraftPick[]
   turnSeconds: number | null
   turnStartedAt: string | null
+  currentRound?: number
+}
+
+export interface NextRoundDraftInfo {
+  roundNumber: number
+  progress: {
+    roundNumber: number
+    finished: number
+    total: number
+    unfinishedNames: string[]
+  } | null
 }
 
 interface DraftAdminProps {
@@ -61,6 +80,88 @@ interface DraftAdminProps {
   currentTurn: { tournamentPlayerId: string; roundNumber: number; pickNumber: number } | null
   isAdmin: boolean
   favoriteIds: string[]
+  /** Set when the current round's draft is done and another round exists. */
+  nextRound?: NextRoundDraftInfo | null
+}
+
+function NextRoundDraftCard({ tournamentId, nextRound }: { tournamentId: string; nextRound: NextRoundDraftInfo }) {
+  const [confirmOpen, setConfirmOpen] = useState(false)
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  const progress = nextRound.progress
+  const everyoneDone = !progress || progress.finished >= progress.total
+  const prevRound = nextRound.roundNumber - 1
+
+  const openDraft = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/draft/next-round`, { method: 'POST' })
+      if (!res.ok) {
+        let message = 'Failed to open the next draft.'
+        try { const data = await res.json(); if (data.error) message = data.error } catch {}
+        throw new Error(message)
+      }
+      window.location.reload()
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Failed to open the next draft.')
+      setLoading(false)
+    }
+  }
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle className="text-base">Round {nextRound.roundNumber} Draft</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-3">
+        <p className="text-sm text-muted-foreground">
+          Open a fresh draft for Round {nextRound.roundNumber}. The whole powerup pool is back
+          in play, and any cards players didn&apos;t use in Round {prevRound} stay in their hands.
+          You&apos;ll set the pick order before it starts.
+        </p>
+        {progress && (
+          <p className={`text-sm ${everyoneDone ? 'text-muted-foreground' : 'text-foreground font-medium'}`}>
+            {progress.finished} of {progress.total} player{progress.total === 1 ? '' : 's'} finished Round {prevRound}.
+          </p>
+        )}
+        {error && <p className="text-sm text-destructive">{error}</p>}
+        <Button
+          onClick={() => (everyoneDone ? void openDraft() : setConfirmOpen(true))}
+          disabled={loading}
+          className="w-full"
+        >
+          {loading ? (
+            <><Loader2 className="w-4 h-4 mr-2 animate-spin" /> Opening...</>
+          ) : (
+            <>Open Round {nextRound.roundNumber} Draft <ArrowRight className="w-4 h-4 ml-2" /></>
+          )}
+        </Button>
+      </CardContent>
+
+      <Dialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Not everyone has finished Round {prevRound}</DialogTitle>
+            <DialogDescription>
+              Still scoring: {progress?.unfinishedNames.join(', ')}. They keep any unused cards,
+              but they&apos;ll be drafting while their round is still open. Open the Round{' '}
+              {nextRound.roundNumber} draft anyway?
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setConfirmOpen(false)} disabled={loading}>
+              Wait
+            </Button>
+            <Button onClick={() => { setConfirmOpen(false); void openDraft() }} disabled={loading}>
+              Open Anyway
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </Card>
+  )
 }
 
 function SortablePlayerCard({ playerId, player, index }: { playerId: string; player: Player; index: number }) {
@@ -107,6 +208,7 @@ export function DraftAdmin({
   currentTurn,
   isAdmin,
   favoriteIds,
+  nextRound,
 }: DraftAdminProps) {
   const [order, setOrder] = useState<string[]>(() => {
     const playerIds = players.map((p) => p.id)
@@ -267,20 +369,25 @@ export function DraftAdmin({
   // DRAFT mode — active or completed → show the DraftBoard
   if (draft && (draft.status === 'ACTIVE' || draft.status === 'COMPLETED')) {
     return (
-      <DraftBoard
-        tournamentId={tournamentId}
-        currentPlayerId={currentPlayerId}
-        isAdmin={isAdmin}
-        initialFavoriteIds={favoriteIds}
-        initialState={{
-          draft,
-          currentTurn,
-          availablePowerups,
-          players,
-          powerupsPerPlayer,
-          maxAttacksPerPlayer,
-        }}
-      />
+      <div className="space-y-6">
+        {draft.status === 'COMPLETED' && nextRound && (
+          <NextRoundDraftCard tournamentId={tournamentId} nextRound={nextRound} />
+        )}
+        <DraftBoard
+          tournamentId={tournamentId}
+          currentPlayerId={currentPlayerId}
+          isAdmin={isAdmin}
+          initialFavoriteIds={favoriteIds}
+          initialState={{
+            draft,
+            currentTurn,
+            availablePowerups,
+            players,
+            powerupsPerPlayer,
+            maxAttacksPerPlayer,
+          }}
+        />
+      </div>
     )
   }
 
@@ -289,7 +396,11 @@ export function DraftAdmin({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">Set Draft Order</CardTitle>
+          <CardTitle className="text-base">
+            {draft?.currentRound && draft.currentRound > 1
+              ? `Set Round ${draft.currentRound} Draft Order`
+              : 'Set Draft Order'}
+          </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
