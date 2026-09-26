@@ -32,7 +32,12 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
   const bottomRef = useRef<HTMLDivElement>(null)
 
   const scrollToBottom = useCallback(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' })
+    // Scroll only the message list. scrollIntoView() also scrolls every
+    // ancestor that can scroll — including the fixed chat panel, whose
+    // overflow-hidden box is still programmatically scrollable — which pushed
+    // the header and messages off the top of the screen on mobile.
+    const scroller = bottomRef.current?.parentElement
+    if (scroller) scroller.scrollTo({ top: scroller.scrollHeight, behavior: 'smooth' })
   }, [])
 
   const fetchMessages = useCallback(async () => {
