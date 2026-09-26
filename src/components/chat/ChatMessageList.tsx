@@ -147,7 +147,7 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
           // Same sender as the message above: no avatar or name, tucked up
           // under the previous line. The time shows on hover instead.
           return (
-            <div key={m.id} className="group flex items-start gap-3 mt-0.5!">
+            <div key={m.id} className="group relative flex items-start gap-3 mt-0.5!">
               <div className="w-8 shrink-0 text-right pt-1" aria-hidden="true">
                 <span className={`text-[10px] opacity-0 group-hover:opacity-100 transition-opacity ${isDark ? 'text-white/40' : 'text-muted-foreground'}`}>
                   {time.replace(/\s?[AP]M$/i, '')}
