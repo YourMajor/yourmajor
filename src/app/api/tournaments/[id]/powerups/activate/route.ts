@@ -146,13 +146,15 @@ export async function POST(
     const scoredNumbers = new Set(targetScores.map((s) => s.hole.number))
     const allHoleNumbers = round.course.holes.map((h) => h.number)
 
-    if (typeof targetHoleOverride === 'number') {
-      if (!allHoleNumbers.includes(targetHoleOverride)) {
-        return NextResponse.json({ error: 'Override hole is not on the course' }, { status: 400 })
-      }
-      if (scoredNumbers.has(targetHoleOverride)) {
-        return NextResponse.json({ error: 'Cannot apply attack on a hole the target has already scored' }, { status: 400 })
-      }
+    if (typeof targetHoleOverride === 'number' && !allHoleNumbers.includes(targetHoleOverride)) {
+      return NextResponse.json({ error: 'Override hole is not on the course' }, { status: 400 })
+    }
+    // The client's hole list is a snapshot from when the scoring page loaded
+    // (play/page.tsx → opponentScoredHoles) and never refreshes mid-round, so
+    // by the time an attack is played the chosen hole has often been scored
+    // already. Rejecting that bounced the card silently back into the hand —
+    // fall through to the auto-pick against fresh scores instead.
+    if (typeof targetHoleOverride === 'number' && !scoredNumbers.has(targetHoleOverride)) {
       resolvedTargetHole = targetHoleOverride
     } else {
       const auto = computeAttackTargetHole(allHoleNumbers, scoredNumbers)

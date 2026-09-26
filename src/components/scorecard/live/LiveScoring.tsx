@@ -132,6 +132,12 @@ export function LiveScoring({
   })
 
   const [finishError, setFinishError] = useState<string | null>(null)
+  const [powerupError, setPowerupError] = useState<string | null>(null)
+  useEffect(() => {
+    if (!powerupError) return
+    const t = setTimeout(() => setPowerupError(null), 8000)
+    return () => clearTimeout(t)
+  }, [powerupError])
   const [usedPowerupIds, setUsedPowerupIds] = useState<Set<string>>(() => {
     // Initialize from any already-used powerups in the server data
     return new Set(rawPlayerPowerups.filter((pp) => pp.status === 'USED').map((pp) => pp.id))
@@ -432,6 +438,9 @@ export function LiveScoring({
             return next
           })
           console.error('[powerup] activation rejected:', error)
+          // The card is already back in the hand; without this the player
+          // sees it bounce back with no reason given.
+          setPowerupError(`${powerup?.name ?? 'Card'} didn't go through: ${error}`)
         },
       },
     )
@@ -678,7 +687,7 @@ export function LiveScoring({
                 onPrev={state.prevHole}
                 onNext={state.nextHole}
                 onFinishRound={handleFinishRound}
-                finishError={finishError ?? state.saveError}
+                finishError={finishError ?? powerupError ?? state.saveError}
                 hasPrev={state.currentHoleIndex > 0}
                 hasNext={
                   state.currentHoleIndex < state.sortedHoles.length - 1
