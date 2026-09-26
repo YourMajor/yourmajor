@@ -5,6 +5,9 @@ import { getTournamentTier } from '@/lib/stripe'
 import { TIER_LIMITS } from '@/lib/tiers'
 import { containsProfanity } from '@/lib/content-moderation'
 import { randomUUID } from 'crypto'
+import { ensurePublicBucket } from '@/lib/storage-buckets'
+
+const BUCKET = 'tournament-photos'
 
 const MAX_SIZE = 10 * 1024 * 1024 // 10 MB
 const MIME_TO_EXT: Record<string, string> = {
@@ -114,6 +117,22 @@ export async function POST(
 
   const { getSupabaseAdmin } = await import('@/lib/supabase')
   const supabaseAdmin = getSupabaseAdmin()
+
+  // The bucket isn't created by any migration; without this every upload on
+  // a project where nobody made it by hand fails with "Bucket not found".
+  try {
+    await ensurePublicBucket(supabaseAdmin, BUCKET, {
+      allowedMimeTypes: ALLOWED_TYPES,
+      fileSizeLimit: MAX_SIZE,
+    })
+  } catch (err) {
+    console.error('[photo upload] Failed to ensure bucket:', err)
+    return NextResponse.json(
+      { error: 'Photo storage is not available right now. Please try again.' },
+      { status: 500 },
+    )
+  }
+
   // Derive the storage extension from the validated MIME type, not the
   // user-supplied filename — otherwise an attacker can upload an image with
   // contentType=image/jpeg but filename=evil.html and end up with an .html
@@ -123,7 +142,7 @@ export async function POST(
   const buffer = Buffer.from(await file.arrayBuffer())
 
   const { error } = await supabaseAdmin.storage
-    .from('tournament-photos')
+    .from(BUCKET)
     .upload(path, buffer, { contentType: file.type, upsert: false })
 
   if (error) {
@@ -134,7 +153,7 @@ export async function POST(
     )
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from('tournament-photos').getPublicUrl(path)
+  const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
 
   const photo = await prisma.tournamentPhoto.create({
     data: { tournamentId: id, userId: user.id, url: urlData.publicUrl, caption },

@@ -8,7 +8,9 @@ const supabaseAdmin = createClient(
 async function setupStorage() {
   const buckets = [
     { name: 'logos', public: true },
+    { name: 'headers', public: true },
     { name: 'avatars', public: true },
+    { name: 'tournament-photos', public: true },
   ]
 
   for (const bucket of buckets) {

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { revalidatePath } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import type { SupabaseClient } from '@supabase/supabase-js'
+import { ensurePublicBucket } from '@/lib/storage-buckets'
 
 const MAX_SIZE = 5 * 1024 * 1024 // 5 MB
 const MIME_TO_EXT: Record<string, string> = {
@@ -15,32 +15,6 @@ const MIME_TO_EXT: Record<string, string> = {
 // would execute as XSS when served from this public bucket.
 const ALLOWED_TYPES = Object.keys(MIME_TO_EXT)
 const BUCKET = 'avatars'
-
-// Run bucket provisioning at most once per server process.
-let bucketReady: Promise<void> | null = null
-async function ensureBucket(supabase: SupabaseClient): Promise<void> {
-  if (!bucketReady) {
-    bucketReady = (async () => {
-      const { data, error: listError } = await supabase.storage.listBuckets()
-      if (listError) throw listError
-      if (data?.some((b) => b.name === BUCKET)) return
-      const { error: createError } = await supabase.storage.createBucket(BUCKET, {
-        public: true,
-        allowedMimeTypes: ALLOWED_TYPES,
-        fileSizeLimit: MAX_SIZE,
-      })
-      if (createError && !createError.message.toLowerCase().includes('already exists')) {
-        throw createError
-      }
-      console.log(`[avatar upload] Provisioned Supabase bucket '${BUCKET}'`)
-    })().catch((err) => {
-      // Reset so a later request can retry
-      bucketReady = null
-      throw err
-    })
-  }
-  return bucketReady
-}
 
 export async function POST(req: NextRequest) {
   const user = await getUser()
@@ -61,7 +35,10 @@ export async function POST(req: NextRequest) {
   const supabaseAdmin = getSupabaseAdmin()
 
   try {
-    await ensureBucket(supabaseAdmin)
+    await ensurePublicBucket(supabaseAdmin, BUCKET, {
+      allowedMimeTypes: ALLOWED_TYPES,
+      fileSizeLimit: MAX_SIZE,
+    })
   } catch (err) {
     console.error('[avatar upload] Failed to ensure bucket:', err)
     const message = err instanceof Error ? err.message : 'Unknown error'
