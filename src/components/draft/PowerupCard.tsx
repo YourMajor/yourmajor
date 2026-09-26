@@ -29,6 +29,9 @@ interface PowerupCardProps {
   disabled?: boolean
   isFavorite?: boolean
   onToggleFavorite?: () => void
+  /** Browse size only: keep an already-drafted card tappable so anyone can
+   *  read what it does. It still renders in the dimmed "picked" style. */
+  viewablePicked?: boolean
 }
 
 function formatDuration(duration: number): string {
@@ -51,6 +54,7 @@ export function PowerupCard({
   disabled,
   isFavorite,
   onToggleFavorite,
+  viewablePicked,
 }: PowerupCardProps) {
   const isAttack = powerup.type === 'ATTACK'
   const isPicked = state === 'picked'
@@ -69,6 +73,7 @@ export function PowerupCard({
       disabled={disabled}
       isFavorite={isFavorite}
       onToggleFavorite={onToggleFavorite}
+      viewablePicked={viewablePicked}
     />
   }
 
@@ -171,9 +176,10 @@ interface BrowseCardProps {
   disabled?: boolean
   isFavorite?: boolean
   onToggleFavorite?: () => void
+  viewablePicked?: boolean
 }
 
-function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy, onClick, disabled, isFavorite, onToggleFavorite }: BrowseCardProps) {
+function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy, onClick, disabled, isFavorite, onToggleFavorite, viewablePicked }: BrowseCardProps) {
   const c = powerupStyles(isAttack)
   const iconColor = c.ink
   const requiresTarget = powerup.effect.requiresTarget
@@ -188,14 +194,15 @@ function BrowseCard({ powerup, isAttack, isPicked, isUsed, isSelected, pickedBy,
       <button
         type="button"
         onClick={onClick}
-        disabled={disabled || isPicked || isUsed}
-        aria-label={`${powerup.name}, ${powerup.type.toLowerCase()}, ${powerup.effect.duration === -1 ? 'variable' : powerup.effect.duration} hole${powerup.effect.duration === 1 ? '' : 's'}`}
+        disabled={disabled || (isPicked && !viewablePicked) || isUsed}
+        aria-label={`${powerup.name}, ${powerup.type.toLowerCase()}, ${powerup.effect.duration === -1 ? 'variable' : powerup.effect.duration} hole${powerup.effect.duration === 1 ? '' : 's'}${isPicked && pickedBy?.name ? `, drafted by ${pickedBy.name}` : ''}`}
         className={`
           relative w-full aspect-[3/4] rounded-2xl overflow-hidden flex flex-col text-left
           bg-powerup-stock border-2 transition-all select-none
           ${c.frameSoft}
           ${isSelected ? 'ring-2 ring-accent shadow-xl shadow-accent/20 scale-[1.02]' : 'shadow-sm'}
-          ${isPicked || isUsed ? 'opacity-55 cursor-not-allowed' : ''}
+          ${isPicked && viewablePicked ? 'opacity-55 cursor-pointer hover:opacity-80' : ''}
+          ${(isPicked && !viewablePicked) || isUsed ? 'opacity-55 cursor-not-allowed' : ''}
           ${!isPicked && !isUsed && !disabled ? 'hover:shadow-lg active:scale-[0.98] cursor-pointer' : ''}
           ${disabled && !isPicked && !isUsed ? 'opacity-60 cursor-not-allowed' : ''}
         `}

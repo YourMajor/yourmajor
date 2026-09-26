@@ -41,6 +41,8 @@ interface DraftState {
     currentPick: number
     turnSeconds: number | null
     turnStartedAt: string | null
+    /** Tournament round this draft is for; absent from older payloads. */
+    currentRound?: number
     picks: DraftPick[]
   }
   currentTurn: {
@@ -91,6 +93,8 @@ export function DraftBoard({
 }: DraftBoardProps) {
   const [state, setState] = useState<DraftState>(initialState)
   const [selectedPowerup, setSelectedPowerup] = useState<PowerupCardData | null>(null)
+  // Read-only look at a card that's already been drafted (by anyone).
+  const [viewingPickedId, setViewingPickedId] = useState<string | null>(null)
   const [picking, setPicking] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [search, setSearch] = useState('')
@@ -101,7 +105,9 @@ export function DraftBoard({
   const [favoriteIds, setFavoriteIds] = useState<Set<string>>(
     () => new Set(initialFavoriteIds),
   )
-  const [draftReset, setDraftReset] = useState(false)
+  // 'reset' = admin reset this round's draft; 'next-round' = admin opened the
+  // following round's draft. Both send the board back to setup.
+  const [draftReset, setDraftReset] = useState<null | 'reset' | 'next-round'>(null)
   const [falling, setFalling] = useState(false)
   const [highlightCardId, setHighlightCardId] = useState<string | null>(null)
   const [handSheetOpen, setHandSheetOpen] = useState(false)
@@ -194,6 +200,7 @@ export function DraftBoard({
   //
   // The subscribe status callback also refetches on (re)connect so any
   // events fired during a brief disconnect are caught up automatically.
+  const liveRound = state.draft.currentRound ?? 1
   useEffect(() => {
     const supabase = createClient()
     let timer: ReturnType<typeof setTimeout> | null = null
@@ -223,9 +230,12 @@ export function DraftBoard({
           filter: `id=eq.${state.draft.id}`,
         },
         (payload) => {
-          const newStatus = (payload.new as { status?: string })?.status
-          if (newStatus === 'PENDING') {
-            setDraftReset(true)
+          const next = payload.new as { status?: string; currentRound?: number } | undefined
+          if (next?.status === 'PENDING') {
+            const movedOn =
+              typeof next.currentRound === 'number' &&
+              next.currentRound > liveRound
+            setDraftReset(movedOn ? 'next-round' : 'reset')
           }
         },
       )
@@ -239,7 +249,7 @@ export function DraftBoard({
       if (timer) clearTimeout(timer)
       supabase.removeChannel(channel)
     }
-  }, [state.draft.id, fetchState])
+  }, [state.draft.id, liveRound, fetchState])
 
   // Polling fallback while the draft is ACTIVE and the tab is visible.
   // Guarantees turn-flip propagation within ~5s even if both broadcast and
@@ -319,6 +329,10 @@ export function DraftBoard({
   }, [fetchState])
 
   // Build the unified powerup list (available + already-picked, with picked metadata)
+  const viewingPick = viewingPickedId
+    ? state.draft.picks.find((p) => p.powerupId === viewingPickedId) ?? null
+    : null
+
   const allPowerupsWithStatus = useMemo(() => {
     const available = state.availablePowerups.map((p) => ({ powerup: p, pickedBy: null as Player['user'] | null }))
     const picked = state.draft.picks.map((p) => ({
@@ -405,8 +419,15 @@ export function DraftBoard({
   if (draftReset) {
     return (
       <div className="text-center py-12 space-y-4">
-        <p className="text-lg font-semibold text-foreground">Draft Has Been Reset</p>
-        <p className="text-sm text-muted-foreground">The admin has reset the draft. The page will refresh momentarily.</p>
+        <p className="text-lg font-semibold text-foreground">
+          {draftReset === 'next-round' ? 'Next Round Draft Is Open' : 'Draft Has Been Reset'}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {draftReset === 'next-round'
+            ? 'The admin opened the draft for the next round. Your unused cards are still yours.'
+            : 'The admin has reset the draft.'}{' '}
+          The page will refresh momentarily.
+        </p>
         <Button onClick={() => window.location.reload()} variant="outline">
           Refresh Now
         </Button>
@@ -418,8 +439,14 @@ export function DraftBoard({
     return (
       <div className="space-y-8">
         <div className="text-center py-2">
-          <h2 className="text-xl font-heading text-foreground">Draft Complete!</h2>
-          <p className="text-sm text-muted-foreground mt-1">Your hand is ready to play.</p>
+          <h2 className="text-xl font-heading text-foreground">
+            {(state.draft.currentRound ?? 1) > 1 ? `Round ${state.draft.currentRound} Draft Complete!` : 'Draft Complete!'}
+          </h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {(state.draft.currentRound ?? 1) > 1
+              ? 'Your new picks are in your hand, alongside any cards you saved from earlier rounds.'
+              : 'Your hand is ready to play.'}
+          </p>
         </div>
 
         {/* Playing card hand (desktop fan + mobile horizontal scroll fallback) */}
@@ -493,6 +520,7 @@ export function DraftBoard({
             .filter((x) => x.pickedBy !== null)
             .map((x) => ({ powerupId: x.powerup.id, pickedBy: x.pickedBy! }))}
           selectedId={selectedPowerup?.id ?? null}
+          onViewPicked={(p) => setViewingPickedId(p.id)}
           hasFilters={hasFilters}
           onSelect={(p) => setSelectedPowerup(p)}
           onClearFilters={() => {
@@ -561,6 +589,46 @@ export function DraftBoard({
         picksPerPlayer={state.powerupsPerPlayer}
         currentRound={state.currentTurn?.roundNumber ?? null}
         currentPlayerId={state.currentTurn?.tournamentPlayerId ?? null}
+        onSelectPick={(pick) => setViewingPickedId(pick.powerupId)}
+      />
+
+      {/* Read-only view of a drafted card */}
+      <FlippableCardOverlay
+        powerup={viewingPick?.powerup ?? null}
+        onClose={() => setViewingPickedId(null)}
+        backContent={(animatedClose) =>
+          viewingPick ? (
+            <CardBack
+              slug={viewingPick.powerup.slug}
+              name={viewingPick.powerup.name}
+              type={viewingPick.powerup.type}
+              description={viewingPick.powerup.description}
+              effect={viewingPick.powerup.effect as PowerupEffect}
+              isAttack={viewingPick.powerup.type === 'ATTACK'}
+              onClose={animatedClose}
+              customFooter={
+                <>
+                  <p className="flex-1 self-center text-[11px] text-zinc-500 leading-tight">
+                    Drafted by{' '}
+                    <span className="font-semibold text-zinc-700">
+                      {viewingPick.tournamentPlayer.id === currentPlayerId
+                        ? 'you'
+                        : viewingPick.tournamentPlayer.user.name ?? 'Player'}
+                    </span>
+                    {' '}&middot; Pick #{viewingPick.pickNumber}
+                  </p>
+                  <button
+                    type="button"
+                    onClick={animatedClose}
+                    className="py-2 px-4 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
+                  >
+                    Close
+                  </button>
+                </>
+              }
+            />
+          ) : null
+        }
       />
 
       {/* Confirm pick flip overlay */}
