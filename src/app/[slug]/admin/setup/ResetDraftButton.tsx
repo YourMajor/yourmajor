@@ -15,9 +15,11 @@ import { Loader2, RotateCcw } from 'lucide-react'
 
 interface Props {
   tournamentId: string
+  /** Tournament round the live draft is for; only that round is reset. */
+  currentRound?: number
 }
 
-export function ResetDraftButton({ tournamentId }: Props) {
+export function ResetDraftButton({ tournamentId, currentRound = 1 }: Props) {
   const router = useRouter()
   const [open, setOpen] = useState(false)
   const [loading, setLoading] = useState(false)
@@ -60,7 +62,9 @@ export function ResetDraftButton({ tournamentId }: Props) {
           <DialogHeader>
             <DialogTitle className="text-red-600">Reset Draft</DialogTitle>
             <DialogDescription>
-              This will delete all picks and return the draft to setup. Players will lose any undrafted cards. This cannot be undone.
+              {currentRound > 1
+                ? `This will delete the Round ${currentRound} picks and return that round's draft to setup. Players lose the unused cards they drafted this round; cards from earlier rounds are kept. This cannot be undone.`
+                : 'This will delete all picks and return the draft to setup. Players will lose any undrafted cards. This cannot be undone.'}
             </DialogDescription>
           </DialogHeader>
           {error && (

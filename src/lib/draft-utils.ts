@@ -43,6 +43,60 @@ export function computeCurrentTurn(
 }
 
 /**
+ * Keep only the picks made in the draft for `tournamentRound`.
+ *
+ * A tournament has one Draft row, but a per-round draft runs once per
+ * tournament round: `Draft.currentRound` says which one is live and every
+ * pick carries the round it was made in. Turn order, the attack budget and
+ * the "already picked" pool all apply within a single round's draft, so any
+ * code that reasons about the live draft filters through this first.
+ */
+export function picksForRound<T extends { tournamentRound: number }>(
+  picks: T[],
+  tournamentRound: number,
+): T[] {
+  return picks.filter((p) => p.tournamentRound === tournamentRound)
+}
+
+export interface NextRoundDraftCheck {
+  allowed: boolean
+  reason?: string
+  /** The tournament round the next draft would be for. */
+  nextRound: number
+}
+
+/**
+ * Can the admin open the draft for the next tournament round?
+ *
+ * Only once the current round's draft has finished, and only while the
+ * tournament has a later round to draft for. Whether everyone has finished
+ * scoring the current round is deliberately not a hard rule here — the admin
+ * gets a warning in the UI instead, because a player who walks off after 14
+ * holes would otherwise block the draft for the whole field.
+ */
+export function canOpenNextRoundDraft(
+  draft: { status: 'PENDING' | 'ACTIVE' | 'COMPLETED'; currentRound: number },
+  roundNumbers: number[],
+): NextRoundDraftCheck {
+  const nextRound = draft.currentRound + 1
+  if (draft.status !== 'COMPLETED') {
+    return {
+      allowed: false,
+      nextRound,
+      reason: `Finish the Round ${draft.currentRound} draft before opening the next one.`,
+    }
+  }
+  if (!roundNumbers.includes(nextRound)) {
+    return {
+      allowed: false,
+      nextRound,
+      reason: `This tournament has no Round ${nextRound} to draft for.`,
+    }
+  }
+  return { allowed: true, nextRound }
+}
+
+/**
  * Drop a player from the draft order (e.g. they left the tournament).
  * computeCurrentTurn derives everything from draftOrder.length and the picks
  * counter, so shrinking the array is all that's needed.

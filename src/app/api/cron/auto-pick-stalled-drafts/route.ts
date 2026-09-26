@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { computeCurrentTurn } from '@/lib/draft-utils'
+import { computeCurrentTurn, picksForRound } from '@/lib/draft-utils'
 import { executePick } from '@/lib/draft-pick'
 import { selectAutoPickPowerupId } from '@/lib/draft-auto-pick'
 import { sendPushToUser } from '@/lib/push'
@@ -86,7 +86,7 @@ export async function GET(request: NextRequest) {
           type: tp.powerup.type as 'BOOST' | 'ATTACK',
         }))
 
-        const history = fresh.picks.map((p) => ({
+        const history = picksForRound(fresh.picks, fresh.currentRound).map((p) => ({
           tournamentPlayerId: p.tournamentPlayerId,
           powerupType: p.powerup.type as 'BOOST' | 'ATTACK',
           powerupId: p.powerupId,

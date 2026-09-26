@@ -673,10 +673,17 @@ model PlayerPowerup {
   scoreModifier      Int?
   status             PlayerPowerupStatus @default(AVAILABLE)
   metadata           Json?
+  // The draft pick that granted this card. Lets a per-round draft reset or a
+  // pick edit touch exactly the card that pick created, instead of guessing by
+  // (player, powerupId) — which is ambiguous once the same card can be drafted
+  // in more than one round. NULL for dealt cards and for picks made before
+  // this column existed.
+  draftPickId        String?             @unique
 
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
   powerup          Powerup          @relation(fields: [powerupId], references: [id])
   round            TournamentRound? @relation(fields: [roundId], references: [id])
+  draftPick        DraftPick?       @relation(fields: [draftPickId], references: [id], onDelete: SetNull)
 
   @@index([tournamentPlayerId])
   // scoring.ts loads inbound attacks with a top-level
@@ -697,6 +704,12 @@ model Draft {
   currentPick    Int         @default(0)
   turnSeconds    Int?
   turnStartedAt  DateTime?
+  // Which tournament round the draft is currently running for. A PRE_TOURNAMENT
+  // draft stays at 1 forever. For per-round drafts the admin advances it after
+  // a round's draft completes; status, currentPick and the turn timer then
+  // describe that round's draft only. Earlier rounds' picks stay in `picks`,
+  // tagged with their own tournamentRound.
+  currentRound   Int         @default(1)
   createdAt      DateTime    @default(now())
 
   tournament Tournament  @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
@@ -710,14 +723,18 @@ model DraftPick {
   draftId            String
   tournamentPlayerId String
   powerupId          String
+  // Overall pick number within this tournament round's draft (restarts at 1).
   pickNumber         Int
   roundNumber        Int?
+  // Tournament round this pick was drafted for (see Draft.currentRound).
+  tournamentRound    Int    @default(1)
 
   draft            Draft            @relation(fields: [draftId], references: [id], onDelete: Cascade)
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
   powerup          Powerup          @relation(fields: [powerupId], references: [id])
+  playerPowerup    PlayerPowerup?
 
-  @@unique([draftId, pickNumber])
+  @@unique([draftId, tournamentRound, pickNumber])
   @@index([draftId])
 }
 

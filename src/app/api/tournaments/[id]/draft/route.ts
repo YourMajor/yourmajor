@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
-import { computeCurrentTurn } from '@/lib/draft-utils'
+import { computeCurrentTurn, picksForRound } from '@/lib/draft-utils'
 
 export async function GET(
   _req: NextRequest,
@@ -64,6 +64,11 @@ export async function GET(
     orderBy: { createdAt: 'asc' },
   })
 
+  // Everything below describes the live draft, i.e. the one for
+  // draft.currentRound. Earlier rounds' picks stay in the table but are not
+  // part of this round's board, turn order or pool.
+  const roundPicks = picksForRound(draft.picks, draft.currentRound)
+
   // Compute whose turn it is
   const draftOrder = (draft.draftOrder as string[] | null) ?? []
   const currentTurn = computeCurrentTurn(
@@ -74,7 +79,7 @@ export async function GET(
   )
 
   // Available powerups (not yet picked)
-  const pickedPowerupIds = new Set(draft.picks.map((p) => p.powerupId))
+  const pickedPowerupIds = new Set(roundPicks.map((p) => p.powerupId))
   const availablePowerups = tournamentPowerups
     .filter((tp) => !pickedPowerupIds.has(tp.powerupId))
     .map((tp) => tp.powerup)
@@ -89,7 +94,8 @@ export async function GET(
       currentPick: draft.currentPick,
       turnSeconds: draft.turnSeconds,
       turnStartedAt: draft.turnStartedAt?.toISOString() ?? null,
-      picks: draft.picks,
+      currentRound: draft.currentRound,
+      picks: roundPicks,
     },
     currentTurn,
     availablePowerups,

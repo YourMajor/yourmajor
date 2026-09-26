@@ -1,5 +1,5 @@
 import type { Prisma } from '@/generated/prisma/client'
-import { canPickPowerup, computeCurrentTurn } from './draft-utils'
+import { canPickPowerup, computeCurrentTurn, picksForRound } from './draft-utils'
 
 export interface ExecutePickInput {
   draftId: string
@@ -18,6 +18,7 @@ export interface ExecutePickResult {
   pick: {
     id: string
     pickNumber: number
+    tournamentRound: number
     powerupId: string
     tournamentPlayerId: string
     powerup: {
@@ -93,7 +94,10 @@ export async function executePick(
   const powerup = await tx.powerup.findUnique({ where: { id: powerupId } })
   if (!powerup) throw new Error('That powerup no longer exists.')
 
-  const pickData = draft.picks.map((p) => ({
+  // Only this tournament round's picks count: the pool and the attack budget
+  // reset for each round's draft.
+  const roundPicks = picksForRound(draft.picks, draft.currentRound)
+  const pickData = roundPicks.map((p) => ({
     tournamentPlayerId: p.tournamentPlayerId,
     powerupType: p.powerup.type as 'BOOST' | 'ATTACK',
     powerupId: p.powerupId,
@@ -116,6 +120,7 @@ export async function executePick(
       tournamentPlayerId,
       powerupId,
       pickNumber,
+      tournamentRound: draft.currentRound,
     },
     include: {
       powerup: {
@@ -132,6 +137,7 @@ export async function executePick(
       tournamentPlayerId,
       powerupId,
       status: 'AVAILABLE',
+      draftPickId: pick.id,
     },
   })
 
@@ -144,7 +150,7 @@ export async function executePick(
   // what we read at the start of the transaction. Two racing picks observe the
   // same currentPick; the loser sees count===0 and aborts.
   const updated = await tx.draft.updateMany({
-    where: { id: draft.id, currentPick: draft.currentPick },
+    where: { id: draft.id, currentPick: draft.currentPick, currentRound: draft.currentRound },
     data: {
       currentPick: newPickCount,
       status: isComplete ? 'COMPLETED' : 'ACTIVE',
@@ -173,6 +179,7 @@ export async function executePick(
           type: 'DRAFT_YOUR_TURN',
           payload: {
             pickNumber: nextTurn.pickNumber,
+            tournamentRound: draft.currentRound,
             message: "It's your turn to pick a powerup!",
           },
         },

@@ -49,6 +49,10 @@ export async function POST(
     },
   })
 
+  // Round 1 keeps its original wording; later rounds say which round's draft
+  // this is so it isn't mistaken for a replay of the first one.
+  const draftLabel = draft.currentRound > 1 ? `Round ${draft.currentRound} powerup draft` : 'powerup draft'
+
   // Notify the first player
   const firstTurn = computeCurrentTurn(
     draftOrder,
@@ -61,7 +65,11 @@ export async function POST(
       data: {
         tournamentPlayerId: firstTurn.tournamentPlayerId,
         type: 'DRAFT_YOUR_TURN',
-        payload: { pickNumber: 1, message: "It's your turn to pick a powerup!" },
+        payload: {
+          pickNumber: 1,
+          tournamentRound: draft.currentRound,
+          message: "It's your turn to pick a powerup!",
+        },
       },
     })
   }
@@ -75,7 +83,7 @@ export async function POST(
     data: allPlayers.map((p) => ({
       tournamentPlayerId: p.id,
       type: 'DRAFT_STARTED' as const,
-      payload: { message: 'The powerup draft has started!' },
+      payload: { tournamentRound: draft.currentRound, message: `The ${draftLabel} has started!` },
     })),
   })
 
@@ -85,10 +93,10 @@ export async function POST(
     try {
       await sendEmailToMany(
         allPlayers.map((p) => ({ email: p.user.email, name: p.user.name ?? undefined })),
-        `Draft started — ${tournament?.name ?? 'Tournament'}`,
+        `${draft.currentRound > 1 ? `Round ${draft.currentRound} draft` : 'Draft'} started — ${tournament?.name ?? 'Tournament'}`,
         () =>
           `<h2>${escapeHtml(tournament?.name ?? 'Tournament')}</h2>
-          <p>The powerup draft has started! Keep an eye out for your turn.</p>
+          <p>The ${draftLabel} has started! Keep an eye out for your turn.</p>
           <p><a href="${domain}/${escapeHtml(tournament?.slug)}/draft">View Draft</a></p>`,
       )
     } catch (err) {

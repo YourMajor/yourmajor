@@ -58,6 +58,7 @@ const cases: Case[] = [
   { name: 'draft/start', method: 'POST', load: () => import('./start/route'), params: { id: 'tourn_1' } },
   { name: 'draft/reset', method: 'POST', load: () => import('./reset/route'), params: { id: 'tourn_1' } },
   { name: 'draft/random', method: 'POST', load: () => import('./random/route'), params: { id: 'tourn_1' } },
+  { name: 'draft/next-round', method: 'POST', load: () => import('./next-round/route'), params: { id: 'tourn_1' } },
   {
     name: 'draft/order', method: 'PUT', load: () => import('./order/route'),
     params: { id: 'tourn_1' }, body: { order: ['tp_1'] },
