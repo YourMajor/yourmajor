@@ -29,6 +29,7 @@ export default async function TournamentLayout({
   let showAdmin = user?.role === 'ADMIN'
   let isRegistered = false
   let isTournamentAdmin = false
+  let hasMembershipRow = false
   let tournamentPlayerId: string | null = null
   let avatarUrl: string | null = null
   let initials = '?'
@@ -48,6 +49,7 @@ export default async function TournamentLayout({
     isTournamentAdmin = membership?.isAdmin ?? false
     isRegistered = !!membership?.isParticipant
     tournamentPlayerId = membership?.id ?? null
+    hasMembershipRow = !!membership
     avatarUrl = profile?.avatar ?? user.image ?? null
     const name = profile?.displayName ?? user.name ?? user.email.split('@')[0]
     initials = name
@@ -101,6 +103,13 @@ export default async function TournamentLayout({
       leagueChatAuthorized = !!anyMembership
     }
   }
+
+  // Chat is open to bystanders too: any signed-in viewer can post, except on
+  // INVITE tournaments where it stays members-only (watchers included). The
+  // messages API enforces the same rule via resolveChatAccess.
+  const chatCanPost =
+    leagueChatAuthorized ||
+    (!!user && (hasMembershipRow || tournament.tournamentType !== 'INVITE'))
 
   const ctx: TournamentContextValue = {
     slug,
@@ -165,6 +174,7 @@ export default async function TournamentLayout({
           currentUserId={user?.id ?? null}
           currentUserName={user?.name ?? null}
           isRegistered={leagueChatAuthorized}
+          canPost={chatCanPost}
           isAdmin={showAdmin}
           label={tournament.isLeague ? 'League Chat' : undefined}
         />

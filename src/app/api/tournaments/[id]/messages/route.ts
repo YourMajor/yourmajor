@@ -5,6 +5,7 @@ import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { containsProfanity } from '@/lib/content-moderation'
 import { sendPushToUsers } from '@/lib/push'
+import { resolveChatAccess } from '@/lib/chat-access'
 
 export async function GET(
   _req: NextRequest,
@@ -15,10 +16,9 @@ export async function GET(
 
   const { id } = await params
 
-  const player = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
-  })
-  if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
+  // Players, admins, watchers — and bystanders on any non-INVITE tournament.
+  const access = await resolveChatAccess(id, user.id)
+  if (!access.allowed) return NextResponse.json({ error: access.error }, { status: access.status })
 
   const messages = await prisma.tournamentMessage.findMany({
     where: { tournamentId: id, deletedAt: null },
@@ -52,11 +52,10 @@ export async function POST(
   if (!parsed.ok) return parsed.response
   const { content } = parsed.data
 
-  // Verify user is a registered player
-  const player = await prisma.tournamentPlayer.findUnique({
-    where: { tournamentId_userId: { tournamentId: id, userId: user.id } },
-  })
-  if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
+  // Players, admins and watchers can post, and so can bystanders on any
+  // non-INVITE tournament — posting records them as a watcher.
+  const access = await resolveChatAccess(id, user.id, { enrollAsWatcher: true })
+  if (!access.allowed) return NextResponse.json({ error: access.error }, { status: access.status })
 
   // Check if user is banned from chat
   const ban = await prisma.chatBan.findUnique({
