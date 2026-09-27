@@ -7,6 +7,7 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { TournamentMessage } from '@/components/ui/tournament-message'
 import { LiveScoring } from '@/components/scorecard/live/LiveScoring'
 import { isSingleTeamScoreFormat } from '@/lib/formats'
+import { pickDefaultRound } from '@/lib/play-round'
 import { Clock, Swords, AlertCircle } from 'lucide-react'
 
 export default async function PlayPage({
@@ -91,21 +92,6 @@ export default async function PlayPage({
     }
   }
 
-  // Select round (default to first)
-  const selectedRoundNumber = round ? parseInt(round) : (tournament.rounds[0]?.roundNumber ?? 1)
-  const selectedRound = tournament.rounds.find((r) => r.roundNumber === selectedRoundNumber)
-
-  if (!selectedRound) {
-    return (
-      <TournamentMessage
-        icon={AlertCircle}
-        heading="No Rounds Configured"
-        description="No rounds have been set up for this tournament yet."
-        backHref={`/${slug}`}
-      />
-    )
-  }
-
   // ── Team-mode resolution ────────────────────────────────────────────────
   // For SCRAMBLE / SHAMBLE / CHAPMAN / PINEHURST a single canonical Score row
   // exists per (team, hole, round). All team members read and write through
@@ -149,6 +135,38 @@ export default async function PlayPage({
     }
   }
   const scoringPlayerId = teamAnchorPlayerId ?? tournamentPlayer.id
+
+  // Select round: an explicit ?round= wins; otherwise the first round this
+  // player (or their team anchor) hasn't finished, so Round 2 opens by itself
+  // once Round 1 is posted.
+  const requestedRound = round ? parseInt(round, 10) : NaN
+  let pickedRound = Number.isFinite(requestedRound)
+    ? tournament.rounds.find((r) => r.roundNumber === requestedRound)
+    : undefined
+  if (!pickedRound) {
+    const scoredCounts = await prisma.score.groupBy({
+      by: ['roundId'],
+      where: { tournamentPlayerId: scoringPlayerId, roundId: { in: tournament.rounds.map((r) => r.id) } },
+      _count: { _all: true },
+    })
+    pickedRound = pickDefaultRound(
+      tournament.rounds.map((r) => ({ ...r, holeCount: r.course.holes.length })),
+      new Map(scoredCounts.map((c) => [c.roundId, c._count._all])),
+    )
+  }
+
+  if (!pickedRound) {
+    return (
+      <TournamentMessage
+        icon={AlertCircle}
+        heading="No Rounds Configured"
+        description="No rounds have been set up for this tournament yet."
+        backHref={`/${slug}`}
+      />
+    )
+  }
+  // const so the narrowing survives into the callbacks below
+  const selectedRound = pickedRound
 
   // Existing scores for this player + round (anchor row when team-mode)
   const existingScores = await prisma.score.findMany({
@@ -284,6 +302,17 @@ export default async function PlayPage({
       opponentScoredHoles={opponentScoredHoles}
       teamMode={teamMode && teamMeta !== null ? teamMeta : undefined}
       tournamentFormat={tournament.tournamentFormat}
+      roundNav={
+        tournament.rounds.length > 1
+          ? {
+              current: selectedRound.roundNumber,
+              rounds: tournament.rounds.map((r) => ({
+                number: r.roundNumber,
+                href: `/${slug}/play?round=${r.roundNumber}`,
+              })),
+            }
+          : undefined
+      }
     />
   )
 }
