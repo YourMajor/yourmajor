@@ -47,6 +47,7 @@ export async function getLeaderboard(
             gir: true, // needed for Concede! stroke override
             conceded: true,
             hole: { select: { number: true, par: true, handicap: true } },
+            roundId: true,
             round: { select: { roundNumber: true, courseId: true } },
           },
         },
@@ -84,6 +85,7 @@ export async function getLeaderboard(
   const flatScores = players.flatMap((p) =>
     p.scores.map((s) => ({
       tournamentPlayerId: p.id,
+      roundId: s.roundId,
       holeNumber: s.hole.number,
       par: s.hole.par,
       strokes: s.strokes,
@@ -200,7 +202,7 @@ export async function getLeaderboard(
         scores: p.scores.map((s) => ({
           holeNumber: s.hole.number,
           par: s.hole.par,
-          strokes: effectiveStrokes(strokeOverrides, p.id, s.hole.number, s.strokes),
+          strokes: effectiveStrokes(strokeOverrides, p.id, s.hole.number, s.strokes, s.roundId),
           handicap: s.hole.handicap,
           roundNumber: s.round.roundNumber,
           conceded: s.conceded,

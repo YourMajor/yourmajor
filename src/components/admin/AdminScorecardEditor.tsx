@@ -59,6 +59,30 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
     saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
   }
 
+  // Clearing a cell removes the score (e.g. one entered on the wrong round).
+  // Only when the server had a value — the initial load is the record of that.
+  async function deleteScore(tournamentPlayerId: string, roundId: string, holeId: string) {
+    const key = `${tournamentPlayerId}-${roundId}-${holeId}`
+    if (debounceTimers.current[key]) { clearTimeout(debounceTimers.current[key]); delete debounceTimers.current[key] }
+    setSaveStatus('saving')
+    const res = await fetch('/api/scores', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tournamentPlayerId, holeId, roundId }),
+    })
+    if (!res.ok) {
+      let msg = `Delete failed (HTTP ${res.status})`
+      try { const j = await res.json(); if (j?.error) msg = String(j.error) } catch { /* noop */ }
+      setSaveError(msg)
+      setSaveStatus('idle')
+      return
+    }
+    setSaveError(null)
+    setSaveStatus('saved')
+    if (saveStatusTimer.current) clearTimeout(saveStatusTimer.current)
+    saveStatusTimer.current = setTimeout(() => setSaveStatus('idle'), 2000)
+  }
+
   function scheduleScore(tpId: string, roundId: string, holeId: string, strokes: number) {
     const key = `${tpId}-${roundId}-${holeId}`
     if (debounceTimers.current[key]) clearTimeout(debounceTimers.current[key])
@@ -197,6 +221,20 @@ export function AdminScorecardEditor({ rounds, players }: Props) {
                           onBlur={(e) => {
                             const v = parseInt(e.target.value)
                             if (!isNaN(v) && v > 0) flushScore(p.id, round.id, h.id, v)
+                            else if (e.target.value === '' && p.scoresByRound[round.id]?.[h.id] != null) {
+                              if (window.confirm(`Remove ${p.name}'s score on hole ${h.number} (Round ${round.roundNumber})?`)) {
+                                void deleteScore(p.id, round.id, h.id)
+                              } else {
+                                const prev = p.scoresByRound[round.id][h.id]
+                                setScores((cur) => {
+                                  const n = { ...cur }
+                                  const pr = { ...(n[p.id] ?? {}) }
+                                  pr[round.id] = { ...(pr[round.id] ?? {}), [h.id]: prev }
+                                  n[p.id] = pr
+                                  return n
+                                })
+                              }
+                            }
                           }}
                           className={scoreCellClass(s ?? null, h.par)}
                         />

@@ -42,10 +42,22 @@ export function isValidStrokeOverrideValue(value: unknown): value is number {
 
 export interface ScoreInput {
   tournamentPlayerId: string
+  /** The round the score belongs to. Needed in multi-round tournaments so an
+   *  override from one round never lands on the same hole number in another. */
+  roundId?: string | null
   holeNumber: number
   par: number
   strokes: number
   gir: boolean | null
+}
+
+/**
+ * Map key for an overridden (player, hole). Overrides tied to a round are
+ * keyed by that round; legacy rows with no roundId keep the old round-less key,
+ * which effectiveStrokes treats as applying to every round.
+ */
+export function overrideKey(tournamentPlayerId: string, holeNumber: number, roundId?: string | null): string {
+  return roundId ? `${tournamentPlayerId}:${roundId}:${holeNumber}` : `${tournamentPlayerId}:${holeNumber}`
 }
 
 /**
@@ -86,15 +98,20 @@ export async function buildStrokeOverrideMap(
 
   const roundFinished = await loadRoundCompletion(overrides)
 
+  // Scores are looked up by (player, round, hole). Callers that don't pass a
+  // roundId (single-round views) land under an empty round, which any
+  // override's lookup falls back to.
   const scoreLookup = new Map<string, ScoreInput>()
   for (const s of scores) {
-    scoreLookup.set(`${s.tournamentPlayerId}:${s.holeNumber}`, s)
+    scoreLookup.set(`${s.tournamentPlayerId}:${s.roundId ?? ''}:${s.holeNumber}`, s)
   }
+  const findScore = (tp: string, round: string | null, hole: number): ScoreInput | undefined =>
+    (round ? scoreLookup.get(`${tp}:${round}:${hole}`) : undefined) ?? scoreLookup.get(`${tp}::${hole}`)
 
   for (const ov of overrides) {
     if (ov.holeNumber === null) continue
     const slug = ov.powerup.slug
-    const aKey = `${ov.tournamentPlayerId}:${ov.holeNumber}`
+    const aKey = overrideKey(ov.tournamentPlayerId, ov.holeNumber, ov.roundId)
 
     if (slug === NUMBER_OVERRIDE_SLUG) {
       const num = (ov.metadata as { numberValue?: unknown } | null)?.numberValue
@@ -105,7 +122,7 @@ export async function buildStrokeOverrideMap(
         map.set(aKey, num)
       }
     } else if (slug === 'concede') {
-      const score = scoreLookup.get(aKey)
+      const score = findScore(ov.tournamentPlayerId, ov.roundId, ov.holeNumber)
       if (score?.gir === true) {
         map.set(aKey, score.par - 1)
       }
@@ -122,10 +139,10 @@ export async function buildStrokeOverrideMap(
       // the activation hole, as they always did.
       const picked = (ov.metadata as { swapHoleNumber?: unknown } | null)?.swapHoleNumber
       const swapHole = typeof picked === 'number' && Number.isInteger(picked) ? picked : ov.holeNumber
-      const sKey = `${ov.tournamentPlayerId}:${swapHole}`
-      const tKey = `${ov.targetPlayerId}:${swapHole}`
-      const a = scoreLookup.get(sKey)
-      const t = scoreLookup.get(tKey)
+      const sKey = overrideKey(ov.tournamentPlayerId, swapHole, ov.roundId)
+      const tKey = overrideKey(ov.targetPlayerId, swapHole, ov.roundId)
+      const a = findScore(ov.tournamentPlayerId, ov.roundId, swapHole)
+      const t = findScore(ov.targetPlayerId, ov.roundId, swapHole)
       if (a && t) {
         map.set(sKey, t.strokes)
         map.set(tKey, a.strokes)
@@ -171,12 +188,21 @@ async function loadRoundCompletion(
   }
 }
 
-/** Convenience accessor — returns effective strokes for a (tpId, holeNumber). */
+/**
+ * Effective strokes for a (player, hole) in a given round: that round's
+ * override if there is one, else a legacy round-less override, else the
+ * recorded strokes.
+ */
 export function effectiveStrokes(
   map: Map<string, number>,
   tournamentPlayerId: string,
   holeNumber: number,
   fallback: number,
+  roundId?: string | null,
 ): number {
-  return map.get(`${tournamentPlayerId}:${holeNumber}`) ?? fallback
+  return (
+    (roundId ? map.get(overrideKey(tournamentPlayerId, holeNumber, roundId)) : undefined) ??
+    map.get(overrideKey(tournamentPlayerId, holeNumber)) ??
+    fallback
+  )
 }
