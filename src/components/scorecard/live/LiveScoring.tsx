@@ -30,6 +30,8 @@ interface LiveScoringProps {
   accentColor?: string
   courseLatitude?: number | null
   courseLongitude?: number | null
+  /** Multi-round tournaments: which round is open, and links to the others. */
+  roundNav?: { current: number; rounds: Array<{ number: number; href: string }> }
   backHref?: string // link back to tournament hub (e.g. "/my-tournament")
   backLabel?: string // label for back link (e.g. "Tournament")
   playerName?: string // current player's display name for scorecard
@@ -111,6 +113,7 @@ export function LiveScoring({
   accentColor,
   backHref,
   backLabel = 'Tournament',
+  roundNav,
   playerName,
   tournamentId,
   playerPowerups: rawPlayerPowerups = [],
@@ -609,6 +612,30 @@ export function LiveScoring({
           </Link>
         )}
       </div>
+
+      {/* ── Round switcher (multi-round tournaments) ─────────────────── */}
+      {roundNav && (
+        <nav
+          aria-label="Round"
+          className="shrink-0 flex items-center gap-1.5 px-4 py-1.5 overflow-x-auto bg-black/20"
+        >
+          {roundNav.rounds.map((r) => {
+            const active = r.number === roundNav.current
+            return (
+              <Link
+                key={r.number}
+                href={r.href}
+                aria-current={active ? 'page' : undefined}
+                className={`shrink-0 min-h-8 px-3 inline-flex items-center rounded-full text-xs font-bold transition-colors touch-manipulation ${
+                  active ? 'bg-white text-black' : 'text-white/70 hover:text-white border border-white/20'
+                }`}
+              >
+                Round {r.number}
+              </Link>
+            )
+          })}
+        </nav>
+      )}
 
       {/* ── Team-mode banner ────────────────────────────────────────── */}
       {teamMode && (
