@@ -7,8 +7,22 @@ import { describe, it, expect, beforeEach, vi } from 'vitest'
 
 let overrideRows: unknown[] = []
 
+let scoredCounts: Record<string, number> = {}
+
 const prismaMock = {
   playerPowerup: { findMany: vi.fn(async () => overrideRows) },
+  tournamentRound: {
+    findMany: vi.fn(async () => [{ id: 'round_1', course: { _count: { holes: 18 } } }]),
+  },
+  score: {
+    groupBy: vi.fn(async () =>
+      Object.entries(scoredCounts).map(([tournamentPlayerId, n]) => ({
+        tournamentPlayerId,
+        roundId: 'round_1',
+        _count: { _all: n },
+      })),
+    ),
+  },
 }
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
@@ -28,6 +42,7 @@ const scores = [{ tournamentPlayerId: 'tp_1', holeNumber: 3, par: 4, strokes: 6,
 beforeEach(() => {
   vi.clearAllMocks()
   overrideRows = []
+  scoredCounts = {}
 })
 
 describe('buildStrokeOverrideMap — can-i-get-your-number', () => {
@@ -57,5 +72,51 @@ describe('buildStrokeOverrideMap — can-i-get-your-number', () => {
 
     expect(map.get('tp_1:3')).toBe(1)
     expect(map.get('tp_2:3')).toBe(20)
+  })
+})
+
+describe('buildStrokeOverrideMap — parent-trap', () => {
+  const swapRow = {
+    tournamentPlayerId: 'tp_a',
+    targetPlayerId: 'tp_b',
+    roundId: 'round_1',
+    holeNumber: 5,
+    metadata: null,
+    powerup: { slug: 'parent-trap' },
+  }
+  const swapScores = [
+    { tournamentPlayerId: 'tp_a', holeNumber: 5, par: 4, strokes: 7, gir: false },
+    { tournamentPlayerId: 'tp_b', holeNumber: 5, par: 4, strokes: 3, gir: true },
+  ]
+
+  it('holds the swap while either player is still mid-round', async () => {
+    overrideRows = [swapRow]
+    scoredCounts = { tp_a: 18, tp_b: 12 }
+
+    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+
+    expect(map.has('tp_a:5')).toBe(false)
+    expect(map.has('tp_b:5')).toBe(false)
+  })
+
+  it('swaps the hole once both players have finished the round', async () => {
+    overrideRows = [swapRow]
+    scoredCounts = { tp_a: 18, tp_b: 18 }
+
+    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+
+    expect(map.get('tp_a:5')).toBe(3)
+    expect(map.get('tp_b:5')).toBe(7)
+  })
+
+  it('swaps on the picked hole, not the activation hole', async () => {
+    overrideRows = [{ ...swapRow, holeNumber: 9, metadata: { swapHoleNumber: 5 } }]
+    scoredCounts = { tp_a: 18, tp_b: 18 }
+
+    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+
+    expect(map.get('tp_a:5')).toBe(3)
+    expect(map.get('tp_b:5')).toBe(7)
+    expect(map.has('tp_a:9')).toBe(false)
   })
 })

@@ -138,7 +138,20 @@ export async function POST(
   // client may override to any of the recipient's unscored holes; we validate
   // the override is actually unscored before accepting it.
   let resolvedTargetHole: number | null = null
-  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
+  const isScoreSwap = effect.scoring.conditionalKey === 'score_swap'
+  let swapHoleNumber: number | null = null
+  if (isScoreSwap && targetPlayer) {
+    // Parent Trap swaps both players' scores on a hole the activator picks —
+    // any hole on the course, played or not — and the swap is applied once
+    // both have finished the round (powerup-stroke-overrides.ts). So any
+    // opponent is fair game, whatever their progress.
+    const swapHole = targetHoleOverride ?? holeNumber
+    if (!round.course.holes.some((h) => h.number === swapHole)) {
+      return NextResponse.json({ error: 'Swap hole is not on the course' }, { status: 400 })
+    }
+    resolvedTargetHole = swapHole
+    swapHoleNumber = swapHole
+  } else if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
     const targetScores = await prisma.score.findMany({
       where: { tournamentPlayerId: targetPlayer.id, roundId },
       select: { hole: { select: { number: true } } },
@@ -146,13 +159,15 @@ export async function POST(
     const scoredNumbers = new Set(targetScores.map((s) => s.hole.number))
     const allHoleNumbers = round.course.holes.map((h) => h.number)
 
-    if (typeof targetHoleOverride === 'number') {
-      if (!allHoleNumbers.includes(targetHoleOverride)) {
-        return NextResponse.json({ error: 'Override hole is not on the course' }, { status: 400 })
-      }
-      if (scoredNumbers.has(targetHoleOverride)) {
-        return NextResponse.json({ error: 'Cannot apply attack on a hole the target has already scored' }, { status: 400 })
-      }
+    if (typeof targetHoleOverride === 'number' && !allHoleNumbers.includes(targetHoleOverride)) {
+      return NextResponse.json({ error: 'Override hole is not on the course' }, { status: 400 })
+    }
+    // The client's hole list is a snapshot from when the scoring page loaded
+    // (play/page.tsx → opponentScoredHoles) and never refreshes mid-round, so
+    // by the time an attack is played the chosen hole has often been scored
+    // already. Rejecting that bounced the card silently back into the hand —
+    // fall through to the auto-pick against fresh scores instead.
+    if (typeof targetHoleOverride === 'number' && !scoredNumbers.has(targetHoleOverride)) {
       resolvedTargetHole = targetHoleOverride
     } else {
       const auto = computeAttackTargetHole(allHoleNumbers, scoredNumbers)
@@ -172,6 +187,12 @@ export async function POST(
 
   // Build structured metadata for variable powerups
   let structuredMetadata: Record<string, unknown> | undefined = metadata ? { ...metadata } : undefined
+  // Stored separately from targetHoleNumber: rows from before the hole picker
+  // have a targetHoleNumber the old swap logic never used, so the engine only
+  // trusts this key.
+  if (swapHoleNumber !== null) {
+    structuredMetadata = { ...(structuredMetadata ?? {}), swapHoleNumber }
+  }
   if (isVariable) {
     const powerupSlug = playerPowerup.powerup.slug
     if (powerupSlug === 'fairway-finder') {

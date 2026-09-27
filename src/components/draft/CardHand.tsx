@@ -314,26 +314,32 @@ export function CardBack({
   // opponent score data are provided).
   const courseHoleNumbers = activationContext?.courseHoleNumbers ?? []
   const opponentScoredHoles = activationContext?.opponentScoredHoles ?? {}
+  // Score swaps (Parent Trap) settle at the end of the round, so the player
+  // can pick any hole on the course — played or not, by either side. Other
+  // attacks can only land on a hole the target hasn't scored yet.
+  const isScoreSwap = effect.scoring.conditionalKey === 'score_swap'
   const showHoleSelect = !!(isAttack && needsTarget && targetPlayerId && courseHoleNumbers.length > 0)
   const targetScoredKey = JSON.stringify(opponentScoredHoles[targetPlayerId] ?? [])
   const courseKey = courseHoleNumbers.join(',')
   const targetUnscoredHoles = useMemo(() => {
     if (!showHoleSelect) return [] as number[]
+    if (isScoreSwap) return [...courseHoleNumbers].sort((a, b) => a - b)
     const scored = new Set<number>(opponentScoredHoles[targetPlayerId] ?? [])
     return courseHoleNumbers.filter((n) => !scored.has(n))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showHoleSelect, targetPlayerId, courseKey, targetScoredKey])
+  }, [showHoleSelect, isScoreSwap, targetPlayerId, courseKey, targetScoredKey])
 
-  // Auto-default the target hole whenever the chosen target changes.
+  // Auto-default the target hole whenever the chosen target changes. Swaps
+  // have no sensible default, so the player has to choose one.
   useEffect(() => {
-    if (!showHoleSelect) {
+    if (!showHoleSelect || isScoreSwap) {
       setTargetHoleNumber(null)
       return
     }
     const scored = new Set<number>(opponentScoredHoles[targetPlayerId] ?? [])
     setTargetHoleNumber(computeAttackTargetHole(courseHoleNumbers, scored))
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [showHoleSelect, targetPlayerId, courseKey, targetScoredKey])
+  }, [showHoleSelect, isScoreSwap, targetPlayerId, courseKey, targetScoredKey])
 
   const canSubmit = (() => {
     if (!canActivateCtx) return false
@@ -430,12 +436,17 @@ export function CardBack({
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                {isScoreSwap && (
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    Your scores on the hole you pick get switched once you both finish the round.
+                  </p>
+                )}
               </div>
             )}
             {showHoleSelect && (
               <div>
                 <label className="text-[11px] font-semibold text-zinc-600 mb-1 block">
-                  Apply on hole
+                  {isScoreSwap ? 'Swap scores on hole' : 'Apply on hole'}
                 </label>
                 {targetUnscoredHoles.length === 0 ? (
                   <p className="text-[11px] text-destructive">
@@ -447,6 +458,7 @@ export function CardBack({
                     onChange={(e) => setTargetHoleNumber(e.target.value ? parseInt(e.target.value, 10) : null)}
                     className="w-full h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800"
                   >
+                    {isScoreSwap && <option value="">Choose a hole...</option>}
                     {targetUnscoredHoles.map((n) => (
                       <option key={n} value={n}>Hole {n}</option>
                     ))}

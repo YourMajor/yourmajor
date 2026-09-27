@@ -192,6 +192,17 @@ describe('POST /api/tournaments/[id]/powerups/activate — cross-tournament scop
     expect(data.targetHoleNumber).toBe(2)
     expect(prismaMock.notification.create).toHaveBeenCalledTimes(1)
   })
+
+  it('re-picks the hole instead of rejecting when the client picked a hole the target has since scored', async () => {
+    // Client's opponentScoredHoles snapshot is stale: target has since scored 2.
+    prismaMock.score.findMany.mockResolvedValueOnce([{ hole: { number: 2 } }] as never)
+    const { POST } = await import('./route')
+    const res = await POST(req({ ...attackBody, targetHoleNumber: 2 }), ctx())
+
+    expect(res.status).toBe(200)
+    // Only hole 1 is still open, so the auto-pick lands there.
+    expect(claimWrites[0].targetHoleNumber).toBe(1)
+  })
 })
 
 // Can I Get Your Number writes metadata.numberValue straight through to the

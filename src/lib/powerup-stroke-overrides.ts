@@ -5,7 +5,11 @@
  *   • can-i-get-your-number → strokes become metadata.numberValue, which must
  *     be a legal hole score (see isValidStrokeOverrideValue).
  *   • concede               → if GIR on the activation hole, strokes become par - 1.
- *   • parent-trap           → activator's and target's strokes on the hole are swapped.
+ *   • parent-trap           → activator's and target's strokes on the chosen hole
+ *     (metadata.swapHoleNumber, falling back to the activation hole) are swapped — but only once BOTH players have scored every hole of
+ *     that round. Until then the leaderboard shows real scores; the swap lands
+ *     at the end of the round. The target can be anyone, whether or not they've
+ *     already played that hole.
  *
  * No schema changes needed; everything is derived from existing PlayerPowerup
  * fields plus the live Score data.
@@ -71,6 +75,7 @@ export async function buildStrokeOverrideMap(
     select: {
       tournamentPlayerId: true,
       targetPlayerId: true,
+      roundId: true,
       holeNumber: true,
       metadata: true,
       powerup: { select: { slug: true } },
@@ -78,6 +83,8 @@ export async function buildStrokeOverrideMap(
   })
 
   if (overrides.length === 0) return map
+
+  const roundFinished = await loadRoundCompletion(overrides)
 
   const scoreLookup = new Map<string, ScoreInput>()
   for (const s of scores) {
@@ -104,17 +111,64 @@ export async function buildStrokeOverrideMap(
       }
     } else if (slug === 'parent-trap') {
       if (!ov.targetPlayerId) continue
-      const tKey = `${ov.targetPlayerId}:${ov.holeNumber}`
-      const a = scoreLookup.get(aKey)
+      // Legacy rows without a roundId keep the old swap-when-both-scored rule.
+      if (
+        ov.roundId &&
+        !(roundFinished(ov.tournamentPlayerId, ov.roundId) && roundFinished(ov.targetPlayerId, ov.roundId))
+      ) {
+        continue
+      }
+      // Rows from before the hole picker have no swapHoleNumber and swap on
+      // the activation hole, as they always did.
+      const picked = (ov.metadata as { swapHoleNumber?: unknown } | null)?.swapHoleNumber
+      const swapHole = typeof picked === 'number' && Number.isInteger(picked) ? picked : ov.holeNumber
+      const sKey = `${ov.tournamentPlayerId}:${swapHole}`
+      const tKey = `${ov.targetPlayerId}:${swapHole}`
+      const a = scoreLookup.get(sKey)
       const t = scoreLookup.get(tKey)
       if (a && t) {
-        map.set(aKey, t.strokes)
+        map.set(sKey, t.strokes)
         map.set(tKey, a.strokes)
       }
     }
   }
 
   return map
+}
+
+/**
+ * For Parent Trap rows, work out which (player, round) pairs have a score on
+ * every hole of that round's course. Read straight from the DB rather than
+ * the caller's `scores`, which may be scoped to a single player or round.
+ */
+async function loadRoundCompletion(
+  overrides: Array<{ tournamentPlayerId: string; targetPlayerId: string | null; roundId: string | null; powerup: { slug: string } }>,
+): Promise<(tournamentPlayerId: string, roundId: string) => boolean> {
+  const swaps = overrides.filter((o) => o.powerup.slug === 'parent-trap' && o.roundId && o.targetPlayerId)
+  if (swaps.length === 0) return () => false
+
+  const roundIds = [...new Set(swaps.map((o) => o.roundId as string))]
+  const playerIds = [...new Set(swaps.flatMap((o) => [o.tournamentPlayerId, o.targetPlayerId as string]))]
+
+  const [rounds, counts] = await Promise.all([
+    prisma.tournamentRound.findMany({
+      where: { id: { in: roundIds } },
+      select: { id: true, course: { select: { _count: { select: { holes: true } } } } },
+    }),
+    prisma.score.groupBy({
+      by: ['tournamentPlayerId', 'roundId'],
+      where: { roundId: { in: roundIds }, tournamentPlayerId: { in: playerIds } },
+      _count: { _all: true },
+    }),
+  ])
+
+  const holesInRound = new Map(rounds.map((r) => [r.id, r.course._count.holes]))
+  const scored = new Map(counts.map((c) => [`${c.tournamentPlayerId}:${c.roundId}`, c._count._all]))
+
+  return (tournamentPlayerId, roundId) => {
+    const holes = holesInRound.get(roundId) ?? 0
+    return holes > 0 && (scored.get(`${tournamentPlayerId}:${roundId}`) ?? 0) >= holes
+  }
 }
 
 /** Convenience accessor — returns effective strokes for a (tpId, holeNumber). */
