@@ -20,9 +20,12 @@ export async function GET(
   const access = await resolveChatAccess(id, user.id)
   if (!access.allowed) return NextResponse.json({ error: access.error }, { status: access.status })
 
-  const messages = await prisma.tournamentMessage.findMany({
+  // The most recent 100, returned oldest-first for display. This used to take
+  // the *first* 100 in ascending order, so once a chat passed 100 messages
+  // every new one was cut off and the chat looked frozen.
+  const latest = await prisma.tournamentMessage.findMany({
     where: { tournamentId: id, deletedAt: null },
-    orderBy: { createdAt: 'asc' },
+    orderBy: { createdAt: 'desc' },
     take: 100,
     select: {
       id: true,
@@ -33,6 +36,7 @@ export async function GET(
       user: { select: { name: true, image: true } },
     },
   })
+  const messages = latest.reverse()
   return NextResponse.json(messages)
 }
 
