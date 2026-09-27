@@ -175,6 +175,7 @@ export async function getLeaderboard(
       par: r.course.par,
       peoriaHoles: r.peoriaHoles,
       complete: isRoundComplete(r.roundNumber),
+      holeCount: r.course.holes.length,
     })),
     players: players.map((p) => {
       const name = p.user.name ?? p.user.email.split('@')[0]

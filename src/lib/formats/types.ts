@@ -111,6 +111,8 @@ export interface ScoringContext {
     peoriaHoles?: number[]
     /** True when every active participant has scored all 18 holes for this round. */
     complete?: boolean
+    /** Holes on this round's course (18 unless it's a 9-hole course). */
+    holeCount?: number
   }>
   players: ScoringPlayer[]
   teams: ScoringTeam[]

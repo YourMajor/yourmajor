@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import type { PlayerStanding } from '@/lib/scoring-utils'
+import { currentFieldRound, thruForRow, type PlayerStanding } from '@/lib/scoring-utils'
 
 interface Ranked extends PlayerStanding {
   displayRank: string
@@ -32,6 +32,7 @@ function ScoreCell({ n, bold = false }: { n: number | null; bold?: boolean }) {
 }
 
 export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet }: Props) {
+  const fieldRound = currentFieldRound(rows)
   return (
     <div className="rounded-lg overflow-hidden overflow-x-auto" role="region" aria-label="Team leaderboard">
       <table className="masters-table">
@@ -54,8 +55,7 @@ export function TeamLeaderboardTable({ rows, slug, loading, roundNumbers, hasNet
             const teamMembers = p.teamMembers ?? []
             const visibleMembers = teamMembers.slice(0, 4)
             const overflow = teamMembers.length - visibleMembers.length
-            const totalHoles = 18 * roundNumbers.length
-            const thru = p.holesPlayed === 0 ? '—' : p.holesPlayed >= totalHoles ? 'F' : p.holesPlayed
+            const thru = thruForRow(p, fieldRound, 18, roundNumbers.length) ?? '—'
             return (
               <tr key={p.tournamentPlayerId} className="hover:bg-muted/50 transition-colors">
                 <td className="text-center px-0" style={{ width: '36px' }}>

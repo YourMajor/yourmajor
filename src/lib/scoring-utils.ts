@@ -229,6 +229,73 @@ export function callawayDeduction(
 
 export { CALLAWAY_TABLE }
 
+/**
+ * Total Callaway deduction for a (possibly multi-round) card.
+ *
+ * Callaway is defined on one finished 18-hole round: the round's gross picks
+ * the table row and the worst holes of that round are deducted. So each round
+ * gets its own deduction, and only once the player has finished it — until
+ * then that round counts at gross. The event's net is the sum of the rounds'
+ * nets.
+ */
+export function callawayDeductionByRound(
+  scores: Array<{ strokes: number; par: number; holeNumber: number; roundNumber: number }>,
+  holeCountByRound: Map<number, number>,
+): { total: number; byRound: Record<number, number> } {
+  const grouped = new Map<number, Array<{ strokes: number; par: number; holeNumber: number }>>()
+  for (const s of scores) {
+    const list = grouped.get(s.roundNumber) ?? []
+    list.push(s)
+    grouped.set(s.roundNumber, list)
+  }
+  let total = 0
+  const byRound: Record<number, number> = {}
+  for (const [roundNumber, roundScores] of grouped) {
+    const holeCount = holeCountByRound.get(roundNumber) ?? 18
+    const finished = new Set(roundScores.map((s) => s.holeNumber)).size >= holeCount
+    const gross = roundScores.reduce((sum, s) => sum + s.strokes, 0)
+    const d = finished ? callawayDeduction(gross, roundScores) : 0
+    byRound[roundNumber] = d
+    total += d
+  }
+  return { total, byRound }
+}
+
+/**
+ * The THRU cell for a leaderboard row: holes played in the round currently
+ * being played (1–18), not a running count across rounds (19–36).
+ *
+ * @param fieldRound the latest round anyone in the field has scores in
+ * @returns number of holes, 'F' when that round's card is finished, or null
+ *          when the player hasn't started it
+ */
+export function thruForRow(
+  row: { holesPlayed: number; holes?: Array<{ roundNumber?: number; strokes?: number | null }> },
+  fieldRound: number | null,
+  holesPerRound = 18,
+  roundCount = 1,
+): number | 'F' | null {
+  if (row.holesPlayed === 0) return null
+  const tagged = row.holes && row.holes.length > 0 && row.holes.every((h) => typeof h.roundNumber === 'number')
+  if (!tagged || fieldRound === null || roundCount <= 1) {
+    return row.holesPlayed >= holesPerRound * Math.max(1, roundCount) ? 'F' : row.holesPlayed
+  }
+  const inRound = row.holes!.filter((h) => h.roundNumber === fieldRound && h.strokes !== null).length
+  if (inRound === 0) return null
+  return inRound >= holesPerRound ? 'F' : inRound
+}
+
+/** Latest round number anyone on the leaderboard has a score in. */
+export function currentFieldRound(rows: Array<{ holes?: Array<{ roundNumber?: number }> }>): number | null {
+  let max: number | null = null
+  for (const r of rows) {
+    for (const h of r.holes ?? []) {
+      if (typeof h.roundNumber === 'number' && (max === null || h.roundNumber > max)) max = h.roundNumber
+    }
+  }
+  return max
+}
+
 // ─── Format Helpers ──────────────────────────────────────────────────────────
 // Pure helpers consumed by per-format scoring strategies.
 // CLIENT-SAFE — no prisma/pg.
