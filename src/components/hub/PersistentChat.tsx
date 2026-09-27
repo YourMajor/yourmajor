@@ -24,7 +24,9 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [open, setOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [hasAttack, setHasAttack] = useState(false)
-  const lastSeenCount = useRef(0)
+  // Tracked by id, not count: the chat only ever holds the latest 100
+  // messages, so once it's full the count stops changing.
+  const lastSeenId = useRef<string | null>(null)
   const initializedRef = useRef(false)
   const pathname = usePathname()
   const isLiveScoring = pathname?.endsWith('/play') ?? false
@@ -46,38 +48,32 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
     }
   }, [open, loaded, fetchMessages, fetchBanStatus])
 
+  const lastMessageId = messages.length > 0 ? messages[messages.length - 1].id : null
+
   // Track unread when messages change while closed
   useEffect(() => {
-    if (!open && messages.length > lastSeenCount.current) {
-      if (!initializedRef.current) {
-        // First load via real-time trigger — set baseline, only count the new message
-        lastSeenCount.current = messages.length - 1
-        initializedRef.current = true
-        queueMicrotask(() => {
-          setUnreadCount(1)
-          const lastMsg = messages[messages.length - 1]
-          if (lastMsg?.isSystem && lastMsg.content.includes('ATTACKED') && currentUserName && lastMsg.content.includes(currentUserName)) {
-            setHasAttack(true)
-          }
-        })
-      } else {
-        const newCount = messages.length - lastSeenCount.current
-        const newMsgs = messages.slice(lastSeenCount.current)
-        const hasNewAttack = newMsgs.some(
-          (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
-        )
-        queueMicrotask(() => {
-          setUnreadCount(newCount)
-          if (hasNewAttack) setHasAttack(true)
-        })
-      }
+    if (open || messages.length === 0) return
+    if (!initializedRef.current) {
+      // First load via real-time trigger — set baseline, only count the new message
+      lastSeenId.current = messages.length > 1 ? messages[messages.length - 2].id : null
+      initializedRef.current = true
     }
+    const seenIdx = lastSeenId.current ? messages.findIndex((m) => m.id === lastSeenId.current) : -1
+    const newMsgs = seenIdx >= 0 ? messages.slice(seenIdx + 1) : messages
+    if (newMsgs.length === 0) return
+    const hasNewAttack = newMsgs.some(
+      (m) => m.isSystem && m.content.includes('ATTACKED') && currentUserName && m.content.includes(currentUserName)
+    )
+    queueMicrotask(() => {
+      setUnreadCount(newMsgs.length)
+      if (hasNewAttack) setHasAttack(true)
+    })
   }, [messages, open, currentUserName])
 
-  // Mark as read when opened
+  // Mark as read when opened, and keep pinned to the newest message
   useEffect(() => {
-    if (open && messages.length > 0) {
-      lastSeenCount.current = messages.length
+    if (open && lastMessageId) {
+      lastSeenId.current = lastMessageId
       initializedRef.current = true
       queueMicrotask(() => {
         setUnreadCount(0)
@@ -85,7 +81,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
       })
       scrollToBottom()
     }
-  }, [open, messages.length, scrollToBottom])
+  }, [open, lastMessageId, scrollToBottom])
 
   // Re-pin to bottom when the visible viewport changes (mobile keyboard open/close)
   useEffect(() => {
