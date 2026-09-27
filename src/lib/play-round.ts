@@ -20,3 +20,22 @@ export function pickDefaultRound<T extends PlayableRound>(
   const open = ordered.find((r) => (scoredHolesByRoundId.get(r.id) ?? 0) < r.holeCount)
   return open ?? ordered[ordered.length - 1]
 }
+
+/** How long a finished card stays editable, for fixing a typo after the 18th. */
+export const CARD_EDIT_GRACE_MS = 30 * 60 * 1000
+
+/**
+ * A player's card for a round is locked (read-only) once every hole has a
+ * score and the grace period since the last hole went in has passed. After
+ * that, corrections go through an admin.
+ *
+ * @param lastScoredAt when the final hole was first entered (max submittedAt)
+ */
+export function isCardLocked(
+  card: { holeCount: number; scoredCount: number; lastScoredAt: Date | null },
+  now: Date = new Date(),
+): boolean {
+  if (card.holeCount <= 0 || card.scoredCount < card.holeCount) return false
+  if (!card.lastScoredAt) return true
+  return now.getTime() - card.lastScoredAt.getTime() >= CARD_EDIT_GRACE_MS
+}

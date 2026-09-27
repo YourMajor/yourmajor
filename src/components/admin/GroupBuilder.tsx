@@ -633,7 +633,12 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
 
     startTransition(async () => {
       try {
-        await updateGroupTeeTime(tournamentId, groupId, value || null)
+        await updateGroupTeeTime(
+          tournamentId,
+          groupId,
+          value || null,
+          Intl.DateTimeFormat().resolvedOptions().timeZone,
+        )
       } catch {
         router.refresh()
       }
