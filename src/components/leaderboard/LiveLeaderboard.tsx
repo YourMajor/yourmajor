@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { ChevronDown, ChevronUp, Crown, Lock, Search } from 'lucide-react'
 import { createClient } from '@/utils/supabase/client'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { type PlayerStanding, type StandingKind } from '@/lib/scoring-utils'
+import { currentFieldRound, thruForRow, type PlayerStanding, type StandingKind } from '@/lib/scoring-utils'
 import { ComparativeScoreChart } from './ComparativeScoreChart'
 import { MatchPlayLeaderboardTable } from './MatchPlayLeaderboardTable'
 import { SkinsLeaderboardTable } from './SkinsLeaderboardTable'
@@ -96,7 +96,8 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
   const isLowGrossNet = standingKind === 'low-gross-net'
   const isPointsSort = isStableford || isMatchPlay || isSkins || isNassau
   const hasNet = standings.some((s) => s.netVsPar !== null)
-  const totalHoles = 18 * roundNumbers.length
+  // THRU counts holes in the round being played now (1–18), not 19–36.
+  const fieldRound = currentFieldRound(standings)
 
   const refresh = useCallback(async () => {
     setLoading(true)
@@ -460,9 +461,7 @@ export function LiveLeaderboard({ initialData, tournamentId, roundNumbers, round
                 : showingRound !== null ? null
                 : p.grossVsPar
 
-              const thru = p.holesPlayed === 0 ? null
-                : p.holesPlayed >= totalHoles ? 'F'
-                : p.holesPlayed
+              const thru = thruForRow(p, fieldRound, 18, roundNumbers.length)
 
               return (
                 <tr

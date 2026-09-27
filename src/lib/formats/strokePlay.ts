@@ -1,7 +1,7 @@
 // Stroke Play strategy — gross + net total strokes; lower wins.
 // CLIENT-SAFE — no prisma imports.
 
-import { allocateHandicapStrokes, callawayDeduction, type PlayerStanding } from '@/lib/scoring-utils'
+import { allocateHandicapStrokes, callawayDeductionByRound, type PlayerStanding } from '@/lib/scoring-utils'
 import { cappedPeoriaScore, computePeoriaHandicap } from '@/lib/peoria'
 import type { FormatStrategy, ScoringContext, ScoringPlayer } from './types'
 import { getHoleHandicapPairs } from './context-helpers'
@@ -30,9 +30,11 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       netTotal = adjustedGross
       netVsPar = adjustedGross - playedPar
     } else if (ctx.handicapSystem === 'CALLAWAY') {
-      const deduction = callawayDeduction(
-        adjustedGross,
-        p.scores.map((s) => ({ strokes: s.strokes, par: s.par, holeNumber: s.holeNumber })),
+      // Each round gets its own Callaway deduction, once that round is
+      // finished; an unfinished round counts at gross.
+      const { total: deduction } = callawayDeductionByRound(
+        p.scores.map((s) => ({ strokes: s.strokes, par: s.par, holeNumber: s.holeNumber, roundNumber: s.roundNumber })),
+        new Map(ctx.rounds.map((r) => [r.roundNumber, r.holeCount ?? 18])),
       )
       netTotal = adjustedGross - deduction
       netVsPar = netTotal - playedPar
