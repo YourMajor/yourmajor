@@ -138,7 +138,14 @@ export async function POST(
   // client may override to any of the recipient's unscored holes; we validate
   // the override is actually unscored before accepting it.
   let resolvedTargetHole: number | null = null
-  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
+  const isScoreSwap = effect.scoring.conditionalKey === 'score_swap'
+  if (isScoreSwap && targetPlayer) {
+    // Parent Trap swaps both players' scores on the activation hole, applied
+    // once both have finished the round (powerup-stroke-overrides.ts). It
+    // doesn't need an open hole on the target's card, so any opponent is fair
+    // game — even one who has already played this hole or finished the round.
+    resolvedTargetHole = holeNumber
+  } else if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
     const targetScores = await prisma.score.findMany({
       where: { tournamentPlayerId: targetPlayer.id, roundId },
       select: { hole: { select: { number: true } } },

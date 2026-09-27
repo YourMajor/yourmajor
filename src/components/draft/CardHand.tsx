@@ -314,7 +314,11 @@ export function CardBack({
   // opponent score data are provided).
   const courseHoleNumbers = activationContext?.courseHoleNumbers ?? []
   const opponentScoredHoles = activationContext?.opponentScoredHoles ?? {}
-  const showHoleSelect = !!(isAttack && needsTarget && targetPlayerId && courseHoleNumbers.length > 0)
+  // Score swaps (Parent Trap) land on the activation hole for both players and
+  // settle at the end of the round, so there's no target hole to pick and the
+  // target's progress doesn't matter.
+  const isScoreSwap = effect.scoring.conditionalKey === 'score_swap'
+  const showHoleSelect = !!(isAttack && needsTarget && !isScoreSwap && targetPlayerId && courseHoleNumbers.length > 0)
   const targetScoredKey = JSON.stringify(opponentScoredHoles[targetPlayerId] ?? [])
   const courseKey = courseHoleNumbers.join(',')
   const targetUnscoredHoles = useMemo(() => {
@@ -430,6 +434,11 @@ export function CardBack({
                     <option key={p.id} value={p.id}>{p.name}</option>
                   ))}
                 </select>
+                {isScoreSwap && (
+                  <p className="text-[11px] text-zinc-500 mt-1">
+                    You swap scores on this hole. It kicks in once you both finish the round.
+                  </p>
+                )}
               </div>
             )}
             {showHoleSelect && (

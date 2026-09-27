@@ -343,7 +343,7 @@ const POWERUPS: PowerupSeed[] = [
     slug: 'parent-trap',
     name: 'Parent Trap',
     type: 'ATTACK',
-    description: 'After the hole is complete, swap your score with the chosen opponent.',
+    description: 'Swap your score on this hole with any opponent. The switch happens once you both finish the round.',
     effect: {
       scoring: { mode: 'manual', modifier: null, conditionalKey: 'score_swap' },
       duration: 1,
