@@ -37,7 +37,7 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
   const [dragOffset, setDragOffset] = useState(0)
   const [isDragging, setIsDragging] = useState(false)
 
-  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
+  const { messages, loaded, sending, input, setInput, sendMessage, handleKeyDown, fetchMessages, fetchBanStatus, scrollToBottom, bottomRef, isBanned, banExpiresAt, banReason, deleteMessage, banUser, toggleReaction } = useChat({ tournamentId, channelPrefix: 'persistent-chat', eager: false })
   const viewport = useVisualViewportHeight({ mobileOnly: true })
 
   // Fetch on first open
@@ -193,6 +193,11 @@ export function PersistentChat({ tournamentId, currentUserId, currentUserName, i
               currentUserId={currentUserId}
               onDeleteMessage={isAdmin ? deleteMessage : undefined}
               onBanUser={isAdmin ? banUser : undefined}
+              onToggleReaction={
+                canPost && !isBanned && currentUserId
+                  ? (messageId, emoji) => { void toggleReaction(messageId, emoji, currentUserName) }
+                  : undefined
+              }
             />
             <div ref={bottomRef} />
           </div>

@@ -5,7 +5,8 @@ import Image from 'next/image'
 import type { ChatMessage } from '@/hooks/useChat'
 import { isContinuation } from '@/lib/chat-grouping'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
-import { Trash2, Ban } from 'lucide-react'
+import { Trash2, Ban, SmilePlus } from 'lucide-react'
+import { CHAT_REACTIONS } from '@/lib/chat-reactions'
 
 type SystemCategory = 'attack' | 'powerup' | 'announcement'
 
@@ -41,11 +42,105 @@ interface Props {
   currentUserId?: string | null
   onDeleteMessage?: (id: string) => void
   onBanUser?: (userId: string, userName: string) => void
+  /** Set when the viewer can react (signed in, allowed to post, not banned). */
+  onToggleReaction?: (messageId: string, emoji: string) => void
 }
 
-export function ChatMessageList({ messages, variant = 'light', isAdmin, currentUserId, onDeleteMessage, onBanUser }: Props) {
+export function ChatMessageList({ messages, variant = 'light', isAdmin, currentUserId, onDeleteMessage, onBanUser, onToggleReaction }: Props) {
   const isDark = variant === 'dark'
   const [confirmBan, setConfirmBan] = useState<{ userId: string; name: string } | null>(null)
+  // Which message's emoji picker is open (one at a time).
+  const [pickerFor, setPickerFor] = useState<string | null>(null)
+  const canReact = !!onToggleReaction
+
+  function react(messageId: string, emoji: string) {
+    onToggleReaction?.(messageId, emoji)
+    setPickerFor(null)
+  }
+
+  // Tap a message to open its picker (the way to react on a phone).
+  function togglePicker(messageId: string) {
+    if (!canReact) return
+    setPickerFor((cur) => (cur === messageId ? null : messageId))
+  }
+
+  function reactButton(m: ChatMessage) {
+    if (!canReact) return null
+    return (
+      <button
+        type="button"
+        onClick={() => togglePicker(m.id)}
+        className="opacity-0 group-hover:opacity-100 focus-visible:opacity-100 transition-opacity shrink-0 p-0.5 rounded hover:bg-black/10"
+        title="Add reaction"
+        aria-label="Add reaction"
+        aria-expanded={pickerFor === m.id}
+      >
+        <SmilePlus className={`w-3.5 h-3.5 ${isDark ? 'text-white/60' : 'text-muted-foreground'}`} />
+      </button>
+    )
+  }
+
+  function reactionRow(m: ChatMessage) {
+    const reactions = m.reactions ?? []
+    const open = pickerFor === m.id
+    if (reactions.length === 0 && !open) return null
+    return (
+      <div className="mt-1 space-y-1">
+        {reactions.length > 0 && (
+          <div className="flex flex-wrap items-center gap-1">
+            {reactions.map((r) => (
+              <button
+                key={r.emoji}
+                type="button"
+                disabled={!canReact}
+                onClick={() => react(m.id, r.emoji)}
+                title={r.names.length > 0 ? r.names.join(', ') : undefined}
+                aria-label={`${r.emoji} ${r.count}${r.mine ? ', you reacted' : ''}. ${canReact ? 'Toggle' : ''}`}
+                aria-pressed={r.mine}
+                className={`inline-flex items-center gap-1 min-h-7 px-2 rounded-full border text-xs tabular-nums transition-colors disabled:cursor-default ${
+                  r.mine
+                    ? 'border-[var(--color-primary)] bg-[color-mix(in_oklab,var(--color-primary)_12%,transparent)] font-semibold'
+                    : isDark ? 'border-white/20 text-white/80' : 'border-border text-foreground hover:bg-muted'
+                }`}
+              >
+                <span aria-hidden="true">{r.emoji}</span>
+                <span>{r.count}</span>
+              </button>
+            ))}
+            {canReact && !open && (
+              <button
+                type="button"
+                onClick={() => togglePicker(m.id)}
+                aria-label="Add reaction"
+                className={`inline-flex items-center justify-center min-h-7 w-8 rounded-full border ${isDark ? 'border-white/20' : 'border-border hover:bg-muted'}`}
+              >
+                <SmilePlus className={`w-3.5 h-3.5 ${isDark ? 'text-white/60' : 'text-muted-foreground'}`} />
+              </button>
+            )}
+          </div>
+        )}
+        {open && (
+          <div
+            role="group"
+            aria-label="Pick a reaction"
+            className={`inline-flex items-center gap-0.5 rounded-full border px-1 py-0.5 shadow-sm ${isDark ? 'bg-black/60 border-white/20' : 'bg-background border-border'}`}
+          >
+            {CHAT_REACTIONS.map((e) => (
+              <button
+                key={e}
+                type="button"
+                onClick={() => react(m.id, e)}
+                aria-label={`React ${e}`}
+                className="w-9 h-9 rounded-full text-lg leading-none hover:bg-muted active:scale-90 transition-transform"
+              >
+                {e}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
 
   if (messages.length === 0) {
     return (
@@ -98,9 +193,16 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
           const styles = SYSTEM_STYLES[category][isDark ? 'dark' : 'light']
 
           return (
-            <div key={m.id} className={`group flex items-start gap-2 py-2 px-3 rounded-md border ${styles.bg} ${styles.border}`}>
-              <p className={`text-xs font-semibold flex-1 ${styles.text} whitespace-pre-line`}>{m.content}</p>
+            <div key={m.id} className={`group py-2 px-3 rounded-md border ${styles.bg} ${styles.border}`}>
+              <div className="flex items-start gap-2">
+              <p
+                className={`text-xs font-semibold flex-1 ${styles.text} whitespace-pre-line ${canReact ? 'cursor-pointer' : ''}`}
+                onClick={() => togglePicker(m.id)}
+              >
+                {m.content}
+              </p>
               <span className={`text-[11px] shrink-0 mt-0.5 ${isDark ? 'text-white/50' : 'text-gray-500'}`}>{time}</span>
+              {reactButton(m)}
               {isAdmin && onDeleteMessage && (
                 <button
                   type="button"
@@ -112,6 +214,8 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
                   <Trash2 className="w-3 h-3 text-muted-foreground" />
                 </button>
               )}
+              </div>
+              {reactionRow(m)}
             </div>
           )
         }
@@ -153,12 +257,19 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
                   {time.replace(/\s?[AP]M$/i, '')}
                 </span>
               </div>
-              <div className="flex-1 min-w-0 flex items-start gap-2">
-                <p className={`text-sm break-words flex-1 min-w-0 ${isDark ? 'text-white/80' : ''}`}>
-                  <span className="sr-only">{m.user.name ?? 'Player'} at {time}: </span>
-                  {m.content}
-                </p>
-                {adminControls}
+              <div className="flex-1 min-w-0">
+                <div className="flex items-start gap-2">
+                  <p
+                    className={`text-sm break-words flex-1 min-w-0 ${isDark ? 'text-white/80' : ''} ${canReact ? 'cursor-pointer' : ''}`}
+                    onClick={() => togglePicker(m.id)}
+                  >
+                    <span className="sr-only">{m.user.name ?? 'Player'} at {time}: </span>
+                    {m.content}
+                  </p>
+                  {reactButton(m)}
+                  {adminControls}
+                </div>
+                {reactionRow(m)}
               </div>
             </div>
           )
@@ -184,9 +295,16 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
               <div className="flex items-baseline gap-2">
                 <span className={`text-sm font-semibold ${isDark ? 'text-white' : ''}`}>{m.user.name ?? 'Player'}</span>
                 <span className={`text-xs ${isDark ? 'text-white/40' : 'text-muted-foreground'}`}>{time}</span>
+                {reactButton(m)}
                 {adminControls}
               </div>
-              <p className={`text-sm mt-0.5 break-words ${isDark ? 'text-white/80' : ''}`}>{m.content}</p>
+              <p
+                className={`text-sm mt-0.5 break-words ${isDark ? 'text-white/80' : ''} ${canReact ? 'cursor-pointer' : ''}`}
+                onClick={() => togglePicker(m.id)}
+              >
+                {m.content}
+              </p>
+              {reactionRow(m)}
             </div>
           </div>
         )

@@ -6,6 +6,7 @@ import { getUser } from '@/lib/auth'
 import { containsProfanity } from '@/lib/content-moderation'
 import { sendPushToUsers } from '@/lib/push'
 import { resolveChatAccess } from '@/lib/chat-access'
+import { summarizeReactions } from '@/lib/chat-reactions'
 
 export async function GET(
   _req: NextRequest,
@@ -34,9 +35,16 @@ export async function GET(
       createdAt: true,
       userId: true,
       user: { select: { name: true, image: true } },
+      reactions: {
+        select: { emoji: true, userId: true, user: { select: { name: true } } },
+        orderBy: { createdAt: 'asc' },
+      },
     },
   })
-  const messages = latest.reverse()
+  const messages = latest.reverse().map(({ reactions, ...m }) => ({
+    ...m,
+    reactions: summarizeReactions(reactions, user.id),
+  }))
   return NextResponse.json(messages)
 }
 

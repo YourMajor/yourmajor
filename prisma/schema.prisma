@@ -175,6 +175,7 @@ model User {
   invitations            Invitation[]
   standaloneRounds       StandaloneRound[]
   messages               TournamentMessage[]
+  messageReactions       MessageReaction[]
   photos                 TournamentPhoto[]
   chatBans               ChatBan[]
   purchases              Purchase[]
@@ -776,11 +777,31 @@ model TournamentMessage {
   deletedAt    DateTime?
   deletedBy    String?
   createdAt    DateTime  @default(now())
+  // Bumped whenever a reaction is added or removed. The row UPDATE is what
+  // realtime already streams to chat clients, so they refetch and see it.
+  reactedAt    DateTime?
 
-  tournament Tournament @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
-  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  tournament Tournament        @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
+  user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reactions  MessageReaction[]
 
   @@index([tournamentId])
+}
+
+// One person's emoji reaction to a chat message. Toggled: reacting again with
+// the same emoji removes it.
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message TournamentMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([messageId])
 }
 
 model TournamentPhoto {
