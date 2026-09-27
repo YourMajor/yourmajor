@@ -7,7 +7,9 @@ import { buttonVariants } from '@/components/ui/button-variants'
 import { TournamentMessage } from '@/components/ui/tournament-message'
 import { LiveScoring } from '@/components/scorecard/live/LiveScoring'
 import { isSingleTeamScoreFormat } from '@/lib/formats'
-import { pickDefaultRound } from '@/lib/play-round'
+import { isCardLocked, pickDefaultRound } from '@/lib/play-round'
+import { formatOpensAt, getTournamentRoundStates } from '@/lib/round-open'
+import { CompletedRoundView } from '@/components/scorecard/live/CompletedRoundView'
 import { Clock, Swords, AlertCircle } from 'lucide-react'
 
 export default async function PlayPage({
@@ -211,6 +213,84 @@ export default async function PlayPage({
     yards: teeYardageMap[h.id] ?? h.yardages[0]?.yards ?? null,
   }))
 
+  // Round navigation for multi-round tournaments (shared by both views below).
+  const roundNav =
+    tournament.rounds.length > 1
+      ? {
+          current: selectedRound.roundNumber,
+          rounds: tournament.rounds.map((r) => ({
+            number: r.roundNumber,
+            href: `/${slug}/play?round=${r.roundNumber}`,
+          })),
+        }
+      : undefined
+  const viewerIsAdmin = tournamentPlayer.isAdmin || user.role === 'ADMIN'
+
+  // Rounds after the first open when an admin launches them or 3 hours
+  // before the first tee time (src/lib/round-open.ts).
+  if (selectedRound.roundNumber > 1) {
+    const { rounds: roundStates, timeZone } = await getTournamentRoundStates(tournament.id)
+    const state = roundStates.find((r) => r.id === selectedRound.id)
+    if (state && !state.open) {
+      const prev = selectedRound.roundNumber - 1
+      return (
+        <TournamentMessage
+          icon={Clock}
+          heading={`Round ${selectedRound.roundNumber} isn't open yet`}
+          description={
+            state.opensAt
+              ? `Scoring opens ${formatOpensAt(state.opensAt, timeZone)}, 3 hours before the first tee time${viewerIsAdmin ? ', or launch it now from the admin page.' : '.'}`
+              : `Scoring opens when the tournament admin launches the round.`
+          }
+          backHref={`/${slug}`}
+        >
+          <div className="flex flex-wrap gap-2 justify-center">
+            {viewerIsAdmin && (
+              <Link
+                href={`/${slug}/admin`}
+                className={buttonVariants({ size: 'sm' }) + ' bg-[var(--color-primary)] text-primary-foreground hover:bg-[var(--color-primary)]/90'}
+              >
+                Launch Round {selectedRound.roundNumber}
+              </Link>
+            )}
+            <Link href={`/${slug}/play?round=${prev}`} className={buttonVariants({ size: 'sm', variant: 'outline' })}>
+              View Round {prev}
+            </Link>
+          </div>
+        </TournamentMessage>
+      )
+    }
+  }
+
+  // A finished card is read-only (30 minutes after the last hole, so a typo
+  // can still be fixed): show the round as posted. Admins correct finished
+  // cards from the admin scores page.
+  const lastScore = await prisma.score.aggregate({
+    where: { tournamentPlayerId: scoringPlayerId, roundId: selectedRound.id },
+    _max: { submittedAt: true },
+  })
+  const scoredHoleIds = new Set(existingScores.map((s) => s.holeId))
+  const cardLocked = isCardLocked({
+    holeCount: holes.length,
+    scoredCount: holes.filter((h) => scoredHoleIds.has(h.id)).length,
+    lastScoredAt: lastScore._max.submittedAt,
+  })
+  if (cardLocked) {
+    return (
+      <CompletedRoundView
+        roundNumber={selectedRound.roundNumber}
+        holes={holes}
+        existingScores={existingScores}
+        courseName={selectedRound.course.name}
+        playerName={user.name ?? user.email.split('@')[0]}
+        backHref={`/${slug}`}
+        backLabel={tournament.name}
+        roundNav={roundNav}
+        adminEditHref={viewerIsAdmin ? `/${slug}/admin/scores` : undefined}
+      />
+    )
+  }
+
   // Fetch player powerups, attacks received, tournament players, and the
   // scored-hole map for every other participant (used by the activation
   // dialog to pick a valid attack hole on the recipient).
@@ -302,17 +382,7 @@ export default async function PlayPage({
       opponentScoredHoles={opponentScoredHoles}
       teamMode={teamMode && teamMeta !== null ? teamMeta : undefined}
       tournamentFormat={tournament.tournamentFormat}
-      roundNav={
-        tournament.rounds.length > 1
-          ? {
-              current: selectedRound.roundNumber,
-              rounds: tournament.rounds.map((r) => ({
-                number: r.roundNumber,
-                href: `/${slug}/play?round=${r.roundNumber}`,
-              })),
-            }
-          : undefined
-      }
+      roundNav={roundNav}
     />
   )
 }

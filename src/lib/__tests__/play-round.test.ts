@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest'
-import { pickDefaultRound } from '@/lib/play-round'
+import { isCardLocked, pickDefaultRound } from '@/lib/play-round'
 
 const r1 = { id: 'r1', roundNumber: 1, holeCount: 18 }
 const r2 = { id: 'r2', roundNumber: 2, holeCount: 18 }
@@ -28,5 +28,20 @@ describe('pickDefaultRound', () => {
 
   it('returns undefined with no rounds', () => {
     expect(pickDefaultRound([], new Map())).toBeUndefined()
+  })
+})
+
+describe('isCardLocked', () => {
+  const now = new Date('2026-09-27T16:00:00Z')
+  const mins = (m: number) => new Date(now.getTime() - m * 60_000)
+
+  it('leaves an unfinished card editable', () => {
+    expect(isCardLocked({ holeCount: 18, scoredCount: 17, lastScoredAt: mins(600) }, now)).toBe(false)
+  })
+  it('keeps a just-finished card editable for 30 minutes', () => {
+    expect(isCardLocked({ holeCount: 18, scoredCount: 18, lastScoredAt: mins(29) }, now)).toBe(false)
+  })
+  it('locks a finished card after 30 minutes', () => {
+    expect(isCardLocked({ holeCount: 18, scoredCount: 18, lastScoredAt: mins(30) }, now)).toBe(true)
   })
 })

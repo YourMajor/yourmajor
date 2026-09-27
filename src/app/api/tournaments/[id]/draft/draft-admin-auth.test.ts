@@ -60,6 +60,10 @@ const cases: Case[] = [
   { name: 'draft/random', method: 'POST', load: () => import('./random/route'), params: { id: 'tourn_1' } },
   { name: 'draft/next-round', method: 'POST', load: () => import('./next-round/route'), params: { id: 'tourn_1' } },
   {
+    name: 'rounds/[roundNumber]/launch', method: 'POST', load: () => import('../rounds/[roundNumber]/launch/route'),
+    params: { id: 'tourn_1', roundNumber: '2' },
+  },
+  {
     name: 'draft/order', method: 'PUT', load: () => import('./order/route'),
     params: { id: 'tourn_1' }, body: { order: ['tp_1'] },
   },

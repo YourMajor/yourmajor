@@ -27,6 +27,8 @@ import { getLeagueEvents, getLeagueRootId } from '@/lib/league-events'
 import { listAnnouncements } from '@/lib/league-announcements'
 import { getSeasonStandings } from '@/lib/season-standings'
 import { getLatestEventRecap } from '@/lib/season-recap'
+import { formatOpensAt, getTournamentRoundStates } from '@/lib/round-open'
+import { RoundLaunchCard, type RoundLaunchRow } from './RoundLaunchCard'
 
 async function toggleRegistration(tournamentId: string) {
   'use server'
@@ -96,6 +98,27 @@ export default async function AdminDashboard({
   const scorePct = expectedScores > 0 ? Math.min(100, Math.round((scoreCount / expectedScores) * 100)) : 0
   const groupCoverage =
     participantCount > 0 ? Math.min(100, Math.round((assignedPlayerCount / participantCount) * 100)) : 0
+
+  // ── Round launch state (multi-round, live tournaments) ────────────────────
+  let roundRows: RoundLaunchRow[] = []
+  if (tournament.status === 'ACTIVE' && tournament.rounds.length > 1) {
+    const { rounds: states, timeZone } = await getTournamentRoundStates(tournament.id)
+    roundRows = states
+      .filter((r) => r.roundNumber > 1)
+      .map((r) => ({
+        roundNumber: r.roundNumber,
+        open: r.open,
+        status: r.open
+          ? r.reason === 'launched' && r.openedAt
+            ? `Open · launched ${formatOpensAt(r.openedAt, timeZone)}`
+            : r.reason === 'started'
+              ? 'Open · scoring under way'
+              : 'Open for scoring'
+          : r.opensAt
+            ? `Opens ${formatOpensAt(r.opensAt, timeZone)}`
+            : 'Opens when you launch it (no round date or tee time set)',
+      }))
+  }
 
   // ── League metrics (only when applicable) ─────────────────────────────────
   let league: {
@@ -266,6 +289,8 @@ export default async function AdminDashboard({
           <GoLiveButton tournamentId={tournament.id} slug={slug} />
         </div>
       )}
+
+      {roundRows.length > 0 && <RoundLaunchCard tournamentId={tournament.id} rounds={roundRows} />}
 
       {tournament.status === 'ACTIVE' && <QuickAddPlayer tournamentId={tournament.id} />}
 

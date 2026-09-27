@@ -601,9 +601,20 @@ export async function removePlayer(tournamentId: string, tournamentPlayerId: str
 
 // ── Tee Time Management ──────────────────────────────────────────────────────
 
-export async function updateGroupTeeTime(tournamentId: string, groupId: string, teeTime: string | null) {
+export async function updateGroupTeeTime(
+  tournamentId: string,
+  groupId: string,
+  teeTime: string | null,
+  timeZone?: string | null,
+) {
   await requireTournamentAdmin(tournamentId)
   await assertGroupInTournament(groupId, tournamentId)
+
+  // Tee times are wall-clock; remember the admin's zone so the round
+  // auto-open rule (3 hours before first tee) can turn them into instants.
+  if (timeZone && isValidIanaZone(timeZone)) {
+    await prisma.tournament.update({ where: { id: tournamentId }, data: { timeZone } })
+  }
 
   // teeTime comes as "HH:mm" — combine with tournament start date for full DateTime
   if (!teeTime) {
@@ -915,4 +926,14 @@ export async function dismissAllVacancies(tournamentId: string, slug: string) {
 
   revalidatePath(`/${slug}/admin/groups`)
   revalidatePath(`/${slug}/admin`)
+}
+
+function isValidIanaZone(tz: string): boolean {
+  if (tz.length > 64) return false
+  try {
+    new Intl.DateTimeFormat('en-US', { timeZone: tz })
+    return true
+  } catch {
+    return false
+  }
 }

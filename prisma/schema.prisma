@@ -276,6 +276,10 @@ model Tournament {
   formatConfig         Json?
   teamsEnabled         Boolean          @default(false)
   teamSize             Int?
+  // IANA time zone the admin was in when they set tee times (e.g.
+  // "America/Toronto"). Tee times are stored as wall-clock hours, so this is
+  // what turns them into real instants for the round auto-open rule.
+  timeZone             String?
   powerupsEnabled      Boolean          @default(false)
   powerupsPerPlayer    Int              @default(3)
   maxAttacksPerPlayer  Int              @default(1)
@@ -393,6 +397,10 @@ model TournamentRound {
   // begun" chat message posts exactly once. A count()-based check raced:
   // two simultaneous first scores both saw a count of 2 and neither posted.
   roundStartAnnouncedAt DateTime?
+  // Set when an admin launches the round by hand. Rounds after the first stay
+  // closed to scoring until this is set or the auto-open time (3 hours before
+  // the first tee time) passes — see src/lib/round-open.ts.
+  openedAt              DateTime?
 
   tournament      Tournament       @relation(fields: [tournamentId], references: [id], onDelete: Cascade)
   course          Course           @relation(fields: [courseId], references: [id])

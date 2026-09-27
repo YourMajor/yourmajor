@@ -3,6 +3,8 @@ import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { isSingleTeamScoreFormat, isMatchFormat } from '@/lib/formats'
+import { getTournamentRoundStates } from '@/lib/round-open'
+import { isCardLocked } from '@/lib/play-round'
 
 export async function POST(request: NextRequest) {
   const dbUser = await getUser()
@@ -95,9 +97,59 @@ export async function POST(request: NextRequest) {
   // no compound unique on (id, tournamentId).
   const round = await prisma.tournamentRound.findFirst({
     where: { id: roundId, tournamentId: tp.tournamentId },
-    select: { courseId: true },
+    select: { courseId: true, roundNumber: true, openedAt: true },
   })
   if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+
+  // Rounds after the first open when launched or 3 hours before the first
+  // tee time. Admins can always write (score corrections).
+  if (!writerIsAdmin && round.roundNumber > 1 && !round.openedAt) {
+    const { rounds: roundStates } = await getTournamentRoundStates(tp.tournamentId)
+    const state = roundStates.find((r) => r.id === roundId)
+    if (state && !state.open) {
+      return NextResponse.json(
+        { error: `Round ${round.roundNumber} isn't open for scoring yet.` },
+        { status: 409 },
+      )
+    }
+  }
+
+  // A finished card is read-only for players once the edit grace period
+  // after the last hole has passed; corrections then go through an admin.
+  // Re-sending identical values is allowed so retries and the offline queue
+  // never fail against a locked card.
+  if (!writerIsAdmin) {
+    const [holeCount, cardAgg, thisHole] = await Promise.all([
+      prisma.hole.count({ where: { courseId: round.courseId } }),
+      prisma.score.aggregate({
+        where: { tournamentPlayerId, roundId },
+        _count: { _all: true },
+        _max: { submittedAt: true },
+      }),
+      prisma.score.findUnique({
+        where: { tournamentPlayerId_holeId_roundId: { tournamentPlayerId, holeId, roundId } },
+        select: { strokes: true, putts: true, fairwayHit: true, gir: true, conceded: true },
+      }),
+    ])
+    const locked = isCardLocked({
+      holeCount,
+      scoredCount: cardAgg._count._all,
+      lastScoredAt: cardAgg._max.submittedAt,
+    })
+    const unchanged =
+      !!thisHole &&
+      thisHole.strokes === strokes &&
+      (thisHole.putts ?? null) === (putts ?? null) &&
+      (thisHole.fairwayHit ?? null) === (fairwayHit ?? null) &&
+      (thisHole.gir ?? null) === (gir ?? null) &&
+      thisHole.conceded === isConceded
+    if (locked && !unchanged) {
+      return NextResponse.json(
+        { error: 'This round is complete — scores are locked. Ask the tournament admin to make a correction.' },
+        { status: 409 },
+      )
+    }
+  }
 
   const hole = await prisma.hole.findFirst({
     where: { id: holeId, courseId: round.courseId },
