@@ -108,4 +108,15 @@ describe('buildStrokeOverrideMap — parent-trap', () => {
     expect(map.get('tp_a:5')).toBe(3)
     expect(map.get('tp_b:5')).toBe(7)
   })
+
+  it('swaps on the picked hole, not the activation hole', async () => {
+    overrideRows = [{ ...swapRow, holeNumber: 9, metadata: { swapHoleNumber: 5 } }]
+    scoredCounts = { tp_a: 18, tp_b: 18 }
+
+    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+
+    expect(map.get('tp_a:5')).toBe(3)
+    expect(map.get('tp_b:5')).toBe(7)
+    expect(map.has('tp_a:9')).toBe(false)
+  })
 })

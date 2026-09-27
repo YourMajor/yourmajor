@@ -139,12 +139,18 @@ export async function POST(
   // the override is actually unscored before accepting it.
   let resolvedTargetHole: number | null = null
   const isScoreSwap = effect.scoring.conditionalKey === 'score_swap'
+  let swapHoleNumber: number | null = null
   if (isScoreSwap && targetPlayer) {
-    // Parent Trap swaps both players' scores on the activation hole, applied
-    // once both have finished the round (powerup-stroke-overrides.ts). It
-    // doesn't need an open hole on the target's card, so any opponent is fair
-    // game — even one who has already played this hole or finished the round.
-    resolvedTargetHole = holeNumber
+    // Parent Trap swaps both players' scores on a hole the activator picks —
+    // any hole on the course, played or not — and the swap is applied once
+    // both have finished the round (powerup-stroke-overrides.ts). So any
+    // opponent is fair game, whatever their progress.
+    const swapHole = targetHoleOverride ?? holeNumber
+    if (!round.course.holes.some((h) => h.number === swapHole)) {
+      return NextResponse.json({ error: 'Swap hole is not on the course' }, { status: 400 })
+    }
+    resolvedTargetHole = swapHole
+    swapHoleNumber = swapHole
   } else if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
     const targetScores = await prisma.score.findMany({
       where: { tournamentPlayerId: targetPlayer.id, roundId },
@@ -181,6 +187,12 @@ export async function POST(
 
   // Build structured metadata for variable powerups
   let structuredMetadata: Record<string, unknown> | undefined = metadata ? { ...metadata } : undefined
+  // Stored separately from targetHoleNumber: rows from before the hole picker
+  // have a targetHoleNumber the old swap logic never used, so the engine only
+  // trusts this key.
+  if (swapHoleNumber !== null) {
+    structuredMetadata = { ...(structuredMetadata ?? {}), swapHoleNumber }
+  }
   if (isVariable) {
     const powerupSlug = playerPowerup.powerup.slug
     if (powerupSlug === 'fairway-finder') {

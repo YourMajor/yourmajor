@@ -5,8 +5,8 @@
  *   • can-i-get-your-number → strokes become metadata.numberValue, which must
  *     be a legal hole score (see isValidStrokeOverrideValue).
  *   • concede               → if GIR on the activation hole, strokes become par - 1.
- *   • parent-trap           → activator's and target's strokes on the activation
- *     hole are swapped — but only once BOTH players have scored every hole of
+ *   • parent-trap           → activator's and target's strokes on the chosen hole
+ *     (metadata.swapHoleNumber, falling back to the activation hole) are swapped — but only once BOTH players have scored every hole of
  *     that round. Until then the leaderboard shows real scores; the swap lands
  *     at the end of the round. The target can be anyone, whether or not they've
  *     already played that hole.
@@ -118,11 +118,16 @@ export async function buildStrokeOverrideMap(
       ) {
         continue
       }
-      const tKey = `${ov.targetPlayerId}:${ov.holeNumber}`
-      const a = scoreLookup.get(aKey)
+      // Rows from before the hole picker have no swapHoleNumber and swap on
+      // the activation hole, as they always did.
+      const picked = (ov.metadata as { swapHoleNumber?: unknown } | null)?.swapHoleNumber
+      const swapHole = typeof picked === 'number' && Number.isInteger(picked) ? picked : ov.holeNumber
+      const sKey = `${ov.tournamentPlayerId}:${swapHole}`
+      const tKey = `${ov.targetPlayerId}:${swapHole}`
+      const a = scoreLookup.get(sKey)
       const t = scoreLookup.get(tKey)
       if (a && t) {
-        map.set(aKey, t.strokes)
+        map.set(sKey, t.strokes)
         map.set(tKey, a.strokes)
       }
     }
