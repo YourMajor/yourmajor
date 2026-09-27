@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { revalidateTag } from 'next/cache'
 import { prisma } from '@/lib/prisma'
-import { getUser } from '@/lib/auth'
+import { getUser, isTournamentAdmin as checkTournamentAdmin } from '@/lib/auth'
 import { isSingleTeamScoreFormat, isMatchFormat } from '@/lib/formats'
 import { getTournamentRoundStates } from '@/lib/round-open'
 import { isCardLocked } from '@/lib/play-round'
@@ -124,7 +124,7 @@ export async function POST(request: NextRequest) {
       prisma.score.aggregate({
         where: { tournamentPlayerId, roundId },
         _count: { _all: true },
-        _max: { submittedAt: true },
+        _max: { createdAt: true },
       }),
       prisma.score.findUnique({
         where: { tournamentPlayerId_holeId_roundId: { tournamentPlayerId, holeId, roundId } },
@@ -134,7 +134,7 @@ export async function POST(request: NextRequest) {
     const locked = isCardLocked({
       holeCount,
       scoredCount: cardAgg._count._all,
-      lastScoredAt: cardAgg._max.submittedAt,
+      lastScoredAt: cardAgg._max.createdAt,
     })
     const unchanged =
       !!thisHole &&
@@ -313,4 +313,46 @@ export async function POST(request: NextRequest) {
   }
 
   return NextResponse.json({ ...score, powerupEvaluations, pendingConfirmations })
+}
+
+/**
+ * Remove one hole score. Admin-only: this is how a stray score (e.g. one
+ * entered on the wrong round) is taken off a card, which the POST route can't
+ * do because it only writes 1–20 strokes.
+ */
+export async function DELETE(request: NextRequest) {
+  const dbUser = await getUser()
+  if (!dbUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+
+  let body: { tournamentPlayerId?: unknown; holeId?: unknown; roundId?: unknown }
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
+  const { tournamentPlayerId, holeId, roundId } = body
+  if (typeof tournamentPlayerId !== 'string' || typeof holeId !== 'string' || typeof roundId !== 'string') {
+    return NextResponse.json({ error: 'Missing required fields' }, { status: 400 })
+  }
+
+  const tp = await prisma.tournamentPlayer.findUnique({
+    where: { id: tournamentPlayerId },
+    select: { tournamentId: true },
+  })
+  if (!tp) return NextResponse.json({ error: 'Player not found' }, { status: 404 })
+
+  if (!(dbUser.role === 'ADMIN' || (await checkTournamentAdmin(dbUser.id, tp.tournamentId)))) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  }
+
+  // Scope the round to the player's tournament, same as POST.
+  const round = await prisma.tournamentRound.findFirst({
+    where: { id: roundId, tournamentId: tp.tournamentId },
+    select: { id: true },
+  })
+  if (!round) return NextResponse.json({ error: 'Round not found' }, { status: 404 })
+
+  const deleted = await prisma.score.deleteMany({ where: { tournamentPlayerId, holeId, roundId } })
+  revalidateTag(`leaderboard-${tp.tournamentId}`, { expire: 0 })
+  return NextResponse.json({ ok: true, deleted: deleted.count })
 }

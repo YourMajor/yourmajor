@@ -267,13 +267,13 @@ export default async function PlayPage({
   // cards from the admin scores page.
   const lastScore = await prisma.score.aggregate({
     where: { tournamentPlayerId: scoringPlayerId, roundId: selectedRound.id },
-    _max: { submittedAt: true },
+    _max: { createdAt: true },
   })
   const scoredHoleIds = new Set(existingScores.map((s) => s.holeId))
   const cardLocked = isCardLocked({
     holeCount: holes.length,
     scoredCount: holes.filter((h) => scoredHoleIds.has(h.id)).length,
-    lastScoredAt: lastScore._max.submittedAt,
+    lastScoredAt: lastScore._max.createdAt,
   })
   if (cardLocked) {
     return (

@@ -3,6 +3,7 @@ import { NextRequest } from 'next/server'
 
 const authMock = {
   getUser: vi.fn(),
+  isTournamentAdmin: vi.fn(async () => false),
 }
 
 type TargetRow = {
@@ -28,10 +29,15 @@ const prismaMock = {
     findFirst: vi.fn(async () => ({ courseId: 'course_1' })),
     updateMany: vi.fn(async () => ({ count: 0 })),
   },
-  hole: { findFirst: vi.fn(async () => ({ id: 'hole_1' })) },
+  hole: {
+    findFirst: vi.fn(async () => ({ id: 'hole_1' })),
+    count: vi.fn(async () => 18),
+  },
   score: {
     // Non-null: an existing score keeps the round-start-message path out of the way.
     findUnique: vi.fn(async () => ({ id: 'score_1' })),
+    // A card with holes still to play, so the finished-card lock stays out of the way.
+    aggregate: vi.fn(async () => ({ _count: { _all: 5 }, _max: { createdAt: new Date() } })),
     upsert: vi.fn(async () => ({ id: 'score_1', strokes: 4 })),
   },
   tournament: { findUnique: vi.fn(async () => ({ tournamentFormat: 'SCRAMBLE' })) },
@@ -154,5 +160,94 @@ describe('POST /api/scores — completed tournaments are frozen', () => {
 
     expect(res.status).toBe(200)
     expect(prismaMock.score.upsert).toHaveBeenCalled()
+  })
+})
+
+describe('POST /api/scores — finished cards are read-only for players', () => {
+  const player = () => ({
+    userId: 'user_1',
+    tournamentId: 'tourn_1',
+    isAdmin: false,
+    teamMembership: null,
+    tournament: { status: 'ACTIVE' },
+  })
+  const lockedCard = () => {
+    prismaMock.score.aggregate.mockResolvedValueOnce({
+      _count: { _all: 18 },
+      _max: { createdAt: new Date(Date.now() - 2 * 60 * 60 * 1000) },
+    })
+    // First findUnique is the lock check's read of the existing hole score.
+    prismaMock.score.findUnique.mockResolvedValueOnce({
+      strokes: 5, putts: null, fairwayHit: null, gir: null, conceded: false,
+    } as never)
+  }
+
+  it('refuses a player changing a hole on a finished card', async () => {
+    authMock.getUser.mockResolvedValue({ id: 'user_1', role: 'USER' })
+    target = player()
+    lockedCard()
+
+    const { POST } = await import('./route')
+    const res = await POST(fakeReq({ strokes: 4 }))
+
+    expect(res.status).toBe(409)
+    expect(prismaMock.score.upsert).not.toHaveBeenCalled()
+  })
+
+  it('accepts a re-send of the same values (retries, offline queue)', async () => {
+    authMock.getUser.mockResolvedValue({ id: 'user_1', role: 'USER' })
+    target = player()
+    lockedCard()
+
+    const { POST } = await import('./route')
+    const res = await POST(fakeReq({ strokes: 5 }))
+
+    expect(res.status).toBe(200)
+  })
+
+  it('lets an admin correct a finished card', async () => {
+    authMock.getUser.mockResolvedValue({ id: 'user_1', role: 'USER' })
+    target = { ...player(), isAdmin: true }
+    lockedCard()
+
+    const { POST } = await import('./route')
+    const res = await POST(fakeReq({ strokes: 4 }))
+
+    expect(res.status).toBe(200)
+    expect(prismaMock.score.upsert).toHaveBeenCalled()
+  })
+})
+
+describe('DELETE /api/scores', () => {
+  function delReq() {
+    return new NextRequest('http://localhost/api/scores', {
+      method: 'DELETE',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ tournamentPlayerId: 'tp_1', holeId: 'hole_1', roundId: 'round_1' }),
+    })
+  }
+
+  it('refuses a non-admin', async () => {
+    authMock.getUser.mockResolvedValue({ id: 'user_1', role: 'USER' })
+    target = { userId: 'user_1', tournamentId: 'tourn_1', isAdmin: false, teamMembership: null, tournament: { status: 'ACTIVE' } }
+    authMock.isTournamentAdmin.mockResolvedValueOnce(false)
+
+    const { DELETE } = await import('./route')
+    const res = await DELETE(delReq())
+
+    expect(res.status).toBe(403)
+  })
+
+  it('lets a tournament admin remove a stray score', async () => {
+    authMock.getUser.mockResolvedValue({ id: 'admin_1', role: 'USER' })
+    target = { userId: 'user_1', tournamentId: 'tourn_1', isAdmin: false, teamMembership: null, tournament: { status: 'ACTIVE' } }
+    authMock.isTournamentAdmin.mockResolvedValueOnce(true)
+    ;(prismaMock.score as Record<string, unknown>).deleteMany = vi.fn(async () => ({ count: 1 }))
+
+    const { DELETE } = await import('./route')
+    const res = await DELETE(delReq())
+
+    expect(res.status).toBe(200)
+    expect(await res.json()).toEqual({ ok: true, deleted: 1 })
   })
 })

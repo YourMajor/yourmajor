@@ -619,6 +619,10 @@ model Score {
   // `conceded` is true; other formats also ignore the row when conceded.
   conceded           Boolean  @default(false)
   submittedAt        DateTime @default(now())
+  // When the hole was first scored. submittedAt moves on every edit; this
+  // doesn't, so the finished-card lock (src/lib/play-round.ts) can't be
+  // reopened by a correction.
+  createdAt          DateTime @default(now())
 
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
   hole             Hole             @relation(fields: [holeId], references: [id])

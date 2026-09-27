@@ -50,6 +50,7 @@ export default async function PlayerScorecardPage({
   // (handled in scoring.ts) but not in this per-player view. Acceptable v1 gap.
   const playerScoreInputs = player.scores.map((s) => ({
     tournamentPlayerId: player.id,
+    roundId: s.roundId,
     holeNumber: s.hole.number,
     par: s.hole.par,
     strokes: s.strokes,
@@ -163,7 +164,7 @@ export default async function PlayerScorecardPage({
                     scores={roundScores.map((s) => ({
                       holeNumber: s.hole.number,
                       par: s.hole.par,
-                      strokes: effectiveStrokes(strokeOverrides, player.id, s.hole.number, s.strokes),
+                      strokes: effectiveStrokes(strokeOverrides, player.id, s.hole.number, s.strokes, s.roundId),
                       handicapIndex: s.hole.handicap,
                       putts: s.putts,
                       fairwayHit: s.fairwayHit,
