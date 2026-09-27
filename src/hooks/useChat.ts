@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState, useCallback } from 'react'
 import { createClient } from '@/utils/supabase/client'
+import { toggleReactionLocally, type ReactionSummary } from '@/lib/chat-reactions'
 
 export interface ChatMessage {
   id: string
@@ -10,6 +11,7 @@ export interface ChatMessage {
   createdAt: Date
   userId: string
   user: { name: string | null; image: string | null }
+  reactions?: ReactionSummary[]
 }
 
 interface UseChatOptions {
@@ -196,6 +198,25 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     return res.ok
   }, [tournamentId])
 
+  // Optimistic: flip the chip now, then refetch so counts match the server
+  // (and roll back if the toggle was refused).
+  const toggleReaction = useCallback(async (messageId: string, emoji: string, viewerName: string | null) => {
+    setMessages((prev) =>
+      prev.map((m) =>
+        m.id === messageId ? { ...m, reactions: toggleReactionLocally(m.reactions ?? [], emoji, viewerName) } : m,
+      ),
+    )
+    try {
+      await fetch(`/api/tournaments/${tournamentId}/messages/${messageId}/reactions`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ emoji }),
+      })
+    } finally {
+      await fetchMessages()
+    }
+  }, [tournamentId, fetchMessages])
+
   const banUser = useCallback(async (userId: string, reason?: string) => {
     const res = await fetch(`/api/tournaments/${tournamentId}/chat-bans`, {
       method: 'POST',
@@ -237,6 +258,7 @@ export function useChat({ tournamentId, channelPrefix = 'chat', eager = true }: 
     banExpiresAt,
     banReason,
     deleteMessage,
+    toggleReaction,
     banUser,
     unbanUser,
     error,
