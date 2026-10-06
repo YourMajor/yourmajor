@@ -13,10 +13,11 @@ import { NextRequest } from 'next/server'
 const authMock = { getUser: vi.fn(), isTournamentAdmin: vi.fn() }
 // Typed args so the returnUrl assertions below can read mock.calls.
 type SessionArgs = { returnUrl: string; userId: string; email: string | null; tournamentId?: string }
+type Session = (a: SessionArgs) => Promise<{ url: string | null }>
 const stripeMock = {
-  createProCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/1' })),
-  createClubCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/2' })),
-  createLeagueCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/3' })),
+  createProCheckoutSession: vi.fn<Session>(async () => ({ url: 'https://checkout.stripe.com/s/1' })),
+  createClubCheckoutSession: vi.fn<Session>(async () => ({ url: 'https://checkout.stripe.com/s/2' })),
+  createLeagueCheckoutSession: vi.fn<Session>(async () => ({ url: 'https://checkout.stripe.com/s/3' })),
 }
 
 vi.mock('@/lib/auth', () => authMock)

@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Calendar } from 'lucide-react'
+import { Trophy, TrendingUp, TrendingDown, Minus, Crown, Calendar, Flag } from 'lucide-react'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import type { SeasonPlayerSummary, SeasonEvent, SeasonAward } from '@/lib/season-standings'
+import type { SeasonPlayerSummary, SeasonEvent, SeasonAward, CourseAnalytics } from '@/lib/season-standings'
 import type { EventRecap } from '@/lib/season-recap'
 import type { SeasonScoringMethod } from '@/generated/prisma/client'
 import { LeagueScheduleView, type ScheduleEvent } from './LeagueScheduleView'
@@ -17,6 +17,7 @@ interface SeasonDashboardProps {
   scoringMethod: SeasonScoringMethod
   seasonName: string
   awards: SeasonAward[]
+  courses?: CourseAnalytics[]
   recap: EventRecap | null
   slug: string
   scheduleEvents?: ScheduleEvent[]
@@ -66,6 +67,7 @@ export function SeasonDashboard({
   scoringMethod,
   seasonName,
   awards,
+  courses = [],
   recap,
   slug,
   scheduleEvents = [],
@@ -75,6 +77,7 @@ export function SeasonDashboard({
 }: SeasonDashboardProps) {
   const completedEvents = events.filter((e) => e.status === 'COMPLETED' || e.status === 'ACTIVE')
   const showSchedule = scheduleEvents.length > 0
+  const showCourses = courses.length > 0
 
   return (
     <div className="space-y-6">
@@ -100,6 +103,7 @@ export function SeasonDashboard({
           {!isLeague && <TabsTrigger value="events">Events</TabsTrigger>}
           {showSchedule && <TabsTrigger value="schedule">My Schedule</TabsTrigger>}
           {awards.length > 0 && <TabsTrigger value="awards">Awards</TabsTrigger>}
+          {showCourses && <TabsTrigger value="courses">Courses</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="standings">
@@ -127,6 +131,12 @@ export function SeasonDashboard({
         {awards.length > 0 && (
           <TabsContent value="awards">
             <AwardsList awards={awards} />
+          </TabsContent>
+        )}
+
+        {showCourses && (
+          <TabsContent value="courses">
+            <CourseAnalyticsList courses={courses} />
           </TabsContent>
         )}
       </Tabs>
@@ -318,6 +328,89 @@ function AwardsList({ awards }: { awards: SeasonAward[] }) {
           </div>
           <p className="text-xs text-muted-foreground">{award.description}</p>
           <p className="text-lg font-bold text-foreground mt-1">{award.value}</p>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+// ─── Course Analytics ────────────────────────────────────────────────────────
+
+function signed(n: number): string {
+  if (n === 0) return 'E'
+  return n > 0 ? `+${n.toFixed(2)}` : n.toFixed(2)
+}
+
+function CourseAnalyticsList({ courses }: { courses: CourseAnalytics[] }) {
+  return (
+    <div className="mt-4 space-y-6">
+      <p className="text-xs text-muted-foreground">
+        Gross scoring across every round played on each course this season — no handicap applied.
+      </p>
+
+      {courses.map((course) => (
+        <div key={course.courseId} className="rounded-xl border border-border p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-2 mb-4">
+            <div className="flex items-center gap-2">
+              <Flag className="w-4 h-4 text-brand shrink-0" />
+              <h3 className="text-base font-semibold text-foreground">{course.courseName}</h3>
+            </div>
+            <div className="flex flex-wrap gap-x-6 gap-y-2">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Rounds</p>
+                <p className="text-lg font-bold text-foreground">{course.timesPlayed}</p>
+              </div>
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">Course record</p>
+                {course.courseRecord ? (
+                  <p className="text-lg font-bold text-foreground">
+                    {course.courseRecord.total}
+                    <span className="ml-2 text-xs font-medium text-muted-foreground">
+                      {course.courseRecord.playerName}
+                      {course.courseRecord.date &&
+                        ` · ${new Date(course.courseRecord.date).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`}
+                    </span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-muted-foreground">No complete card yet</p>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {/* Own scroll container, so a wide table never scrolls the page. */}
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-border">
+                  <th className="text-left py-2 px-3 font-semibold text-foreground">Hole</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground">Par</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground">Avg</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground">vs Par</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground">Birdie+</th>
+                  <th className="text-center py-2 px-2 font-medium text-muted-foreground">Bogey+</th>
+                  <th className="text-center py-2 px-3 font-semibold text-foreground">Rank</th>
+                </tr>
+              </thead>
+              <tbody>
+                {course.holes.map((h) => (
+                  <tr key={h.holeNumber} className="border-b border-border/50 hover:bg-muted/30">
+                    <td className="py-2 px-3 font-medium text-foreground">{h.holeNumber}</td>
+                    <td className="text-center py-2 px-2 text-muted-foreground">{h.par}</td>
+                    <td className="text-center py-2 px-2 text-foreground">{h.avgScore.toFixed(2)}</td>
+                    <td className="text-center py-2 px-2 font-semibold text-foreground">{signed(h.avgVsPar)}</td>
+                    <td className="text-center py-2 px-2 text-muted-foreground">{h.birdieRate}%</td>
+                    <td className="text-center py-2 px-2 text-muted-foreground">{h.bogeyRate}%</td>
+                    <td className="text-center py-2 px-3">
+                      <Badge variant={h.hardestRank === 1 ? 'default' : h.hardestRank <= 3 ? 'secondary' : 'outline'}>
+                        {h.hardestRank}
+                      </Badge>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       ))}
     </div>

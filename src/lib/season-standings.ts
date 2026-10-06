@@ -881,22 +881,42 @@ export interface CourseHoleAnalytics {
 export interface CourseAnalytics {
   courseId: string
   courseName: string
+  /** Rounds with at least one score entered, across the whole season chain. */
   timesPlayed: number
   holes: CourseHoleAnalytics[]
+  /** Lowest *complete* card on the course. Null until someone finishes one. */
   courseRecord: { playerName: string; total: number; date: string | null } | null
 }
+
+/**
+ * Per-course, per-hole scoring across a season chain.
+ *
+ * Gross strokes throughout — no handicap, no net, and no powerup modifiers,
+ * unlike the standings above. Anything rendering this must say so.
+ */
 
 export async function getCourseAnalytics(tournamentId: string): Promise<CourseAnalytics[]> {
   const chain = await getFullChain(tournamentId)
   const scorableEvents = chain.filter((t) => t.status === 'COMPLETED' || t.status === 'ACTIVE')
   const eventIds = scorableEvents.map((e) => e.id)
 
-  // Get all rounds for these tournaments
+  // Narrow select, not an include: this runs on the public season page, and
+  // `include` pulled every column of every score plus the whole user row for
+  // each one — the full chain's score table in memory per page view.
   const rounds = await prisma.tournamentRound.findMany({
     where: { tournamentId: { in: eventIds } },
-    include: {
-      course: { include: { holes: { orderBy: { number: 'asc' } } } },
-      scores: { include: { hole: true, tournamentPlayer: { include: { user: true } } } },
+    select: {
+      courseId: true,
+      tournamentId: true,
+      course: { select: { name: true, _count: { select: { holes: true } } } },
+      scores: {
+        select: {
+          strokes: true,
+          tournamentPlayerId: true,
+          hole: { select: { number: true, par: true } },
+          tournamentPlayer: { select: { user: { select: { name: true } } } },
+        },
+      },
     },
   })
 
@@ -909,6 +929,10 @@ export async function getCourseAnalytics(tournamentId: string): Promise<CourseAn
   }>()
 
   for (const round of rounds) {
+    // A round nobody entered a score for was not played. Counting it inflated
+    // timesPlayed, which is also what the courses are ranked by.
+    if (round.scores.length === 0) continue
+
     const courseId = round.courseId
     if (!courseMap.has(courseId)) {
       courseMap.set(courseId, {
@@ -930,21 +954,27 @@ export async function getCourseAnalytics(tournamentId: string): Promise<CourseAn
       course.holeScores.get(holeNum)!.scores.push(score.strokes)
     }
 
-    // Track best round
-    const playerRoundTotals = new Map<string, { name: string; total: number }>()
+    // Track the course record. Only a *complete* card is eligible: without the
+    // hole-count check a player three holes into their round posted a "course
+    // record" of 12, and because it is the lowest total it then beat every
+    // finished card on the course.
+    const holeCount = round.course._count.holes
+    const playerRoundTotals = new Map<string, { name: string; total: number; holes: number }>()
     for (const score of round.scores) {
       const tpId = score.tournamentPlayerId
-      if (!playerRoundTotals.has(tpId)) {
-        playerRoundTotals.set(tpId, {
-          name: score.tournamentPlayer.user.name ?? 'Player',
-          total: 0,
-        })
+      const entry = playerRoundTotals.get(tpId) ?? {
+        name: score.tournamentPlayer.user.name ?? 'Player',
+        total: 0,
+        holes: 0,
       }
-      playerRoundTotals.get(tpId)!.total += score.strokes
+      entry.total += score.strokes
+      entry.holes++
+      playerRoundTotals.set(tpId, entry)
     }
 
     const event = scorableEvents.find((e) => e.id === round.tournamentId)
     for (const [, prt] of playerRoundTotals) {
+      if (holeCount === 0 || prt.holes < holeCount) continue
       if (!course.bestRound || prt.total < course.bestRound.total) {
         course.bestRound = {
           playerName: prt.name,

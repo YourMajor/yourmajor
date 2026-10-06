@@ -763,7 +763,9 @@ model Notification {
 
   tournamentPlayer TournamentPlayer @relation(fields: [tournamentPlayerId], references: [id], onDelete: Cascade)
 
-  @@index([tournamentPlayerId])
+  // Covers the notification poll: filters tournamentPlayerId + readAt, orders
+  // by createdAt.
+  @@index([tournamentPlayerId, readAt, createdAt])
 }
 
 // ─── Tournament Chat & Photos ─────────────────────────────────────────────────
@@ -785,7 +787,8 @@ model TournamentMessage {
   user       User              @relation(fields: [userId], references: [id], onDelete: Cascade)
   reactions  MessageReaction[]
 
-  @@index([tournamentId])
+  // Covers the chat GET: filters tournamentId + deletedAt, orders by createdAt.
+  @@index([tournamentId, deletedAt, createdAt])
 }
 
 // One person's emoji reaction to a chat message. Toggled: reacting again with

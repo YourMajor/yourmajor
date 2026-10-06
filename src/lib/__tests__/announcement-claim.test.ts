@@ -13,16 +13,17 @@ type Row = { id: string; status: string; dispatchStartedAt: Date | null }
 const rows = new Map<string, Row>()
 
 type WriteArgs = { where: Record<string, unknown>; data: Record<string, unknown> }
+type Write = (a: WriteArgs) => Promise<{ count: number }>
 
 const prismaMock = vi.hoisted(() => ({
   leagueAnnouncement: {
-    updateMany: vi.fn(async (_a: { where: Record<string, unknown>; data: Record<string, unknown> }) => ({ count: 0 })),
-    findUnique: vi.fn(async (_a: unknown) => null as unknown),
-    update: vi.fn(async (_a: unknown) => ({})),
+    updateMany: vi.fn<Write>(async () => ({ count: 0 })),
+    findUnique: vi.fn<(a: unknown) => Promise<unknown>>(async () => null),
+    update: vi.fn<(a: unknown) => Promise<unknown>>(async () => ({})),
   },
   leagueAnnouncementDelivery: {
-    createMany: vi.fn(async (_a: unknown) => ({ count: 0 })),
-    updateMany: vi.fn(async (_a: { where: Record<string, unknown>; data: Record<string, unknown> }) => ({ count: 0 })),
+    createMany: vi.fn<(a: unknown) => Promise<{ count: number }>>(async () => ({ count: 0 })),
+    updateMany: vi.fn<Write>(async () => ({ count: 0 })),
   },
   leagueRoster: {
     findUnique: vi.fn(async () => ({

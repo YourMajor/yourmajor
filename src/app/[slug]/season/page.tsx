@@ -5,7 +5,7 @@ import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
 import { getUser } from '@/lib/auth'
 import { getTournamentTier } from '@/lib/stripe'
-import { getSeasonStandings, getSeasonAwards } from '@/lib/season-standings'
+import { getSeasonStandings, getSeasonAwards, getCourseAnalytics } from '@/lib/season-standings'
 import { getLatestEventRecap } from '@/lib/season-recap'
 import { getLeagueEvents, getLeagueRootId } from '@/lib/league-events'
 import { TIER_LIMITS } from '@/lib/tiers'
@@ -59,9 +59,10 @@ export default async function SeasonPage({
     }
   }
 
-  const [seasonData, awards, recap, user] = await Promise.all([
+  const [seasonData, awards, courses, recap, user] = await Promise.all([
     getSeasonStandings(tournament.id),
     getSeasonAwards(tournament.id),
+    getCourseAnalytics(tournament.id),
     getLatestEventRecap(tournament.id),
     getUser(),
   ])
@@ -145,6 +146,7 @@ export default async function SeasonPage({
         scoringMethod={seasonData.scoringMethod}
         seasonName={seasonData.seasonName}
         awards={awards}
+        courses={courses}
         recap={recap}
         slug={slug}
         scheduleEvents={scheduleEvents}
