@@ -11,10 +11,12 @@ import { NextRequest } from 'next/server'
 //     redirected to an attacker's host after payment.
 
 const authMock = { getUser: vi.fn(), isTournamentAdmin: vi.fn() }
+// Typed args so the returnUrl assertions below can read mock.calls.
+type SessionArgs = { returnUrl: string; userId: string; email: string | null; tournamentId?: string }
 const stripeMock = {
-  createProCheckoutSession: vi.fn(async () => ({ url: 'https://checkout.stripe.com/s/1' })),
-  createClubCheckoutSession: vi.fn(async () => ({ url: 'https://checkout.stripe.com/s/2' })),
-  createLeagueCheckoutSession: vi.fn(async () => ({ url: 'https://checkout.stripe.com/s/3' })),
+  createProCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/1' })),
+  createClubCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/2' })),
+  createLeagueCheckoutSession: vi.fn(async (_a: SessionArgs) => ({ url: 'https://checkout.stripe.com/s/3' })),
 }
 
 vi.mock('@/lib/auth', () => authMock)

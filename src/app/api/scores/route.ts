@@ -10,7 +10,17 @@ export async function POST(request: NextRequest) {
   const dbUser = await getUser()
   if (!dbUser) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const body = await request.json()
+  // A malformed body threw here and surfaced as an uncaught 500 — an input
+  // error reported as a server fault, which also bypasses the client's
+  // offline-queue retry logic. Same guard as the DELETE handler below.
+  // Left unannotated so the field checks below keep narrowing exactly as they
+  // did when this was a bare `await request.json()`.
+  let body
+  try {
+    body = await request.json()
+  } catch {
+    return NextResponse.json({ error: 'Invalid JSON' }, { status: 400 })
+  }
   const { tournamentPlayerId, holeId, roundId, strokes, fairwayHit, gir, putts, conceded } = body
 
   const isConceded = conceded === true

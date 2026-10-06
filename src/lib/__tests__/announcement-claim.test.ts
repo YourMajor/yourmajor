@@ -12,15 +12,17 @@ type Row = { id: string; status: string; dispatchStartedAt: Date | null }
 
 const rows = new Map<string, Row>()
 
+type WriteArgs = { where: Record<string, unknown>; data: Record<string, unknown> }
+
 const prismaMock = vi.hoisted(() => ({
   leagueAnnouncement: {
-    updateMany: vi.fn(),
-    findUnique: vi.fn(),
-    update: vi.fn(),
+    updateMany: vi.fn(async (_a: { where: Record<string, unknown>; data: Record<string, unknown> }) => ({ count: 0 })),
+    findUnique: vi.fn(async (_a: unknown) => null as unknown),
+    update: vi.fn(async (_a: unknown) => ({})),
   },
   leagueAnnouncementDelivery: {
-    createMany: vi.fn(async () => ({ count: 0 })),
-    updateMany: vi.fn(async () => ({ count: 0 })),
+    createMany: vi.fn(async (_a: unknown) => ({ count: 0 })),
+    updateMany: vi.fn(async (_a: { where: Record<string, unknown>; data: Record<string, unknown> }) => ({ count: 0 })),
   },
   leagueRoster: {
     findUnique: vi.fn(async () => ({
@@ -57,7 +59,7 @@ beforeEach(() => {
   // Honour the same predicate Postgres would: the claim only lands when the
   // row is still PENDING and unclaimed (or its claim has gone stale).
   prismaMock.leagueAnnouncement.updateMany.mockImplementation(
-    async ({ where, data }: { where: Record<string, unknown>; data: Record<string, unknown> }) => {
+    async ({ where, data }: WriteArgs) => {
       const row = rows.get(where.id as string)
       if (!row) return { count: 0 }
       if (where.status && row.status !== where.status) return { count: 0 }

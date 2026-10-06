@@ -122,13 +122,32 @@ export async function requireAdmin(): Promise<User> {
  * "tournament admin" applies everywhere.
  */
 export async function requireTournamentAdmin(tournamentId: string): Promise<User> {
+  const result = await getTournamentAdmin(tournamentId)
+  if (!result.ok) throw new Error('Forbidden')
+  return result.user
+}
+
+/**
+ * The same gate as `requireTournamentAdmin`, returning a result instead of
+ * throwing. Unauthenticated callers still redirect — there is nothing useful to
+ * render for them — but an authenticated non-admin comes back as `ok: false` so
+ * a server action can surface the message in its own `{ ok: false }` shape
+ * rather than throwing through the client boundary.
+ *
+ * This exists so there is one definition of "tournament admin" in one place.
+ * The soft-failing variant was previously hand-rolled per action file, which is
+ * how wrappers around the same predicate started to drift apart.
+ */
+export async function getTournamentAdmin(
+  tournamentId: string,
+): Promise<{ ok: true; user: User } | { ok: false; error: string }> {
   const user = await getUser()
   if (!user) redirect('/auth/login')
 
   if (!(await isTournamentAdmin(user.id, tournamentId))) {
-    throw new Error('Forbidden')
+    return { ok: false, error: 'Only tournament admins can do that.' }
   }
-  return user
+  return { ok: true, user }
 }
 
 export async function isTournamentAdmin(userId: string, tournamentId: string): Promise<boolean> {

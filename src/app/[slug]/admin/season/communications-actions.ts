@@ -1,15 +1,16 @@
 'use server'
 
 import { revalidatePath } from 'next/cache'
-import { redirect } from 'next/navigation'
 import { prisma } from '@/lib/prisma'
-import { getUser, isTournamentAdmin } from '@/lib/auth'
+import { getTournamentAdmin } from '@/lib/auth'
 import { getLeagueRootId } from '@/lib/league-events'
 import {
   sendAnnouncement as sendAnnouncementImpl,
   type AnnouncementChannel,
   type AudienceFilter,
 } from '@/lib/league-announcements'
+
+const ADMIN_ONLY = 'Only league admins can manage announcements.'
 
 interface SendInput {
   tournamentId: string
@@ -26,21 +27,11 @@ interface ScheduleInput extends SendInput {
   scheduledFor: string
 }
 
-async function assertAdmin(tournamentId: string): Promise<{ userId: string } | { error: string }> {
-  const user = await getUser()
-  if (!user) redirect('/auth/login')
-
-  if (!(await isTournamentAdmin(user.id, tournamentId))) {
-    return { error: 'Only league admins can manage announcements.' }
-  }
-  return { userId: user.id }
-}
-
 export async function sendLeagueAnnouncement(
   input: SendInput,
 ): Promise<{ ok: true; deliveryCount: number; successCount: number } | { ok: false; error: string }> {
-  const auth = await assertAdmin(input.tournamentId)
-  if ('error' in auth) return { ok: false, error: auth.error }
+  const auth = await getTournamentAdmin(input.tournamentId)
+  if (!auth.ok) return { ok: false, error: ADMIN_ONLY }
 
   const result = await sendAnnouncementImpl({
     tournamentId: input.tournamentId,
@@ -48,7 +39,7 @@ export async function sendLeagueAnnouncement(
     body: input.body,
     channels: input.channels,
     audienceFilter: input.audienceFilter,
-    sentByUserId: auth.userId,
+    sentByUserId: auth.user.id,
   })
 
   if (result.ok) {
@@ -61,8 +52,8 @@ export async function sendLeagueAnnouncement(
 export async function scheduleLeagueAnnouncement(
   input: ScheduleInput,
 ): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
-  const auth = await assertAdmin(input.tournamentId)
-  if ('error' in auth) return { ok: false, error: auth.error }
+  const auth = await getTournamentAdmin(input.tournamentId)
+  if (!auth.ok) return { ok: false, error: ADMIN_ONLY }
 
   if (!input.subject.trim()) return { ok: false, error: 'Subject is required.' }
   if (!input.body.trim()) return { ok: false, error: 'Body is required.' }
@@ -87,7 +78,7 @@ export async function scheduleLeagueAnnouncement(
       body: input.body.trim(),
       channels: input.channels,
       audienceFilter: input.audienceFilter as unknown as object,
-      sentByUserId: auth.userId,
+      sentByUserId: auth.user.id,
       status: 'PENDING',
       scheduledFor,
       kind: 'BLAST',
@@ -109,8 +100,8 @@ export async function cancelScheduledAnnouncement(
   })
   if (!announcement) return { ok: false, error: 'Announcement not found.' }
 
-  const auth = await assertAdmin(announcement.rootTournamentId)
-  if ('error' in auth) return { ok: false, error: auth.error }
+  const auth = await getTournamentAdmin(announcement.rootTournamentId)
+  if (!auth.ok) return { ok: false, error: ADMIN_ONLY }
 
   // Conditional write, not a read-then-update: the status read above is only a
   // fast path for the error message. A cancel that lands between the cron's
