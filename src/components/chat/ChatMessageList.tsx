@@ -278,7 +278,10 @@ export function ChatMessageList({ messages, variant = 'light', isAdmin, currentU
         return (
           <div key={m.id} className="group flex items-start gap-3">
             {isDark ? (
-              <div className="shrink-0 w-8 h-8 rounded-full bg-white/15 flex items-center justify-center overflow-hidden">
+              // `relative` is load-bearing: the <Image fill> below needs a
+              // positioned parent or it escapes the circle entirely. The light
+              // variant gets it free from Avatar's own base classes.
+              <div className="relative shrink-0 w-8 h-8 rounded-full bg-white/15 flex items-center justify-center overflow-hidden">
                 {m.user.image ? (
                   <Image src={m.user.image} alt="" fill sizes="32px" className="object-cover" />
                 ) : (

@@ -14,8 +14,12 @@ interface Props {
 
 // Sizing and spinner suppression are this grid's own; the score-type styling
 // comes from the canonical map so admin, scorecard and play page agree.
+// tap-44 because the drawn cell shrinks to 36x32 at sm: and up — a tablet in
+// landscape is still a touch surface, and the rest of the app holds a 44px
+// floor. The utility only pads the hit area on coarse pointers, so the grid
+// keeps its density on a mouse.
 const CELL_BASE =
-  'w-10 h-10 sm:w-9 sm:h-8 text-center text-xs font-bold bg-transparent transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
+  'tap-44 w-10 h-10 sm:w-9 sm:h-8 text-center text-xs font-bold bg-transparent transition-all [-moz-appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring'
 
 function scoreCellClass(strokes: number | null, par: number): string {
   if (strokes == null) return `${CELL_BASE} border border-border/30 rounded`

@@ -72,7 +72,10 @@ export function HoleNavigator({
             }}
             type="button"
             onClick={() => onSelect(idx)}
-            className={`shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all touch-manipulation
+            // tap-44 rather than w-11 h-11: the strip holds 18 of these and
+            // density is the point, so grow the hit area on coarse pointers and
+            // leave the drawn size alone.
+            className={`tap-44 shrink-0 w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all touch-manipulation
               ${hasScore ? PILL_BG[type] : 'border border-white/40 text-white/70'}
               ${isCurrent ? 'ring-2 ring-[var(--color-accent)] scale-110' : powerupRing}
             `}

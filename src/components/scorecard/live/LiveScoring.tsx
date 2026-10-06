@@ -579,8 +579,12 @@ export function LiveScoring({
         ...rootStyle,
       }}
     >
-      {/* Stacked Yes/No prompt for manual-trigger powerups. */}
+      {/* Stacked Yes/No prompt for manual-trigger powerups. Keyed on the
+          confirmation so its countValue/error/submitting reset when the queue
+          advances — without it the same instance re-renders and a player sees
+          the previous prompt's typed value pre-filled on the next one. */}
       <PendingConfirmationModal
+        key={visibleConfirmation?.playerPowerupId}
         confirmation={visibleConfirmation}
         onAnswer={handleAnswerConfirmation}
         onDefer={handleDeferConfirmation}
