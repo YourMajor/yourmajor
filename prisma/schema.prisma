@@ -988,6 +988,12 @@ model LeagueAnnouncement {
   // When NULL the announcement was sent immediately. When set, the cron processor
   // picks it up after this time and dispatches.
   scheduledFor     DateTime?
+  // Dispatch claim. AnnouncementStatus has no non-terminal value to claim into,
+  // so the cron processor compare-and-swaps this from NULL before sending and
+  // skips any row another run already holds. Without it two overlapping cron
+  // invocations both read PENDING and both email/SMS (and both bill) every
+  // recipient. Same shape as TournamentRound.roundStartAnnouncedAt.
+  dispatchStartedAt DateTime?
   // What produced this row. BLAST = admin-composed announcement; TEE_TIME =
   // system-generated audit record from a tee-time notification batch.
   kind             AnnouncementKind   @default(BLAST)

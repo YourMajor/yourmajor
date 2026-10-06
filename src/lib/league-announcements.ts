@@ -142,6 +142,19 @@ export async function sendAnnouncement(
 }
 
 /**
+ * How long a dispatch claim is honoured before another run may take it over.
+ *
+ * A run that dies mid-dispatch (a function timeout, a deploy) would otherwise
+ * strand its row at PENDING with the claim held, and nothing would ever send
+ * it. Reclaiming after this window trades that for the possibility of a double
+ * send in exactly the crash case — which is the right way round.
+ *
+ * ponytail: fixed window, not a heartbeat. If dispatches ever run longer than
+ * this, send a heartbeat from the batch loop rather than widening the window.
+ */
+const STALE_CLAIM_MS = 15 * 60 * 1000
+
+/**
  * Dispatch an already-persisted PENDING announcement (the scheduled-send path).
  * The cron processor calls this for each row whose `scheduledFor` has elapsed.
  * On success the row's `status` flips to SENT; on a hard failure to FAILED.
@@ -149,11 +162,31 @@ export async function sendAnnouncement(
 export async function dispatchPendingAnnouncement(
   announcementId: string,
 ): Promise<{ ok: true; deliveryCount: number; successCount: number } | { ok: false; error: string }> {
+  // Claim the row with a conditional write before reading anything we intend
+  // to act on. A read-then-check cannot hold here: the cron cadence is 5
+  // minutes and a large backlog can overrun it, so two invocations both see
+  // PENDING, both pass the check, and every recipient is emailed and SMS-ed
+  // (and billed) twice. Same pattern as draft/pick and powerups/activate.
+  const claimed = await prisma.leagueAnnouncement.updateMany({
+    where: {
+      id: announcementId,
+      status: 'PENDING',
+      OR: [
+        { dispatchStartedAt: null },
+        { dispatchStartedAt: { lt: new Date(Date.now() - STALE_CLAIM_MS) } },
+      ],
+    },
+    data: { dispatchStartedAt: new Date() },
+  })
+  if (claimed.count !== 1) {
+    return { ok: false, error: 'Announcement is not pending, or is already being dispatched.' }
+  }
+
+  // updateMany can't return the row, so re-read for the fields we need to send.
   const row = await prisma.leagueAnnouncement.findUnique({
     where: { id: announcementId },
     select: {
       id: true,
-      status: true,
       subject: true,
       body: true,
       channels: true,
@@ -162,7 +195,6 @@ export async function dispatchPendingAnnouncement(
     },
   })
   if (!row) return { ok: false, error: 'Announcement not found.' }
-  if (row.status !== 'PENDING') return { ok: false, error: `Cannot dispatch — status is ${row.status}.` }
 
   try {
     const audience = await resolveAudience(
@@ -274,21 +306,41 @@ async function dispatchToAudience(args: {
       }),
     )
 
+    // Stamp the outcome in one write per channel rather than one per recipient.
+    // The per-recipient updateMany was audience.length * channels.length round
+    // trips — ~400 for a 200-member league on both channels — which is the same
+    // cost the batched createMany above exists to avoid. Failures stay
+    // individual: failureReason differs per recipient, and they are rare.
+    const sentByChannel = new Map<AnnouncementChannel, string[]>()
+    const failures: { userId: string; channel: AnnouncementChannel; reason: string }[] = []
+
     for (let j = 0; j < settled.length; j++) {
       const result = settled[j]
       const d = batch[j]
-      const user = userById.get(d.userId)!
-      const status: DeliveryStatus = result.status === 'fulfilled' ? 'SENT' : 'FAILED'
-      const failureReason = result.status === 'rejected' ? String(result.reason).slice(0, 200) : null
-      if (status === 'SENT') successCount++
+      if (result.status === 'fulfilled') {
+        successCount++
+        const ids = sentByChannel.get(d.channel)
+        if (ids) ids.push(d.userId)
+        else sentByChannel.set(d.channel, [d.userId])
+      } else {
+        failures.push({ userId: d.userId, channel: d.channel, reason: String(result.reason).slice(0, 200) })
+      }
+    }
 
+    const deliveredAt = new Date()
+    for (const [channel, userIds] of sentByChannel) {
       await prisma.leagueAnnouncementDelivery.updateMany({
-        where: { announcementId, userId: user.id, channel: d.channel },
-        data: {
-          status,
-          failureReason: failureReason ?? undefined,
-          deliveredAt: new Date(),
-        },
+        where: { announcementId, channel, userId: { in: userIds } },
+        // Explicit null, not `failureReason ?? undefined`: Prisma treats
+        // undefined as "omit this field", so a retry left the previous
+        // attempt's failure reason sitting on a row now marked SENT.
+        data: { status: 'SENT', failureReason: null, deliveredAt },
+      })
+    }
+    for (const f of failures) {
+      await prisma.leagueAnnouncementDelivery.updateMany({
+        where: { announcementId, channel: f.channel, userId: f.userId },
+        data: { status: 'FAILED', failureReason: f.reason, deliveredAt },
       })
     }
   }

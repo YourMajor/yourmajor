@@ -112,14 +112,24 @@ export async function cancelScheduledAnnouncement(
   const auth = await assertAdmin(announcement.rootTournamentId)
   if ('error' in auth) return { ok: false, error: auth.error }
 
-  if (announcement.status !== 'PENDING') {
-    return { ok: false, error: 'Only pending announcements can be canceled.' }
-  }
-
-  await prisma.leagueAnnouncement.update({
-    where: { id: announcementId },
+  // Conditional write, not a read-then-update: the status read above is only a
+  // fast path for the error message. A cancel that lands between the cron's
+  // claim and its send would otherwise mark a row CANCELED that is already
+  // going out. Requiring dispatchStartedAt to still be NULL makes the cancel
+  // lose that race instead of lying about it.
+  const canceled = await prisma.leagueAnnouncement.updateMany({
+    where: { id: announcementId, status: 'PENDING', dispatchStartedAt: null },
     data: { status: 'CANCELED' },
   })
+  if (canceled.count !== 1) {
+    return {
+      ok: false,
+      error:
+        announcement.status === 'PENDING'
+          ? 'That announcement is already being sent.'
+          : 'Only pending announcements can be canceled.',
+    }
+  }
 
   revalidatePath(`/${slug}/admin/communications`)
   return { ok: true }
