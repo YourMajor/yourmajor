@@ -1,9 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest'
 
-const prismaMock = {
+// vi.hoisted because the static `import` of the subject below is hoisted above
+// this declaration — without it the mock factory hits prismaMock in its TDZ.
+const prismaMock = vi.hoisted(() => ({
   tournamentPlayer: { findUnique: vi.fn(), upsert: vi.fn() },
   tournament: { findUnique: vi.fn() },
-}
+}))
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
 
 import { resolveChatAccess } from '@/lib/chat-access'
