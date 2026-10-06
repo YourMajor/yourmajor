@@ -100,12 +100,6 @@ export async function requireAuth(): Promise<User> {
   return user
 }
 
-export async function requireAdmin(): Promise<User> {
-  const user = await requireAuth()
-  if (user.role !== 'ADMIN') throw new Error('Forbidden')
-  return user
-}
-
 /**
  * Gate a server action on tournament-level admin. Sends unauthenticated
  * callers to login; throws for authenticated non-admins.

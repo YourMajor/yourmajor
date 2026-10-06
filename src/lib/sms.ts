@@ -34,29 +34,3 @@ export async function sendSMS(to: string, body: string): Promise<void> {
     console.error('[sms] Failed to send SMS:', err instanceof Error ? err.message : err)
   }
 }
-
-/**
- * Send SMS to many recipients. Skips recipients with no phone number.
- */
-export async function sendSMSToMany(
-  recipients: Array<{ phone: string | null | undefined }>,
-  bodyFn: (recipient: { phone: string }) => string
-): Promise<void> {
-  const client = await getClient()
-  if (!client) return
-
-  const from = process.env.TWILIO_PHONE_NUMBER
-  if (!from) return
-
-  const withPhone = recipients.filter(
-    (r): r is { phone: string } => !!r.phone
-  )
-
-  await Promise.allSettled(
-    withPhone.map((r) =>
-      client.messages.create({ to: r.phone, from, body: bodyFn(r) }).catch((err) => {
-        console.error(`[sms] Failed to send to ${r.phone}:`, err instanceof Error ? err.message : err)
-      })
-    )
-  )
-}

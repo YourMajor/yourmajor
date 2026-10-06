@@ -70,7 +70,6 @@ export async function POST(req: NextRequest) {
 
   const { data: urlData } = supabaseAdmin.storage.from(BUCKET).getPublicUrl(path)
   const avatarUrl = urlData.publicUrl
-  console.log('[avatar upload] Success:', { userId: user.id, path, avatarUrl })
 
   await prisma.$transaction([
     prisma.user.update({

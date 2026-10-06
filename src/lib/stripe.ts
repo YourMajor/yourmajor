@@ -214,38 +214,6 @@ export async function getTournamentTier(tournamentId: string): Promise<PricingTi
 }
 
 /**
- * Check if a user has an active League subscription.
- */
-export async function hasActiveLeague(userId: string): Promise<boolean> {
-  const purchase = await prisma.purchase.findFirst({
-    where: {
-      userId,
-      type: 'LEAGUE',
-      status: 'ACTIVE',
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gt: new Date() } },
-      ],
-    },
-  })
-  return !!purchase
-}
-
-/**
- * Check if a user has an active Club subscription.
- */
-export async function hasActiveClub(userId: string): Promise<boolean> {
-  const purchase = await prisma.purchase.findFirst({
-    where: {
-      userId,
-      type: 'CLUB',
-      status: 'ACTIVE',
-    },
-  })
-  return !!purchase
-}
-
-/**
  * Create a Stripe Customer Portal session for managing subscriptions.
  */
 export async function createPortalSession(userId: string, returnUrl: string) {

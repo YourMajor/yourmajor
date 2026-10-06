@@ -69,7 +69,10 @@ export async function POST(
   })
   if (!player) return NextResponse.json({ error: 'Not a tournament participant' }, { status: 403 })
 
-  // Enforce per-tier photo count cap
+  // Enforce per-tier photo count cap. This is the fast path only — it rejects
+  // before an upload is wasted, but the count-then-create is a TOCTOU gap that
+  // concurrent uploads walk straight through. The cap is held for real after
+  // the insert, below.
   const existingPhotoCount = await prisma.tournamentPhoto.count({ where: { tournamentId: id } })
   if (existingPhotoCount >= maxPhotos) {
     return NextResponse.json(
@@ -159,6 +162,28 @@ export async function POST(
     data: { tournamentId: id, userId: user.id, url: urlData.publicUrl, caption },
     include: { user: { select: { name: true } } },
   })
+
+  // Hold the cap after the insert, which is where it can actually be enforced:
+  // N uploads racing at count === maxPhotos - 1 all pass the pre-check above.
+  // Counting now and compensating is cheaper than serialising uploads behind a
+  // lock, and the loser's own row is the one that goes.
+  //
+  // ponytail: compensating write, not a reservation. If exceeding the cap ever
+  // has a cost beyond storage, reserve a row before the upload instead.
+  const finalCount = await prisma.tournamentPhoto.count({ where: { tournamentId: id } })
+  if (finalCount > maxPhotos) {
+    await prisma.tournamentPhoto.delete({ where: { id: photo.id } })
+    // Best-effort: a stranded blob costs storage, a thrown error costs the
+    // caller a confusing 500 on top of the 403 they have earned.
+    await supabaseAdmin.storage
+      .from(BUCKET)
+      .remove([path])
+      .catch((err) => console.error('[photo upload] orphaned blob cleanup failed:', err))
+    return NextResponse.json(
+      { error: `Photo limit reached (${maxPhotos} photos for ${tier}). Upgrade for more storage.` },
+      { status: 403 },
+    )
+  }
 
   return NextResponse.json(photo, { status: 201 })
 }
