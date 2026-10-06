@@ -6,6 +6,7 @@ import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
 import { canActivate, computeActivationModifier, computeAttackTargetHole, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
 import { MAX_OVERRIDE_STROKES, MIN_OVERRIDE_STROKES, NUMBER_OVERRIDE_SLUG, isValidStrokeOverrideValue } from '@/lib/powerup-stroke-overrides'
+import { initialVariableMetadata, variableActivationDetail } from '@/lib/variable-powerup-evaluator'
 import { sendPushToUser } from '@/lib/push'
 import { broadcastNotification } from '@/lib/notification-broadcast'
 
@@ -194,72 +195,16 @@ export async function POST(
     structuredMetadata = { ...(structuredMetadata ?? {}), swapHoleNumber }
   }
   if (isVariable) {
-    const powerupSlug = playerPowerup.powerup.slug
-    if (powerupSlug === 'fairway-finder') {
-      structuredMetadata = {
-        declaredCount: metadata?.numberValue ?? 1,
-        activationHoleNumber: holeNumber,
-        fairwaysHit: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'king-of-the-hill') {
-      structuredMetadata = {
-        targetPlayerIds: selectedPlayerIds,
-        activationHoleNumber: holeNumber,
-        consecutiveWins: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'the-streaker') {
-      structuredMetadata = {
-        declaredCount: metadata?.numberValue ?? 1,
-        activationHoleNumber: holeNumber,
-        girsHit: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'no-three-putts') {
-      structuredMetadata = {
-        declaredCount: metadata?.numberValue ?? 2,
-        activationHoleNumber: holeNumber,
-        holesPlayed: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'birdie-hunter') {
-      structuredMetadata = {
-        activationHoleNumber: holeNumber,
-        holesScored: 0,
-        bonusStrokes: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'stayin-alive') {
-      structuredMetadata = {
-        activationHoleNumber: holeNumber,
-        holesScored: 0,
-        hadBogey: false,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'double-or-nothing') {
-      const targetIds = targetPlayerId ? [targetPlayerId] : selectedPlayerIds
-      structuredMetadata = {
-        targetPlayerIds: targetIds,
-        activationHoleNumber: holeNumber,
-        holesScored: 0,
-        netDelta: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'one-putt-wonder') {
-      structuredMetadata = {
-        activationHoleNumber: holeNumber,
-        holesScored: 0,
-        bonusStrokes: 0,
-        status: 'in_progress',
-      }
-    } else if (powerupSlug === 'foot-wedge') {
-      structuredMetadata = {
-        activationHoleNumber: holeNumber,
-        holesRemaining: 9,
-        status: 'in_progress',
-      }
-    }
+    // The per-slug shapes live beside the interfaces that read them back and
+    // the window constants they have to agree with — see
+    // initialVariableMetadata in lib/variable-powerup-evaluator.
+    const initial = initialVariableMetadata(playerPowerup.powerup.slug, {
+      holeNumber,
+      numberValue: metadata?.numberValue,
+      selectedPlayerIds,
+      targetPlayerId,
+    })
+    if (initial) structuredMetadata = initial
   }
 
   // Claim the card with a conditional write. The status pre-check above is
@@ -342,24 +287,7 @@ export async function POST(
   } else if (isVariable) {
     // System chat message for variable powerup activation
     const playerName = player.user.name ?? 'Player'
-    let activationDetail = ''
-    if (playerPowerup.powerup.slug === 'fairway-finder') {
-      activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} consecutive fairways`
-    } else if (playerPowerup.powerup.slug === 'king-of-the-hill') {
-      activationDetail = ' — the streak begins next hole'
-    } else if (playerPowerup.powerup.slug === 'the-streaker') {
-      activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} consecutive GIRs`
-    } else if (playerPowerup.powerup.slug === 'no-three-putts') {
-      activationDetail = `, declaring ${structuredMetadata?.declaredCount ?? '?'} clean holes`
-    } else if (playerPowerup.powerup.slug === 'birdie-hunter') {
-      activationDetail = ' — birdies count double for the next 3 holes'
-    } else if (playerPowerup.powerup.slug === 'stayin-alive') {
-      activationDetail = ' — bogey-free next 3 holes for -3'
-    } else if (playerPowerup.powerup.slug === 'one-putt-wonder') {
-      activationDetail = ' — one-putts pay -1 each for the next 9 holes'
-    } else if (playerPowerup.powerup.slug === 'foot-wedge') {
-      activationDetail = ' — relocate every shot one club length for 9 holes'
-    }
+    const activationDetail = variableActivationDetail(playerPowerup.powerup.slug, structuredMetadata)
     await prisma.tournamentMessage.create({
       data: {
         tournamentId,

@@ -83,9 +83,111 @@ interface FootWedgeMetadata {
 
 const BIRDIE_HUNTER_WINDOW = 3
 const STAYIN_ALIVE_WINDOW = 3
+// The payout, which is NOT the window - they happen to both be 3 today.
+const STAYIN_ALIVE_BONUS = -3
 const DOUBLE_OR_NOTHING_WINDOW = 3
 const ONE_PUTT_WONDER_WINDOW = 9
 const FOOT_WEDGE_WINDOW = 9
+
+// ─── Activation ──────────────────────────────────────────────────────────────
+
+/**
+ * Everything the activation route knows that a starting metadata blob needs.
+ * All four fields come off the request; nothing here touches the database.
+ */
+export interface VariableActivationContext {
+  /** The hole the card was played on. */
+  holeNumber: number
+  /** The declared count from a number-input card, unvalidated. */
+  numberValue?: unknown
+  /** Players picked in a player_select input. */
+  selectedPlayerIds: string[]
+  /** A single attack target, which takes precedence over the multi-select. */
+  targetPlayerId?: string | null
+}
+
+/**
+ * Build the starting metadata for a variable powerup.
+ *
+ * This lived as a 9-branch chain inside the activation route, one file away
+ * from the per-slug interfaces above that consume the result and the window
+ * constants it has to agree with — so adding a card meant editing two files and
+ * hoping the shapes matched. Returning null means "not a variable slug", and
+ * the caller keeps whatever metadata it already built.
+ */
+export function initialVariableMetadata(
+  slug: string,
+  ctx: VariableActivationContext,
+): Record<string, unknown> | null {
+  const activationHoleNumber = ctx.holeNumber
+  const inProgress = { activationHoleNumber, status: 'in_progress' as const }
+
+  switch (slug) {
+    case 'fairway-finder':
+      return { ...inProgress, declaredCount: ctx.numberValue ?? 1, fairwaysHit: 0 }
+    case 'king-of-the-hill':
+      return { ...inProgress, targetPlayerIds: ctx.selectedPlayerIds, consecutiveWins: 0 }
+    case 'the-streaker':
+      return { ...inProgress, declaredCount: ctx.numberValue ?? 1, girsHit: 0 }
+    case 'no-three-putts':
+      return { ...inProgress, declaredCount: ctx.numberValue ?? 2, holesPlayed: 0 }
+    case 'birdie-hunter':
+      return { ...inProgress, holesScored: 0, bonusStrokes: 0 }
+    case 'stayin-alive':
+      return { ...inProgress, holesScored: 0, hadBogey: false }
+    case 'double-or-nothing':
+      return {
+        ...inProgress,
+        targetPlayerIds: ctx.targetPlayerId ? [ctx.targetPlayerId] : ctx.selectedPlayerIds,
+        holesScored: 0,
+        netDelta: 0,
+      }
+    case 'one-putt-wonder':
+      return { ...inProgress, holesScored: 0, bonusStrokes: 0 }
+    case 'foot-wedge':
+      // Was a hardcoded 9 in the route, one file away from the constant it has
+      // to match.
+      return { ...inProgress, holesRemaining: FOOT_WEDGE_WINDOW }
+    default:
+      return null
+  }
+}
+
+/**
+ * The trailing clause on the system chat message a variable activation posts.
+ * Kept beside `initialVariableMetadata` because it reads the same metadata and
+ * quotes the same windows. `double-or-nothing` had no branch in the route's
+ * version and silently posted an empty detail.
+ */
+export function variableActivationDetail(
+  slug: string,
+  metadata: Record<string, unknown> | undefined,
+): string {
+  const declared = metadata?.declaredCount ?? '?'
+
+  switch (slug) {
+    case 'fairway-finder':
+      return `, declaring ${declared} consecutive fairways`
+    case 'king-of-the-hill':
+      return ' — the streak begins next hole'
+    case 'the-streaker':
+      return `, declaring ${declared} consecutive GIRs`
+    case 'no-three-putts':
+      return `, declaring ${declared} clean holes`
+    case 'birdie-hunter':
+      return ` — birdies count double for the next ${BIRDIE_HUNTER_WINDOW} holes`
+    case 'stayin-alive':
+      return ` — bogey-free next ${STAYIN_ALIVE_WINDOW} holes for ${STAYIN_ALIVE_BONUS}`
+    case 'double-or-nothing':
+      return ` — every score counts double for the next ${DOUBLE_OR_NOTHING_WINDOW} holes`
+    case 'one-putt-wonder':
+      return ` — one-putts pay -1 each for the next ${ONE_PUTT_WONDER_WINDOW} holes`
+    case 'foot-wedge':
+      return ` — relocate every shot one club length for ${FOOT_WEDGE_WINDOW} holes`
+    default:
+      return ''
+  }
+}
 
 // ─── Main entry point ──────────────────────────────────────��──────────────────
 
@@ -319,8 +421,10 @@ export async function finalizeVariablePowerups(
           pp.id,
           pp.powerup.slug,
           success ? 'success' : 'failed',
-          success ? -3 : 0,
-          success ? `Stayin' Alive: 3 bogey-free holes! -3 to your score!` : `Stayin' Alive: Challenge Failed.`,
+          success ? STAYIN_ALIVE_BONUS : 0,
+          success
+            ? `Stayin' Alive: ${STAYIN_ALIVE_WINDOW} bogey-free holes! ${STAYIN_ALIVE_BONUS} to your score!`
+            : `Stayin' Alive: Challenge Failed.`,
         )
         break
       }
@@ -688,7 +792,13 @@ async function evaluateStayinAlive(
   }
 
   if (windowScores.length >= STAYIN_ALIVE_WINDOW && windowScores.every((s) => s.strokes != null)) {
-    return resolvePowerup(playerPowerupId, slug, 'success', -3, `Stayin' Alive: 3 bogey-free holes! -3 to your score!`)
+    return resolvePowerup(
+      playerPowerupId,
+      slug,
+      'success',
+      STAYIN_ALIVE_BONUS,
+      `Stayin' Alive: ${STAYIN_ALIVE_WINDOW} bogey-free holes! ${STAYIN_ALIVE_BONUS} to your score!`,
+    )
   }
 
   await prisma.playerPowerup.update({
