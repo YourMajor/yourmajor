@@ -7,4 +7,4 @@
 -- AnnouncementStatus has no non-terminal value to claim into, so the claim is a
 -- compare-and-swap on this column from NULL (or from a stale timestamp, so a
 -- run that dies mid-dispatch does not strand the row forever).
-ALTER TABLE "LeagueAnnouncement" ADD COLUMN "dispatchStartedAt" TIMESTAMP(3);
+ALTER TABLE "LeagueAnnouncement" ADD COLUMN IF NOT EXISTS "dispatchStartedAt" TIMESTAMP(3);

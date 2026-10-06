@@ -10,10 +10,10 @@
 --
 -- The old single-column indexes are left-prefixes of these, so keeping them
 -- would only cost writes.
-CREATE INDEX "TournamentMessage_tournamentId_deletedAt_createdAt_idx"
+CREATE INDEX IF NOT EXISTS "TournamentMessage_tournamentId_deletedAt_createdAt_idx"
   ON "TournamentMessage"("tournamentId", "deletedAt", "createdAt");
-DROP INDEX "TournamentMessage_tournamentId_idx";
+DROP INDEX IF EXISTS "TournamentMessage_tournamentId_idx";
 
-CREATE INDEX "Notification_tournamentPlayerId_readAt_createdAt_idx"
+CREATE INDEX IF NOT EXISTS "Notification_tournamentPlayerId_readAt_createdAt_idx"
   ON "Notification"("tournamentPlayerId", "readAt", "createdAt");
-DROP INDEX "Notification_tournamentPlayerId_idx";
+DROP INDEX IF EXISTS "Notification_tournamentPlayerId_idx";
