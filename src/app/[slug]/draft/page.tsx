@@ -115,7 +115,7 @@ export default async function DraftPage({
             <PowerupCard
               key={pp.id}
               powerup={pp.powerup as PowerupCardData}
-              state={pp.status === 'USED' ? 'used' : 'owned'}
+              state={pp.status === 'USED' ? 'used' : pp.status === 'ARMED' ? 'armed' : 'owned'}
               size="md"
             />
           ))}

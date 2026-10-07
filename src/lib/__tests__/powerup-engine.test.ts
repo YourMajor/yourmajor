@@ -67,6 +67,39 @@ describe('canActivate', () => {
     expect(result.reason).toContain('par 3')
   })
 
+  it('blocks a non-par-5 when par5Only is set', () => {
+    const effect = makeEffect({ restrictions: { excludePar3: false, par5Only: true } })
+    expect(canActivate(effect, { par: 4, number: 7 }).allowed).toBe(false)
+    expect(canActivate(effect, { par: 5, number: 7 })).toEqual({ allowed: true })
+  })
+
+  it('blocks the front nine when backNineOnly is set', () => {
+    const effect = makeEffect({ restrictions: { excludePar3: false, backNineOnly: true } })
+    expect(canActivate(effect, { par: 4, number: 9 }).allowed).toBe(false)
+    expect(canActivate(effect, { par: 4, number: 10 })).toEqual({ allowed: true })
+  })
+
+  describe('minStrokesOverPar (the comeback cards)', () => {
+    const effect = makeEffect({ restrictions: { excludePar3: false, minStrokesOverPar: 5 } })
+
+    it('blocks a player who is not far enough over par', () => {
+      const r = canActivate(effect, { par: 4, number: 7 }, { strokesOverPar: 3 })
+      expect(r.allowed).toBe(false)
+      expect(r.reason).toContain('5 or more over par')
+    })
+
+    it('allows a player who has earned it', () => {
+      expect(canActivate(effect, { par: 4, number: 7 }, { strokesOverPar: 5 })).toEqual({ allowed: true })
+      expect(canActivate(effect, { par: 4, number: 7 }, { strokesOverPar: 12 })).toEqual({ allowed: true })
+    })
+
+    it('allows rather than blocks when round progress is unknown', () => {
+      // Missing data must not strand a legitimate activation mid-round.
+      expect(canActivate(effect, { par: 4, number: 7 })).toEqual({ allowed: true })
+      expect(canActivate(effect, { par: 4, number: 7 }, {})).toEqual({ allowed: true })
+    })
+  })
+
   it('allows par 4 when excludePar3 is true', () => {
     const effect = makeEffect({ restrictions: { excludePar3: true } })
     expect(canActivate(effect, { par: 4, number: 1 })).toEqual({ allowed: true })

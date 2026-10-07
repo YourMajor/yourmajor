@@ -3,7 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { ScorecardDetail } from '@/components/scorecard/ScorecardDetail'
-import { buildStrokeOverrideMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
+import { buildStrokeAdjustmentMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
 
 export default async function PlayerScorecardPage({
   params,
@@ -55,39 +55,14 @@ export default async function PlayerScorecardPage({
     par: s.hole.par,
     strokes: s.strokes,
     gir: s.gir,
+    conceded: s.conceded,
   }))
-  const strokeOverrides = await buildStrokeOverrideMap(tournament.id, playerScoreInputs)
-
-  // Fetch powerup score modifiers that apply to this player's score:
-  //   - Own boosts (self-cast, targetPlayerId IS NULL).
-  //   - Inbound attacks (targetPlayerId = this player).
-  // Crucially we exclude outbound attacks (this player is the activator but
-  // someone else is the target) — those modifiers belong on the victim's
-  // breakdown, not the attacker's. Bucket per round so each tab reflects only
-  // its round's modifiers; tournament-wide powerups (roundId == null) apply
-  // to every round's breakdown.
-  const usedPowerups = await prisma.playerPowerup.findMany({
-    where: {
-      status: 'USED',
-      scoreModifier: { not: null },
-      OR: [
-        { tournamentPlayerId: player.id, targetPlayerId: null },
-        { targetPlayerId: player.id },
-      ],
-    },
-    select: { scoreModifier: true, roundId: true },
-  })
-  const roundIdToNumber = new Map(tournament.rounds.map((r) => [r.id, r.roundNumber]))
-  const tournamentWidePowerupModifier = usedPowerups
-    .filter((pp) => pp.roundId === null)
-    .reduce((sum, pp) => sum + (pp.scoreModifier ?? 0), 0)
-  const powerupModifierByRound: Record<number, number> = {}
-  for (const pp of usedPowerups) {
-    if (pp.roundId === null) continue
-    const rn = roundIdToNumber.get(pp.roundId)
-    if (rn === undefined) continue
-    powerupModifierByRound[rn] = (powerupModifierByRound[rn] ?? 0) + (pp.scoreModifier ?? 0)
-  }
+  // One map covers both jobs now: the three replacement cards and every score
+  // modifier (own boosts plus inbound attacks), each attributed to the hole it
+  // was earned on. Outbound attacks land on the victim's card, not this one,
+  // which the map handles by subject — so no separate modifier query and no
+  // per-round bucketing is needed here any more.
+  const strokeAdjustments = await buildStrokeAdjustmentMap(tournament.id, playerScoreInputs)
 
   // Group scores by round number
   const scoresByRound: Record<number, typeof player.scores> = {}
@@ -155,21 +130,29 @@ export default async function PlayerScorecardPage({
           {roundNumbers.map((rn) => {
             const roundScores = scoresByRound[rn] ?? []
             const course = roundCourseMap.get(rn)
+            const adjustedScores = roundScores.map((s) => ({
+              holeNumber: s.hole.number,
+              par: s.hole.par,
+              strokes: effectiveStrokes(strokeAdjustments, player.id, s.hole.number, s.strokes, s.roundId, s.conceded),
+              handicapIndex: s.hole.handicap,
+              putts: s.putts,
+              fairwayHit: s.fairwayHit,
+              gir: s.gir,
+            }))
+            // Display-only: what the powerups actually moved this card by, read
+            // back off the adjusted strokes so it reflects clamping and
+            // replacement cards too. The strokes above already include it —
+            // ScorecardDetail must not add it to gross a second time.
+            const powerupDelta =
+              adjustedScores.reduce((sum, s) => sum + s.strokes, 0) -
+              roundScores.reduce((sum, s) => sum + s.strokes, 0)
             return (
               <TabsContent key={rn} value={String(rn)} className="mt-4">
                 {roundScores.length === 0 ? (
                   <p className="text-sm text-muted-foreground py-6 text-center">No scores posted for Round {rn}.</p>
                 ) : (
                   <ScorecardDetail
-                    scores={roundScores.map((s) => ({
-                      holeNumber: s.hole.number,
-                      par: s.hole.par,
-                      strokes: effectiveStrokes(strokeOverrides, player.id, s.hole.number, s.strokes, s.roundId),
-                      handicapIndex: s.hole.handicap,
-                      putts: s.putts,
-                      fairwayHit: s.fairwayHit,
-                      gir: s.gir,
-                    }))}
+                    scores={adjustedScores}
                     handicap={player.handicap}
                     playerName={playerName}
                     avatarUrl={avatarUrl}
@@ -177,7 +160,7 @@ export default async function PlayerScorecardPage({
                     courseName={course?.name}
                     coursePar={course?.par ?? undefined}
                     courseHoles={course?.holes?.map((h) => ({ number: h.number, par: h.par, handicap: h.handicap }))}
-                    powerupModifier={(powerupModifierByRound[rn] ?? 0) + tournamentWidePowerupModifier}
+                    powerupModifier={powerupDelta}
                   />
                 )}
               </TabsContent>

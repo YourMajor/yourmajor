@@ -71,7 +71,12 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
   const frontGross  = frontScored.reduce((s, h) => s + h.strokes, 0)
   const backGross   = backScored.reduce((s, h) => s + h.strokes, 0)
   const totalGross  = frontGross + backGross
-  const adjustedGross = totalGross + powerupModifier
+  // Powerup modifiers arrive already baked into each hole's strokes (the stroke
+  // adjustment map in src/lib/powerup-stroke-overrides.ts), so totalGross IS
+  // the adjusted figure — adding powerupModifier again would double-count it.
+  // The net breakdown still wants the pre-powerup number to show the sum.
+  const adjustedGross = totalGross
+  const prePowerupGross = totalGross - powerupModifier
 
   const isCallaway = handicapSystem === 'CALLAWAY'
   const effectiveCoursePar = courseParProp ?? totalPar
@@ -187,7 +192,7 @@ export function ScorecardDetail({ scores, handicap, playerName, avatarUrl, handi
           allHolesPlayed={allHolesPlayed}
           scoredHolesCount={scoredHoles.length}
           playedPar={playedPar}
-          totalGross={totalGross}
+          totalGross={prePowerupGross}
           powerupModifier={powerupModifier}
           adjustedGross={adjustedGross}
           handicap={handicap}

@@ -183,6 +183,32 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null)
   const [activeDragId, setActiveDragId] = useState<string | null>(null)
 
+  // Re-seed the mirrors above from the server payload. router.refresh()
+  // preserves client state by design, so without this the page ignored every
+  // server update it was handed — autoAssignGroups wrote real groups and
+  // nothing rendered, which also kept the whole Notify block (gated on
+  // groups.length) from ever mounting.
+  //
+  // Compare a *value* signature, not prop identity: identity is new on every
+  // refresh even when nothing changed, and re-seeding then would stomp the
+  // optimistic drag/drop state for nothing. Props identity is stable across
+  // local re-renders, so the stringify runs once per server refresh rather than
+  // once per selection tap. Setting state during render is React's documented
+  // "adjusting state when props change" pattern — no effect, no extra paint.
+  const serverSig = useMemo(
+    () => JSON.stringify([initialGroups, initialPlayers, initialVacancies]),
+    [initialGroups, initialPlayers, initialVacancies],
+  )
+  const [syncedSig, setSyncedSig] = useState(serverSig)
+  if (syncedSig !== serverSig) {
+    setSyncedSig(serverSig)
+    setGroups(initialGroups)
+    setPlayers(initialPlayers)
+    setVacancies(initialVacancies)
+    // Selections can point at players the regenerate just re-seated.
+    setSelectedPlayerIds(new Set())
+  }
+
   // Sensors: PointerSensor with `distance: 8` ensures plain clicks (under 8px
   // movement) still fire the underlying onClick handlers — drag only kicks in
   // once the user has actually moved. TouchSensor uses a 200ms long-press to
@@ -1262,9 +1288,10 @@ export function GroupBuilder({ tournamentId, tournamentName, slug, isLeague, ini
           setMessage({
             type: 'success',
             text:
-              conflicts > 0
+              (conflicts > 0
                 ? `Generated ${groupCount} groups — ${conflicts} repeat pairing${conflicts === 1 ? '' : 's'} couldn't be avoided.`
-                : `Generated ${groupCount} groups.`,
+                : `Generated ${groupCount} groups.`)
+              + ' Set tee times, then notify players when you’re happy.',
           })
           router.refresh()
         }}

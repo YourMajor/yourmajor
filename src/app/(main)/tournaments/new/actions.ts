@@ -330,7 +330,13 @@ async function _createTournament(data: WizardPayload, user: User): Promise<{ slu
       }
 
       // Link all powerups to this tournament
-      const allPowerups = await tx.powerup.findMany({ select: { id: true } })
+      // Retired cards are near-duplicates folded into a surviving card. They
+      // stay in the table so finished tournaments keep their history, but a
+      // new pool never includes one.
+      const allPowerups = await tx.powerup.findMany({
+        where: { retiredAt: null },
+        select: { id: true },
+      })
       if (allPowerups.length > 0) {
         await tx.tournamentPowerup.createMany({
           data: allPowerups.map((p) => ({

@@ -618,6 +618,11 @@ export function useLiveScoringState({
     [],
   )
 
+  /** Undoing a multi-hole card has to clear its countdown banner too. */
+  const removeActiveVariablePowerup = useCallback((playerPowerupId: string) => {
+    setActiveVariablePowerups((prev) => prev.filter((vp) => vp.playerPowerupId !== playerPowerupId))
+  }, [])
+
   const clearPowerupMessage = useCallback(() => {
     setPowerupMessage(null)
   }, [])
@@ -688,6 +693,7 @@ export function useLiveScoringState({
     activeVariablePowerups,
     powerupMessage,
     addActiveVariablePowerup,
+    removeActiveVariablePowerup,
     clearPowerupMessage,
 
     // Navigation

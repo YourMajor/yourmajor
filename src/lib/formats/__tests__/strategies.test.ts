@@ -31,7 +31,7 @@ function makePlayer(
     name,
     avatarUrl: null,
     handicap,
-    scoreModifier: 0,
+   
     teamId: null,
     scores: PAR_72_HOLES.map((h) => ({
       holeNumber: h.number,
@@ -132,8 +132,8 @@ describe('skinsGrossStrategy', () => {
     const ctx = makeCtx({
       format: 'SKINS_GROSS',
       players: [
-        { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: aliceScores },
-        { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: bobScores },
+        { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, teamId: null, scores: aliceScores },
+        { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, teamId: null, scores: bobScores },
       ],
     })
     const standings = skinsGrossStrategy.computeStandings(ctx)
@@ -148,9 +148,9 @@ describe('skinsGrossStrategy', () => {
     const ctx = makeCtx({
       format: 'SKINS_GROSS',
       players: [
-        { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null,
+        { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, teamId: null,
           scores: [{ holeNumber: 1, par: 4, strokes: 4, handicap: 1, roundNumber: 1 }] },
-        { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null,
+        { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, teamId: null,
           scores: [{ holeNumber: 1, par: 4, strokes: 4, handicap: 1, roundNumber: 1 }] },
       ],
     })
@@ -273,8 +273,8 @@ describe('matchPlayStrategy', () => {
       conceded: h.number === 1,
     }))
     const players: ScoringPlayer[] = [
-      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: aliceScores },
-      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: bobScores },
+      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, teamId: null, scores: aliceScores },
+      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, teamId: null, scores: bobScores },
     ]
     const ctx = makeCtx({ format: 'MATCH_PLAY', players })
     const standings = matchPlayStrategy.computeStandings(ctx)
@@ -304,8 +304,8 @@ describe('nassauStrategy', () => {
       handicap: h.handicap, roundNumber: 1,
     }))
     const players: ScoringPlayer[] = [
-      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: aliceScores },
-      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: bobScores },
+      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, teamId: null, scores: aliceScores },
+      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, teamId: null, scores: bobScores },
     ]
     const ctx = makeCtx({ format: 'NASSAU', players })
     const standings = nassauStrategy.computeStandings(ctx)
@@ -334,8 +334,8 @@ describe('nassauStrategy', () => {
       handicap: h.handicap, roundNumber: 1,
     }))
     const players: ScoringPlayer[] = [
-      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: aliceScores },
-      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, scoreModifier: 0, teamId: null, scores: bobScores },
+      { tournamentPlayerId: 'alice', userId: 'u-alice', name: 'Alice', avatarUrl: null, handicap: 0, teamId: null, scores: aliceScores },
+      { tournamentPlayerId: 'bob', userId: 'u-bob', name: 'Bob', avatarUrl: null, handicap: 0, teamId: null, scores: bobScores },
     ]
     const ctx = makeCtx({ format: 'NASSAU', players })
     const standings = nassauStrategy.computeStandings(ctx)

@@ -65,6 +65,10 @@ const prismaMock = {
       claimWrites.push(args.data)
       return { count: 1 }
     }),
+    // Armed reactive cards that an attack might set off. Empty by default so
+    // these scoping tests exercise an unopposed activation; the reaction
+    // behaviour itself is covered in powerup-reactions.test.ts.
+    findMany: vi.fn(async () => armedRows),
   },
   tournamentRound: { findFirst: vi.fn(async () => roundRow) },
   score: { findMany: vi.fn(async () => []) },
@@ -75,6 +79,7 @@ const prismaMock = {
 let currentPowerupType = 'ATTACK'
 let currentEffect: unknown = ATTACK_EFFECT
 let currentSlug = 'out-of-bounds'
+let armedRows: unknown[] = []
 
 // `after()` throws outside a request scope, so run the callback inline. That
 // also lets the push/broadcast assertions below see it.
@@ -90,6 +95,7 @@ vi.mock('@/lib/notification-broadcast', () => broadcastMock)
 
 beforeEach(() => {
   vi.clearAllMocks()
+  armedRows = []
   authMock.getUser.mockResolvedValue({ id: 'user_caller' })
   currentPowerupType = 'ATTACK'
   currentEffect = ATTACK_EFFECT

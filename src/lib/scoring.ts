@@ -2,7 +2,7 @@ import { unstable_cache } from 'next/cache'
 import { prisma } from '@/lib/prisma'
 import { getStrategy } from '@/lib/formats'
 import type { ScoringContext } from '@/lib/formats/types'
-import { buildStrokeOverrideMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
+import { buildStrokeAdjustmentMap, effectiveStrokes } from '@/lib/powerup-stroke-overrides'
 
 // Re-export everything from scoring-utils so existing imports still work
 export {
@@ -51,13 +51,9 @@ export async function getLeaderboard(
             round: { select: { roundNumber: true, courseId: true } },
           },
         },
-        // Only self-cast powerups (boosts) belong on the activator's net.
-        // Inbound attacks are loaded separately below so they can be matched
-        // by targetPlayerId.
-        playerPowerups: {
-          where: { status: 'USED', targetPlayerId: null },
-          select: { scoreModifier: true },
-        },
+        // Powerups are not loaded here: every modifier — self-cast boost or
+        // inbound attack — reaches the leaderboard through the stroke
+        // adjustment map below, attributed to the hole it was earned on.
         teamMembership: { select: { teamId: true } },
       },
     }),
@@ -81,7 +77,11 @@ export async function getLeaderboard(
     }),
   ])
 
-  // Build stroke override map for the three replacement-style powerups.
+  // Build the stroke adjustment map: the three replacement-style powerups plus
+  // every score modifier (own boosts and inbound attacks alike), each landing
+  // on the hole it was earned on. This is the only channel powerups use to
+  // reach the leaderboard, which is what makes them work in every format
+  // rather than stroke play alone.
   const flatScores = players.flatMap((p) =>
     p.scores.map((s) => ({
       tournamentPlayerId: p.id,
@@ -90,30 +90,12 @@ export async function getLeaderboard(
       par: s.hole.par,
       strokes: s.strokes,
       gir: s.gir,
+      conceded: s.conceded,
     })),
   )
-  const strokeOverrides = await buildStrokeOverrideMap(tournamentId, flatScores, roundId)
+  const strokeAdjustments = await buildStrokeAdjustmentMap(tournamentId, flatScores, roundId)
 
-  // Inbound attacks — modifiers applied to a player because someone else cast
-  // an attack on them. The PlayerPowerup row's `tournamentPlayerId` is the
-  // attacker, so these never show up through the player's own `playerPowerups`
-  // relation; load them separately and bucket by targetPlayerId.
   const participantIds = players.map((p) => p.id)
-  const inboundAttacks = participantIds.length > 0
-    ? await prisma.playerPowerup.findMany({
-        where: {
-          status: 'USED',
-          scoreModifier: { not: null },
-          targetPlayerId: { in: participantIds },
-        },
-        select: { targetPlayerId: true, scoreModifier: true },
-      })
-    : []
-  const inboundByPlayer = new Map<string, number>()
-  for (const a of inboundAttacks) {
-    if (!a.targetPlayerId) continue
-    inboundByPlayer.set(a.targetPlayerId, (inboundByPlayer.get(a.targetPlayerId) ?? 0) + (a.scoreModifier ?? 0))
-  }
 
   const handicapSystem = tournament?.handicapSystem ?? 'WHS'
   // Effective format: if the tournament is on legacy STROKE_PLAY but the handicap system
@@ -187,23 +169,17 @@ export async function getLeaderboard(
       // been a no-op for exactly those rows. Registration, activation and the
       // 20260815000000 backfill are what put a real value on the row now.
       const effectiveHandicap = p.handicap ?? 0
-      const ownBoostModifier = p.playerPowerups.reduce(
-        (sum: number, pp: { scoreModifier: number | null }) => sum + (pp.scoreModifier ?? 0),
-        0,
-      )
-      const scoreModifier = ownBoostModifier + (inboundByPlayer.get(p.id) ?? 0)
       return {
         tournamentPlayerId: p.id,
         userId: p.userId,
         name,
         avatarUrl,
         handicap: effectiveHandicap,
-        scoreModifier,
         teamId: p.teamMembership?.teamId ?? null,
         scores: p.scores.map((s) => ({
           holeNumber: s.hole.number,
           par: s.hole.par,
-          strokes: effectiveStrokes(strokeOverrides, p.id, s.hole.number, s.strokes, s.roundId),
+          strokes: effectiveStrokes(strokeAdjustments, p.id, s.hole.number, s.strokes, s.roundId, s.conceded),
           handicap: s.hole.handicap,
           roundNumber: s.round.roundNumber,
           conceded: s.conceded,

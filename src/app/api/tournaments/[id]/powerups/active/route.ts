@@ -24,7 +24,10 @@ export async function GET(
   const activePowerups = await prisma.playerPowerup.findMany({
     where: {
       tournamentPlayerId: player.id,
-      status: 'ACTIVE',
+      // ARMED as well as ACTIVE: this is the recovery path LiveScoring hits
+      // when an activation's HTTP response was lost, and without it an arming
+      // that actually landed would be invisible to the client for good.
+      status: { in: ['ACTIVE', 'ARMED'] },
     },
     include: {
       powerup: {

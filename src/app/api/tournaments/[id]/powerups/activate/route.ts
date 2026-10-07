@@ -4,7 +4,8 @@ import { z } from 'zod'
 import { prisma } from '@/lib/prisma'
 import { Prisma } from '@/generated/prisma/client'
 import { getUser } from '@/lib/auth'
-import { canActivate, computeActivationModifier, computeAttackTargetHole, isVariablePowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import { buildWindowMetadata, canActivate, computeActivationModifier, computeAttackTargetHole, isReactivePowerup, isVariablePowerup, isWindowedPowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import { activationTriggersReactions, fireReactions } from '@/lib/powerup-reactions'
 import { MAX_OVERRIDE_STROKES, MIN_OVERRIDE_STROKES, NUMBER_OVERRIDE_SLUG, isValidStrokeOverrideValue } from '@/lib/powerup-stroke-overrides'
 import { initialVariableMetadata, variableActivationDetail } from '@/lib/variable-powerup-evaluator'
 import { sendPushToUser } from '@/lib/push'
@@ -73,7 +74,21 @@ export async function POST(
   const hole = round.course.holes.find((h) => h.number === holeNumber)
   if (!hole) return NextResponse.json({ error: 'Hole not found' }, { status: 404 })
 
-  const activation = canActivate(effect, { par: hole.par, number: hole.number })
+  // The comeback cards unlock only once the player is far enough over par, so
+  // the restriction check needs their round so far. Loaded only when a card
+  // actually asks, to keep the common activation at one query.
+  let progress: { strokesOverPar: number } | undefined
+  if (typeof effect.restrictions.minStrokesOverPar === 'number' && effect.restrictions.minStrokesOverPar > 0) {
+    const played = await prisma.score.findMany({
+      where: { tournamentPlayerId: playerPowerup.tournamentPlayerId, roundId },
+      select: { strokes: true, hole: { select: { par: true } } },
+    })
+    progress = {
+      strokesOverPar: played.reduce((sum, s) => sum + (s.strokes - s.hole.par), 0),
+    }
+  }
+
+  const activation = canActivate(effect, { par: hole.par, number: hole.number }, progress)
   if (!activation.allowed) {
     return NextResponse.json({ error: activation.reason }, { status: 400 })
   }
@@ -134,6 +149,23 @@ export async function POST(
     }
   }
 
+  // A restriction_select choice is client-supplied and ends up quoted back to
+  // other players (The Gauntlet's restriction, The Tally's confirmation
+  // prompt), so it has to be one of the options the card actually declares —
+  // not arbitrary text.
+  let selectedOption: string | null = null
+  if (effect.input?.type === 'restriction_select') {
+    const options = effect.input.options ?? []
+    const choice = metadata?.selectedOption
+    if (typeof choice !== 'string' || !options.includes(choice)) {
+      return NextResponse.json(
+        { error: 'Select one of this card\'s options' },
+        { status: 400 },
+      )
+    }
+    selectedOption = choice
+  }
+
   // For attacks, decide which hole on the recipient's scorecard the attack
   // lands on. Default = recipient's first unscored hole + 1 (clamped). The
   // client may override to any of the recipient's unscored holes; we validate
@@ -179,12 +211,56 @@ export async function POST(
     }
   }
 
-  // Determine status and modifier based on powerup type
+  // Determine status and modifier based on powerup type. Multi-hole kinds park
+  // as ACTIVE with tracking metadata; reactive cards park as ARMED and wait for
+  // somebody else to act; only single-hole cards settle a modifier here.
   const isVariable = isVariablePowerup(effect)
-  const status = isVariable ? 'ACTIVE' as const : 'USED' as const
-  const scoreModifier = isVariable
+  const isWindowed = isWindowedPowerup(effect)
+  const isReactive = isReactivePowerup(effect)
+  const isTracked = isVariable || isWindowed
+  const status = isReactive
+    ? 'ARMED' as const
+    : isTracked
+      ? 'ACTIVE' as const
+      : 'USED' as const
+  const scoreModifier = isTracked || isReactive
     ? null
     : computeActivationModifier(effect, metadata as { numberValue?: unknown } | null, playerPowerup.powerup.slug)
+
+  // ── Reactions: does playing this set off somebody's armed card?
+  //
+  // Only a plain ATTACK can. Arming a reactive card must not trip a Tripwire,
+  // which is the whole recursion guard. Runs before the claim below so a
+  // deflected attack is written already redirected, rather than landing on the
+  // victim and being corrected afterwards.
+  let reactionMessages: string[] = []
+  let consumedReactions: Array<{ playerPowerupId: string; reaction: string }> = []
+  let effectiveTargetPlayerId: string | null = targetPlayerId ?? null
+  let effectiveTargetHole: number | null = resolvedTargetHole
+  let effectiveModifier: number | null = scoreModifier
+
+  if (activationTriggersReactions(effect, playerPowerup.powerup.type)) {
+    const fired = await fireReactions({
+      tournamentId,
+      roundId,
+      attackerPlayerId: player.id,
+      attackerName: player.user.name ?? 'A player',
+      victimPlayerId: targetPlayerId ?? null,
+      incomingName: playerPowerup.powerup.name,
+      incomingModifier: scoreModifier,
+      courseHoleNumbers: round.course.holes.map((h) => h.number),
+    })
+    reactionMessages = fired.messages
+    consumedReactions = fired.consumed
+    if (fired.incoming) {
+      if (fired.incoming.scoreModifier !== undefined) effectiveModifier = fired.incoming.scoreModifier
+      if (fired.incoming.targetPlayerId !== undefined) effectiveTargetPlayerId = fired.incoming.targetPlayerId
+      if (fired.incoming.targetHoleNumber !== undefined) effectiveTargetHole = fired.incoming.targetHoleNumber
+    }
+  }
+
+  /** True when a reaction turned this attack around or cancelled it. */
+  const wasBlocked = reactionMessages.length > 0 && consumedReactions.some((c) => c.reaction === 'on_targeted')
 
   // Build structured metadata for variable powerups
   let structuredMetadata: Record<string, unknown> | undefined = metadata ? { ...metadata } : undefined
@@ -194,7 +270,25 @@ export async function POST(
   if (swapHoleNumber !== null) {
     structuredMetadata = { ...(structuredMetadata ?? {}), swapHoleNumber }
   }
-  if (isVariable) {
+  // Store the validated choice rather than the raw client value.
+  if (selectedOption !== null) {
+    structuredMetadata = { ...(structuredMetadata ?? {}), selectedOption }
+  }
+  // What stopped this, so undo can hand the reaction back. Without it, undoing
+  // a deflected attack would be a free way to burn somebody's Deflector.
+  if (consumedReactions.length > 0) {
+    structuredMetadata = { ...(structuredMetadata ?? {}), reactedBy: consumedReactions }
+  }
+  if (isWindowed) {
+    // Windowed cards share one metadata shape and read their window length off
+    // the card, so there is no per-slug branch to keep in sync.
+    structuredMetadata = buildWindowMetadata(effect, holeNumber, {
+      numberValue: metadata?.numberValue,
+      selectedPlayerIds,
+      targetPlayerId,
+      selectedOption,
+    }) as unknown as Record<string, unknown>
+  } else if (isVariable) {
     // The per-slug shapes live beside the interfaces that read them back and
     // the window constants they have to agree with — see
     // initialVariableMetadata in lib/variable-powerup-evaluator.
@@ -218,9 +312,11 @@ export async function POST(
       usedAt: new Date(),
       roundId,
       holeNumber,
-      targetHoleNumber: resolvedTargetHole,
-      targetPlayerId: targetPlayerId ?? null,
-      scoreModifier,
+      // The effective values, not the requested ones: a Deflector has already
+      // rewritten the target to the attacker, and an Absorb has zeroed it.
+      targetHoleNumber: effectiveTargetHole,
+      targetPlayerId: effectiveTargetPlayerId,
+      scoreModifier: effectiveModifier,
       metadata: structuredMetadata as Prisma.InputJsonValue | undefined,
     },
   })
@@ -236,9 +332,24 @@ export async function POST(
     },
   })
 
-  // Create attack notification for target player
-  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer) {
-    const landsOnHole = resolvedTargetHole ?? holeNumber
+  // Reactions announce themselves — and ONLY when they fire. Arming is silent,
+  // because a Deflector nobody knows about is what makes attacking a gamble.
+  // Posted before the attack's own line so chat reads in the order it happened.
+  for (const line of reactionMessages) {
+    await prisma.tournamentMessage.create({
+      data: { tournamentId, userId: user.id, content: line, isSystem: true },
+    })
+  }
+
+  // Create attack notification for target player.
+  //
+  // Skipped in two cases. When a reaction turned the attack around or
+  // cancelled it, the original target was not hit and telling them they were
+  // under attack would be a lie. And when the card is REACTIVE — Tripwire is
+  // an ATTACK aimed at a rival, but arming it must stay secret or the bluff
+  // the whole mechanic rests on is given away by a push notification.
+  if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer && !wasBlocked && !isReactive) {
+    const landsOnHole = effectiveTargetHole ?? holeNumber
 
     await prisma.notification.create({
       data: {
@@ -284,6 +395,14 @@ export async function POST(
         isSystem: true,
       },
     })
+  } else if (isReactive) {
+    // Deliberately silent. A reactive card announces nothing when armed — the
+    // whole mechanic is that nobody knows who is protected, so attacking is a
+    // risk even against a player holding nothing. Its chat line comes later,
+    // if and when it fires (see reactionMessages above).
+  } else if (playerPowerup.powerup.type === 'ATTACK' && targetPlayer && wasBlocked) {
+    // The attack was stopped. The reaction already posted what happened, so
+    // adding "X ATTACKED Y" on top would contradict it.
   } else if (isVariable) {
     // System chat message for variable powerup activation
     const playerName = player.user.name ?? 'Player'

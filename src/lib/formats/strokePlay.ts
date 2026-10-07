@@ -12,7 +12,10 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
     : null
 
   const playedPar = p.scores.reduce((sum, s) => sum + s.par, 0)
-  const adjustedGross = grossTotal !== null ? grossTotal + p.scoreModifier : null
+  // Powerup modifiers are already inside s.strokes (see the stroke adjustment
+  // map in src/lib/powerup-stroke-overrides.ts), so grossTotal is the adjusted
+  // figure. This also makes the gross column and grossVsPar agree, which they
+  // did not when the modifier was a separate player-level sum.
 
   const roundTotals: Record<number, number> = {}
   for (const score of p.scores) {
@@ -25,10 +28,10 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
   let netVsPar: number | null = null
   let peoriaRoundDetails: PlayerStanding['peoriaRoundDetails'] = undefined
 
-  if (adjustedGross !== null) {
+  if (grossTotal !== null) {
     if (ctx.handicapSystem === 'NONE') {
-      netTotal = adjustedGross
-      netVsPar = adjustedGross - playedPar
+      netTotal = grossTotal
+      netVsPar = grossTotal - playedPar
     } else if (ctx.handicapSystem === 'CALLAWAY') {
       // Each round gets its own Callaway deduction, once that round is
       // finished; an unfinished round counts at gross.
@@ -36,7 +39,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
         p.scores.map((s) => ({ strokes: s.strokes, par: s.par, holeNumber: s.holeNumber, roundNumber: s.roundNumber })),
         new Map(ctx.rounds.map((r) => [r.roundNumber, r.holeCount ?? 18])),
       )
-      netTotal = adjustedGross - deduction
+      netTotal = grossTotal - deduction
       netVsPar = netTotal - playedPar
     } else if (ctx.handicapSystem === 'PEORIA') {
       // Per-round Peoria handicap: only completed rounds (every participant has
@@ -59,7 +62,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       }
       peoriaRoundDetails = details
       if (anyRoundComplete) {
-        netTotal = adjustedGross - totalPeoriaHandicap
+        netTotal = grossTotal - totalPeoriaHandicap
         netVsPar = netTotal - playedPar
       }
       // else leave netTotal/netVsPar null → leaderboard's hasNet check hides the column
@@ -67,7 +70,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
       // WHS / STABLEFORD-as-handicap-system: WHS-style stroke allocation
       const strokeSet = allocateHandicapStrokes(p.handicap, getHoleHandicapPairs(ctx))
       const handicapStrokesApplied = p.scores.filter((s) => strokeSet.has(s.holeNumber)).length
-      netTotal = adjustedGross - handicapStrokesApplied
+      netTotal = grossTotal - handicapStrokesApplied
       netVsPar = netTotal - playedPar
     }
   }
@@ -82,7 +85,7 @@ function playerStanding(ctx: ScoringContext, p: ScoringPlayer): PlayerStanding {
     holesPlayed: p.scores.length,
     grossTotal,
     netTotal,
-    grossVsPar: adjustedGross !== null ? adjustedGross - playedPar : null,
+    grossVsPar: grossTotal !== null ? grossTotal - playedPar : null,
     netVsPar,
     todayTotal,
     points: null,

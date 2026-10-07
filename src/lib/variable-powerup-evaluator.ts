@@ -7,6 +7,8 @@
  */
 
 import { prisma } from '@/lib/prisma'
+import { isWindowedPowerup, parsePowerupEffect } from '@/lib/powerup-engine'
+import type { PowerupEffect, WindowMetadata } from '@/lib/powerup-engine'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -79,6 +81,341 @@ interface FootWedgeMetadata {
   activationHoleNumber: number
   holesRemaining: number
   status: 'in_progress' | 'completed'
+}
+
+// ─── Windowed cards: the generic, data-driven multi-hole engine ──────────────
+//
+// A windowed card declares `duration` (how many holes), `conditionalKey` (which
+// per-hole rule) and `bank` (how per-hole results accumulate). Everything else
+// is this one evaluator, so adding a windowed card is a seed row plus — only if
+// the rule is new — one entry in HOLE_PREDICATES.
+//
+// This replaces the per-slug pattern below it, where each card needed its own
+// evaluator, its own metadata interface, its own window constant, and its own
+// branch in the activation route's metadata builder.
+
+/** The stored facts a per-hole rule may read. The schema has no shot-level
+ *  data, so this is the complete set (see src/lib/round-stats.ts:8-11). */
+export interface HoleFacts {
+  holeNumber: number
+  par: number
+  strokes: number
+  putts: number | null
+  fairwayHit: boolean | null
+  gir: boolean | null
+}
+
+export interface PredicateContext {
+  /** Previous hole in the window, for rules that compare consecutive holes. */
+  previous: HoleFacts | null
+  /** Index of this hole within the window, 0-based. */
+  index: number
+  /** The card's per-unit modifier, from effect.scoring.modifier. */
+  unit: number
+  /** What the player declared at activation, for the cards that ask. */
+  declared: number | null
+}
+
+export interface PredicateResult {
+  /** This hole's contribution to the bank. */
+  delta?: number
+  /** True when this hole counts toward the visible tally. */
+  counted?: boolean
+  /** End the card here as a failure (bank kept or wiped per `bank`). */
+  fail?: boolean
+  /** Lengthen the window — the escalating cards. */
+  extend?: number
+}
+
+/**
+ * Per-hole rules, keyed by the card's `conditionalKey`. Each reads one hole's
+ * stored facts and says what it contributes.
+ *
+ * `unit` is the card's own `modifier`, so one rule serves cards of different
+ * magnitudes: 'birdie_bonus' with unit -1 pays a stroke a birdie, with unit -2
+ * it pays two.
+ */
+export const HOLE_PREDICATES: Record<string, (f: HoleFacts, c: PredicateContext) => PredicateResult> = {
+  /** No scoring at all — the card is a rule the players apply themselves
+   *  (COVID Birdie). The window exists only to drive the countdown banner. */
+  none: () => ({}),
+
+  /** Every birdie or better pays. */
+  birdie_bonus: (f, c) => (f.strokes < f.par ? { delta: c.unit, counted: true } : {}),
+
+  /** Every one-putt pays. */
+  one_putt: (f, c) => (f.putts === 1 ? { delta: c.unit, counted: true } : {}),
+
+  /** Every green in regulation pays. */
+  gir_bonus: (f, c) => (f.gir === true ? { delta: c.unit, counted: true } : {}),
+
+  /** Every fairway hit pays. Par 3s are skipped, not failed. */
+  fairway_bonus: (f, c) =>
+    f.par === 3 ? {} : f.fairwayHit === true ? { delta: c.unit, counted: true } : {},
+
+  /** Par or better pays; a double bogey or worse ends the card. Par Train. */
+  par_or_better: (f, c) => {
+    if (f.strokes >= f.par + 2) return { fail: true }
+    return f.strokes <= f.par ? { delta: c.unit, counted: true } : {}
+  },
+
+  /** Any bogey or worse ends the card; each clean hole pays. Stayin' Alive. */
+  bogey_free: (f, c) => (f.strokes > f.par ? { fail: true } : { delta: c.unit, counted: true }),
+
+  /** A three-putt ends the card; each clean hole pays. No Three-Putts. */
+  no_three_putt: (f, c) => ((f.putts ?? 0) >= 3 ? { fail: true } : { delta: c.unit, counted: true }),
+
+  /** Beat your own previous hole's score-to-par: pays AND extends the window.
+   *  The escalating card — a hot streak runs longer. */
+  beat_previous_hole: (f, c) => {
+    if (!c.previous) return {}
+    const now = f.strokes - f.par
+    const before = c.previous.strokes - c.previous.par
+    return now < before ? { delta: c.unit, counted: true, extend: 1 } : {}
+  },
+
+  /** Pays per stroke the subject is OVER par. Scales with how badly they play
+   *  — the parasitic attacks (The Vampire). */
+  over_par_drain: (f, c) => {
+    const over = Math.max(0, f.strokes - f.par)
+    return over > 0 ? { delta: over * c.unit, counted: true } : {}
+  },
+
+  /** Pays per birdie or better the subject makes — punishes their best golf
+   *  rather than their worst (Tax Collector). */
+  birdie_tax: (f, c) => (f.strokes < f.par ? { delta: c.unit, counted: true } : {}),
+
+  /** Doubles the subject's score-to-par, in both directions: a bogey hurts
+   *  them twice as much, a birdie helps them twice as much (Double or
+   *  Nothing). Signed, unlike over_par_drain. */
+  score_double: (f, c) => {
+    const vsPar = f.strokes - f.par
+    return vsPar !== 0 ? { delta: vsPar * c.unit, counted: true } : { counted: true }
+  },
+
+  /** Cancels exactly a bogey — the hole is recorded as a par. Only a bogey:
+   *  a double is still a double, which is what keeps Second Wind a rescue
+   *  rather than a blanket eraser. */
+  bogey_rescue: (f, c) => (f.strokes === f.par + 1 ? { delta: c.unit, counted: true } : {}),
+
+  /**
+   * The player called their score before playing the hole. Nail it exactly and
+   * the card pays its full value; miss by one and nothing happens; miss by two
+   * or more and it costs you. A gamble, not a bonus.
+   *
+   * `unit` is the reward (negative). The penalty is deliberately smaller in
+   * magnitude than the reward so the card is worth playing.
+   */
+  exact_call: (f, c) => {
+    if (c.declared === null) return {}
+    const off = Math.abs(f.strokes - c.declared)
+    if (off === 0) return { delta: c.unit, counted: true }
+    if (off === 1) return {}
+    return { delta: Math.ceil(Math.abs(c.unit) / 1.5) }
+  },
+}
+
+/** Cap on what a windowed card can bank, matching the hand-entered score bound
+ *  elsewhere. A runaway predicate must not be able to rewrite a leaderboard. */
+const MAX_BANKED_MAGNITUDE = 20
+
+/** Windows cannot grow without bound, however hot the streak. */
+const MAX_WINDOW_HOLES = 18
+
+/**
+ * Evaluate one windowed card against the holes played since it was activated.
+ *
+ * Which card is being tracked — the activator's own or an opponent's — depends
+ * on the card: an attack with a target watches the TARGET's scores, because
+ * that is whose play the rule is about.
+ *
+ * Returns in_progress while the window has holes left, and resolves once it is
+ * full, the player has run out of holes, or a rule failed the card.
+ */
+export async function evaluateWindowedPowerup(
+  playerPowerupId: string,
+  slug: string,
+  name: string,
+  effect: PowerupEffect,
+  activatorTournamentPlayerId: string,
+  roundId: string,
+  metadata: WindowMetadata,
+  opts?: { finalize?: boolean },
+): Promise<EvaluationResult> {
+  const predicateKey = effect.scoring.conditionalKey ?? 'none'
+  const predicate = HOLE_PREDICATES[predicateKey]
+  const bank = effect.scoring.bank ?? 'sum'
+  const unit = effect.scoring.modifier ?? 0
+
+  if (!predicate) {
+    // An unknown rule must not silently pay out. Close the card at zero and
+    // say so — a seed row naming a predicate that doesn't exist is a bug we
+    // want visible, not a free modifier.
+    return resolvePowerup(
+      playerPowerupId,
+      slug,
+      'failed',
+      0,
+      `${name}: unknown rule "${predicateKey}" — no effect applied.`,
+    )
+  }
+
+  // An attack tracks its victim's card; everything else the activator's.
+  const subjectId = metadata.targetPlayerIds?.[0] && effect.requiresTarget
+    ? metadata.targetPlayerIds[0]
+    : activatorTournamentPlayerId
+
+  const scores = await fetchScoresAfter(subjectId, roundId, metadata.activationHoleNumber)
+
+  // Window length starts at the card's declared duration and grows only via a
+  // predicate's `extend`. Recomputed from scratch on every pass so the whole
+  // evaluation is a pure function of the stored scores — re-running it after a
+  // score edit can never double-count a hole.
+  let windowLength = Math.min(effect.duration, MAX_WINDOW_HOLES)
+
+  let banked = 0
+  let tally = 0
+  let failed = false
+  let failedHole: number | null = null
+  let previous: HoleFacts | null = null
+  let consumed = 0
+
+  for (const score of scores) {
+    if (consumed >= windowLength) break
+    if (score.strokes == null) continue
+
+    const facts: HoleFacts = {
+      holeNumber: score.hole.number,
+      par: score.hole.par,
+      strokes: score.strokes,
+      putts: score.putts,
+      fairwayHit: score.fairwayHit,
+      gir: score.gir,
+    }
+
+    const result = predicate(facts, {
+      previous,
+      index: consumed,
+      unit,
+      declared: metadata.declaredCount ?? null,
+    })
+    consumed += 1
+    previous = facts
+
+    if (result.fail) {
+      failed = true
+      failedHole = facts.holeNumber
+      break
+    }
+    if (result.counted) tally += 1
+    if (result.delta) banked += result.delta
+    if (result.extend) {
+      windowLength = Math.min(windowLength + result.extend, MAX_WINDOW_HOLES)
+    }
+  }
+
+  const holesRemaining = Math.max(0, windowLength - consumed)
+  const windowComplete = holesRemaining === 0
+
+  // Note on metadata.declaredCount: for a windowed card it is a VALUE the
+  // predicate reads (Sandbagger's Bluff declares a score to match), not a
+  // target the card must reach. The declared-TARGET cards (Fairway Finder, The
+  // Streaker, No Three-Putts) are still on the per-slug path below, which
+  // enforces their own targets. If one is ever migrated here it needs an
+  // explicit flag rather than overloading this field.
+
+  if (failed) {
+    // 'wipe' and 'streak' both pay nothing once a hole fails; 'sum' keeps what
+    // was banked before the failure.
+    const payout = bank === 'sum' ? clampBanked(banked) : 0
+    return resolvePowerup(
+      playerPowerupId,
+      slug,
+      payout === 0 ? 'failed' : 'success',
+      payout,
+      payout === 0
+        ? `${name}: failed on hole ${failedHole}.`
+        : `${name}: ended on hole ${failedHole} — ${formatModifier(payout)} banked.`,
+    )
+  }
+
+  if (windowComplete || opts?.finalize) {
+    if (bank === 'none') {
+      return resolvePowerup(playerPowerupId, slug, 'success', 0, `${name}: window complete.`)
+    }
+    // 'streak' is all or nothing: running out of holes mid-window pays nothing.
+    const incompleteStreak = bank === 'streak' && !windowComplete
+    const payout = incompleteStreak ? 0 : clampBanked(banked)
+    const succeeded = payout !== 0
+    return resolvePowerup(
+      playerPowerupId,
+      slug,
+      // A payout that went against the holder is still a resolved card, not a
+      // failure — the gamble cards can legitimately cost you.
+      succeeded ? 'success' : 'failed',
+      payout,
+      succeeded
+        ? `${name}: ${formatModifier(payout)} from ${tally} hole${tally === 1 ? '' : 's'}!`
+        : `${name}: nothing earned in the window.`,
+    )
+  }
+
+  await prisma.playerPowerup.update({
+    where: { id: playerPowerupId },
+    data: {
+      metadata: { ...metadata, holesRemaining, tally, banked, status: 'in_progress' },
+    },
+  })
+
+  return {
+    playerPowerupId,
+    slug,
+    outcome: 'in_progress',
+    scoreModifier: null,
+    message:
+      bank === 'none'
+        ? `${name}: ${holesRemaining} hole${holesRemaining === 1 ? '' : 's'} remaining`
+        : `${name}: ${holesRemaining} hole${holesRemaining === 1 ? '' : 's'} left, ${formatModifier(banked)} banked`,
+  }
+}
+
+/**
+ * Parse a Powerup.effect row and return it only if it describes a windowed
+ * card. A malformed effect returns null so the caller falls through to the
+ * per-slug path rather than throwing mid-round — a bad seed row must not stop
+ * a player from posting a score.
+ */
+function asWindowedEffect(raw: unknown): PowerupEffect | null {
+  try {
+    const effect = parsePowerupEffect(raw)
+    return isWindowedPowerup(effect) ? effect : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Fill the {sin} placeholder in a confirmation prompt with the option the
+ * attacker chose (The Tally). A prompt with no placeholder passes through, and
+ * a missing choice degrades to generic wording rather than showing the raw
+ * token to a player.
+ */
+function resolvePrompt(prompt: string, metadata: { selectedOption?: unknown } | null): string {
+  if (!prompt.includes('{sin}')) return prompt
+  const choice = metadata?.selectedOption
+  return typeof choice === 'string' && choice.trim().length > 0
+    ? prompt.replace('{sin}', choice.toLowerCase())
+    : prompt.replace('{sin}', 'the sin they chose')
+}
+
+function clampBanked(value: number): number {
+  if (!Number.isFinite(value)) return 0
+  const rounded = Math.trunc(value)
+  return Math.min(Math.max(rounded, -MAX_BANKED_MAGNITUDE), MAX_BANKED_MAGNITUDE)
+}
+
+function formatModifier(value: number): string {
+  return value > 0 ? `+${value}` : `${value}`
 }
 
 const BIRDIE_HUNTER_WINDOW = 3
@@ -206,7 +543,7 @@ export async function evaluateActiveVariablePowerups(
       status: 'ACTIVE',
     },
     include: {
-      powerup: { select: { slug: true, name: true } },
+      powerup: { select: { slug: true, name: true, effect: true } },
     },
   })
 
@@ -217,6 +554,25 @@ export async function evaluateActiveVariablePowerups(
     if (!metadata) continue
 
     let result: EvaluationResult | null = null
+
+    // Windowed cards are data-driven: no slug branch, the card describes
+    // itself. The switch below is the older per-slug path, kept for the
+    // player-declared challenge cards.
+    const windowed = asWindowedEffect(pp.powerup.effect)
+    if (windowed) {
+      results.push(
+        await evaluateWindowedPowerup(
+          pp.id,
+          pp.powerup.slug,
+          pp.powerup.name,
+          windowed,
+          tournamentPlayerId,
+          roundId,
+          metadata as unknown as WindowMetadata,
+        ),
+      )
+      continue
+    }
 
     switch (pp.powerup.slug) {
       case 'fairway-finder':
@@ -268,7 +624,7 @@ export async function evaluateAsKothTarget(
       powerup: { slug: 'king-of-the-hill' },
     },
     include: {
-      powerup: { select: { slug: true, name: true } },
+      powerup: { select: { slug: true, name: true, effect: true } },
     },
   })
 
@@ -310,7 +666,7 @@ export async function evaluateAsDoubleOrNothingTarget(
       powerup: { slug: 'double-or-nothing' },
     },
     include: {
-      powerup: { select: { slug: true, name: true } },
+      powerup: { select: { slug: true, name: true, effect: true } },
     },
   })
 
@@ -343,6 +699,20 @@ export async function finalizeVariablePowerups(
   tournamentPlayerId: string,
   roundId: string,
 ): Promise<EvaluationResult[]> {
+  // Reactive cards armed but never set off close out here at zero. Without
+  // this they stay ARMED for good and the player's hand never settles. They
+  // carry no tracking metadata, so they are swept before the loop below —
+  // which skips metadata-less rows.
+  const neverFired = await prisma.playerPowerup.findMany({
+    where: { tournamentPlayerId, roundId, status: 'ARMED' },
+    include: { powerup: { select: { slug: true, name: true } } },
+  })
+  const expired: EvaluationResult[] = []
+  for (const pp of neverFired) {
+    expired.push(
+      await resolvePowerup(pp.id, pp.powerup.slug, 'failed', 0, `${pp.powerup.name}: never triggered.`),
+    )
+  }
   const activePowerups = await prisma.playerPowerup.findMany({
     where: {
       tournamentPlayerId,
@@ -350,17 +720,36 @@ export async function finalizeVariablePowerups(
       status: 'ACTIVE',
     },
     include: {
-      powerup: { select: { slug: true, name: true } },
+      powerup: { select: { slug: true, name: true, effect: true } },
     },
   })
 
-  const results: EvaluationResult[] = []
+  const results: EvaluationResult[] = [...expired]
 
   for (const pp of activePowerups) {
     const metadata = pp.metadata as Record<string, unknown> | null
     if (!metadata) continue
 
     let result: EvaluationResult | null = null
+
+    // Windowed cards resolve through the same generic evaluator, told to
+    // settle up now rather than wait for the window to fill.
+    const windowed = asWindowedEffect(pp.powerup.effect)
+    if (windowed) {
+      results.push(
+        await evaluateWindowedPowerup(
+          pp.id,
+          pp.powerup.slug,
+          pp.powerup.name,
+          windowed,
+          tournamentPlayerId,
+          roundId,
+          metadata as unknown as WindowMetadata,
+          { finalize: true },
+        ),
+      )
+      continue
+    }
 
     switch (pp.powerup.slug) {
       case 'fairway-finder': {
@@ -1040,6 +1429,10 @@ export const CONFIRMATION_ATTACK_COUNT_SLUGS = [
   'the-fairway-is-lava',
   'the-flop',
   'yipsy-daisy',
+  // The Tally replaces four of the above (they are retired). The sin being
+  // counted is the attacker's restriction_select choice, carried in
+  // metadata.selectedOption and quoted back in the prompt.
+  'the-tally',
 ] as const
 
 /** Hard upper bound on the count input for count cards — defends the
@@ -1131,6 +1524,10 @@ const CONFIRMATION_PROMPTS: Record<string, string> = {
   // about the responder rather than third person about the target.
   'drink-up': 'Did you fail to finish your drink before the green?',
   'the-long-and-winding-road': "Did your ball fail to visit both rough sides?",
+  // {sin} is replaced with the attacker's restriction_select choice at read
+  // time — the victim is only told what was being counted after the hole is
+  // played, so the secret holds while it matters.
+  'the-tally': 'How many times did this happen on the hole: {sin}?',
   'out-of-bounds': 'How many OBs or lost balls did you have on this hole?',
   'proximity-mine': 'How many of your shots landed within 2 club lengths of a bunker?',
   'the-cursed-club': 'How many times did you use the cursed club on this hole?',
@@ -1243,7 +1640,10 @@ export async function findPendingConfirmations(
       playerPowerupId: r.id,
       slug: r.powerup.slug,
       name: r.powerup.name,
-      prompt: CONFIRMATION_PROMPTS[r.powerup.slug] ?? 'Did the trigger fire?',
+      prompt: resolvePrompt(
+        CONFIRMATION_PROMPTS[r.powerup.slug] ?? 'Did the trigger fire?',
+        r.metadata as { selectedOption?: unknown } | null,
+      ),
       modifierIfYes: fullModifier,
       contextHoleNumber: contextHole,
       // For attacks, this now carries the attacker's name so the modal can

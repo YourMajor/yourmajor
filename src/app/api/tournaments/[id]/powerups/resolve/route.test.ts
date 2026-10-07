@@ -8,7 +8,7 @@ type PlayerPowerupRow = {
   id: string
   tournamentPlayerId: string
   targetPlayerId: string | null
-  status: 'AVAILABLE' | 'ACTIVE' | 'USED'
+  status: 'AVAILABLE' | 'ACTIVE' | 'USED' | 'ARMED'
   powerup: { slug: string; effect: { scoring: { modifier: number | null; cap?: number | null } } }
 }
 

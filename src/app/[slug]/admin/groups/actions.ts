@@ -395,6 +395,35 @@ export async function autoAssignGroups(
   const recentPartners =
     avoidLastEventPartners && isLeagueChild ? await getRecentPartners(tournamentId) : {}
 
+  // Slot carry-over. Generating wipes and recreates every group row, so an
+  // admin who had already set tee times would lose them just for reshuffling
+  // the names underneath. Read the current groups in the same order the page
+  // displays them (page.tsx orders by createdAt asc) and carry name / teeTime /
+  // startingHole across by slot index.
+  //
+  // lastNotifiedTeeTime / lastNotifiedStartHole are deliberately NOT carried:
+  // members are recreated with notifiedAt null, so everyone correctly
+  // re-counts as "affected" and the next notify tells them about their new
+  // group. Leaving the snapshots null keeps the audit trail honest.
+  const priorSlots = await prisma.tournamentGroup.findMany({
+    where: { tournamentId },
+    select: { name: true, teeTime: true, startingHole: true },
+    orderBy: { createdAt: 'asc' },
+  })
+  // createMany issues one INSERT, so every row would otherwise share the same
+  // transaction-constant now() — leaving the page's `orderBy createdAt` to fall
+  // back on heap order, which visibly reshuffles the moment one group's tee
+  // time is updated. Stagger by index so the order is stable for good.
+  const createdAtBase = Date.now()
+  const buildGroupRow = (i: number) => ({
+    id: crypto.randomUUID(),
+    tournamentId,
+    name: priorSlots[i]?.name ?? `Group ${i + 1}`,
+    teeTime: priorSlots[i]?.teeTime ?? null,
+    startingHole: priorSlots[i]?.startingHole ?? null,
+    createdAt: new Date(createdAtBase + i),
+  })
+
   // Team-aware assignment: when teams are enabled and at least one team fits
   // inside group capacity, we pack teams (not individual players) into groups.
   // Players not on a team are left unassigned and the admin can place them
@@ -451,11 +480,7 @@ export async function autoAssignGroups(
         }
       }
 
-      const groupRows = groupBuckets.map((_, i) => ({
-        id: crypto.randomUUID(),
-        tournamentId,
-        name: `Group ${i + 1}`,
-      }))
+      const groupRows = groupBuckets.map((_, i) => buildGroupRow(i))
       const memberRows: { groupId: string; tournamentPlayerId: string; position: number }[] = []
       groupBuckets.forEach((bucket, gi) => {
         let pos = 0
@@ -488,11 +513,7 @@ export async function autoAssignGroups(
   // group IDs lets us emit `createMany` for both groups and members instead
   // of N+M sequential round-trips (was 1 + 20 + 80 = 101 queries for a
   // 20-group / 80-player assignment; now 3 statements).
-  const groupRows = assignedGroups.map((_, i) => ({
-    id: crypto.randomUUID(),
-    tournamentId,
-    name: `Group ${i + 1}`,
-  }))
+  const groupRows = assignedGroups.map((_, i) => buildGroupRow(i))
   const memberRows = assignedGroups.flatMap((groupPlayers, gi) =>
     groupPlayers.map((p, pos) => ({
       groupId: groupRows[gi].id,

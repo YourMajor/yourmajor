@@ -1,0 +1,20 @@
+-- Reactive powerups: a card played to lie in wait rather than to resolve now.
+--
+-- An ARMED card does nothing until another player acts. An attack aimed at its
+-- holder triggers Deflector (the attack bounces back onto the attacker) or
+-- Absorb (the attack is cancelled and the holder banks -1); Tripwire is armed
+-- ON a rival and fires when that rival plays an attack of their own. Arming is
+-- never announced — the bluff is the mechanic.
+--
+-- Appended, not reordered: nothing in this codebase orders by status, and
+-- ALTER TYPE ... ADD VALUE only appends. Postgres 15 permits this inside a
+-- transaction provided the new value is not USED in the same transaction,
+-- which is why `prisma migrate deploy` applies it cleanly.
+--
+-- Authored by hand rather than via `prisma migrate dev`: the Supabase app role
+-- has no CREATEDB, so Prisma cannot build a shadow database (P3014).
+--
+-- No _prisma_migrations footer. Some older migrations here self-register with a
+-- 'manual-resolve' checksum, which is how a migration can show green without
+-- its SQL having run. `migrate deploy` records this one.
+ALTER TYPE "PlayerPowerupStatus" ADD VALUE IF NOT EXISTS 'ARMED';

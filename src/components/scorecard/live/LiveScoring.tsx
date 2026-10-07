@@ -145,6 +145,10 @@ export function LiveScoring({
     // Initialize from any already-used powerups in the server data
     return new Set(rawPlayerPowerups.filter((pp) => pp.status === 'USED').map((pp) => pp.id))
   })
+  // Cards taken back this session. Needed separately from usedPowerupIds
+  // because the server data still says USED until the page reloads, so
+  // clearing the used set alone would not put the card back in the hand.
+  const [undonePowerupIds, setUndonePowerupIds] = useState<Set<string>>(new Set())
 
   // ─── Pending powerup confirmations (Big Brother / Drink Up etc.) ────────
   // These are USED cards whose scoreModifier is null because the trigger needs
@@ -241,7 +245,11 @@ export function LiveScoring({
     type: pp.powerup.type,
     description: pp.powerup.description,
     effect: pp.powerup.effect as PowerupEffect,
-    status: usedPowerupIds.has(pp.id) ? 'USED' as const : pp.status as 'AVAILABLE' | 'ACTIVE' | 'USED',
+    status: undonePowerupIds.has(pp.id)
+      ? 'AVAILABLE' as const
+      : usedPowerupIds.has(pp.id)
+        ? 'USED' as const
+        : pp.status as 'AVAILABLE' | 'ACTIVE' | 'USED' | 'ARMED',
   }))
 
   const mappedPlayers = rawTournamentPlayers.map((p) => ({
@@ -448,6 +456,69 @@ export function LiveScoring({
       },
     )
   }, [state, tournamentId, roundId, mappedPowerups])
+
+  /**
+   * Take back a card played by mistake.
+   *
+   * Deliberately NOT routed through the offline queue, unlike activation. A
+   * queued undo could flush after a queued score for the same hole, and the
+   * server refuses an undo once the hole is scored — the player would be told
+   * it worked while the card stayed spent. A direct call fails loudly instead,
+   * and the card is still there to retry.
+   *
+   * The server is the authority on whether undo is still allowed (it rejects
+   * once the outcome is known, and points the player at an admin). We show the
+   * control unconditionally and surface that message, rather than duplicating
+   * the rule here where it would drift.
+   */
+  const handleUndoPowerup = useCallback(async (playerPowerupId: string) => {
+    if (!tournamentId) return
+
+    const powerup = mappedPowerups.find((p) => p.playerPowerupId === playerPowerupId)
+    const holeId = state.sortedHoles.find((h) =>
+      state.scores[h.id]?.activePowerups.some((ap) => ap.playerPowerupId === playerPowerupId),
+    )?.id
+    const removed = holeId
+      ? state.scores[holeId]?.activePowerups.find((ap) => ap.playerPowerupId === playerPowerupId)
+      : undefined
+
+    // Optimistic: pull it off the hole, clear any countdown banner, and put it
+    // back in the hand.
+    if (holeId) state.removeActivePowerup(holeId, playerPowerupId)
+    state.removeActiveVariablePowerup(playerPowerupId)
+    setUsedPowerupIds((prev) => {
+      const next = new Set(prev)
+      next.delete(playerPowerupId)
+      return next
+    })
+    setUndonePowerupIds((prev) => new Set(prev).add(playerPowerupId))
+
+    const rollback = () => {
+      setUndonePowerupIds((prev) => {
+        const next = new Set(prev)
+        next.delete(playerPowerupId)
+        return next
+      })
+      setUsedPowerupIds((prev) => new Set(prev).add(playerPowerupId))
+      if (holeId && removed) state.addActivePowerup(holeId, removed)
+    }
+
+    try {
+      const res = await fetch(`/api/tournaments/${tournamentId}/powerups/undo`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ playerPowerupId }),
+      })
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}))
+        rollback()
+        setPowerupError(body.error ?? `Couldn't take back ${powerup?.name ?? 'that card'}.`)
+      }
+    } catch {
+      rollback()
+      setPowerupError(`Couldn't take back ${powerup?.name ?? 'that card'} — no connection.`)
+    }
+  }, [state, tournamentId, mappedPowerups])
 
   const handleFinishRound = useCallback(async () => {
     // Check for missing scores
@@ -715,6 +786,7 @@ export function LiveScoring({
                 onToggleFairway={state.toggleFairwayHit}
                 onToggleGir={state.toggleGir}
                 onActivatePowerup={handleActivatePowerup}
+                onUndoPowerup={handleUndoPowerup}
                 onPrev={state.prevHole}
                 onNext={state.nextHole}
                 onFinishRound={handleFinishRound}

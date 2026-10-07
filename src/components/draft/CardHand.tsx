@@ -6,6 +6,8 @@ import {
   Crown, Handshake, Ruler, Bomb, Target, Shuffle, Hand, Waves,
   TreePine, RefreshCw, Smile, MapPin, CircleDot, GlassWater, ArrowLeftRight,
   Flame, Crosshair, Route, Trophy, Umbrella, Repeat, CircleDot as Putt, Skull,
+  Biohazard, TrainFront, TrendingUp, Wind, AudioWaveform, Spade, Droplet,
+  Landmark, ListChecks, ShieldCheck, Magnet, Cable,
 } from 'lucide-react'
 import type { PowerupCardData } from './PowerupCard'
 import { FlippableCardOverlay } from './FlippableCardOverlay'
@@ -21,6 +23,15 @@ const SLUG_ICON_COMPONENTS: Record<string, ElementType> = {
   'the-fairway-is-lava': Flame, 'proximity-mine': Crosshair, 'the-long-and-winding-road': Route,
   'go-for-glory': Trophy, 'beach-boys': Umbrella, 'freaky-friday': Repeat, 'the-texas-wedge': Putt,
   'worst-ball': Skull,
+  // Windowed + dynamic cards. The expansion set still falls back to
+  // Zap/Swords; these are the ones whose identity the icon carries.
+  'covid-birdie': Biohazard, 'par-train': TrainFront, 'the-hot-hand': TrendingUp,
+  'second-wind': Wind, 'fairway-metronome': AudioWaveform, 'sandbaggers-bluff': Spade,
+  'the-vampire': Droplet, 'tax-collector': Landmark, 'the-tally': ListChecks,
+  // Reactive cards. Armed and waiting rather than played.
+  'deflector': ShieldCheck, 'absorb': Magnet, 'tripwire': Cable,
+  // The Gauntlet keeps the default attack icon (Swords) on purpose — it is
+  // the generic "impose a restriction" card.
 }
 
 /** Render the icon for a powerup slug. Falls back to Zap (boost) or Swords (attack). */
@@ -299,6 +310,7 @@ export function CardBack({
   const [playerSearch, setPlayerSearch] = useState('')
   const [clubName, setClubName] = useState('')
   const [numberValue, setNumberValue] = useState('')
+  const [selectedOption, setSelectedOption] = useState('')
   const [activating, setActivating] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -347,6 +359,7 @@ export function CardBack({
     if (showHoleSelect && (targetHoleNumber === null || targetUnscoredHoles.length === 0)) return false
     if (isMultiPlayerSelect && selectedPlayerIds.length === 0) return false
     if (inputType === 'club_select' && !clubName) return false
+    if (inputType === 'restriction_select' && !selectedOption) return false
     if (inputType === 'number_input' && !needsTarget && !numberValue) return false
     return true
   })()
@@ -367,6 +380,7 @@ export function CardBack({
       const metadata: Record<string, unknown> = {}
       if (clubName) metadata.clubName = clubName
       if (numberValue) metadata.numberValue = parseInt(numberValue, 10)
+      if (selectedOption) metadata.selectedOption = selectedOption
       if (isMultiPlayerSelect && selectedPlayerIds.length > 0) metadata.selectedPlayerIds = selectedPlayerIds
       await activationContext.onActivate({
         playerPowerupId: activationContext.playerPowerupId,
@@ -483,6 +497,26 @@ export function CardBack({
                 </select>
               </div>
             )}
+            {/* The menu-driven cards: The Gauntlet picks a restriction to
+                impose, The Tally picks the sin it counts. Options come from the
+                card itself so a new menu card needs no code here. */}
+            {inputType === 'restriction_select' && (
+              <div>
+                <label className="text-[11px] font-semibold text-zinc-600 mb-1 block">
+                  {effect.input?.label ?? 'Choose one'}
+                </label>
+                <select
+                  value={selectedOption}
+                  onChange={(e) => setSelectedOption(e.target.value)}
+                  className="w-full h-9 rounded-md border border-zinc-300 bg-white px-2 text-sm text-zinc-800"
+                >
+                  <option value="">Choose one...</option>
+                  {(effect.input?.options ?? []).map((opt) => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+              </div>
+            )}
             {/* Multi-player select (for King of the Hill etc.) */}
             {isMultiPlayerSelect && (
               <div>
@@ -562,32 +596,48 @@ export function CardBack({
         )}
       </div>
 
-      {/* Footer */}
-      <div className={`px-5 py-2.5 shrink-0 flex gap-2 ${powerupStyles(isAttack).soft}`}>
+      {/* Footer
+          Stacked, not side-by-side. These were two equal flex-1 buttons sitting
+          flush against each other, with "Back" on the left where a thumb
+          naturally rests — which is how players were committing cards by
+          accident one-handed in sunlight. Playing the card is now a single
+          full-width deliberate target, and the harmless action sits below it as
+          recessive text, where a stray thumb does no damage. */}
+      <div className={`px-5 py-2.5 shrink-0 flex flex-col gap-1 ${powerupStyles(isAttack).soft}`}>
         {customFooter ? customFooter : canActivateCtx ? (
           <>
             <button
               type="button"
-              onClick={onClose}
-              disabled={activating}
-              className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
+              onClick={handleActivateInline}
+              disabled={!canSubmit || activating}
+              className={`tap-44 w-full py-2.5 rounded-lg text-sm font-bold text-powerup-stock transition-colors disabled:opacity-50 ${powerupStyles(isAttack).button}`}
             >
-              Back
+              {activating ? 'Activating...' : isAttack ? 'Attack!' : 'Play Card'}
             </button>
             <button
               type="button"
-              onClick={handleActivateInline}
-              disabled={!canSubmit || activating}
-              className={`flex-1 py-2 rounded-lg text-xs font-bold text-powerup-stock transition-colors disabled:opacity-50 ${powerupStyles(isAttack).button}`}
+              onClick={onClose}
+              disabled={activating}
+              className="w-full py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
             >
-              {activating ? 'Activating...' : isAttack ? 'Attack!' : 'Play Card'}
+              Back
             </button>
           </>
         ) : onActivate ? (
           <>
-            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors">Back</button>
-            <button type="button" onClick={onActivate} className={`flex-1 py-2 rounded-lg text-xs font-bold text-powerup-stock transition-colors ${powerupStyles(isAttack).button}`}>
+            <button
+              type="button"
+              onClick={onActivate}
+              className={`tap-44 w-full py-2.5 rounded-lg text-sm font-bold text-powerup-stock transition-colors ${powerupStyles(isAttack).button}`}
+            >
               {isAttack ? 'Play Attack' : 'Play Card'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="w-full py-1.5 rounded-lg text-xs font-semibold text-zinc-500 hover:bg-zinc-200 transition-colors"
+            >
+              Back
             </button>
           </>
         ) : (

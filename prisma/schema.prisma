@@ -70,6 +70,12 @@ enum PlayerPowerupStatus {
   AVAILABLE
   ACTIVE
   USED
+  // A reactive card played to lie in wait. It does nothing until another
+  // player acts — an attack aimed at its holder (Deflector, Absorb) or its
+  // target playing an attack of their own (Tripwire) — and then fires by
+  // itself, becoming USED. Nobody is told a card is armed; that bluff is the
+  // point. See src/lib/powerup-reactions.ts.
+  ARMED
 }
 
 enum DistributionMode {
@@ -643,11 +649,19 @@ model Powerup {
   type        PowerupType
   description String
   effect      Json
+  // Retired cards — near-duplicates folded into a surviving card. Set rather
+  // than deleted: PlayerPowerup, DraftPick and PowerupFavorite rows reference
+  // these by FK, so a delete would erase cards from finished tournaments'
+  // history. A retired card is filtered out of NEW tournament pools and the
+  // browse grid; events that already hold it keep playing it.
+  retiredAt   DateTime?
 
   tournamentPowerups TournamentPowerup[]
   playerPowerups     PlayerPowerup[]
   draftPicks         DraftPick[]
   favorites          PowerupFavorite[]
+
+  @@index([retiredAt])
 }
 
 model PowerupFavorite {

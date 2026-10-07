@@ -6,24 +6,74 @@ import { z } from 'zod'
 
 export const powerupEffectSchema = z.object({
   scoring: z.object({
-    mode: z.enum(['auto', 'manual', 'behavioral', 'variable']),
+    // 'windowed' is the data-driven multi-hole mode: `duration` holes, a
+    // per-hole predicate named by `conditionalKey`, and `bank` deciding how
+    // per-hole results accumulate. See HOLE_PREDICATES in
+    // src/lib/variable-powerup-evaluator.ts. 'variable' is the older
+    // slug-dispatched path kept for the player-declared challenge cards.
+    // 'reactive' cards are played to lie in wait: they go ARMED and do nothing
+    // until another player acts. See src/lib/powerup-reactions.ts.
+    mode: z.enum(['auto', 'manual', 'behavioral', 'variable', 'windowed', 'reactive']),
     modifier: z.number().nullable(),
     conditionalKey: z.string().nullable(),
     // Optional magnitude cap for count-based manual powerups (e.g. Beer Bonus
     // tops out at -3 even if the player drank more). Same sign as modifier.
     cap: z.number().nullable().optional(),
+    /**
+     * How a windowed card folds its per-hole results:
+     *   'sum'    — add every hole's contribution and keep whatever was banked,
+     *              even if the round ends mid-window (Birdie Hunter, Vampire).
+     *   'streak' — all or nothing: pays only if the FULL window completes
+     *              without a failing hole (Stayin' Alive).
+     *   'wipe'   — bank as you go, but a failing hole discards the lot. An
+     *              unfinished window still pays what was banked (Par Train).
+     *   'none'   — no modifier at all; the card is a rule change the players
+     *              apply themselves (COVID Birdie).
+     */
+    bank: z.enum(['sum', 'streak', 'wipe', 'none']).nullable().optional(),
+    /**
+     * Attacks only. When true the resolved modifier also lands on the
+     * ACTIVATOR with the sign flipped — the parasitic cards, where what the
+     * victim loses the attacker gains. Applied by the stroke adjustment map.
+     */
+    mirror: z.boolean().nullable().optional(),
+    /**
+     * Which reaction a `reactive` card performs. Names an entry in REACTIONS
+     * (src/lib/powerup-reactions.ts), which also decides what triggers it:
+     * being targeted by an attack, or the card's own target playing one.
+     */
+    reaction: z.enum(['deflect', 'absorb', 'tripwire']).nullable().optional(),
   }),
   duration: z.number(),
   requiresTarget: z.boolean(),
   input: z
     .object({
-      type: z.enum(['none', 'player_select', 'club_select', 'number_input', 'hole_select']),
+      type: z.enum([
+        'none',
+        'player_select',
+        'club_select',
+        'number_input',
+        'hole_select',
+        // Pick one option from `options` — the menu-driven cards (The Gauntlet
+        // picks a restriction to impose, The Tally picks a "sin" to count).
+        'restriction_select',
+      ]),
       label: z.string().nullable(),
       count: z.number().nullable(),
+      options: z.array(z.string()).nullable().optional(),
     })
     .nullable(),
   restrictions: z.object({
     excludePar3: z.boolean(),
+    /** Activatable only on a par 5 (Albatross Aim and friends). */
+    par5Only: z.boolean().optional(),
+    /** Activatable only from hole 10 onward. */
+    backNineOnly: z.boolean().optional(),
+    /**
+     * Activatable only when the player is at least this many strokes over par
+     * for the round — the comeback cards (Second Wind).
+     */
+    minStrokesOverPar: z.number().nullable().optional(),
   }),
   flavorText: z.string(),
 })
@@ -45,9 +95,99 @@ export function isVariablePowerup(effect: PowerupEffect): boolean {
   return effect.duration === -1 && effect.scoring.mode === 'variable'
 }
 
+/**
+ * Windowed cards run for a fixed number of holes declared by `duration`, with
+ * their per-hole rule named by `conditionalKey`. Unlike `variable` cards they
+ * need no slug-specific code: the generic evaluator reads the card.
+ */
+export function isWindowedPowerup(effect: PowerupEffect): boolean {
+  // duration 1 is allowed: a "declare it, then play the hole" card (Sandbagger's
+  // Bluff) is a one-hole window that has to resolve AFTER the score lands,
+  // which is exactly what the windowed path does.
+  return effect.scoring.mode === 'windowed' && effect.duration >= 1
+}
+
+/**
+ * Both multi-hole kinds park on the card as status ACTIVE with tracking
+ * metadata and resolve later, so most call sites want this rather than either
+ * one alone.
+ */
+export function isTrackedPowerup(effect: PowerupEffect): boolean {
+  return isVariablePowerup(effect) || isWindowedPowerup(effect)
+}
+
+/**
+ * A reactive card is played to lie in wait. It goes ARMED and does nothing
+ * until another player acts, then fires on its own. Arming is never announced.
+ */
+export function isReactivePowerup(effect: PowerupEffect): boolean {
+  return effect.scoring.mode === 'reactive' && !!effect.scoring.reaction
+}
+
+/** Tracking state for a windowed card. One shape for every such card. */
+export interface WindowMetadata {
+  activationHoleNumber: number
+  /** Holes left in the window, decremented as the player scores. */
+  holesRemaining: number
+  /** Qualifying holes so far — what the player sees as progress. */
+  tally: number
+  /** Modifier accumulated so far; becomes scoreModifier on resolution. */
+  banked: number
+  /** Player-declared target, for cards that ask for a number up front. */
+  declaredCount?: number
+  /** Multi-target cards (and attacks that track an opponent's card). */
+  targetPlayerIds?: string[]
+  /** Chosen option for a restriction_select card, carried for display. */
+  selectedOption?: string
+  status: 'in_progress' | 'success' | 'failed'
+}
+
+/**
+ * Initial tracking metadata for a windowed card. Replaces what used to be a
+ * per-slug if/else chain in the activation route: the window length comes from
+ * the card's own `duration`, so a new windowed card is a seed row.
+ */
+export function buildWindowMetadata(
+  effect: PowerupEffect,
+  holeNumber: number,
+  input?: {
+    numberValue?: unknown
+    selectedPlayerIds?: string[] | null
+    targetPlayerId?: string | null
+    selectedOption?: unknown
+  } | null,
+): WindowMetadata {
+  const declared = input?.numberValue
+  const targets = input?.selectedPlayerIds?.length
+    ? input.selectedPlayerIds
+    : input?.targetPlayerId
+      ? [input.targetPlayerId]
+      : undefined
+
+  return {
+    activationHoleNumber: holeNumber,
+    holesRemaining: effect.duration,
+    tally: 0,
+    banked: 0,
+    ...(typeof declared === 'number' && Number.isFinite(declared)
+      ? { declaredCount: Math.min(Math.max(Math.trunc(declared), 1), 18) }
+      : {}),
+    ...(targets ? { targetPlayerIds: targets } : {}),
+    ...(typeof input?.selectedOption === 'string' ? { selectedOption: input.selectedOption } : {}),
+    status: 'in_progress',
+  }
+}
+
 interface HoleInfo {
   par: number
   number: number
+}
+
+/** Round-level facts the comeback restrictions need. Optional at call sites
+ *  that don't have them, in which case those restrictions don't apply. */
+export interface RoundProgress {
+  /** Player's strokes-over-par for the round so far. */
+  strokesOverPar?: number
 }
 
 /**
@@ -56,9 +196,29 @@ interface HoleInfo {
 export function canActivate(
   effect: PowerupEffect,
   hole: HoleInfo,
+  progress?: RoundProgress,
 ): { allowed: boolean; reason?: string } {
-  if (effect.restrictions.excludePar3 && hole.par === 3) {
+  const r = effect.restrictions
+
+  if (r.excludePar3 && hole.par === 3) {
     return { allowed: false, reason: 'This powerup cannot be used on par 3 holes.' }
+  }
+  if (r.par5Only && hole.par !== 5) {
+    return { allowed: false, reason: 'This powerup can only be used on par 5 holes.' }
+  }
+  if (r.backNineOnly && hole.number < 10) {
+    return { allowed: false, reason: 'This powerup can only be used on the back nine.' }
+  }
+  if (typeof r.minStrokesOverPar === 'number' && r.minStrokesOverPar > 0) {
+    // A comeback card. With no round progress to check we let it through
+    // rather than blocking a legitimate activation on missing data.
+    const over = progress?.strokesOverPar
+    if (typeof over === 'number' && over < r.minStrokesOverPar) {
+      return {
+        allowed: false,
+        reason: `This powerup unlocks once you are ${r.minStrokesOverPar} or more over par for the round (you are ${over}).`,
+      }
+    }
   }
   return { allowed: true }
 }

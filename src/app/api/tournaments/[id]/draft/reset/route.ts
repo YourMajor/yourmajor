@@ -37,9 +37,11 @@ export async function POST(
   await prisma.$transaction(async (tx) => {
     // Cards linked to this round's picks. Used cards stay: they already
     // changed a score and removing them would rewrite the leaderboard.
+    // ARMED cards DO go: a reactive card lying in wait has changed nothing,
+    // and leaving it would orphan it against a deleted DraftPick.
     if (pickIds.length > 0) {
       await tx.playerPowerup.deleteMany({
-        where: { draftPickId: { in: pickIds }, status: 'AVAILABLE' },
+        where: { draftPickId: { in: pickIds }, status: { in: ['AVAILABLE', 'ARMED'] } },
       })
     }
 
@@ -50,7 +52,7 @@ export async function POST(
       await tx.playerPowerup.deleteMany({
         where: {
           draftPickId: null,
-          status: 'AVAILABLE',
+          status: { in: ['AVAILABLE', 'ARMED'] },
           OR: roundPicks.map((p) => ({
             tournamentPlayerId: p.tournamentPlayerId,
             powerupId: p.powerupId,

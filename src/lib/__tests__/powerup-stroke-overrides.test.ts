@@ -27,7 +27,7 @@ const prismaMock = {
 
 vi.mock('@/lib/prisma', () => ({ prisma: prismaMock }))
 
-const { buildStrokeOverrideMap, effectiveStrokes } = await import('@/lib/powerup-stroke-overrides')
+const { buildStrokeAdjustmentMap, effectiveStrokes } = await import('@/lib/powerup-stroke-overrides')
 
 const row = (numberValue: unknown) => ({
   tournamentPlayerId: 'tp_1',
@@ -45,13 +45,13 @@ beforeEach(() => {
   scoredCounts = {}
 })
 
-describe('buildStrokeOverrideMap — can-i-get-your-number', () => {
+describe('buildStrokeAdjustmentMap — can-i-get-your-number', () => {
   it.each([[-500], [0], [21], [3.5], ['4'], [null], [undefined]])(
     'ignores a persisted numberValue of %p, leaving the recorded strokes',
     async (numberValue) => {
       overrideRows = [row(numberValue)]
 
-      const map = await buildStrokeOverrideMap('tourn_1', scores)
+      const map = await buildStrokeAdjustmentMap('tourn_1', scores)
 
       expect(map.has('tp_1:3')).toBe(false)
     },
@@ -60,22 +60,22 @@ describe('buildStrokeOverrideMap — can-i-get-your-number', () => {
   it('applies a numberValue inside the legal hole-score range', async () => {
     overrideRows = [row(7)]
 
-    const map = await buildStrokeOverrideMap('tourn_1', scores)
+    const map = await buildStrokeAdjustmentMap('tourn_1', scores)
 
-    expect(map.get('tp_1:3')).toBe(7)
+    expect(map.get('tp_1:3')).toEqual({ absolute: 7 })
   })
 
   it('applies the boundaries of the range', async () => {
     overrideRows = [row(1), { ...row(20), tournamentPlayerId: 'tp_2' }]
 
-    const map = await buildStrokeOverrideMap('tourn_1', scores)
+    const map = await buildStrokeAdjustmentMap('tourn_1', scores)
 
-    expect(map.get('tp_1:3')).toBe(1)
-    expect(map.get('tp_2:3')).toBe(20)
+    expect(map.get('tp_1:3')).toEqual({ absolute: 1 })
+    expect(map.get('tp_2:3')).toEqual({ absolute: 20 })
   })
 })
 
-describe('buildStrokeOverrideMap — parent-trap', () => {
+describe('buildStrokeAdjustmentMap — parent-trap', () => {
   const swapRow = {
     tournamentPlayerId: 'tp_a',
     targetPlayerId: 'tp_b',
@@ -93,7 +93,7 @@ describe('buildStrokeOverrideMap — parent-trap', () => {
     overrideRows = [swapRow]
     scoredCounts = { tp_a: 18, tp_b: 12 }
 
-    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+    const map = await buildStrokeAdjustmentMap('tourn_1', swapScores, 'round_1')
 
     expect(map.has('tp_a:round_1:5')).toBe(false)
     expect(map.has('tp_b:round_1:5')).toBe(false)
@@ -103,25 +103,25 @@ describe('buildStrokeOverrideMap — parent-trap', () => {
     overrideRows = [swapRow]
     scoredCounts = { tp_a: 18, tp_b: 18 }
 
-    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+    const map = await buildStrokeAdjustmentMap('tourn_1', swapScores, 'round_1')
 
-    expect(map.get('tp_a:round_1:5')).toBe(3)
-    expect(map.get('tp_b:round_1:5')).toBe(7)
+    expect(map.get('tp_a:round_1:5')).toEqual({ absolute: 3 })
+    expect(map.get('tp_b:round_1:5')).toEqual({ absolute: 7 })
   })
 
   it('swaps on the picked hole, not the activation hole', async () => {
     overrideRows = [{ ...swapRow, holeNumber: 9, metadata: { swapHoleNumber: 5 } }]
     scoredCounts = { tp_a: 18, tp_b: 18 }
 
-    const map = await buildStrokeOverrideMap('tourn_1', swapScores, 'round_1')
+    const map = await buildStrokeAdjustmentMap('tourn_1', swapScores, 'round_1')
 
-    expect(map.get('tp_a:round_1:5')).toBe(3)
-    expect(map.get('tp_b:round_1:5')).toBe(7)
+    expect(map.get('tp_a:round_1:5')).toEqual({ absolute: 3 })
+    expect(map.get('tp_b:round_1:5')).toEqual({ absolute: 7 })
     expect(map.has('tp_a:round_1:9')).toBe(false)
   })
 })
 
-describe('buildStrokeOverrideMap — multi-round tournaments', () => {
+describe('buildStrokeAdjustmentMap — multi-round tournaments', () => {
   const numberRow = {
     tournamentPlayerId: 'tp_1',
     targetPlayerId: null,
@@ -137,7 +137,7 @@ describe('buildStrokeOverrideMap — multi-round tournaments', () => {
 
   it('applies a round-1 override to round 1 only, not the same hole in round 2', async () => {
     overrideRows = [numberRow]
-    const map = await buildStrokeOverrideMap('tourn_1', twoRounds)
+    const map = await buildStrokeAdjustmentMap('tourn_1', twoRounds)
 
     expect(effectiveStrokes(map, 'tp_1', 1, 6, 'round_1')).toBe(3)
     expect(effectiveStrokes(map, 'tp_1', 1, 5, 'round_2')).toBe(5)
@@ -149,7 +149,7 @@ describe('buildStrokeOverrideMap — multi-round tournaments', () => {
       { ...twoRounds[0], gir: false },
       { ...twoRounds[1], gir: true },
     ]
-    const map = await buildStrokeOverrideMap('tourn_1', scoresGirOnlyInRound2)
+    const map = await buildStrokeAdjustmentMap('tourn_1', scoresGirOnlyInRound2)
 
     expect(effectiveStrokes(map, 'tp_1', 1, 6, 'round_1')).toBe(6)
     expect(effectiveStrokes(map, 'tp_1', 1, 5, 'round_2')).toBe(5)
@@ -157,7 +157,7 @@ describe('buildStrokeOverrideMap — multi-round tournaments', () => {
 
   it('still applies a legacy override with no round to every round', async () => {
     overrideRows = [{ ...numberRow, roundId: null }]
-    const map = await buildStrokeOverrideMap('tourn_1', twoRounds)
+    const map = await buildStrokeAdjustmentMap('tourn_1', twoRounds)
 
     expect(effectiveStrokes(map, 'tp_1', 1, 6, 'round_1')).toBe(3)
     expect(effectiveStrokes(map, 'tp_1', 1, 5, 'round_2')).toBe(3)

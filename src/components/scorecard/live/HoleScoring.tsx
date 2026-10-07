@@ -13,7 +13,7 @@ import { SlugIcon, CardBack, powerupStyles, POWERUP_STYLES } from '@/components/
 import { FlippableCardOverlay } from '@/components/draft/FlippableCardOverlay'
 import type { PowerupCardData } from '@/components/draft/PowerupCard'
 import type { PowerupEffect } from '@/lib/powerup-engine'
-import { ChevronLeft, ChevronRight, Check } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Check, Undo2 } from 'lucide-react'
 
 // ─── Score type styling ───────────────────────────────────────────────────────
 
@@ -82,6 +82,8 @@ interface HoleScoringProps {
   onToggleFairway: () => void
   onToggleGir: () => void
   onActivatePowerup: (data: { playerPowerupId: string; targetPlayerId?: string; targetHoleNumber?: number; metadata?: Record<string, unknown> }) => Promise<void>
+  /** Take back a card played by mistake. Absent when undo is unavailable. */
+  onUndoPowerup?: (playerPowerupId: string) => Promise<void>
   onPrev: () => void
   onNext: () => void
   onFinishRound: () => void
@@ -122,6 +124,7 @@ export function HoleScoring({
   onToggleFairway,
   onToggleGir,
   onActivatePowerup,
+  onUndoPowerup,
   onPrev,
   onNext,
   onFinishRound,
@@ -132,6 +135,8 @@ export function HoleScoring({
   onConcede,
 }: HoleScoringProps) {
   const [inspectedCard, setInspectedCard] = useState<PowerupCardData | null>(null)
+  /** Which card's undo is in flight, so the control can't be double-tapped. */
+  const [undoingId, setUndoingId] = useState<string | null>(null)
   const online = useOnline()
   const scoreType = getScoreType(score.strokes, hole.par)
   const scoreLabel = score.strokes !== null
@@ -234,26 +239,52 @@ export function HoleScoring({
                 }
               : null
             return (
-              <button
+              // A row, not a single button: the card body opens the inspector
+              // and the undo control sits beside it. Nesting a button inside a
+              // button would be invalid markup.
+              <div
                 key={ap.playerPowerupId}
-                type="button"
-                onClick={() => inspectable && setInspectedCard(inspectable)}
-                disabled={!inspectable}
-                aria-label={`View ${ap.powerupName} card details`}
-                className={`w-full text-left flex items-center gap-2.5 px-3 py-2 rounded-lg border-2 border-powerup-active shadow-[0_0_8px] shadow-powerup-active/25 transition-transform active:scale-[0.98] ${
+                className={`flex items-stretch gap-1.5 rounded-lg border-2 border-powerup-active shadow-[0_0_8px] shadow-powerup-active/25 ${
                   powerupStyles(isAtk).soft
-                } ${inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'}`}
+                }`}
               >
-                <SlugIcon slug={ap.powerupSlug} isAttack={isAtk} className={`w-5 h-5 shrink-0 ${powerupStyles(isAtk).ink}`} />
-                <div className="flex-1 min-w-0">
-                  <p className={`text-sm font-semibold truncate ${powerupStyles(isAtk).name}`}>{ap.powerupName}</p>
-                  {ap.scoreModifier !== null && (
-                    <p className={`text-[11px] ${powerupStyles(isAtk).caption}`}>
-                      {ap.scoreModifier > 0 ? '+' : ''}{ap.scoreModifier} strokes
-                    </p>
-                  )}
-                </div>
-              </button>
+                <button
+                  type="button"
+                  onClick={() => inspectable && setInspectedCard(inspectable)}
+                  disabled={!inspectable}
+                  aria-label={`View ${ap.powerupName} card details`}
+                  className={`flex-1 min-w-0 text-left flex items-center gap-2.5 px-3 py-2 rounded-l-lg transition-transform active:scale-[0.98] ${
+                    inspectable ? 'cursor-pointer hover:brightness-105' : 'cursor-default'
+                  }`}
+                >
+                  <SlugIcon slug={ap.powerupSlug} isAttack={isAtk} className={`w-5 h-5 shrink-0 ${powerupStyles(isAtk).ink}`} />
+                  <div className="flex-1 min-w-0">
+                    <p className={`text-sm font-semibold truncate ${powerupStyles(isAtk).name}`}>{ap.powerupName}</p>
+                    {ap.scoreModifier !== null && (
+                      <p className={`text-[11px] ${powerupStyles(isAtk).caption}`}>
+                        {ap.scoreModifier > 0 ? '+' : ''}{ap.scoreModifier} strokes
+                      </p>
+                    )}
+                  </div>
+                </button>
+                {onUndoPowerup && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setUndoingId(ap.playerPowerupId)
+                      onUndoPowerup(ap.playerPowerupId).finally(() => setUndoingId(null))
+                    }}
+                    disabled={undoingId === ap.playerPowerupId}
+                    aria-label={`Take back ${ap.powerupName}`}
+                    title="Played by mistake? Take it back"
+                    className={`tap-44 shrink-0 px-3 flex items-center justify-center rounded-r-lg border-l border-white/15 transition-colors active:scale-[0.97] disabled:opacity-40 ${
+                      powerupStyles(isAtk).caption
+                    } hover:bg-white/10`}
+                  >
+                    <Undo2 className="w-4 h-4" />
+                  </button>
+                )}
+              </div>
             )
           })}
           {attacksReceived.map((ar) => {

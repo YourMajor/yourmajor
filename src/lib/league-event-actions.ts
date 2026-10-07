@@ -199,7 +199,11 @@ export async function scheduleLeagueEvent(
       data: { tournamentId: newEvent.id, format: 'SNAKE', timing: 'PRE_TOURNAMENT' },
     }).catch(() => {})
 
-    const allPowerups = await prisma.powerup.findMany({ select: { id: true } })
+    // Retired cards stay out of new pools — see tournaments/new/actions.
+    const allPowerups = await prisma.powerup.findMany({
+      where: { retiredAt: null },
+      select: { id: true },
+    })
     if (allPowerups.length > 0) {
       await prisma.tournamentPowerup.createMany({
         data: allPowerups.map((p) => ({

@@ -2,6 +2,7 @@ import Link from 'next/link'
 import { prisma } from '@/lib/prisma'
 import { AdminScorecardEditor } from '@/components/admin/AdminScorecardEditor'
 import { LeagueScoreSelector } from '@/components/admin/LeagueScoreSelector'
+import { PlayedPowerupsPanel, type PlayedPowerup } from '@/components/admin/PlayedPowerupsPanel'
 import { getLeagueEvents } from '@/lib/league-events'
 
 export default async function AdminScoresPage({
@@ -39,6 +40,53 @@ export default async function AdminScoresPage({
 
   const isLeagueChain = tournament.isLeague || !!tournament.parentTournamentId
   const leagueEvents = isLeagueChain ? await getLeagueEvents(tournament.id) : []
+
+  // Cards in play, so an admin can take back one a player hit by accident.
+  // Scoped by the ACTIVATOR's membership, which is how PlayerPowerup is tied to
+  // a tournament (there is no tournamentId column on the row).
+  const playedRows = tournament.powerupsEnabled
+    ? await prisma.playerPowerup.findMany({
+        where: {
+          tournamentPlayer: { tournamentId: tournament.id },
+          status: { in: ['USED', 'ACTIVE'] },
+        },
+        select: {
+          id: true,
+          status: true,
+          holeNumber: true,
+          targetHoleNumber: true,
+          targetPlayerId: true,
+          tournamentPlayerId: true,
+          scoreModifier: true,
+          usedAt: true,
+          roundId: true,
+          powerup: { select: { name: true, type: true } },
+        },
+        orderBy: { usedAt: 'desc' },
+      })
+    : []
+
+  const roundNumberById = new Map(tournament.rounds.map((r) => [r.id, r.roundNumber]))
+  const displayName = (u: { name: string | null; email: string }) => u.name ?? u.email.split('@')[0]
+  // targetPlayerId is a bare column with no relation on PlayerPowerup, so both
+  // names come from the players already loaded above rather than a second query.
+  const nameByPlayerId = new Map(tournament.players.map((p) => [p.id, displayName(p.user)]))
+
+  const played: PlayedPowerup[] = playedRows.map((pp) => ({
+    playerPowerupId: pp.id,
+    powerupName: pp.powerup.name,
+    powerupType: pp.powerup.type,
+    activatorName: nameByPlayerId.get(pp.tournamentPlayerId) ?? 'Player',
+    targetName: pp.targetPlayerId ? nameByPlayerId.get(pp.targetPlayerId) ?? 'Player' : null,
+    roundNumber: pp.roundId ? roundNumberById.get(pp.roundId) ?? null : null,
+    // An attack's effect lands on the victim's hole, so that is the hole worth
+    // showing an admin — the attacker's activation hole says nothing about it.
+    holeNumber: pp.powerup.type === 'ATTACK' && pp.targetPlayerId
+      ? pp.targetHoleNumber ?? pp.holeNumber
+      : pp.holeNumber,
+    scoreModifier: pp.scoreModifier,
+    status: pp.status,
+  }))
 
   const rounds = tournament.rounds.map((r) => ({
     id: r.id,
@@ -83,6 +131,9 @@ export default async function AdminScoresPage({
         />
       )}
       <AdminScorecardEditor rounds={rounds} players={players} />
+      {tournament.powerupsEnabled && (
+        <PlayedPowerupsPanel tournamentId={tournament.id} played={played} />
+      )}
     </main>
   )
 }

@@ -22,7 +22,7 @@ export interface PowerupCardData {
 
 interface PowerupCardProps {
   powerup: PowerupCardData
-  state?: 'available' | 'selected' | 'picked' | 'owned' | 'used'
+  state?: 'available' | 'selected' | 'picked' | 'owned' | 'used' | 'armed'
   pickedBy?: { name: string | null; image: string | null } | null
   size?: 'sm' | 'md' | 'lg' | 'grid' | 'browse'
   onClick?: () => void
@@ -58,7 +58,10 @@ export function PowerupCard({
 }: PowerupCardProps) {
   const isAttack = powerup.type === 'ATTACK'
   const isPicked = state === 'picked'
-  const isUsed = state === 'used'
+  const isArmed = state === 'armed'
+  // An armed card is committed: dimmed and untappable like a used one,
+  // but badged differently because it has not done anything yet.
+  const isUsed = state === 'used' || isArmed
   const isSelected = state === 'selected'
 
   if (size === 'browse') {
@@ -155,10 +158,12 @@ export function PowerupCard({
         </div>
       )}
 
-      {/* Used indicator */}
+      {/* Used / armed indicator */}
       {isUsed && (
         <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-black/40">
-          <span className="text-xs font-bold text-white/70 uppercase tracking-wider">Used</span>
+          <span className="text-xs font-bold text-white/70 uppercase tracking-wider">
+            {isArmed ? 'Armed' : 'Used'}
+          </span>
         </div>
       )}
     </button>

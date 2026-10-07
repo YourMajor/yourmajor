@@ -319,7 +319,12 @@ export async function updateTournament(
     if (powerupsEnabled) {
       const poolCount = await tx.tournamentPowerup.count({ where: { tournamentId } })
       if (poolCount === 0) {
-        const allPowerups = await tx.powerup.findMany({ select: { id: true } })
+        // Retired cards are excluded from a backfilled pool for the same
+        // reason they are excluded at creation — see tournaments/new/actions.
+        const allPowerups = await tx.powerup.findMany({
+          where: { retiredAt: null },
+          select: { id: true },
+        })
         if (allPowerups.length > 0) {
           await tx.tournamentPowerup.createMany({
             data: allPowerups.map((p) => ({ tournamentId, powerupId: p.id, quantity: 1 })),

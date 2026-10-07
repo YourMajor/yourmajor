@@ -379,7 +379,7 @@ describe('Leaderboard Scoring by Handicap System', () => {
         name: 'A',
         avatarUrl: null,
         handicap: opts.playerHandicap ?? 0,
-        scoreModifier: 0,
+       
         teamId: null,
         scores: opts.scores.map((s) => ({
           holeNumber: s.number,

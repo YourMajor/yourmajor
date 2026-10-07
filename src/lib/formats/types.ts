@@ -85,7 +85,9 @@ export interface ScoringPlayer {
   avatarUrl: string | null
   handicap: number
   scores: ScoringScore[]
-  scoreModifier: number   // sum of powerup modifiers
+  // No powerup field here by design: modifiers are baked into each
+  // ScoringScore.strokes by the stroke adjustment map
+  // (src/lib/powerup-stroke-overrides.ts), so every format sees them for free.
   teamId: string | null
 }
 

@@ -1,5 +1,8 @@
 /**
- * Seed script — creates all 77 powerup cards (30 original + 47 expansion).
+ * Seed script — defines every powerup card and applies retirements.
+ *
+ * Retired cards (see RETIRED below) stay in the table so finished tournaments
+ * keep their history, but are filtered out of new pools.
  * Run with: npx tsx scripts/seed-powerups.ts
  *
  * Idempotent: uses upsert on slug.
@@ -7,34 +10,20 @@
 import 'dotenv/config'
 import { Prisma, PrismaClient } from '../src/generated/prisma/client'
 import { PrismaPg } from '@prisma/adapter-pg'
+import { powerupEffectSchema, type PowerupEffect } from '../src/lib/powerup-engine'
 
 const adapter = new PrismaPg({ connectionString: process.env.DATABASE_URL! })
 const prisma = new PrismaClient({ adapter })
 
+// The effect shape comes from the engine's zod schema rather than a local
+// copy: a card that declares something the engine would reject now fails at
+// typecheck instead of at activation time.
 type PowerupSeed = {
   slug: string
   name: string
   type: 'BOOST' | 'ATTACK'
   description: string
-  effect: {
-    scoring: {
-      mode: 'auto' | 'manual' | 'behavioral' | 'variable'
-      modifier: number | null
-      conditionalKey: string | null
-      cap?: number | null
-    }
-    duration: number
-    requiresTarget: boolean
-    input: {
-      type: 'none' | 'player_select' | 'club_select' | 'number_input' | 'hole_select'
-      label: string | null
-      count: number | null
-    } | null
-    restrictions: {
-      excludePar3: boolean
-    }
-    flavorText: string
-  }
+  effect: PowerupEffect
 }
 
 const POWERUPS: PowerupSeed[] = [
@@ -515,8 +504,8 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'For 9 holes, you can move every shot one club length from its original position, no closer to the hole.',
     effect: {
-      scoring: { mode: 'variable', modifier: null, conditionalKey: 'foot_wedge_window' },
-      duration: -1,
+      scoring: { mode: 'windowed', modifier: 0, conditionalKey: 'none', bank: 'none' },
+      duration: 9,
       requiresTarget: false,
       input: null,
       restrictions: { excludePar3: false },
@@ -641,8 +630,8 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: '9-hole window. Each hole you one-putt, subtract 1 from your total score.',
     effect: {
-      scoring: { mode: 'variable', modifier: null, conditionalKey: 'one_putt_streak' },
-      duration: -1,
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'one_putt', bank: 'sum' },
+      duration: 9,
       requiresTarget: false,
       input: null,
       restrictions: { excludePar3: false },
@@ -893,8 +882,8 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'For the next 3 holes, every birdie counts double — subtract an additional 1 per birdie.',
     effect: {
-      scoring: { mode: 'variable', modifier: null, conditionalKey: 'birdie_bonus_3' },
-      duration: -1,
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'birdie_bonus', bank: 'sum' },
+      duration: 3,
       requiresTarget: false,
       input: null,
       restrictions: { excludePar3: false },
@@ -907,8 +896,8 @@ const POWERUPS: PowerupSeed[] = [
     type: 'BOOST',
     description: 'Avoid all bogeys for the next 3 holes. Success: subtract 3. One bogey or worse: nothing.',
     effect: {
-      scoring: { mode: 'variable', modifier: null, conditionalKey: 'bogey_free_3' },
-      duration: -1,
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'bogey_free', bank: 'streak' },
+      duration: 3,
       requiresTarget: false,
       input: null,
       restrictions: { excludePar3: false },
@@ -924,8 +913,8 @@ const POWERUPS: PowerupSeed[] = [
     type: 'ATTACK',
     description: 'Pick a player. For the next 3 holes, every SCORE counts double (eagles are -4, birdies are -2, bogeys are +2, double-bogeys are +4)',
     effect: {
-      scoring: { mode: 'variable', modifier: null, conditionalKey: 'score_double_3' },
-      duration: -1,
+      scoring: { mode: 'windowed', modifier: 1, conditionalKey: 'score_double', bank: 'sum' },
+      duration: 3,
       requiresTarget: true,
       input: { type: 'player_select', label: 'Select opponent', count: null },
       restrictions: { excludePar3: false },
@@ -1128,12 +1117,270 @@ const POWERUPS: PowerupSeed[] = [
       flavorText: 'Stay in the short stuff.',
     },
   },
+  // ─── WINDOWED + DYNAMIC CARDS (10) ─────────────────────────────────────────
+  //
+  // These run on the generic windowed engine: `duration` holes, a per-hole rule
+  // named by `conditionalKey` (see HOLE_PREDICATES in
+  // src/lib/variable-powerup-evaluator.ts) and `bank` deciding how per-hole
+  // results accumulate. No per-card code.
+
+  {
+    slug: 'covid-birdie',
+    name: 'COVID Birdie',
+    type: 'BOOST',
+    description: 'For the next 6 holes, any putt that touches the hole or the flagstick counts as holed. Rattle out, lip out, hit the pin — it is in.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: 0, conditionalKey: 'none', bank: 'none' },
+      duration: 6,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'Close enough counts now.',
+    },
+  },
+  {
+    slug: 'par-train',
+    name: 'Par Train',
+    type: 'BOOST',
+    description: 'For the next 5 holes, bank -1 for every par or better. A double bogey derails the train and you lose the lot.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'par_or_better', bank: 'wipe' },
+      duration: 5,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'All aboard. Mind the gap.',
+    },
+  },
+  {
+    slug: 'the-hot-hand',
+    name: 'The Hot Hand',
+    type: 'BOOST',
+    description: 'For the next 6 holes, every hole you score better than your last one pays -1 and adds another hole to the run. Keep improving, keep going.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'beat_previous_hole', bank: 'sum' },
+      duration: 6,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'Do not look down.',
+    },
+  },
+  {
+    slug: 'second-wind',
+    name: 'Second Wind',
+    type: 'BOOST',
+    description: 'Only playable once you are 5 or more over par for the round. For the next 9 holes every bogey is wiped back to a par. Doubles still hurt.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'bogey_rescue', bank: 'sum' },
+      duration: 9,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false, minStrokesOverPar: 5 },
+      flavorText: 'The round is not over yet.',
+    },
+  },
+  {
+    slug: 'fairway-metronome',
+    name: 'Fairway Metronome',
+    type: 'BOOST',
+    description: 'For the next 6 holes, subtract 1 for every fairway you hit. Par 3s are skipped, not counted against you.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: -1, conditionalKey: 'fairway_bonus', bank: 'sum' },
+      duration: 6,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'Tick. Tock.',
+    },
+  },
+  {
+    slug: 'sandbaggers-bluff',
+    name: "Sandbagger's Bluff",
+    type: 'BOOST',
+    description: 'Call your score on this hole before you tee off. Nail it exactly: -3. Miss by one: nothing. Miss by two or more: +2.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: -3, conditionalKey: 'exact_call', bank: 'sum' },
+      duration: 1,
+      requiresTarget: false,
+      input: { type: 'number_input', label: 'What will you score on this hole?', count: null },
+      restrictions: { excludePar3: false },
+      flavorText: 'Say it out loud so everyone hears.',
+    },
+  },
+  {
+    slug: 'the-vampire',
+    name: 'The Vampire',
+    type: 'ATTACK',
+    description: 'Pick a player. For the next 4 holes, every stroke they take over par is added to their score AND subtracted from yours.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: 1, conditionalKey: 'over_par_drain', bank: 'sum', mirror: true },
+      duration: 4,
+      requiresTarget: true,
+      input: { type: 'player_select', label: 'Who are you draining?', count: 1 },
+      restrictions: { excludePar3: false },
+      flavorText: 'Their bad round is your good one.',
+    },
+  },
+  {
+    slug: 'tax-collector',
+    name: 'Tax Collector',
+    type: 'ATTACK',
+    description: 'Pick a player. For the next 6 holes they pay 1 stroke for every birdie or better they make, and you collect it.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: 1, conditionalKey: 'birdie_tax', bank: 'sum', mirror: true },
+      duration: 6,
+      requiresTarget: true,
+      input: { type: 'player_select', label: 'Who is being taxed?', count: 1 },
+      restrictions: { excludePar3: false },
+      flavorText: 'Nothing is certain but this.',
+    },
+  },
+  {
+    slug: 'the-gauntlet',
+    name: 'The Gauntlet',
+    type: 'ATTACK',
+    description: 'Pick a player and one restriction. They play under it for the next 3 holes.',
+    effect: {
+      scoring: { mode: 'windowed', modifier: 0, conditionalKey: 'none', bank: 'none' },
+      duration: 3,
+      requiresTarget: true,
+      input: {
+        type: 'restriction_select',
+        label: 'Which restriction?',
+        count: 1,
+        options: [
+          'No practice swings',
+          'Sing or hum audibly through every backswing',
+          'Stand over the ball for 60 seconds before every shot',
+          'No rangefinder, GPS or distance markers',
+          'Eyes closed on every tee shot (use a spotter)',
+        ],
+      },
+      restrictions: { excludePar3: false },
+      flavorText: 'Choose their suffering.',
+    },
+  },
+  {
+    slug: 'the-tally',
+    name: 'The Tally',
+    type: 'ATTACK',
+    description: 'Pick a player and one sin, without telling them which. Each time they commit it this hole, add 1 to their score, up to +3. They only find out what you were counting once the hole is done.',
+    effect: {
+      scoring: { mode: 'manual', modifier: 1, conditionalKey: 'tally_count', cap: 3 },
+      duration: 1,
+      requiresTarget: true,
+      input: {
+        type: 'restriction_select',
+        label: 'Which sin are you counting?',
+        count: 1,
+        options: [
+          'Ball touches the fairway',
+          'Shot played from the rough',
+          'Ball lands within two club lengths of a bunker',
+          'Missed putt from inside 5 feet',
+          'Out of bounds or lost ball',
+        ],
+      },
+      restrictions: { excludePar3: false },
+      flavorText: 'They will not know what you are counting.',
+    },
+  },
+  // ─── REACTIVE CARDS (3) ────────────────────────────────────────────────────
+  //
+  // Played to lie in wait: they go ARMED and do nothing until another player
+  // acts, then fire on their own. Arming is never announced — the bluff is the
+  // mechanic. Which trigger each one answers to lives in REACTIONS
+  // (src/lib/powerup-reactions.ts), not here.
+
+  {
+    slug: 'deflector',
+    name: 'Deflector',
+    type: 'BOOST',
+    description: 'Play it to arm it — nobody is told. The next attack aimed at you is turned around and lands on whoever sent it.',
+    effect: {
+      scoring: { mode: 'reactive', modifier: 0, conditionalKey: null, reaction: 'deflect' },
+      duration: 1,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'Return to sender.',
+    },
+  },
+  {
+    slug: 'absorb',
+    name: 'Absorb',
+    type: 'BOOST',
+    description: 'Play it to arm it. The next attack aimed at you does nothing at all, and you take -1 for the trouble.',
+    effect: {
+      scoring: { mode: 'reactive', modifier: 0, conditionalKey: null, reaction: 'absorb' },
+      duration: 1,
+      requiresTarget: false,
+      input: null,
+      restrictions: { excludePar3: false },
+      flavorText: 'Thanks for that.',
+    },
+  },
+  {
+    slug: 'tripwire',
+    name: 'Tripwire',
+    type: 'ATTACK',
+    description: 'Arm it on a rival, secretly. The next time they attack anyone, they take +2 for the privilege. Their attack still lands.',
+    effect: {
+      scoring: { mode: 'reactive', modifier: 0, conditionalKey: null, reaction: 'tripwire' },
+      duration: 1,
+      requiresTarget: true,
+      input: { type: 'player_select', label: 'Who are you wiring up?', count: 1 },
+      restrictions: { excludePar3: false },
+      flavorText: 'Mind your step.',
+    },
+  },
+]
+
+/**
+ * Cards retired as near-duplicates, each mapped to the card that absorbed it.
+ *
+ * Retired, not deleted: PlayerPowerup, DraftPick and PowerupFavorite reference
+ * Powerup by foreign key, so deleting one would erase it from the history of
+ * every tournament that already played it. A retired card is filtered out of
+ * new tournament pools (see tournaments/new/actions.ts) and therefore out of
+ * the draft and the browse grid; events already holding it are unaffected.
+ *
+ * The seed owns this list so it stays declarative and idempotent — rerunning
+ * the seed re-applies it, and removing a slug from here un-retires that card.
+ */
+const RETIRED: Array<{ slug: string; absorbedBy: string; why: string }> = [
+  { slug: 'drop-zone', absorbedBy: 'brush-it-off', why: 'identical text: one club length, no penalty' },
+  { slug: 'skipping-stones', absorbedBy: 'the-dropdown', why: 'the-dropdown covers any hazard, not just water' },
+  { slug: 'the-re-do', absorbedBy: 'mulligan', why: 'mulligan re-hits any shot AND pays -1' },
+  { slug: 'sand-save', absorbedBy: 'up-and-down-artist', why: 'same -3; a sand save is an up-and-down from a bunker' },
+  { slug: 'showdown', absorbedBy: 'big-brother', why: 'both are "beat your chosen partner"' },
+  // Also closes an exploit: shots-for-shots declares no `cap`, so
+  // computeActivationModifier bounded it only at NUMBER_INPUT_MAX (20) —
+  // one card could post -20 strokes. beer-bonus caps at -3.
+  { slug: 'shots-for-shots', absorbedBy: 'beer-bonus', why: 'same card, and the uncapped one' },
+  // Seven behavioral attacks that differed only in flavour text — none had any
+  // mechanical effect. The Gauntlet does all of them from one menu.
+  { slug: 'sing-it', absorbedBy: 'the-gauntlet', why: 'one of five identical behavioral annoyances' },
+  { slug: 'the-heckle', absorbedBy: 'the-gauntlet', why: 'one of five identical behavioral annoyances' },
+  { slug: 'no-practice-swings', absorbedBy: 'the-gauntlet', why: 'one of five identical behavioral annoyances' },
+  { slug: 'tee-time-attack', absorbedBy: 'the-gauntlet', why: 'one of five identical behavioral annoyances' },
+  { slug: 'distance-denied', absorbedBy: 'the-gauntlet', why: 'one of five identical behavioral annoyances' },
+  // Four "+1 per occurrence, victim self-reports" attacks with one mechanic.
+  { slug: 'the-fairway-is-lava', absorbedBy: 'the-tally', why: 'one of four identical count attacks' },
+  { slug: 'proximity-mine', absorbedBy: 'the-tally', why: 'one of four identical count attacks' },
+  { slug: 'the-cursed-club', absorbedBy: 'the-tally', why: 'one of four identical count attacks' },
+  { slug: 'yipsy-daisy', absorbedBy: 'the-tally', why: 'one of four identical count attacks' },
 ]
 
 async function main() {
   console.log('Seeding powerup cards...\n')
 
   for (const p of POWERUPS) {
+    // Validate against the engine's own schema before writing. A malformed
+    // effect would otherwise sit in the database until a player activated it.
+    powerupEffectSchema.parse(p.effect)
+
     const powerup = await prisma.powerup.upsert({
       where: { slug: p.slug },
       update: {
@@ -1154,9 +1401,44 @@ async function main() {
     console.log(`  ${icon} ${powerup.name} (${p.type})`)
   }
 
-  const boosts = POWERUPS.filter((p) => p.type === 'BOOST').length
-  const attacks = POWERUPS.filter((p) => p.type === 'ATTACK').length
-  console.log(`\nDone. Seeded ${POWERUPS.length} powerups (${boosts} boosts, ${attacks} attacks).`)
+  // ── Apply retirements. Every surviving card is explicitly un-retired so the
+  // seed is the single source of truth and can reverse a retirement.
+  const retiredSlugs = new Set(RETIRED.map((r) => r.slug))
+  const missing = RETIRED.filter((r) => !POWERUPS.some((p) => p.slug === r.slug))
+  if (missing.length > 0) {
+    throw new Error(`RETIRED names slugs that no card defines: ${missing.map((m) => m.slug).join(', ')}`)
+  }
+  const danglingTargets = RETIRED.filter(
+    (r) => !POWERUPS.some((p) => p.slug === r.absorbedBy) || retiredSlugs.has(r.absorbedBy),
+  )
+  if (danglingTargets.length > 0) {
+    throw new Error(
+      `RETIRED points at missing or itself-retired cards: ${danglingTargets.map((d) => `${d.slug} -> ${d.absorbedBy}`).join(', ')}`,
+    )
+  }
+
+  const now = new Date()
+  const retired = await prisma.powerup.updateMany({
+    where: { slug: { in: [...retiredSlugs] }, retiredAt: null },
+    data: { retiredAt: now },
+  })
+  const restored = await prisma.powerup.updateMany({
+    where: { slug: { notIn: [...retiredSlugs] }, retiredAt: { not: null } },
+    data: { retiredAt: null },
+  })
+
+  console.log(`\nRetired ${retired.count} newly, restored ${restored.count}:`)
+  for (const r of RETIRED) {
+    console.log(`  ⊘ ${r.slug} → ${r.absorbedBy}  (${r.why})`)
+  }
+
+  const live = POWERUPS.filter((p) => !retiredSlugs.has(p.slug))
+  const boosts = live.filter((p) => p.type === 'BOOST').length
+  const attacks = live.filter((p) => p.type === 'ATTACK').length
+  console.log(
+    `\nDone. ${POWERUPS.length} cards defined; ${live.length} draftable ` +
+    `(${boosts} boosts, ${attacks} attacks), ${retiredSlugs.size} retired.`,
+  )
 }
 
 main()
