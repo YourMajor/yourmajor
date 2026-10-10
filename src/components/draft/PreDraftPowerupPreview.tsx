@@ -19,6 +19,8 @@ interface PreDraftPowerupPreviewProps {
   description: string
   backHref: string
   adminCta?: { href: string; label: string }
+  /** false on the standalone catalog: no pulsing clock, no "for the draft" hint. */
+  waiting?: boolean
 }
 
 export function PreDraftPowerupPreview({
@@ -28,6 +30,7 @@ export function PreDraftPowerupPreview({
   description,
   backHref,
   adminCta,
+  waiting = true,
 }: PreDraftPowerupPreviewProps) {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState<PowerupTypeFilter>('ALL')
@@ -122,7 +125,7 @@ export function PreDraftPowerupPreview({
       {/* Inline waiting banner instead of a full-page interstitial so the
           catalog stays visible below it. */}
       <div className="rounded-2xl border border-border bg-card/60 px-4 py-5 sm:px-6 sm:py-6 flex flex-col sm:flex-row items-center sm:items-start gap-4 text-center sm:text-left">
-        <div className="relative shrink-0">
+        {waiting && <div className="relative shrink-0">
           <div
             className="absolute inset-0 rounded-full animate-ping opacity-20"
             style={{ backgroundColor: 'var(--color-primary, var(--primary))' }}
@@ -133,13 +136,15 @@ export function PreDraftPowerupPreview({
           >
             <Clock className="w-5 h-5" style={{ color: 'var(--color-primary, var(--primary))' }} />
           </div>
-        </div>
+        </div>}
         <div className="flex-1">
           <h1 className="text-xl sm:text-2xl font-heading text-foreground">{heading}</h1>
           <p className="text-sm text-muted-foreground mt-1">{description}</p>
-          <p className="text-xs text-muted-foreground/80 mt-2">
-            Browse the powerup pool below — tap the heart on any card to favourite it for the draft.
-          </p>
+          {waiting && (
+            <p className="text-xs text-muted-foreground/80 mt-2">
+              Browse the powerup pool below — tap the heart on any card to favourite it for the draft.
+            </p>
+          )}
         </div>
         {adminCta && (
           <Link

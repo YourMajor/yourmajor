@@ -12,6 +12,7 @@ import { ProfileDropdown } from '@/components/ProfileDropdown'
 const APP_LINKS: { label: string; href: string }[] = [
   { label: 'Dashboard', href: '/dashboard' },
   { label: 'Tournaments', href: '/tournaments' },
+  { label: 'Powerups', href: '/powerups' },
   { label: 'Pricing', href: '/pricing' },
 ]
 // Order matches the landing page's own order: the clubhouse now sits

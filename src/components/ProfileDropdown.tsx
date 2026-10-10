@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from 'react'
 import Link from 'next/link'
-import { LogOut, User } from 'lucide-react'
+import { LogOut, User, Zap } from 'lucide-react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 
 export function ProfileDropdown({
@@ -51,6 +51,16 @@ export function ProfileDropdown({
           role="menu"
           className="absolute right-0 top-full mt-1 w-44 rounded-lg border border-border bg-popover shadow-md py-1 z-50"
         >
+          {/* Signed-in phones have no other app nav — the hamburger is visitor-only. */}
+          <Link
+            href="/powerups"
+            role="menuitem"
+            onClick={() => setOpen(false)}
+            className="flex items-center gap-2 px-3 py-2 text-sm text-foreground hover:bg-muted transition-colors"
+          >
+            <Zap className="w-4 h-4 text-muted-foreground" />
+            Powerups
+          </Link>
           <Link
             href="/profile"
             role="menuitem"
