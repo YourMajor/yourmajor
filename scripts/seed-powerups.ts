@@ -1432,6 +1432,42 @@ async function main() {
     console.log(`  ⊘ ${r.slug} → ${r.absorbedBy}  (${r.why})`)
   }
 
+  // ── Sync new cards into pools that have not been drafted or dealt yet.
+  // A pool is a snapshot taken at tournament creation, so a card seeded later
+  // never reaches an existing event. Started drafts are left alone (adding a
+  // card mid-board shifts a live draft), and retired cards are never removed.
+  const liveIds = (await prisma.powerup.findMany({ where: { retiredAt: null }, select: { id: true } })).map((p) => p.id)
+  const candidates = await prisma.tournament.findMany({
+    where: {
+      powerupsEnabled: true,
+      tournamentPowerups: { some: {} },
+      OR: [
+        { distributionMode: 'DRAFT', OR: [{ draft: null }, { draft: { status: 'PENDING' } }] },
+        { distributionMode: 'RANDOM', players: { none: { playerPowerups: { some: {} } } } },
+      ],
+    },
+    select: {
+      id: true,
+      draft: { select: { currentRound: true, picks: { select: { tournamentRound: true } } } },
+      tournamentPowerups: { select: { powerupId: true } },
+    },
+  })
+  let syncedCards = 0
+  let syncedPools = 0
+  for (const t of candidates) {
+    if (t.draft?.picks.some((pk) => pk.tournamentRound === t.draft!.currentRound)) continue
+    const have = new Set(t.tournamentPowerups.map((tp) => tp.powerupId))
+    const missing = liveIds.filter((id) => !have.has(id))
+    if (missing.length === 0) continue
+    const { count } = await prisma.tournamentPowerup.createMany({
+      data: missing.map((powerupId) => ({ tournamentId: t.id, powerupId, quantity: 1 })),
+      skipDuplicates: true,
+    })
+    syncedCards += count
+    syncedPools++
+  }
+  console.log(`\nSynced ${syncedCards} cards into ${syncedPools} not-yet-drafted pools.`)
+
   const live = POWERUPS.filter((p) => !retiredSlugs.has(p.slug))
   const boosts = live.filter((p) => p.type === 'BOOST').length
   const attacks = live.filter((p) => p.type === 'ATTACK').length
